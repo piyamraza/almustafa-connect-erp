@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "983054782159",
+    "project_id": "almustafa-connect-erp",
+    "storage_bucket": "almustafa-connect-erp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983054782159:android:59cc0940028951a4ba71ba",
+        "android_client_info": {
+          "package_name": "com.example.almustafa_connect_erp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACDc22x1-_EYQQ8GvT8sY5pMHnhMaZGyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
