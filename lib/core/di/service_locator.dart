@@ -18,6 +18,24 @@ import '../../features/attendance/data/datasources/attendance_remote_datasource.
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
 import '../../features/attendance/presentation/bloc/attendance_bloc.dart';
+import '../../features/attendance/domain/usecases/generate_attendance_report.dart';
+import '../../features/attendance/presentation/bloc/attendance_report_bloc.dart';
+import '../../features/teachers/data/datasources/teacher_remote_datasource.dart';
+import '../../features/teachers/data/repositories/teacher_repository_impl.dart';
+import '../../features/teachers/domain/repositories/teacher_repository.dart';
+import '../../features/teachers/presentation/bloc/teacher_bloc.dart';
+import '../../features/teachers/data/datasources/teacher_assignment_remote_datasource.dart';
+import '../../features/teachers/data/repositories/teacher_assignment_repository_impl.dart';
+import '../../features/teachers/domain/repositories/teacher_assignment_repository.dart';
+import '../../features/teachers/presentation/bloc/teacher_assignment_bloc.dart';
+import '../../features/teachers/data/datasources/teacher_attendance_remote_datasource.dart';
+import '../../features/teachers/data/repositories/teacher_attendance_repository_impl.dart';
+import '../../features/teachers/domain/repositories/teacher_attendance_repository.dart';
+import '../../features/teachers/presentation/bloc/teacher_attendance_bloc.dart';
+import '../../features/exams/data/datasources/exam_remote_datasource.dart';
+import '../../features/exams/data/repositories/exam_repository_impl.dart';
+import '../../features/exams/domain/repositories/exam_repository.dart';
+import '../../features/exams/presentation/bloc/exam_bloc.dart';
 
 import '../services/firebase_auth_service.dart';
 import '../services/firebase_firestore_service.dart';
@@ -57,6 +75,24 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
   () => AttendanceRemoteDataSourceImpl(),
 );
 
+  sl.registerLazySingleton<TeacherRemoteDataSource>(
+    () => TeacherRemoteDataSourceImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+    ),
+  );
+
+  sl.registerLazySingleton<TeacherAssignmentRemoteDataSource>(
+    () => TeacherAssignmentRemoteDataSourceImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+    ),
+  );
+  sl.registerLazySingleton<TeacherAttendanceRemoteDataSource>(
+    () => TeacherAttendanceRemoteDataSourceImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+    ),
+  );
+  sl.registerLazySingleton<ExamRemoteDataSource>(() => ExamRemoteDataSourceImpl(firestoreService: sl<FirebaseFirestoreService>()));
+
   // =========================================================
   // Repositories
   // =========================================================
@@ -78,6 +114,23 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
       remoteDataSource: sl<AttendanceRemoteDataSource>(),
     ),
   );
+
+  sl.registerLazySingleton<TeacherRepository>(
+    () => TeacherRepositoryImpl(
+      remoteDataSource: sl<TeacherRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<TeacherAssignmentRepository>(
+    () => TeacherAssignmentRepositoryImpl(
+      remoteDataSource: sl<TeacherAssignmentRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<TeacherAttendanceRepository>(
+    () => TeacherAttendanceRepositoryImpl(
+      dataSource: sl<TeacherAttendanceRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<ExamRepository>(() => ExamRepositoryImpl(source: sl<ExamRemoteDataSource>()));
 
   // =========================================================
   // Use Cases
@@ -131,4 +184,23 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
       sl<AttendanceRepository>(),
     ),
   );
+
+  sl.registerLazySingleton<GenerateAttendanceReport>(
+    () => GenerateAttendanceReport(sl<AttendanceRepository>()),
+  );
+
+  sl.registerFactory<AttendanceReportBloc>(
+    () => AttendanceReportBloc(sl<GenerateAttendanceReport>()),
+  );
+
+  sl.registerFactory<TeacherBloc>(
+    () => TeacherBloc(sl<TeacherRepository>()),
+  );
+  sl.registerFactory<TeacherAssignmentBloc>(
+    () => TeacherAssignmentBloc(sl<TeacherAssignmentRepository>()),
+  );
+  sl.registerFactory<TeacherAttendanceBloc>(
+    () => TeacherAttendanceBloc(sl<TeacherAttendanceRepository>()),
+  );
+  sl.registerFactory<ExamBloc>(() => ExamBloc(sl<ExamRepository>()));
 }

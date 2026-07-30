@@ -109,6 +109,10 @@ class StudentDetailsPage extends StatelessWidget {
                                       .admissionNo,
                                 ),
                                 _InfoTile(
+                                  label: 'Roll Number',
+                                  value: student.rollNumber,
+                                ),
+                                _InfoTile(
                                   label: 'Class',
                                   value:
                                       student.classId,
@@ -253,6 +257,10 @@ class StudentDetailsPage extends StatelessWidget {
                                 'Admission No.',
                             value:
                                 student.admissionNo,
+                          ),
+                          _InfoTile(
+                            label: 'Roll Number',
+                            value: student.rollNumber,
                           ),
                           _InfoTile(
                             label: 'Class',
@@ -445,6 +453,8 @@ class _Header extends StatelessWidget {
         Text(
           'Admission No: ${student.admissionNo}',
         ),
+        const SizedBox(height: 4),
+        Text('Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}'),
         const SizedBox(height: 14),
         _StatusChip(
           active: student.isActive,

@@ -1,0 +1,56 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../domain/entities/teacher_entity.dart';
+import '../../domain/repositories/teacher_repository.dart';
+import '../bloc/teacher_bloc.dart';
+import '../bloc/teacher_event.dart';
+import '../bloc/teacher_state.dart';
+
+class UpsertTeacherPage extends StatefulWidget {
+  const UpsertTeacherPage({super.key, this.teacher});
+  final TeacherEntity? teacher;
+  bool get isEdit => teacher != null;
+  @override State<UpsertTeacherPage> createState() => _UpsertTeacherPageState();
+}
+
+class _UpsertTeacherPageState extends State<UpsertTeacherPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _repository = sl<TeacherRepository>();
+  final _name = TextEditingController(); final _employee = TextEditingController(); final _cnic = TextEditingController(); final _phone = TextEditingController(); final _email = TextEditingController(); final _address = TextEditingController(); final _designation = TextEditingController(); final _qualification = TextEditingController(); final _specialization = TextEditingController(); final _experience = TextEditingController();
+  String _gender = 'Male'; late DateTime _joiningDate; late DateTime _dateOfBirth; bool _active = true;
+  @override void initState() { super.initState(); final teacher = widget.teacher; _name.text = teacher?.fullName ?? ''; _employee.text = teacher?.employeeId ?? ''; _cnic.text = teacher?.cnic ?? ''; _phone.text = teacher?.phone ?? ''; _email.text = teacher?.email ?? ''; _address.text = teacher?.address ?? ''; _designation.text = teacher?.designation ?? ''; _qualification.text = teacher?.qualification ?? ''; _specialization.text = teacher?.specialization ?? ''; _experience.text = '${teacher?.experienceYears ?? 0}'; _gender = teacher?.gender.isNotEmpty == true ? teacher!.gender : 'Male'; _joiningDate = teacher?.joiningDate ?? DateTime.now(); _dateOfBirth = teacher?.dateOfBirth ?? DateTime(1990); _active = teacher?.isActive ?? true; }
+  @override void dispose() { for (final c in [_name,_employee,_cnic,_phone,_email,_address,_designation,_qualification,_specialization,_experience]) { c.dispose(); } super.dispose(); }
+  void _save() { if (!_formKey.currentState!.validate()) return; final parts = _name.text.trim().split(RegExp(r'\s+')); final now = DateTime.now(); context.read<TeacherBloc>().add(SaveTeacherEvent(TeacherEntity(id: widget.teacher?.id ?? _repository.generateTeacherId(), employeeId: _employee.text.trim().isEmpty ? 'TCH${now.millisecondsSinceEpoch}' : _employee.text.trim(), firstName: parts.first, lastName: parts.length > 1 ? parts.skip(1).join(' ') : '', gender: _gender, cnic: _cnic.text.trim(), dateOfBirth: _dateOfBirth, phone: _phone.text.trim(), email: _email.text.trim(), address: _address.text.trim(), designation: _designation.text.trim(), qualification: _qualification.text.trim(), specialization: _specialization.text.trim(), experienceYears: int.tryParse(_experience.text.trim()) ?? 0, joiningDate: _joiningDate, isActive: _active, createdAt: widget.teacher?.createdAt ?? now, updatedAt: now))); }
+  @override Widget build(BuildContext context) {
+    return BlocListener<TeacherBloc, TeacherState>(
+      listener: (context, state) { if (state is TeacherLoaded) Navigator.of(context).pop(); if (state is TeacherError) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message))); },
+      child: Scaffold(
+        appBar: AppBar(title: Text(widget.isEdit ? 'Edit Teacher' : 'Add Teacher')),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Center(child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 920),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Basic information', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 16),
+                _field(_name, 'Full Name', Icons.person, required: true), const SizedBox(height: 14),
+                _field(_employee, 'Employee ID', Icons.badge), const SizedBox(height: 14), _field(_cnic, 'CNIC', Icons.credit_card), const SizedBox(height: 14), _genderField(), const SizedBox(height: 14), _dateOfBirthField(), const SizedBox(height: 14), _field(_phone, 'Phone', Icons.phone, type: TextInputType.phone), const SizedBox(height: 24),
+                Text('Professional information', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 16), _field(_designation, 'Designation', Icons.work, required: true), const SizedBox(height: 14), _field(_qualification, 'Qualification', Icons.school), const SizedBox(height: 14), _field(_specialization, 'Specialization / Subject', Icons.menu_book), const SizedBox(height: 14), _field(_experience, 'Experience (years)', Icons.timelapse, type: TextInputType.number), const SizedBox(height: 14), _joiningField(), const SizedBox(height: 24),
+                Text('Contact information', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 16), _field(_email, 'Email', Icons.email, type: TextInputType.emailAddress), const SizedBox(height: 14), _field(_address, 'Address', Icons.home, maxLines: 2),
+                SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Active teacher'), value: _active, onChanged: (value) => setState(() => _active = value)), const SizedBox(height: 16),
+                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _save, icon: const Icon(Icons.save), label: Text(widget.isEdit ? 'Update Teacher' : 'Save Teacher'))),
+              ]),
+            )),
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _field(TextEditingController c, String label, IconData icon, {bool required = false, TextInputType type = TextInputType.text, int maxLines = 1}) => TextFormField(controller: c, keyboardType: type, maxLines: maxLines, validator: required ? (value) => value == null || value.trim().isEmpty ? '$label is required' : null : null, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: const OutlineInputBorder()));
+  Widget _genderField() => DropdownButtonFormField<String>(value: _gender, decoration: const InputDecoration(labelText: 'Gender', prefixIcon: Icon(Icons.person_outline), border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Male', child: Text('Male')), DropdownMenuItem(value: 'Female', child: Text('Female'))], onChanged: (value) => setState(() => _gender = value ?? _gender));
+  Widget _dateOfBirthField() => OutlinedButton.icon(onPressed: () async { final date = await showDatePicker(context: context, initialDate: _dateOfBirth, firstDate: DateTime(1950), lastDate: DateTime.now()); if (date != null) setState(() => _dateOfBirth = date); }, icon: const Icon(Icons.cake_outlined), label: Text('Date of birth: ${_dateOfBirth.day}/${_dateOfBirth.month}/${_dateOfBirth.year}'));
+  Widget _joiningField() => OutlinedButton.icon(onPressed: () async { final date = await showDatePicker(context: context, initialDate: _joiningDate, firstDate: DateTime(1990), lastDate: DateTime.now()); if (date != null) setState(() => _joiningDate = date); }, icon: const Icon(Icons.calendar_month), label: Text('Joining date: ${_joiningDate.day}/${_joiningDate.month}/${_joiningDate.year}'));
+}

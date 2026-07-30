@@ -6,12 +6,9 @@ import '../../domain/entities/attendance_entity.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
+import 'student_attendance_history_detail_page.dart';
 
 class StudentAttendancePage extends StatefulWidget {
-  final String? classId;
-  final String? sectionId;
-  final DateTime? selectedDate;
-
   const StudentAttendancePage({
     super.key,
     this.classId,
@@ -19,16 +16,16 @@ class StudentAttendancePage extends StatefulWidget {
     this.selectedDate,
   });
 
+  final String? classId;
+  final String? sectionId;
+  final DateTime? selectedDate;
+
   @override
-  State<StudentAttendancePage> createState() =>
-      _StudentAttendancePageState();
+  State<StudentAttendancePage> createState() => _StudentAttendancePageState();
 }
 
-class _StudentAttendancePageState
-    extends State<StudentAttendancePage> {
-  final TextEditingController _searchController =
-      TextEditingController();
-
+class _StudentAttendancePageState extends State<StudentAttendancePage> {
+  final TextEditingController _searchController = TextEditingController();
   String _search = '';
 
   @override
@@ -46,168 +43,71 @@ class _StudentAttendancePageState
       inheritedBloc = null;
     }
 
-    final page = Builder(
-      builder: (context) => Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Attendance'),
-      ),
+    final content = Scaffold(
+      appBar: AppBar(title: const Text('Student Attendance')),
       body: BlocBuilder<AttendanceBloc, AttendanceState>(
         builder: (context, state) {
           if (state is AttendanceLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
+          if (state is AttendanceError) return Center(child: Text(state.message));
+          if (state is! AttendanceLoaded) return const SizedBox();
 
-          if (state is AttendanceError) {
-            return Center(
-              child: Text(state.message),
-            );
-          }
-
-          if (state is! AttendanceLoaded) {
-            return const SizedBox();
-          }
-
-          final selectedDate = widget.selectedDate == null
-              ? null
-              : DateTime(
-                  widget.selectedDate!.year,
-                  widget.selectedDate!.month,
-                  widget.selectedDate!.day,
-                );
-
-          final records = state.attendance.where((item) {
-            final attendanceDate = DateTime(
-              item.attendanceDate.year,
-              item.attendanceDate.month,
-              item.attendanceDate.day,
-            );
-
-            final matchesDate = selectedDate == null || attendanceDate == selectedDate;
-
-            final matchesClass =
-                widget.classId == null || item.classId == widget.classId;
-
-            final matchesSection =
-                widget.sectionId == null ||
-                    item.sectionId ==
-                        widget.sectionId;
-
-            final matchesSearch =
-                item.studentName
-                    .toLowerCase()
-                    .contains(
-                      _search.toLowerCase(),
-                    ) ||
-                item.admissionNo
-                    .toLowerCase()
-                    .contains(
-                      _search.toLowerCase(),
-                    );
-
-            return matchesDate &&
-                matchesClass &&
-                matchesSection &&
-                matchesSearch;
-          }).toList();
-
-          records.sort(
-            (a, b) => a.studentName.compareTo(
-              b.studentName,
-            ),
-          );
-
+          final students = _buildStudentSummaries(state.attendance);
           return Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: TextField(
                   controller: _searchController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText:
-                        'Search student...',
-                    border:
-                        OutlineInputBorder(),
+                  onChanged: (value) => setState(() => _search = value.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: 'Search by name or admission number...',
+                    suffixIcon: _search.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: _searchController.clear,
+                          ),
+                    border: const OutlineInputBorder(),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _search = value;
-                    });
-                  },
                 ),
               ),
-
               Expanded(
-                child: records.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No attendance found.',
-                        ),
-                      )
-                    : ListView.builder(
-                        padding:
-                            const EdgeInsets.only(
-                          left: 16,
-                          right: 16,
-                          bottom: 16,
-                        ),
-                        itemCount: records.length,
-                        itemBuilder:
-                            (context, index) {
-                          final student =
-                              records[index];
+                child: students.isEmpty
+                    ? const Center(child: Text('No students found.'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        itemCount: students.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final student = students[index];
                           return Card(
-                            margin: const EdgeInsets.only(
-                              bottom: 12,
-                            ),
                             child: ListTile(
                               leading: CircleAvatar(
                                 child: Text(
-                                  student.studentName
-                                      .isNotEmpty
-                                      ? student.studentName[0]
-                                          .toUpperCase()
-                                      : '?',
+                                  student.name.isEmpty
+                                      ? '?'
+                                      : student.name[0].toUpperCase(),
                                 ),
                               ),
-                              title: Text(
-                                student.studentName,
+                              title: Text(student.name),
+                              subtitle: Text(
+                                '${student.admissionNo} • ${student.classId}-${student.sectionId}\n'
+                                '${student.records.length} attendance record(s)',
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Admission No: ${student.admissionNo}',
-                                  ),
-                                 
-                                ],
-                              ),
-                              trailing: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _statusColor(
-                                    student.status,
-                                  ),
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                    20,
-                                  ),
-                                ),
-                                child: Text(
-                                  _statusText(
-                                    student.status,
-                                  ),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight:
-                                        FontWeight.bold,
+                              isThreeLine: true,
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => StudentAttendanceHistoryDetailPage(
+                                    studentId: student.studentId,
+                                    studentName: student.name,
+                                    admissionNo: student.admissionNo,
+                                    classId: student.classId,
+                                    sectionId: student.sectionId,
+                                    records: student.records,
                                   ),
                                 ),
                               ),
@@ -220,52 +120,74 @@ class _StudentAttendancePageState
           );
         },
       ),
-      ),
     );
+
     return inheritedBloc == null
         ? BlocProvider<AttendanceBloc>(
             create: (_) => sl<AttendanceBloc>()..add(const LoadAttendanceEvent()),
-            child: page,
+            child: content,
           )
-        : BlocProvider<AttendanceBloc>.value(
-            value: inheritedBloc,
-            child: page,
+        : BlocProvider<AttendanceBloc>.value(value: inheritedBloc, child: content);
+  }
+
+  List<_StudentAttendanceSummary> _buildStudentSummaries(
+    List<AttendanceEntity> records,
+  ) {
+    final selectedDay = widget.selectedDate == null
+        ? null
+        : DateTime(
+            widget.selectedDate!.year,
+            widget.selectedDate!.month,
+            widget.selectedDate!.day,
           );
-  }
-
-  Color _statusColor(
-    AttendanceStatus status,
-  ) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return Colors.green;
-
-      case AttendanceStatus.absent:
-        return Colors.red;
-
-      case AttendanceStatus.late:
-        return Colors.blue;
-
-      case AttendanceStatus.leave:
-        return Colors.orange;
+    final grouped = <String, List<AttendanceEntity>>{};
+    for (final record in records) {
+      final recordDay = DateTime(
+        record.attendanceDate.year,
+        record.attendanceDate.month,
+        record.attendanceDate.day,
+      );
+      final matchesSelection =
+          (selectedDay == null || recordDay == selectedDay) &&
+              (widget.classId == null || record.classId == widget.classId) &&
+              (widget.sectionId == null || record.sectionId == widget.sectionId) &&
+              (_search.isEmpty ||
+                  record.studentName.toLowerCase().contains(_search) ||
+                  record.admissionNo.toLowerCase().contains(_search));
+      if (matchesSelection) {
+        grouped.putIfAbsent(record.studentId, () => []).add(record);
+      }
     }
+    final summaries = grouped.entries.map((entry) {
+      final first = entry.value.first;
+      return _StudentAttendanceSummary(
+        studentId: entry.key,
+        name: first.studentName,
+        admissionNo: first.admissionNo,
+        classId: first.classId,
+        sectionId: first.sectionId,
+        records: entry.value,
+      );
+    }).toList();
+    summaries.sort((first, second) => first.name.compareTo(second.name));
+    return summaries;
   }
+}
 
-  String _statusText(
-    AttendanceStatus status,
-  ) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return 'Present';
+class _StudentAttendanceSummary {
+  const _StudentAttendanceSummary({
+    required this.studentId,
+    required this.name,
+    required this.admissionNo,
+    required this.classId,
+    required this.sectionId,
+    required this.records,
+  });
 
-      case AttendanceStatus.absent:
-        return 'Absent';
-
-      case AttendanceStatus.late:
-        return 'Late';
-
-      case AttendanceStatus.leave:
-        return 'Leave';
-    }
-  }
+  final String studentId;
+  final String name;
+  final String admissionNo;
+  final String classId;
+  final String sectionId;
+  final List<AttendanceEntity> records;
 }

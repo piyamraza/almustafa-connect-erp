@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
+import '../../../teachers/presentation/pages/teachers_module_page.dart';
+import '../../../exams/presentation/pages/exams_page.dart';
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
 
@@ -46,7 +48,13 @@ class Sidebar extends StatelessWidget {
             context,
             icon: Icons.person,
             title: 'Teachers',
-            onTap: () {},
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const TeachersModulePage(),
+                ),
+              );
+            },
           ),
 
           _menuTile(
@@ -94,7 +102,7 @@ class Sidebar extends StatelessWidget {
             context,
             icon: Icons.quiz,
             title: 'Examinations',
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExamsPage())),
           ),
 
           _menuTile(

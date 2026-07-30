@@ -64,6 +64,15 @@ class AttendanceRepositoryImpl
   }
 
   @override
+  Future<List<AttendanceEntity>> getAttendanceForReport({
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) => remoteDataSource.getAttendanceForReport(
+        fromDate: fromDate,
+        toDate: toDate,
+      );
+
+  @override
   String generateAttendanceId() {
     return remoteDataSource.generateAttendanceId();
   }

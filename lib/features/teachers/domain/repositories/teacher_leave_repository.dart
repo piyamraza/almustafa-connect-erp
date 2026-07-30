@@ -1,0 +1,1 @@
+import '../entities/teacher_leave_entity.dart'; abstract class TeacherLeaveRepository { Future<List<TeacherLeaveEntity>> getLeaves(); Future<void> save(TeacherLeaveEntity leave); String generateId(); }

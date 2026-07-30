@@ -1,6 +1,7 @@
 class StudentEntity {
   final String id;
   final String admissionNo;
+  final String rollNumber;
 
   final String firstName;
   final String lastName;
@@ -28,6 +29,7 @@ class StudentEntity {
   const StudentEntity({
     required this.id,
     required this.admissionNo,
+    required this.rollNumber,
     required this.firstName,
     required this.lastName,
     required this.gender,
@@ -50,6 +52,7 @@ class StudentEntity {
   StudentEntity copyWith({
     String? id,
     String? admissionNo,
+    String? rollNumber,
     String? firstName,
     String? lastName,
     String? gender,
@@ -69,6 +72,7 @@ class StudentEntity {
     return StudentEntity(
       id: id ?? this.id,
       admissionNo: admissionNo ?? this.admissionNo,
+      rollNumber: rollNumber ?? this.rollNumber,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       gender: gender ?? this.gender,

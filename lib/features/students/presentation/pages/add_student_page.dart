@@ -36,6 +36,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final TextEditingController _admissionNoController =
       TextEditingController();
 
+  final TextEditingController _rollNumberController =
+      TextEditingController();
+
 final TextEditingController _fatherNameController =
     TextEditingController();
 
@@ -308,6 +311,7 @@ final admissionNo =
     final student = StudentEntity(
       id: studentId,
       admissionNo: admissionNo,
+      rollNumber: _rollNumberController.text.trim(),
       firstName: firstName,
       lastName: lastName,
       gender: selectedGender!,
@@ -348,6 +352,7 @@ void initState() {
 
   _studentNameController.text = student.fullName;
   _admissionNoController.text = student.admissionNo;
+  _rollNumberController.text = student.rollNumber;
   _fatherNameController.text = student.fatherName;
   _motherNameController.text = student.motherName;
   _mobileController.text = student.guardianPhone;
@@ -366,6 +371,7 @@ void initState() {
   void dispose() {
 _studentNameController.dispose();
 _admissionNoController.dispose();
+_rollNumberController.dispose();
 _fatherNameController.dispose();
 _motherNameController.dispose();
 _mobileController.dispose();
@@ -526,6 +532,23 @@ else if (
                             },
                           ),
                         ),
+
+                        const SizedBox(width: 20),
+
+                        Expanded(
+                          child: _textField(
+                            controller: _rollNumberController,
+                            label: 'Roll Number',
+                            icon: Icons.format_list_numbered,
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Roll Number is required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
                       ],
                     )
                   else ...[
@@ -552,6 +575,21 @@ else if (
                       label: 'Admission No.',
                       icon: Icons.badge,
                       validator: (value) {
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _textField(
+                      controller: _rollNumberController,
+                      label: 'Roll Number',
+                      icon: Icons.format_list_numbered,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Roll Number is required';
+                        }
                         return null;
                       },
                     ),

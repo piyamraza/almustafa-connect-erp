@@ -184,11 +184,24 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
 
   List<StudentEntity> _filteredStudents(List<StudentEntity> students) {
     final query = _searchController.text.trim().toLowerCase();
-    return students.where((student) {
+    final filtered = students.where((student) {
       return student.classId == _selectedClass &&
           (_selectedSection == null || student.sectionId == _selectedSection) &&
-          (query.isEmpty || student.fullName.toLowerCase().contains(query) || student.admissionNo.toLowerCase().contains(query));
+          (query.isEmpty || student.fullName.toLowerCase().contains(query) || student.admissionNo.toLowerCase().contains(query) || student.rollNumber.toLowerCase().contains(query));
     }).toList();
+    filtered.sort(_compareByRollNumber);
+    return filtered;
+  }
+
+  int _compareByRollNumber(StudentEntity first, StudentEntity second) {
+    final firstNumber = int.tryParse(first.rollNumber.trim());
+    final secondNumber = int.tryParse(second.rollNumber.trim());
+    if (firstNumber != null && secondNumber != null) {
+      return firstNumber.compareTo(secondNumber);
+    }
+    if (firstNumber != null) return -1;
+    if (secondNumber != null) return 1;
+    return first.rollNumber.compareTo(second.rollNumber);
   }
 
   void _cacheAttendance(List<AttendanceEntity> records) {
@@ -410,7 +423,7 @@ class _StudentDetails extends StatelessWidget {
   const _StudentDetails({required this.student});
   final StudentEntity student;
   @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 24, child: Text(student.fullName.isEmpty ? '?' : student.fullName[0].toUpperCase())), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(student.fullName, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)), const SizedBox(height: 6), Text('Admission No: ${student.admissionNo}'), Text('Father: ${student.fatherName}'), if (student.guardianPhone.isNotEmpty) Text('Mobile: ${student.guardianPhone}')]))]);
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 24, child: Text(student.fullName.isEmpty ? '?' : student.fullName[0].toUpperCase())), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(student.fullName, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)), const SizedBox(height: 6), Text('Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}'), Text('Admission No: ${student.admissionNo}'), Text('Father: ${student.fatherName}'), if (student.guardianPhone.isNotEmpty) Text('Mobile: ${student.guardianPhone}')]))]);
 }
 
 class _AttendanceControls extends StatelessWidget {

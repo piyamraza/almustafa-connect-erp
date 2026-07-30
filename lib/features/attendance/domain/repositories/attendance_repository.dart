@@ -23,5 +23,10 @@ abstract class AttendanceRepository {
     String studentId,
   );
 
+  Future<List<AttendanceEntity>> getAttendanceForReport({
+    required DateTime fromDate,
+    required DateTime toDate,
+  });
+
   String generateAttendanceId();
 }

@@ -1,0 +1,3 @@
+import 'package:equatable/equatable.dart';
+enum TeacherLeaveStatus { pending, approved, rejected }
+class TeacherLeaveEntity extends Equatable { const TeacherLeaveEntity({required this.id,required this.teacherId,required this.teacherName,required this.type,required this.fromDate,required this.toDate,required this.reason,required this.status,required this.createdAt}); final String id,teacherId,teacherName,type,reason; final DateTime fromDate,toDate,createdAt; final TeacherLeaveStatus status; @override List<Object> get props=>[id,teacherId,teacherName,type,fromDate,toDate,reason,status,createdAt]; }

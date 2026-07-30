@@ -1,0 +1,3 @@
+import 'package:equatable/equatable.dart';
+enum TeacherAttendanceStatus { present, absent, late, leave }
+class TeacherAttendanceEntity extends Equatable { const TeacherAttendanceEntity({required this.id, required this.teacherId, required this.teacherName, required this.attendanceDate, required this.status, required this.remarks, required this.createdAt, required this.updatedAt}); final String id, teacherId, teacherName, remarks; final DateTime attendanceDate, createdAt, updatedAt; final TeacherAttendanceStatus status; @override List<Object> get props => [id,teacherId,teacherName,attendanceDate,status,remarks,createdAt,updatedAt]; }

@@ -25,6 +25,11 @@ abstract class AttendanceRemoteDataSource {
     String studentId,
   );
 
+  Future<List<AttendanceModel>> getAttendanceForReport({
+    required DateTime fromDate,
+    required DateTime toDate,
+  });
+
   String generateAttendanceId();
 }
 
@@ -160,6 +165,25 @@ class AttendanceRemoteDataSourceImpl
             'id': doc.data()['id'] ?? doc.id,
           }),
         )
+        .toList();
+  }
+
+  @override
+  Future<List<AttendanceModel>> getAttendanceForReport({
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
+    final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final end = DateTime(toDate.year, toDate.month, toDate.day)
+        .add(const Duration(days: 1));
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('attendanceDate', isGreaterThanOrEqualTo: start.toIso8601String())
+        .where('attendanceDate', isLessThan: end.toIso8601String())
+        .orderBy('attendanceDate', descending: true)
+        .get();
+    return snapshot.docs
+        .map((doc) => AttendanceModel.fromMap({...doc.data(), 'id': doc.data()['id'] ?? doc.id}))
         .toList();
   }
 

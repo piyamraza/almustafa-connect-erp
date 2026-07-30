@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'mark_attendance_page.dart';
 import 'attendance_history_page.dart';
 import 'student_attendance_page.dart';
+import 'attendance_reports_page.dart';
 
 class AttendancePage extends StatelessWidget {
   const AttendancePage({super.key});
@@ -87,7 +88,7 @@ if (width >= 1200) {
                           return _AttendanceCard(
                             title: 'Attendance Reports',
                             icon: Icons.bar_chart_outlined,
-                            isDisabled: true,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceReportsPage())),
                           );
                         default:
                           return const SizedBox.shrink();

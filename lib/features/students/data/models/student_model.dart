@@ -4,6 +4,7 @@ class StudentModel extends StudentEntity {
   const StudentModel({
     required super.id,
     required super.admissionNo,
+    required super.rollNumber,
     required super.firstName,
     required super.lastName,
     required super.gender,
@@ -25,6 +26,7 @@ class StudentModel extends StudentEntity {
     return StudentModel(
       id: map['id'] ?? '',
       admissionNo: map['admissionNo'] ?? '',
+      rollNumber: map['rollNumber'] ?? '',
       firstName: map['firstName'] ?? '',
       lastName: map['lastName'] ?? '',
       gender: map['gender'] ?? '',
@@ -47,6 +49,7 @@ class StudentModel extends StudentEntity {
     return {
       'id': id,
       'admissionNo': admissionNo,
+      'rollNumber': rollNumber,
       'firstName': firstName,
       'lastName': lastName,
       'gender': gender,
@@ -69,6 +72,7 @@ class StudentModel extends StudentEntity {
     return StudentModel(
       id: entity.id,
       admissionNo: entity.admissionNo,
+      rollNumber: entity.rollNumber,
       firstName: entity.firstName,
       lastName: entity.lastName,
       gender: entity.gender,

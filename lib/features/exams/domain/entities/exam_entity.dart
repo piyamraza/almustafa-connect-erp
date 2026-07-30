@@ -1,0 +1,3 @@
+import 'package:equatable/equatable.dart';
+enum ExamType { monthly, quarterly, midTerm, finalExam }
+class ExamEntity extends Equatable { const ExamEntity({required this.id,required this.name,required this.type,required this.academicSession,required this.classId,required this.sectionId,required this.subject,required this.examDate,required this.totalMarks,required this.passingMarks,required this.createdAt}); final String id,name,academicSession,classId,sectionId,subject; final ExamType type; final DateTime examDate,createdAt; final double totalMarks,passingMarks; @override List<Object> get props=>[id,name,type,academicSession,classId,sectionId,subject,examDate,totalMarks,passingMarks,createdAt]; }
