@@ -49,9 +49,10 @@ class AttendanceRemoteDataSourceImpl
 
     return snapshot.docs
         .map(
-          (doc) => AttendanceModel.fromMap(
-            doc.data(),
-          ),
+          (doc) => AttendanceModel.fromMap({
+            ...doc.data(),
+            'id': doc.data()['id'] ?? doc.id,
+          }),
         )
         .toList();
   }
@@ -60,11 +61,14 @@ class AttendanceRemoteDataSourceImpl
   Future<void> addAttendance(
     AttendanceModel attendance,
   ) async {
+    final existingDocumentId = await _findExistingDocumentId(attendance);
+    final documentId = existingDocumentId ?? attendance.id;
     await _firestore
         .collection(_collection)
-        .doc(attendance.id)
+        .doc(documentId)
         .set(
-          attendance.toMap(),
+          attendance.copyWith(id: documentId).toMap(),
+          SetOptions(merge: true),
         );
   }
 
@@ -72,11 +76,14 @@ class AttendanceRemoteDataSourceImpl
   Future<void> updateAttendance(
     AttendanceModel attendance,
   ) async {
+    final existingDocumentId = await _findExistingDocumentId(attendance);
+    final documentId = existingDocumentId ?? attendance.id;
     await _firestore
         .collection(_collection)
-        .doc(attendance.id)
-        .update(
-          attendance.toMap(),
+        .doc(documentId)
+        .set(
+          attendance.copyWith(id: documentId).toMap(),
+          SetOptions(merge: true),
         );
   }
 
@@ -121,9 +128,10 @@ class AttendanceRemoteDataSourceImpl
 
     return snapshot.docs
         .map(
-          (doc) => AttendanceModel.fromMap(
-            doc.data(),
-          ),
+          (doc) => AttendanceModel.fromMap({
+            ...doc.data(),
+            'id': doc.data()['id'] ?? doc.id,
+          }),
         )
         .toList();
   }
@@ -147,9 +155,10 @@ class AttendanceRemoteDataSourceImpl
 
     return snapshot.docs
         .map(
-          (doc) => AttendanceModel.fromMap(
-            doc.data(),
-          ),
+          (doc) => AttendanceModel.fromMap({
+            ...doc.data(),
+            'id': doc.data()['id'] ?? doc.id,
+          }),
         )
         .toList();
   }
@@ -160,5 +169,30 @@ class AttendanceRemoteDataSourceImpl
         .collection(_collection)
         .doc()
         .id;
+  }
+
+  Future<String?> _findExistingDocumentId(AttendanceModel attendance) async {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('studentId', isEqualTo: attendance.studentId)
+        .get();
+    final day = DateTime(
+      attendance.attendanceDate.year,
+      attendance.attendanceDate.month,
+      attendance.attendanceDate.day,
+    );
+    for (final document in snapshot.docs) {
+      final data = document.data();
+      final rawDate = data['attendanceDate'];
+      if (rawDate is! String) continue;
+      final storedDate = DateTime.tryParse(rawDate);
+      if (storedDate == null) continue;
+      if (storedDate.year == day.year &&
+          storedDate.month == day.month &&
+          storedDate.day == day.day) {
+        return document.id;
+      }
+    }
+    return null;
   }
 }

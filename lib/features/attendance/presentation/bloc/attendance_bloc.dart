@@ -70,6 +70,8 @@ class AttendanceBloc
         event.attendance,
       );
 
+      emit(AttendanceUpdated(event.attendance));
+
       final attendance =
           await _repository.getAttendance();
 

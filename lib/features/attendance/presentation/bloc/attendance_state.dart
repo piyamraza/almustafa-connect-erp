@@ -34,3 +34,12 @@ class AttendanceError extends AttendanceState {
   @override
   List<Object?> get props => [message];
 }
+
+class AttendanceUpdated extends AttendanceState {
+  final AttendanceEntity attendance;
+
+  const AttendanceUpdated(this.attendance);
+
+  @override
+  List<Object?> get props => [attendance];
+}
