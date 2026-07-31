@@ -4,6 +4,7 @@ class FirestorePaths {
   static const String students = 'students';
   static const String teachers = 'teachers';
   static const String teacherAssignments = 'teacher_assignments';
+  static const String teacherAvailabilities = 'teacher_availabilities';
   static const String teacherAttendance = 'teacher_attendance';
   static const String staffAttendance = 'staff_attendance';
   static const String staffSalaries = 'staff_salaries';
@@ -20,8 +21,16 @@ class FirestorePaths {
   static const String examSubjectSetups = 'exam_subject_setups';
   static const String examMarks = 'exam_marks';
   static const String examResults = 'exam_results';
+  static const String examDateSheets = 'exam_date_sheets';
   static const String gradingRules = 'grading_rules';
   static const String timetableConfigurations = 'timetable_configurations';
   static const String timetableEntries = 'timetable_entries';
+  static const String timetableVersions = 'timetable_versions';
   static const String fees = 'fees';
+  static const String feeStructures = 'fee_structures';
+  static const String studentFeeAssignments = 'student_fee_assignments';
+  static const String monthlyFeeDues = 'monthly_fee_dues';
+  static const String feePayments = 'fee_payments';
+  static const String academicCalendarEvents = 'academic_calendar_events';
+  static const String academicYearConfigs = 'academic_year_configs';
 }

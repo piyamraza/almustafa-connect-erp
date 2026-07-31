@@ -418,41 +418,69 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
 
             return Stack(
               children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1500),
+                      constraints: const BoxConstraints(maxWidth: 1600),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Class Timetable Builder',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Select a class and click any period to assign '
-                            'its subject and teacher.',
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Class Timetable Builder',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Select a class and click any period to '
+                                      'assign its subject and teacher.',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 10),
                           _buildFilters(isBusy),
-                          const SizedBox(height: 20),
-                          if (_referenceError != null)
-                            _MessageCard(
-                              icon: Icons.error_outline,
-                              message: _referenceError!,
-                              color: Theme.of(context).colorScheme.error,
-                            )
-                          else if (!_referenceLoading)
-                            _buildContent(entries),
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: _referenceError != null
+                                ? Align(
+                                    alignment: Alignment.topCenter,
+                                    child: _MessageCard(
+                                      icon: Icons.error_outline,
+                                      message: _referenceError!,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                                  )
+                                : !_referenceLoading
+                                ? _buildContent(entries)
+                                : const SizedBox.shrink(),
+                          ),
                         ],
                       ),
                     ),
@@ -474,48 +502,64 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
   }
 
   Widget _buildFilters(bool isBusy) {
+    const denseDecorationPadding = EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 11,
+    );
+
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(12),
         child: Wrap(
-          spacing: 14,
-          runSpacing: 14,
+          spacing: 10,
+          runSpacing: 10,
           crossAxisAlignment: WrapCrossAlignment.end,
           children: [
             SizedBox(
-              width: 190,
+              width: 155,
               child: TextFormField(
                 controller: _branchController,
                 decoration: const InputDecoration(
                   labelText: 'Branch ID',
                   border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: denseDecorationPadding,
                 ),
               ),
             ),
             SizedBox(
-              width: 190,
+              width: 165,
               child: TextFormField(
                 controller: _sessionController,
                 decoration: const InputDecoration(
                   labelText: 'Academic Session',
                   border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: denseDecorationPadding,
                 ),
               ),
             ),
             SizedBox(
-              width: 220,
+              width: 200,
               child: DropdownButtonFormField<String>(
                 key: ValueKey('class_$_selectedClassId'),
                 initialValue: _selectedClassId,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Class',
                   border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: denseDecorationPadding,
                 ),
                 items: _classes
                     .map(
                       (value) => DropdownMenuItem<String>(
                         value: value.id,
-                        child: Text(value.name),
+                        child: Text(
+                          value.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
@@ -523,29 +567,38 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
               ),
             ),
             SizedBox(
-              width: 180,
+              width: 160,
               child: DropdownButtonFormField<String>(
                 key: ValueKey('section_$_selectedSectionId'),
                 initialValue: _selectedSectionId,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Section',
                   border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: denseDecorationPadding,
                 ),
                 items: _availableSections
                     .map(
                       (value) => DropdownMenuItem<String>(
                         value: value.id,
-                        child: Text(value.name),
+                        child: Text(
+                          value.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(growable: false),
                 onChanged: isBusy ? null : _selectSection,
               ),
             ),
-            FilledButton.icon(
-              onPressed: isBusy ? null : _loadReferenceData,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Load Timetable'),
+            SizedBox(
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: isBusy ? null : _loadReferenceData,
+                icon: const Icon(Icons.refresh, size: 19),
+                label: const Text('Load Timetable'),
+              ),
             ),
           ],
         ),
@@ -556,26 +609,35 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
   Widget _buildContent(List<ClassTimetableEntryEntity> entries) {
     final configuration = _configuration;
     if (configuration == null) {
-      return const _MessageCard(
-        icon: Icons.settings_outlined,
-        message:
-            'Timetable configuration was not found. Complete Timetable '
-            'Configuration for this branch and session first.',
-        color: Color(0xFFF57C00),
+      return const Align(
+        alignment: Alignment.topCenter,
+        child: _MessageCard(
+          icon: Icons.settings_outlined,
+          message:
+              'Timetable configuration was not found. Complete Timetable '
+              'Configuration for this branch and session first.',
+          color: Color(0xFFF57C00),
+        ),
       );
     }
     if (_classes.isEmpty) {
-      return const _MessageCard(
-        icon: Icons.school_outlined,
-        message: 'No active classes are available.',
-        color: Color(0xFFF57C00),
+      return const Align(
+        alignment: Alignment.topCenter,
+        child: _MessageCard(
+          icon: Icons.school_outlined,
+          message: 'No active classes are available.',
+          color: Color(0xFFF57C00),
+        ),
       );
     }
     if (_selectedSectionId == null) {
-      return const _MessageCard(
-        icon: Icons.segment_outlined,
-        message: 'No active section is available for the selected class.',
-        color: Color(0xFFF57C00),
+      return const Align(
+        alignment: Alignment.topCenter,
+        child: _MessageCard(
+          icon: Icons.segment_outlined,
+          message: 'No active section is available for the selected class.',
+          color: Color(0xFFF57C00),
+        ),
       );
     }
 
@@ -585,10 +647,13 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     final days = configuration.workingDays.toList()..sort();
 
     if (periods.isEmpty || days.isEmpty) {
-      return const _MessageCard(
-        icon: Icons.event_busy_outlined,
-        message: 'No teaching periods or working days are configured.',
-        color: Color(0xFFF57C00),
+      return const Align(
+        alignment: Alignment.topCenter,
+        child: _MessageCard(
+          icon: Icons.event_busy_outlined,
+          message: 'No teaching periods or working days are configured.',
+          color: Color(0xFFF57C00),
+        ),
       );
     }
 
@@ -597,67 +662,116 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     };
 
     return Card(
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                const Icon(Icons.view_week_outlined),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${_selectedClass?.name ?? ''} - '
-                    '${_selectedSection?.name ?? ''}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+          SizedBox(
+            height: 48,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.view_week_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${_selectedClass?.name ?? ''} - '
+                      '${_selectedSection?.name ?? ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                Text('${entries.length} assigned periods'),
-              ],
+                  Text(
+                    '${entries.length} assigned',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 165 + (days.length * 190),
-              child: Table(
-                border: TableBorder.all(color: Theme.of(context).dividerColor),
-                columnWidths: <int, TableColumnWidth>{
-                  0: const FixedColumnWidth(165),
-                  for (var index = 1; index <= days.length; index++)
-                    index: const FixedColumnWidth(190),
-                },
-                children: [
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                    ),
-                    children: [
-                      _headerCell('Period'),
-                      for (final day in days) _headerCell(_dayName(day)),
-                    ],
-                  ),
-                  for (final period in periods)
-                    TableRow(
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const dayColumnWidth = 112.0;
+                const minimumPeriodWidth = 126.0;
+                const maximumPeriodWidth = 180.0;
+                const headerHeight = 52.0;
+
+                final availablePeriodWidth =
+                    (constraints.maxWidth - dayColumnWidth) / periods.length;
+                final periodColumnWidth = availablePeriodWidth
+                    .clamp(minimumPeriodWidth, maximumPeriodWidth)
+                    .toDouble();
+
+                final calculatedTableWidth =
+                    dayColumnWidth + (periodColumnWidth * periods.length);
+                final tableWidth = calculatedTableWidth < constraints.maxWidth
+                    ? constraints.maxWidth
+                    : calculatedTableWidth;
+
+                final availableRowsHeight =
+                    constraints.maxHeight - headerHeight;
+                final calculatedRowHeight = availableRowsHeight / days.length;
+                final rowHeight = calculatedRowHeight
+                    .clamp(48.0, 92.0)
+                    .toDouble();
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Table(
+                      border: TableBorder.all(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                      columnWidths: <int, TableColumnWidth>{
+                        0: const FixedColumnWidth(dayColumnWidth),
+                        for (var index = 1; index <= periods.length; index++)
+                          index: FixedColumnWidth(periodColumnWidth),
+                      },
                       children: [
-                        _periodCell(period),
+                        TableRow(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                          ),
+                          children: [
+                            _dayHeaderCell(headerHeight),
+                            for (final period in periods)
+                              _periodHeaderCell(period, headerHeight),
+                          ],
+                        ),
                         for (final day in days)
-                          _scheduleCell(
-                            weekday: day,
-                            period: period,
-                            entry: bySlot['$day|${period.id}'],
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: days.indexOf(day).isEven
+                                  ? Theme.of(context).colorScheme.surface
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerLowest,
+                            ),
+                            children: [
+                              _dayCell(day, rowHeight),
+                              for (final period in periods)
+                                _scheduleCell(
+                                  weekday: day,
+                                  period: period,
+                                  entry: bySlot['$day|${period.id}'],
+                                  height: rowHeight,
+                                ),
+                            ],
                           ),
                       ],
                     ),
-                ],
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -665,35 +779,59 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     );
   }
 
-  Widget _headerCell(String label) {
+  Widget _dayHeaderCell(double height) {
     return Container(
-      height: 54,
+      height: height,
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: const Text(
+        'Day',
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+      ),
     );
   }
 
-  Widget _periodCell(TimetablePeriodEntity period) {
+  Widget _periodHeaderCell(TimetablePeriodEntity period, double height) {
     return Container(
-      height: 112,
-      padding: const EdgeInsets.all(12),
-      alignment: Alignment.centerLeft,
+      height: height,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             period.label,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 2),
           Text(
             '${_formatMinutes(period.startMinutes)} - '
             '${_formatMinutes(period.endMinutes)}',
-            style: Theme.of(context).textTheme.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(fontSize: 9),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _dayCell(int weekday, double height) {
+    return Container(
+      height: height,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        _dayName(weekday),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
       ),
     );
   }
@@ -702,66 +840,88 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     required int weekday,
     required TimetablePeriodEntity period,
     required ClassTimetableEntryEntity? entry,
+    required double height,
   }) {
+    final tooltipMessage = entry == null
+        ? '${_dayName(weekday)} - ${period.label}: Not assigned'
+        : '${_dayName(weekday)} - ${period.label}\n'
+              '${entry.subjectName}\n${entry.teacherName}';
+
     return SizedBox(
-      height: 112,
-      child: InkWell(
-        onTap: () =>
-            _openEntryEditor(weekday: weekday, period: period, existing: entry),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: entry == null
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_circle_outline,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Assign',
-                      style: TextStyle(
+      height: height,
+      child: Tooltip(
+        message: tooltipMessage,
+        waitDuration: const Duration(milliseconds: 500),
+        child: InkWell(
+          onTap: () => _openEntryEditor(
+            weekday: weekday,
+            period: period,
+            existing: entry,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            child: entry == null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 17,
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.subjectName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Assign',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const Icon(Icons.edit_outlined, size: 17),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    Row(
-                      children: [
-                        const Icon(Icons.person_outline, size: 16),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            entry.teacherName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.subjectName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                          const SizedBox(width: 3),
+                          const Icon(Icons.edit_outlined, size: 13),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline, size: 13),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              entry.teacherName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(fontSize: 10),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import '../bloc/exam_bloc.dart';
 import '../bloc/exam_event.dart';
 import '../bloc/exam_state.dart';
 import 'add_exam_page.dart';
+import 'exam_date_sheet_dashboard_page.dart';
 import 'edit_exam_page.dart';
 
 class ExamsPage extends StatelessWidget {
@@ -109,7 +110,10 @@ class _ExamsViewState extends State<_ExamsView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _DetailRow(label: 'Academic Session', value: exam.academicSession),
+                _DetailRow(
+                  label: 'Academic Session',
+                  value: exam.academicSession,
+                ),
                 _DetailRow(
                   label: 'Start Date',
                   value: _formatDate(dialogContext, exam.startDate),
@@ -145,7 +149,22 @@ class _ExamsViewState extends State<_ExamsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exam Management')),
+      appBar: AppBar(
+        title: const Text('Exam Management'),
+        actions: [
+          IconButton(
+            tooltip: 'Date Sheets',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ExamDateSheetDashboardPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.calendar_month_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddPage,
         icon: const Icon(Icons.add),
@@ -181,9 +200,9 @@ class _ExamsViewState extends State<_ExamsView> {
               child: BlocConsumer<ExamBloc, ExamState>(
                 listener: (context, state) {
                   if (state is ExamError) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(state.message)));
                   }
                   if (state is ExamLoaded && state.successMessage != null) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -200,9 +219,8 @@ class _ExamsViewState extends State<_ExamsView> {
                       icon: Icons.error_outline,
                       message: 'Unable to load exams.',
                       actionLabel: 'Try Again',
-                      onAction: () => context
-                          .read<ExamBloc>()
-                          .add(const RefreshExams()),
+                      onAction: () =>
+                          context.read<ExamBloc>().add(const RefreshExams()),
                     );
                   }
 
@@ -225,19 +243,21 @@ class _ExamsViewState extends State<_ExamsView> {
                         return ListView.separated(
                           physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: exams.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) => _ExamListCard(
                             exam: exams[index],
                             isDesktop: constraints.maxWidth >= 900,
                             onTap: () => _showExamDetails(exams[index]),
                             onEdit: () => _openEditPage(exams[index]),
                             onDelete: () => _deleteExam(exams[index]),
-                            onStatusChanged: (isActive) => context
-                                .read<ExamBloc>()
-                                .add(ToggleExamActiveStatus(
-                                  examId: exams[index].id,
-                                  isActive: isActive,
-                                )),
+                            onStatusChanged: (isActive) =>
+                                context.read<ExamBloc>().add(
+                                  ToggleExamActiveStatus(
+                                    examId: exams[index].id,
+                                    isActive: isActive,
+                                  ),
+                                ),
                           ),
                         );
                       },
@@ -315,10 +335,7 @@ class _ExamListCard extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         _ExamStatusChip(isActive: exam.isActive),
-        Switch(
-          value: exam.isActive,
-          onChanged: onStatusChanged,
-        ),
+        Switch(value: exam.isActive, onChanged: onStatusChanged),
         IconButton(
           tooltip: 'Edit exam',
           icon: const Icon(Icons.edit_outlined),
@@ -380,8 +397,9 @@ class _ExamStatusChip extends StatelessWidget {
       label: Text(isActive ? 'Active' : 'Inactive'),
       visualDensity: VisualDensity.compact,
       side: BorderSide.none,
-      backgroundColor:
-          isActive ? colors.primaryContainer : colors.surfaceContainerHighest,
+      backgroundColor: isActive
+          ? colors.primaryContainer
+          : colors.surfaceContainerHighest,
       labelStyle: TextStyle(
         color: isActive ? colors.onPrimaryContainer : colors.onSurfaceVariant,
         fontWeight: FontWeight.w600,

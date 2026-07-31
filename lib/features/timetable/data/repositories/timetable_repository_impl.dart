@@ -1,4 +1,6 @@
 import '../../domain/entities/class_timetable_entry_entity.dart';
+import '../../domain/entities/manual_timetable_change_entity.dart';
+import '../../domain/entities/timetable_version_entity.dart';
 import '../../domain/entities/timetable_configuration_entity.dart';
 import '../../domain/repositories/timetable_repository.dart';
 import '../datasources/timetable_remote_datasource.dart';
@@ -31,6 +33,58 @@ class TimetableRepositoryImpl implements TimetableRepository {
   @override
   String generateConfigurationId() {
     return _remoteDataSource.generateConfigurationId();
+  }
+
+  @override
+  Future<List<TimetableVersionEntity>> getTimetableVersions({
+    required String branchId,
+    required String academicSession,
+  }) {
+    return _remoteDataSource.getTimetableVersions(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
+  }
+
+  @override
+  Future<void> saveTimetableVersion(TimetableVersionEntity version) {
+    return _remoteDataSource.saveTimetableVersion(version);
+  }
+
+  @override
+  Future<void> publishTimetableVersion(String versionId) {
+    return _remoteDataSource.publishTimetableVersion(versionId);
+  }
+
+  @override
+  Future<void> archiveTimetableVersion(String versionId) {
+    return _remoteDataSource.archiveTimetableVersion(versionId);
+  }
+
+  @override
+  Future<void> restoreTimetableVersion(String versionId) {
+    return _remoteDataSource.restoreTimetableVersion(versionId);
+  }
+
+  @override
+  String generateTimetableVersionId() {
+    return _remoteDataSource.generateTimetableVersionId();
+  }
+
+  @override
+  Future<void> applyManualTimetableChanges(ManualTimetableChangeSet changes) {
+    return _remoteDataSource.applyManualTimetableChanges(changes);
+  }
+
+  @override
+  Future<List<ClassTimetableEntryEntity>> getAllTimetableEntries({
+    required String branchId,
+    required String academicSession,
+  }) {
+    return _remoteDataSource.getAllTimetableEntries(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
   }
 
   @override

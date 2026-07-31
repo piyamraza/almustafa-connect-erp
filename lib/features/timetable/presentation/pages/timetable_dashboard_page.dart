@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'auto_timetable_generator_page.dart';
 import 'class_timetable_page.dart';
+import 'teacher_workload_page.dart';
+import 'manual_timetable_editor_page.dart';
+import 'teacher_availability_page.dart';
 import 'teacher_timetable_page.dart';
 import 'day_timetable_page.dart';
+import 'timetable_versioning_page.dart';
+import 'timetable_reports_page.dart';
 import 'timetable_configuration_page.dart';
 
 class TimetableDashboardPage extends StatelessWidget {
@@ -11,6 +17,61 @@ class TimetableDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = <_TimetableFeature>[
+      _TimetableFeature(
+        title: 'Teacher Availability',
+        description:
+            'Configure weekly off days, unavailable periods and workload limits.',
+        icon: Icons.event_busy_outlined,
+        color: const Color(0xFFC62828),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const TeacherAvailabilityPage(),
+            ),
+          );
+        },
+      ),
+      _TimetableFeature(
+        title: 'Timetable Versioning',
+        description: 'Create, publish, archive and restore timetable versions.',
+        icon: Icons.history_outlined,
+        color: const Color(0xFF6D4C41),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const TimetableVersioningPage(),
+            ),
+          );
+        },
+      ),
+      _TimetableFeature(
+        title: 'Manual Timetable Editor',
+        description:
+            'Drag, swap, edit and validate timetable periods manually.',
+        icon: Icons.edit_calendar_outlined,
+        color: const Color(0xFF5E35B1),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ManualTimetableEditorPage(),
+            ),
+          );
+        },
+      ),
+      _TimetableFeature(
+        title: 'Auto Timetable Generator',
+        description:
+            'Generate a conflict-free timetable from current assignments.',
+        icon: Icons.auto_awesome,
+        color: const Color(0xFFD81B60),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AutoTimetableGeneratorPage(),
+            ),
+          );
+        },
+      ),
       _TimetableFeature(
         title: 'Timetable Configuration',
         description:
@@ -60,17 +121,31 @@ class TimetableDashboardPage extends StatelessWidget {
           );
         },
       ),
-      const _TimetableFeature(
+      _TimetableFeature(
         title: 'Teacher Workload',
         description: 'Monitor assigned periods and teacher workload.',
         icon: Icons.monitor_heart_outlined,
-        color: Color(0xFFF57C00),
+        color: const Color(0xFFF57C00),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const TeacherWorkloadPage(),
+            ),
+          );
+        },
       ),
-      const _TimetableFeature(
+      _TimetableFeature(
         title: 'Timetable Reports',
         description: 'Generate printable timetable and workload reports.',
         icon: Icons.summarize_outlined,
-        color: Color(0xFF546E7A),
+        color: const Color(0xFF546E7A),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const TimetableReportsPage(),
+            ),
+          );
+        },
       ),
     ];
 

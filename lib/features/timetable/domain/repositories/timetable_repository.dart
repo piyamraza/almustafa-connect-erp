@@ -1,3 +1,5 @@
+import '../entities/timetable_version_entity.dart';
+import '../entities/manual_timetable_change_entity.dart';
 import '../entities/class_timetable_entry_entity.dart';
 import '../entities/timetable_configuration_entity.dart';
 
@@ -11,6 +13,21 @@ abstract class TimetableRepository {
 
   String generateConfigurationId();
 
+  Future<List<TimetableVersionEntity>> getTimetableVersions({
+    required String branchId,
+    required String academicSession,
+  });
+  Future<void> saveTimetableVersion(TimetableVersionEntity version);
+  Future<void> publishTimetableVersion(String versionId);
+  Future<void> archiveTimetableVersion(String versionId);
+  Future<void> restoreTimetableVersion(String versionId);
+  String generateTimetableVersionId();
+  Future<void> applyManualTimetableChanges(ManualTimetableChangeSet changes);
+
+  Future<List<ClassTimetableEntryEntity>> getAllTimetableEntries({
+    required String branchId,
+    required String academicSession,
+  });
   Future<List<ClassTimetableEntryEntity>> getClassTimetable({
     required String branchId,
     required String academicSession,

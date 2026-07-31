@@ -24,11 +24,30 @@ import '../../features/exams/data/datasources/exam_result_remote_datasource.dart
 import '../../features/exams/data/datasources/exam_subject_setup_remote_datasource.dart';
 import '../../features/exams/data/datasources/grading_rule_remote_datasource.dart';
 import '../../features/exams/data/repositories/exam_mark_repository_impl.dart';
+import '../../features/exams/data/services/exam_date_sheet_report_service_impl.dart';
+import '../../features/exams/data/repositories/exam_date_sheet_repository_impl.dart';
+import '../../features/fees/data/services/fee_report_service_impl.dart';
+import '../../features/fees/data/services/fee_document_service_impl.dart';
+import '../../features/fees/data/repositories/fee_payment_repository_impl.dart';
+import '../../features/fees/data/repositories/monthly_fee_due_repository_impl.dart';
+import '../../features/fees/data/repositories/student_fee_assignment_repository_impl.dart';
+import '../../features/fees/data/repositories/fee_structure_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_result_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_subject_setup_repository_impl.dart';
 import '../../features/exams/data/repositories/grading_rule_repository_impl.dart';
 import '../../features/exams/domain/repositories/exam_mark_repository.dart';
+import '../../features/exams/domain/services/exam_date_sheet_report_service.dart';
+import '../../features/exams/domain/repositories/exam_date_sheet_repository.dart';
+import '../../features/exams/domain/usecases/generate_exam_date_sheet_options.dart';
+import '../../features/exams/domain/usecases/validate_exam_date_sheet.dart';
+import '../../features/fees/domain/services/fee_report_service.dart';
+import '../../features/fees/domain/services/fee_document_service.dart';
+import '../../features/fees/domain/repositories/fee_payment_repository.dart';
+import '../../features/fees/domain/repositories/monthly_fee_due_repository.dart';
+import '../../features/fees/domain/usecases/generate_monthly_fees.dart';
+import '../../features/fees/domain/repositories/student_fee_assignment_repository.dart';
+import '../../features/fees/domain/repositories/fee_structure_repository.dart';
 import '../../features/exams/domain/repositories/exam_repository.dart';
 import '../../features/exams/domain/repositories/exam_result_repository.dart';
 import '../../features/exams/domain/repositories/exam_subject_setup_repository.dart';
@@ -53,6 +72,16 @@ import '../../features/exams/domain/usecases/set_exam_active_status.dart';
 import '../../features/exams/domain/usecases/update_exam.dart';
 import '../../features/exams/domain/usecases/update_exam_result_status.dart';
 import '../../features/exams/domain/usecases/update_exam_subject_setup.dart';
+import '../../features/exams/presentation/bloc/exam_date_sheet_workflow_bloc.dart';
+import '../../features/exams/presentation/bloc/exam_date_sheet_report_bloc.dart';
+import '../../features/exams/presentation/bloc/exam_date_sheet_generator_bloc.dart';
+import '../../features/exams/presentation/bloc/exam_date_sheet_bloc.dart';
+import '../../features/fees/presentation/bloc/fee_reports_bloc.dart';
+import '../../features/fees/presentation/bloc/fee_document_bloc.dart';
+import '../../features/fees/presentation/bloc/fee_collection_bloc.dart';
+import '../../features/fees/presentation/bloc/monthly_fee_generation_bloc.dart';
+import '../../features/fees/presentation/bloc/student_fee_assignment_bloc.dart';
+import '../../features/fees/presentation/bloc/fee_structure_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_marks_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_results_bloc.dart';
@@ -112,18 +141,33 @@ import '../../features/students/domain/repositories/student_repository.dart';
 import '../../features/students/domain/usecases/get_student_by_id.dart';
 import '../../features/students/domain/usecases/get_students_by_class_and_section.dart';
 import '../../features/students/presentation/bloc/student_bloc.dart';
+import '../../features/timetable/data/services/timetable_report_export_service_impl.dart';
+import '../../features/timetable/data/repositories/teacher_availability_repository_impl.dart';
 import '../../features/timetable/data/datasources/timetable_remote_datasource.dart';
 import '../../features/timetable/data/repositories/timetable_repository_impl.dart';
+import '../../features/timetable/domain/services/timetable_report_export_service.dart';
+import '../../features/timetable/domain/repositories/teacher_availability_repository.dart';
 import '../../features/timetable/domain/repositories/timetable_repository.dart';
+import '../../features/timetable/domain/usecases/apply_manual_timetable_changes.dart';
 import '../../features/timetable/domain/usecases/delete_class_timetable_entry.dart';
 import '../../features/timetable/domain/usecases/get_class_timetable.dart';
 import '../../features/timetable/domain/usecases/save_class_timetable_entry.dart';
 import '../../features/timetable/domain/usecases/get_day_timetable.dart';
+import '../../features/timetable/domain/usecases/generate_auto_timetable.dart';
+import '../../features/timetable/domain/usecases/generate_timetable_report.dart';
+import '../../features/timetable/domain/usecases/get_teacher_workloads.dart';
 import '../../features/timetable/domain/usecases/get_teacher_timetable.dart';
 import '../../features/timetable/domain/usecases/get_timetable_configuration.dart';
+import '../../features/timetable/domain/usecases/manage_timetable_versions.dart';
 import '../../features/timetable/domain/usecases/save_timetable_configuration.dart';
+import '../../features/timetable/presentation/bloc/auto_timetable_bloc.dart';
 import '../../features/timetable/presentation/bloc/class_timetable_bloc.dart';
 import '../../features/timetable/presentation/bloc/day_timetable_bloc.dart';
+import '../../features/timetable/presentation/bloc/teacher_availability_bloc.dart';
+import '../../features/timetable/presentation/bloc/timetable_version_bloc.dart';
+import '../../features/timetable/presentation/bloc/timetable_report_bloc.dart';
+import '../../features/timetable/presentation/bloc/teacher_workload_bloc.dart';
+import '../../features/timetable/presentation/bloc/manual_timetable_bloc.dart';
 import '../../features/timetable/presentation/bloc/teacher_timetable_bloc.dart';
 import '../../features/timetable/presentation/bloc/timetable_configuration_bloc.dart';
 import '../../features/teachers/data/datasources/teacher_assignment_remote_datasource.dart';
@@ -140,6 +184,18 @@ import '../../features/teachers/presentation/bloc/teacher_attendance_bloc.dart';
 import '../../features/teachers/presentation/bloc/teacher_bloc.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firebase_firestore_service.dart';
+
+import '../../features/academic_calendar/data/services/academic_calendar_policy_service_impl.dart';
+import '../../features/academic_calendar/data/repositories/academic_year_config_repository_impl.dart';
+import '../../features/academic_calendar/data/repositories/academic_calendar_repository_impl.dart';
+import '../../features/academic_calendar/domain/services/academic_calendar_policy_service.dart';
+import '../../features/academic_calendar/domain/repositories/academic_year_config_repository.dart';
+import '../../features/academic_calendar/domain/usecases/validate_academic_calendar.dart';
+import '../../features/academic_calendar/domain/usecases/save_academic_year_wizard.dart';
+import '../../features/academic_calendar/domain/repositories/academic_calendar_repository.dart';
+import '../../features/academic_calendar/presentation/bloc/academic_calendar_validation_bloc.dart';
+import '../../features/academic_calendar/presentation/bloc/academic_year_wizard_bloc.dart';
+import '../../features/academic_calendar/presentation/bloc/academic_calendar_bloc.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -309,6 +365,43 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  sl.registerLazySingleton<ValidateExamDateSheet>(ValidateExamDateSheet.new);
+
+  sl.registerLazySingleton<GenerateExamDateSheetOptions>(
+    () => GenerateExamDateSheetOptions(
+      sl<AcademicStructureRepository>(),
+      sl<TeacherAssignmentRepository>(),
+      sl<ExamDateSheetRepository>(),
+      sl<ValidateExamDateSheet>(),
+    ),
+  );
+  sl.registerLazySingleton<ExamDateSheetReportService>(
+    ExamDateSheetReportServiceImpl.new,
+  );
+  sl.registerLazySingleton<ExamDateSheetRepository>(
+    () => ExamDateSheetRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<FeeReportService>(FeeReportServiceImpl.new);
+  sl.registerLazySingleton<FeeDocumentService>(FeeDocumentServiceImpl.new);
+  sl.registerLazySingleton<FeePaymentRepository>(
+    () => FeePaymentRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<MonthlyFeeDueRepository>(
+    () => MonthlyFeeDueRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+
+  sl.registerLazySingleton<GenerateMonthlyFees>(
+    () => GenerateMonthlyFees(
+      sl<StudentFeeAssignmentRepository>(),
+      sl<MonthlyFeeDueRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<StudentFeeAssignmentRepository>(
+    () => StudentFeeAssignmentRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<FeeStructureRepository>(
+    () => FeeStructureRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
   sl.registerLazySingleton<ExamRepository>(
     () => ExamRepositoryImpl(source: sl<ExamRemoteDataSource>()),
   );
@@ -330,6 +423,31 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<GradingRuleRepository>(
     () => GradingRuleRepositoryImpl(source: sl<GradingRuleRemoteDataSource>()),
   );
+  sl.registerLazySingleton<AcademicCalendarPolicyService>(
+    () => AcademicCalendarPolicyServiceImpl(
+      sl<AcademicYearConfigRepository>(),
+      sl<AcademicCalendarRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<AcademicYearConfigRepository>(
+    () => AcademicYearConfigRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+
+  sl.registerLazySingleton<ValidateAcademicCalendar>(
+    () => ValidateAcademicCalendar(
+      sl<AcademicCalendarRepository>(),
+      sl<AcademicYearConfigRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<SaveAcademicYearWizard>(
+    () => SaveAcademicYearWizard(
+      sl<AcademicYearConfigRepository>(),
+      sl<AcademicCalendarRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<AcademicCalendarRepository>(
+    () => AcademicCalendarRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
 
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
@@ -337,8 +455,14 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  sl.registerLazySingleton<TeacherAvailabilityRepository>(
+    () => TeacherAvailabilityRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
   sl.registerLazySingleton<TimetableRepository>(
     () => TimetableRepositoryImpl(sl<TimetableRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<TimetableReportExportService>(
+    TimetableReportExportServiceImpl.new,
   );
   sl.registerLazySingleton<ResultsExportService>(ResultsExportServiceImpl.new);
 
@@ -563,11 +687,31 @@ Future<void> setupServiceLocator() async {
     () => SaveClassTimetableEntry(sl<TimetableRepository>()),
   );
 
+  sl.registerLazySingleton<ApplyManualTimetableChanges>(
+    () => ApplyManualTimetableChanges(sl<TimetableRepository>()),
+  );
   sl.registerLazySingleton<DeleteClassTimetableEntry>(
     () => DeleteClassTimetableEntry(sl<TimetableRepository>()),
   );
   sl.registerLazySingleton<GetDayTimetable>(
     () => GetDayTimetable(sl<TimetableRepository>()),
+  );
+  sl.registerLazySingleton<GenerateAutoTimetable>(
+    () => GenerateAutoTimetable(
+      sl<TimetableRepository>(),
+      sl<AcademicStructureRepository>(),
+      sl<TeacherAssignmentRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<GenerateTimetableReport>(
+    () => GenerateTimetableReport(
+      sl<TimetableRepository>(),
+      sl<GetTeacherWorkloads>(),
+    ),
+  );
+  sl.registerLazySingleton<GetTeacherWorkloads>(
+    () =>
+        GetTeacherWorkloads(sl<TimetableRepository>(), sl<TeacherRepository>()),
   );
   sl.registerLazySingleton<GetTeacherTimetable>(
     () => GetTeacherTimetable(sl<TimetableRepository>()),
@@ -576,11 +720,26 @@ Future<void> setupServiceLocator() async {
     () => GetTimetableConfiguration(sl<TimetableRepository>()),
   );
 
+  sl.registerLazySingleton<ManageTimetableVersions>(
+    () => ManageTimetableVersions(sl<TimetableRepository>()),
+  );
   sl.registerLazySingleton<SaveTimetableConfiguration>(
     () => SaveTimetableConfiguration(sl<TimetableRepository>()),
   );
   // BLoCs
   // =========================================================
+  sl.registerFactory<AcademicCalendarValidationBloc>(
+    () => AcademicCalendarValidationBloc(sl<ValidateAcademicCalendar>()),
+  );
+  sl.registerFactory<AcademicYearWizardBloc>(
+    () => AcademicYearWizardBloc(
+      sl<AcademicYearConfigRepository>(),
+      sl<SaveAcademicYearWizard>(),
+    ),
+  );
+  sl.registerFactory<AcademicCalendarBloc>(
+    () => AcademicCalendarBloc(sl<AcademicCalendarRepository>()),
+  );
 
   sl.registerFactory<AuthenticationBloc>(
     () => AuthenticationBloc(
@@ -653,6 +812,49 @@ Future<void> setupServiceLocator() async {
     () => TeacherAttendanceBloc(sl<TeacherAttendanceRepository>()),
   );
 
+  sl.registerFactory<ExamDateSheetWorkflowBloc>(
+    () => ExamDateSheetWorkflowBloc(sl<ExamDateSheetRepository>()),
+  );
+  sl.registerFactory<ExamDateSheetReportBloc>(
+    () => ExamDateSheetReportBloc(sl<ExamDateSheetReportService>()),
+  );
+  sl.registerFactory<ExamDateSheetGeneratorBloc>(
+    () => ExamDateSheetGeneratorBloc(
+      sl<GenerateExamDateSheetOptions>(),
+      sl<ExamDateSheetRepository>(),
+    ),
+  );
+  sl.registerFactory<ExamDateSheetBloc>(
+    () => ExamDateSheetBloc(sl<ExamDateSheetRepository>()),
+  );
+  sl.registerFactory<FeeReportsBloc>(
+    () => FeeReportsBloc(
+      sl<MonthlyFeeDueRepository>(),
+      sl<FeePaymentRepository>(),
+      sl<FeeReportService>(),
+    ),
+  );
+  sl.registerFactory<FeeDocumentBloc>(
+    () => FeeDocumentBloc(sl<FeeDocumentService>()),
+  );
+  sl.registerFactory<FeeCollectionBloc>(
+    () => FeeCollectionBloc(
+      sl<MonthlyFeeDueRepository>(),
+      sl<FeePaymentRepository>(),
+    ),
+  );
+  sl.registerFactory<MonthlyFeeGenerationBloc>(
+    () => MonthlyFeeGenerationBloc(
+      sl<GenerateMonthlyFees>(),
+      sl<MonthlyFeeDueRepository>(),
+    ),
+  );
+  sl.registerFactory<StudentFeeAssignmentBloc>(
+    () => StudentFeeAssignmentBloc(sl<StudentFeeAssignmentRepository>()),
+  );
+  sl.registerFactory<FeeStructureBloc>(
+    () => FeeStructureBloc(sl<FeeStructureRepository>()),
+  );
   sl.registerFactory<ExamBloc>(
     () => ExamBloc(
       getExams: sl<GetExams>(),
@@ -722,6 +924,9 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  sl.registerFactory<AutoTimetableBloc>(
+    () => AutoTimetableBloc(sl<GenerateAutoTimetable>()),
+  );
   sl.registerFactory<ClassTimetableBloc>(
     () => ClassTimetableBloc(
       sl<GetClassTimetable>(),
@@ -731,6 +936,27 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<DayTimetableBloc>(
     () => DayTimetableBloc(sl<GetDayTimetable>()),
+  );
+  sl.registerFactory<TeacherAvailabilityBloc>(
+    () => TeacherAvailabilityBloc(sl<TeacherAvailabilityRepository>()),
+  );
+  sl.registerFactory<TimetableVersionBloc>(
+    () => TimetableVersionBloc(sl<ManageTimetableVersions>()),
+  );
+  sl.registerFactory<TimetableReportBloc>(
+    () => TimetableReportBloc(
+      sl<GenerateTimetableReport>(),
+      sl<TimetableReportExportService>(),
+    ),
+  );
+  sl.registerFactory<TeacherWorkloadBloc>(
+    () => TeacherWorkloadBloc(sl<GetTeacherWorkloads>()),
+  );
+  sl.registerFactory<ManualTimetableBloc>(
+    () => ManualTimetableBloc(
+      sl<GetClassTimetable>(),
+      sl<ApplyManualTimetableChanges>(),
+    ),
   );
   sl.registerFactory<TeacherTimetableBloc>(
     () => TeacherTimetableBloc(sl<GetTeacherTimetable>()),
