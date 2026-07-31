@@ -4,6 +4,14 @@ bool isTeacherDesignation(String designation) {
   return designation.trim().toLowerCase().contains('teacher');
 }
 
+/// Persists a stable teacher marker while retaining the teacher's designation.
+/// This keeps teacher leave entries separate from staff leave entries even when
+/// a teacher has a designation such as Coordinator or Principal.
+String teacherLeaveDesignation(String designation) {
+  final value = designation.trim();
+  return value.isEmpty ? 'Teacher' : 'Teacher - $value';
+}
+
 bool isTeacherLeave(StaffLeaveEntity leave) {
   return isTeacherDesignation(leave.designation) &&
       (leave.leaveType == StaffLeaveType.other ||

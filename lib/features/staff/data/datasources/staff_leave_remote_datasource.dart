@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/staff_leave_entity.dart';
@@ -150,22 +152,33 @@ class StaffLeaveRemoteDataSourceImpl
 
   @override
   Future<List<StaffLeaveModel>> getPendingLeaves() async {
-    final snapshot = await _firestoreService
-        .collection(FirestorePaths.staffLeaves)
-        .where(
-          'status',
-          isEqualTo: StaffLeaveStatus.pending.name,
-        )
-        .get();
+    List<StaffLeaveModel> leaves;
 
-    final leaves = snapshot.docs.map(
-      (document) {
-        return StaffLeaveModel.fromMap({
-          ...document.data(),
-          'id': document.id,
-        });
-      },
-    ).toList();
+    try {
+      final snapshot = await _firestoreService
+          .collection(FirestorePaths.staffLeaves)
+          .where(
+            'status',
+            isEqualTo: StaffLeaveStatus.pending.name,
+          )
+          .get();
+
+      leaves = _toLeaveModels(snapshot);
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition') {
+        rethrow;
+      }
+
+      // Some existing Firebase projects have a field-index exemption for
+      // `status`. The approval screen must still remain usable until indexes
+      // are managed centrally, so only this exceptional path filters locally.
+      final snapshot = await _firestoreService
+          .collection(FirestorePaths.staffLeaves)
+          .get();
+      leaves = _toLeaveModels(snapshot).where(
+        (leave) => leave.status == StaffLeaveStatus.pending,
+      ).toList();
+    }
 
     _sortLeaves(leaves);
 
@@ -228,5 +241,16 @@ class StaffLeaveRemoteDataSourceImpl
             second.staffName.toLowerCase(),
           );
     });
+  }
+
+  List<StaffLeaveModel> _toLeaveModels(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    return snapshot.docs.map((document) {
+      return StaffLeaveModel.fromMap({
+        ...document.data(),
+        'id': document.id,
+      });
+    }).toList();
   }
 }

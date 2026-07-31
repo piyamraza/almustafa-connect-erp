@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../../staff/presentation/pages/teacher_leave_page.dart'
+    as staff_teacher_leave;
 import 'teacher_assignments_page.dart';
 import 'teacher_attendance_page.dart';
 import 'teachers_page.dart';
-import 'teacher_leave_page.dart';
 
 class TeachersModulePage extends StatelessWidget {
   const TeachersModulePage({super.key});
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Teachers')),
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -30,7 +32,7 @@ class TeachersModulePage extends StatelessWidget {
                     _TeacherModuleCard(title: 'Teacher Directory', icon: Icons.groups_outlined, onTap: () => _open(context, const TeachersPage())),
                     _TeacherModuleCard(title: 'Academic Assignments', icon: Icons.assignment_ind_outlined, onTap: () => _open(context, const TeacherAssignmentsPage())),
                     _TeacherModuleCard(title: 'Teacher Attendance', icon: Icons.fact_check_outlined, onTap: () => _open(context, const TeacherAttendancePage())),
-                    _TeacherModuleCard(title: 'Leave Management', icon: Icons.event_available_outlined, onTap: () => _open(context, const TeacherLeavePage())),
+                    _TeacherModuleCard(title: 'Leave Management', icon: Icons.event_available_outlined, onTap: () => _open(context, const staff_teacher_leave.TeacherLeavePage())),
                     const _TeacherModuleCard(title: 'Timetable & Workload', icon: Icons.schedule_outlined),
                     const _TeacherModuleCard(title: 'Teacher Results', icon: Icons.school_outlined),
                     const _TeacherModuleCard(title: 'Teacher Reports', icon: Icons.assessment_outlined),

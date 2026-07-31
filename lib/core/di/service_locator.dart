@@ -112,6 +112,20 @@ import '../../features/students/domain/repositories/student_repository.dart';
 import '../../features/students/domain/usecases/get_student_by_id.dart';
 import '../../features/students/domain/usecases/get_students_by_class_and_section.dart';
 import '../../features/students/presentation/bloc/student_bloc.dart';
+import '../../features/timetable/data/datasources/timetable_remote_datasource.dart';
+import '../../features/timetable/data/repositories/timetable_repository_impl.dart';
+import '../../features/timetable/domain/repositories/timetable_repository.dart';
+import '../../features/timetable/domain/usecases/delete_class_timetable_entry.dart';
+import '../../features/timetable/domain/usecases/get_class_timetable.dart';
+import '../../features/timetable/domain/usecases/save_class_timetable_entry.dart';
+import '../../features/timetable/domain/usecases/get_day_timetable.dart';
+import '../../features/timetable/domain/usecases/get_teacher_timetable.dart';
+import '../../features/timetable/domain/usecases/get_timetable_configuration.dart';
+import '../../features/timetable/domain/usecases/save_timetable_configuration.dart';
+import '../../features/timetable/presentation/bloc/class_timetable_bloc.dart';
+import '../../features/timetable/presentation/bloc/day_timetable_bloc.dart';
+import '../../features/timetable/presentation/bloc/teacher_timetable_bloc.dart';
+import '../../features/timetable/presentation/bloc/timetable_configuration_bloc.dart';
 import '../../features/teachers/data/datasources/teacher_assignment_remote_datasource.dart';
 import '../../features/teachers/data/datasources/teacher_attendance_remote_datasource.dart';
 import '../../features/teachers/data/datasources/teacher_remote_datasource.dart';
@@ -134,9 +148,7 @@ Future<void> setupServiceLocator() async {
   // Services
   // =========================================================
 
-  sl.registerLazySingleton<FirebaseAuthService>(
-    FirebaseAuthService.new,
-  );
+  sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
 
   sl.registerLazySingleton<FirebaseFirestoreService>(
     FirebaseFirestoreService.new,
@@ -180,9 +192,7 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<StaffLeaveRemoteDataSource>(
-    () => StaffLeaveRemoteDataSourceImpl(
-      sl<FirebaseFirestoreService>(),
-    ),
+    () => StaffLeaveRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<StaffSalaryRemoteDataSource>(
     () => StaffSalaryRemoteDataSourceImpl(
@@ -239,6 +249,11 @@ Future<void> setupServiceLocator() async {
   );
 
   // =========================================================
+  sl.registerLazySingleton<TimetableRemoteDataSource>(
+    () => TimetableRemoteDataSourceImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+    ),
+  );
   // Repositories
   // =========================================================
 
@@ -249,9 +264,8 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<StudentRepository>(
-    () => StudentRepositoryImpl(
-      remoteDataSource: sl<StudentRemoteDataSource>(),
-    ),
+    () =>
+        StudentRepositoryImpl(remoteDataSource: sl<StudentRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<AttendanceRepository>(
@@ -261,15 +275,12 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<TeacherRepository>(
-    () => TeacherRepositoryImpl(
-      remoteDataSource: sl<TeacherRemoteDataSource>(),
-    ),
+    () =>
+        TeacherRepositoryImpl(remoteDataSource: sl<TeacherRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<StaffRepository>(
-    () => StaffRepositoryImpl(
-      remoteDataSource: sl<StaffRemoteDataSource>(),
-    ),
+    () => StaffRepositoryImpl(remoteDataSource: sl<StaffRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<StaffAttendanceRepository>(
@@ -278,9 +289,7 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<StaffLeaveRepository>(
-    () => StaffLeaveRepositoryImpl(
-      sl<StaffLeaveRemoteDataSource>(),
-    ),
+    () => StaffLeaveRepositoryImpl(sl<StaffLeaveRemoteDataSource>()),
   );
   sl.registerLazySingleton<StaffSalaryRepository>(
     () => StaffSalaryRepositoryImpl(
@@ -301,9 +310,7 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<ExamRepository>(
-    () => ExamRepositoryImpl(
-      source: sl<ExamRemoteDataSource>(),
-    ),
+    () => ExamRepositoryImpl(source: sl<ExamRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<ExamSubjectSetupRepository>(
@@ -313,21 +320,15 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<ExamMarkRepository>(
-    () => ExamMarkRepositoryImpl(
-      source: sl<ExamMarkRemoteDataSource>(),
-    ),
+    () => ExamMarkRepositoryImpl(source: sl<ExamMarkRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<ExamResultRepository>(
-    () => ExamResultRepositoryImpl(
-      source: sl<ExamResultRemoteDataSource>(),
-    ),
+    () => ExamResultRepositoryImpl(source: sl<ExamResultRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<GradingRuleRepository>(
-    () => GradingRuleRepositoryImpl(
-      source: sl<GradingRuleRemoteDataSource>(),
-    ),
+    () => GradingRuleRepositoryImpl(source: sl<GradingRuleRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<AcademicStructureRepository>(
@@ -336,150 +337,97 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  sl.registerLazySingleton<ResultsExportService>(
-    ResultsExportServiceImpl.new,
+  sl.registerLazySingleton<TimetableRepository>(
+    () => TimetableRepositoryImpl(sl<TimetableRemoteDataSource>()),
   );
+  sl.registerLazySingleton<ResultsExportService>(ResultsExportServiceImpl.new);
 
   // =========================================================
   // Use Cases
   // =========================================================
 
   sl.registerLazySingleton<LoginUseCase>(
-    () => LoginUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => LoginUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<LogoutUseCase>(
-    () => LogoutUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => LogoutUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<ForgotPasswordUseCase>(
-    () => ForgotPasswordUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => ForgotPasswordUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<GetCurrentUserUseCase>(
-    () => GetCurrentUserUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => GetCurrentUserUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<GetResultArchive>(
-    () => GetResultArchive(
-      sl<GetPublishedResults>(),
-    ),
+    () => GetResultArchive(sl<GetPublishedResults>()),
   );
 
-  sl.registerLazySingleton<CreateExam>(
-    () => CreateExam(
-      sl<ExamRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<CreateExam>(() => CreateExam(sl<ExamRepository>()));
 
-  sl.registerLazySingleton<UpdateExam>(
-    () => UpdateExam(
-      sl<ExamRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<UpdateExam>(() => UpdateExam(sl<ExamRepository>()));
 
-  sl.registerLazySingleton<DeleteExam>(
-    () => DeleteExam(
-      sl<ExamRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<DeleteExam>(() => DeleteExam(sl<ExamRepository>()));
 
-  sl.registerLazySingleton<GetExams>(
-    () => GetExams(
-      sl<ExamRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<GetExams>(() => GetExams(sl<ExamRepository>()));
 
   sl.registerLazySingleton<GetExamById>(
-    () => GetExamById(
-      sl<ExamRepository>(),
-    ),
+    () => GetExamById(sl<ExamRepository>()),
   );
 
   sl.registerLazySingleton<SetExamActiveStatus>(
-    () => SetExamActiveStatus(
-      sl<ExamRepository>(),
-    ),
+    () => SetExamActiveStatus(sl<ExamRepository>()),
   );
 
   sl.registerLazySingleton<GenerateExamId>(
-    () => GenerateExamId(
-      sl<ExamRepository>(),
-    ),
+    () => GenerateExamId(sl<ExamRepository>()),
   );
 
   sl.registerLazySingleton<CreateExamSubjectSetups>(
-    () => CreateExamSubjectSetups(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => CreateExamSubjectSetups(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<GetExamSubjectSetups>(
-    () => GetExamSubjectSetups(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => GetExamSubjectSetups(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<UpdateExamSubjectSetup>(
-    () => UpdateExamSubjectSetup(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => UpdateExamSubjectSetup(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<DeleteExamSubjectSetup>(
-    () => DeleteExamSubjectSetup(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => DeleteExamSubjectSetup(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<GenerateExamSubjectSetupId>(
-    () => GenerateExamSubjectSetupId(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => GenerateExamSubjectSetupId(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<GetExamSubjectSetupsForExam>(
-    () => GetExamSubjectSetupsForExam(
-      sl<ExamSubjectSetupRepository>(),
-    ),
+    () => GetExamSubjectSetupsForExam(sl<ExamSubjectSetupRepository>()),
   );
 
   sl.registerLazySingleton<GetExamMarks>(
-    () => GetExamMarks(
-      sl<ExamMarkRepository>(),
-    ),
+    () => GetExamMarks(sl<ExamMarkRepository>()),
   );
 
   sl.registerLazySingleton<SaveExamMarks>(
-    () => SaveExamMarks(
-      sl<ExamMarkRepository>(),
-    ),
+    () => SaveExamMarks(sl<ExamMarkRepository>()),
   );
 
   sl.registerLazySingleton<DeleteExamMark>(
-    () => DeleteExamMark(
-      sl<ExamMarkRepository>(),
-    ),
+    () => DeleteExamMark(sl<ExamMarkRepository>()),
   );
 
   sl.registerLazySingleton<GetExamMarksForExam>(
-    () => GetExamMarksForExam(
-      sl<ExamMarkRepository>(),
-    ),
+    () => GetExamMarksForExam(sl<ExamMarkRepository>()),
   );
 
   sl.registerLazySingleton<GetExamResults>(
-    () => GetExamResults(
-      sl<ExamResultRepository>(),
-    ),
+    () => GetExamResults(sl<ExamResultRepository>()),
   );
 
   sl.registerLazySingleton<GenerateExamResults>(
@@ -494,15 +442,11 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<UpdateExamResultStatus>(
-    () => UpdateExamResultStatus(
-      sl<ExamResultRepository>(),
-    ),
+    () => UpdateExamResultStatus(sl<ExamResultRepository>()),
   );
 
   sl.registerLazySingleton<GetPublishedResults>(
-    () => GetPublishedResults(
-      sl<ExamResultRepository>(),
-    ),
+    () => GetPublishedResults(sl<ExamResultRepository>()),
   );
 
   sl.registerLazySingleton<GetResultsAnalyticsData>(
@@ -513,112 +457,72 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<GetAttendanceByStudent>(
-    () => GetAttendanceByStudent(
-      sl<AttendanceRepository>(),
-    ),
+    () => GetAttendanceByStudent(sl<AttendanceRepository>()),
   );
 
   sl.registerLazySingleton<GetStudentsByClassAndSection>(
-    () => GetStudentsByClassAndSection(
-      sl<StudentRepository>(),
-    ),
+    () => GetStudentsByClassAndSection(sl<StudentRepository>()),
   );
 
   sl.registerLazySingleton<GetStudentById>(
-    () => GetStudentById(
-      sl<StudentRepository>(),
-    ),
+    () => GetStudentById(sl<StudentRepository>()),
   );
 
-  sl.registerLazySingleton<GetStaff>(
-    () => GetStaff(
-      sl<StaffRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<GetStaff>(() => GetStaff(sl<StaffRepository>()));
 
-  sl.registerLazySingleton<AddStaff>(
-    () => AddStaff(
-      sl<StaffRepository>(),
-    ),
-  );
+  sl.registerLazySingleton<AddStaff>(() => AddStaff(sl<StaffRepository>()));
 
   sl.registerLazySingleton<UpdateStaff>(
-    () => UpdateStaff(
-      sl<StaffRepository>(),
-    ),
+    () => UpdateStaff(sl<StaffRepository>()),
   );
 
   sl.registerLazySingleton<DeleteStaff>(
-    () => DeleteStaff(
-      sl<StaffRepository>(),
-    ),
+    () => DeleteStaff(sl<StaffRepository>()),
   );
 
   sl.registerLazySingleton<ToggleStaffStatus>(
-    () => ToggleStaffStatus(
-      sl<StaffRepository>(),
-    ),
+    () => ToggleStaffStatus(sl<StaffRepository>()),
   );
 
   sl.registerLazySingleton<GenerateStaffId>(
-    () => GenerateStaffId(
-      sl<StaffRepository>(),
-    ),
+    () => GenerateStaffId(sl<StaffRepository>()),
   );
 
   sl.registerLazySingleton<GetStaffAttendanceByDate>(
-    () => GetStaffAttendanceByDate(
-      sl<StaffAttendanceRepository>(),
-    ),
+    () => GetStaffAttendanceByDate(sl<StaffAttendanceRepository>()),
   );
 
   sl.registerLazySingleton<GetStaffAttendanceByStaff>(
-    () => GetStaffAttendanceByStaff(
-      sl<StaffAttendanceRepository>(),
-    ),
+    () => GetStaffAttendanceByStaff(sl<StaffAttendanceRepository>()),
   );
 
   sl.registerLazySingleton<GetStaffAttendanceByDateRange>(
-    () => GetStaffAttendanceByDateRange(
-      sl<StaffAttendanceRepository>(),
-    ),
+    () => GetStaffAttendanceByDateRange(sl<StaffAttendanceRepository>()),
   );
 
   sl.registerLazySingleton<SaveStaffAttendance>(
-    () => SaveStaffAttendance(
-      sl<StaffAttendanceRepository>(),
-    ),
+    () => SaveStaffAttendance(sl<StaffAttendanceRepository>()),
   );
 
   // =========================================================
   sl.registerLazySingleton<GetStaffLeavesByDateRange>(
-    () => GetStaffLeavesByDateRange(
-      sl<StaffLeaveRepository>(),
-    ),
+    () => GetStaffLeavesByDateRange(sl<StaffLeaveRepository>()),
   );
 
   sl.registerLazySingleton<GetStaffLeavesByStaff>(
-    () => GetStaffLeavesByStaff(
-      sl<StaffLeaveRepository>(),
-    ),
+    () => GetStaffLeavesByStaff(sl<StaffLeaveRepository>()),
   );
 
   sl.registerLazySingleton<GetPendingStaffLeaves>(
-    () => GetPendingStaffLeaves(
-      sl<StaffLeaveRepository>(),
-    ),
+    () => GetPendingStaffLeaves(sl<StaffLeaveRepository>()),
   );
 
   sl.registerLazySingleton<SaveStaffLeave>(
-    () => SaveStaffLeave(
-      sl<StaffLeaveRepository>(),
-    ),
+    () => SaveStaffLeave(sl<StaffLeaveRepository>()),
   );
 
   sl.registerLazySingleton<DeleteStaffLeave>(
-    () => DeleteStaffLeave(
-      sl<StaffLeaveRepository>(),
-    ),
+    () => DeleteStaffLeave(sl<StaffLeaveRepository>()),
   );
 
   sl.registerLazySingleton<UpdateStaffLeaveStatus>(
@@ -628,27 +532,19 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<GetStaffSalariesByMonth>(
-    () => GetStaffSalariesByMonth(
-      sl<StaffSalaryRepository>(),
-    ),
+    () => GetStaffSalariesByMonth(sl<StaffSalaryRepository>()),
   );
 
   sl.registerLazySingleton<GetStaffSalaryByStaff>(
-    () => GetStaffSalaryByStaff(
-      sl<StaffSalaryRepository>(),
-    ),
+    () => GetStaffSalaryByStaff(sl<StaffSalaryRepository>()),
   );
 
   sl.registerLazySingleton<SaveStaffSalary>(
-    () => SaveStaffSalary(
-      sl<StaffSalaryRepository>(),
-    ),
+    () => SaveStaffSalary(sl<StaffSalaryRepository>()),
   );
 
   sl.registerLazySingleton<UpdateStaffSalaryPaymentStatus>(
-    () => UpdateStaffSalaryPaymentStatus(
-      sl<StaffSalaryRepository>(),
-    ),
+    () => UpdateStaffSalaryPaymentStatus(sl<StaffSalaryRepository>()),
   );
 
   sl.registerLazySingleton<GenerateStaffMonthlySalaries>(
@@ -658,6 +554,30 @@ Future<void> setupServiceLocator() async {
       leaveRepository: sl<StaffLeaveRepository>(),
       salaryRepository: sl<StaffSalaryRepository>(),
     ),
+  );
+  sl.registerLazySingleton<GetClassTimetable>(
+    () => GetClassTimetable(sl<TimetableRepository>()),
+  );
+
+  sl.registerLazySingleton<SaveClassTimetableEntry>(
+    () => SaveClassTimetableEntry(sl<TimetableRepository>()),
+  );
+
+  sl.registerLazySingleton<DeleteClassTimetableEntry>(
+    () => DeleteClassTimetableEntry(sl<TimetableRepository>()),
+  );
+  sl.registerLazySingleton<GetDayTimetable>(
+    () => GetDayTimetable(sl<TimetableRepository>()),
+  );
+  sl.registerLazySingleton<GetTeacherTimetable>(
+    () => GetTeacherTimetable(sl<TimetableRepository>()),
+  );
+  sl.registerLazySingleton<GetTimetableConfiguration>(
+    () => GetTimetableConfiguration(sl<TimetableRepository>()),
+  );
+
+  sl.registerLazySingleton<SaveTimetableConfiguration>(
+    () => SaveTimetableConfiguration(sl<TimetableRepository>()),
   );
   // BLoCs
   // =========================================================
@@ -671,40 +591,24 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  sl.registerFactory<StudentBloc>(
-    () => StudentBloc(
-      sl<StudentRepository>(),
-    ),
-  );
+  sl.registerFactory<StudentBloc>(() => StudentBloc(sl<StudentRepository>()));
 
   sl.registerFactory<AttendanceBloc>(
-    () => AttendanceBloc(
-      sl<AttendanceRepository>(),
-    ),
+    () => AttendanceBloc(sl<AttendanceRepository>()),
   );
 
   sl.registerLazySingleton<GenerateAttendanceReport>(
-    () => GenerateAttendanceReport(
-      sl<AttendanceRepository>(),
-    ),
+    () => GenerateAttendanceReport(sl<AttendanceRepository>()),
   );
 
   sl.registerFactory<AttendanceReportBloc>(
-    () => AttendanceReportBloc(
-      sl<GenerateAttendanceReport>(),
-    ),
+    () => AttendanceReportBloc(sl<GenerateAttendanceReport>()),
   );
 
-  sl.registerFactory<TeacherBloc>(
-    () => TeacherBloc(
-      sl<TeacherRepository>(),
-    ),
-  );
+  sl.registerFactory<TeacherBloc>(() => TeacherBloc(sl<TeacherRepository>()));
 
   sl.registerFactory<TeacherAssignmentBloc>(
-    () => TeacherAssignmentBloc(
-      sl<TeacherAssignmentRepository>(),
-    ),
+    () => TeacherAssignmentBloc(sl<TeacherAssignmentRepository>()),
   );
 
   sl.registerFactory<StaffBloc>(
@@ -719,14 +623,10 @@ Future<void> setupServiceLocator() async {
 
   sl.registerFactory<StaffAttendanceBloc>(
     () => StaffAttendanceBloc(
-      getStaffAttendanceByDate:
-          sl<GetStaffAttendanceByDate>(),
-      getStaffAttendanceByStaff:
-          sl<GetStaffAttendanceByStaff>(),
-      getStaffAttendanceByDateRange:
-          sl<GetStaffAttendanceByDateRange>(),
-      saveStaffAttendance:
-          sl<SaveStaffAttendance>(),
+      getStaffAttendanceByDate: sl<GetStaffAttendanceByDate>(),
+      getStaffAttendanceByStaff: sl<GetStaffAttendanceByStaff>(),
+      getStaffAttendanceByDateRange: sl<GetStaffAttendanceByDateRange>(),
+      saveStaffAttendance: sl<SaveStaffAttendance>(),
     ),
   );
   sl.registerFactory<StaffLeaveBloc>(
@@ -741,23 +641,16 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<StaffSalaryBloc>(
     () => StaffSalaryBloc(
-      generateStaffMonthlySalaries:
-          sl<GenerateStaffMonthlySalaries>(),
-      getStaffSalariesByMonth:
-          sl<GetStaffSalariesByMonth>(),
-      getStaffSalaryByStaff:
-          sl<GetStaffSalaryByStaff>(),
-      saveStaffSalary:
-          sl<SaveStaffSalary>(),
-      updateStaffSalaryPaymentStatus:
-          sl<UpdateStaffSalaryPaymentStatus>(),
+      generateStaffMonthlySalaries: sl<GenerateStaffMonthlySalaries>(),
+      getStaffSalariesByMonth: sl<GetStaffSalariesByMonth>(),
+      getStaffSalaryByStaff: sl<GetStaffSalaryByStaff>(),
+      saveStaffSalary: sl<SaveStaffSalary>(),
+      updateStaffSalaryPaymentStatus: sl<UpdateStaffSalaryPaymentStatus>(),
     ),
   );
 
   sl.registerFactory<TeacherAttendanceBloc>(
-    () => TeacherAttendanceBloc(
-      sl<TeacherAttendanceRepository>(),
-    ),
+    () => TeacherAttendanceBloc(sl<TeacherAttendanceRepository>()),
   );
 
   sl.registerFactory<ExamBloc>(
@@ -777,18 +670,15 @@ Future<void> setupServiceLocator() async {
       updateSetup: sl<UpdateExamSubjectSetup>(),
       deleteSetup: sl<DeleteExamSubjectSetup>(),
       examRepository: sl<ExamRepository>(),
-      academicStructureRepository:
-          sl<AcademicStructureRepository>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 
   sl.registerFactory<ExamMarksBloc>(
     () => ExamMarksBloc(
       getExams: sl<GetExams>(),
-      getSubjectSetupsForExam:
-          sl<GetExamSubjectSetupsForExam>(),
-      getStudentsByClassAndSection:
-          sl<GetStudentsByClassAndSection>(),
+      getSubjectSetupsForExam: sl<GetExamSubjectSetupsForExam>(),
+      getStudentsByClassAndSection: sl<GetStudentsByClassAndSection>(),
       getExamMarks: sl<GetExamMarks>(),
       saveExamMarks: sl<SaveExamMarks>(),
       deleteExamMark: sl<DeleteExamMark>(),
@@ -798,8 +688,7 @@ Future<void> setupServiceLocator() async {
   sl.registerFactory<ExamResultsBloc>(
     () => ExamResultsBloc(
       getExams: sl<GetExams>(),
-      getSubjectSetupsForExam:
-          sl<GetExamSubjectSetupsForExam>(),
+      getSubjectSetupsForExam: sl<GetExamSubjectSetupsForExam>(),
       getExamResults: sl<GetExamResults>(),
       generateExamResults: sl<GenerateExamResults>(),
       updateResultStatus: sl<UpdateExamResultStatus>(),
@@ -807,48 +696,55 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerFactory<ResultsBloc>(
-    () => ResultsBloc(
-      getPublishedResults: sl<GetPublishedResults>(),
-    ),
+    () => ResultsBloc(getPublishedResults: sl<GetPublishedResults>()),
   );
 
   sl.registerFactory<ResultsAnalyticsBloc>(
-    () => ResultsAnalyticsBloc(
-      getAnalyticsData: sl<GetResultsAnalyticsData>(),
-    ),
+    () => ResultsAnalyticsBloc(getAnalyticsData: sl<GetResultsAnalyticsData>()),
   );
 
   sl.registerFactory<ResultsExportBloc>(
-    () => ResultsExportBloc(
-      exportService: sl<ResultsExportService>(),
-    ),
+    () => ResultsExportBloc(exportService: sl<ResultsExportService>()),
   );
 
   sl.registerFactory<ResultArchiveBloc>(
-    () => ResultArchiveBloc(
-      getResultArchive: sl<GetResultArchive>(),
-    ),
+    () => ResultArchiveBloc(getResultArchive: sl<GetResultArchive>()),
   );
 
   sl.registerFactory<ResultDetailsBloc>(
-    () => ResultDetailsBloc(
-      getStudentById: sl<GetStudentById>(),
-    ),
+    () => ResultDetailsBloc(getStudentById: sl<GetStudentById>()),
   );
 
   sl.registerFactory<ReportCardBloc>(
     () => ReportCardBloc(
       getStudentById: sl<GetStudentById>(),
-      getAttendanceByStudent:
-          sl<GetAttendanceByStudent>(),
+      getAttendanceByStudent: sl<GetAttendanceByStudent>(),
     ),
   );
 
+  sl.registerFactory<ClassTimetableBloc>(
+    () => ClassTimetableBloc(
+      sl<GetClassTimetable>(),
+      sl<SaveClassTimetableEntry>(),
+      sl<DeleteClassTimetableEntry>(),
+    ),
+  );
+  sl.registerFactory<DayTimetableBloc>(
+    () => DayTimetableBloc(sl<GetDayTimetable>()),
+  );
+  sl.registerFactory<TeacherTimetableBloc>(
+    () => TeacherTimetableBloc(sl<GetTeacherTimetable>()),
+  );
+  sl.registerFactory<TimetableConfigurationBloc>(
+    () => TimetableConfigurationBloc(
+      sl<GetTimetableConfiguration>(),
+      sl<SaveTimetableConfiguration>(),
+    ),
+  );
   sl.registerFactory<TeacherResultsBloc>(
     () => TeacherResultsBloc(
       teacherRepository: sl<TeacherRepository>(),
-      assignmentRepository:
-          sl<TeacherAssignmentRepository>(),
+      assignmentRepository: sl<TeacherAssignmentRepository>(),
       getPublishedResults: sl<GetPublishedResults>(),
     ),
   );

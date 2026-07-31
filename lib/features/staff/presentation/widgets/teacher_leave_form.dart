@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/staff_entity.dart';
 import '../../domain/entities/staff_leave_entity.dart';
+import '../../../teachers/domain/entities/teacher_entity.dart';
 
 enum TeacherLeaveType { leave, unpaidLeave }
 
@@ -16,7 +16,7 @@ class TeacherLeaveFormData {
     required this.reason,
   });
 
-  final StaffEntity teacher;
+  final TeacherEntity teacher;
   final TeacherLeaveType leaveType;
   final DateTime startDate;
   final DateTime endDate;
@@ -39,7 +39,7 @@ class TeacherLeaveForm extends StatefulWidget {
     this.isSaving = false,
   });
 
-  final List<StaffEntity> teachers;
+  final List<TeacherEntity> teachers;
   final Future<void> Function(TeacherLeaveFormData data) onSubmit;
   final bool isSaving;
 
@@ -51,7 +51,7 @@ class _TeacherLeaveFormState extends State<TeacherLeaveForm> {
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
 
-  StaffEntity? _selectedTeacher;
+  TeacherEntity? _selectedTeacher;
   TeacherLeaveType _leaveType = TeacherLeaveType.leave;
   StaffLeaveDuration _duration = StaffLeaveDuration.fullDay;
   DateTime? _startDate;
@@ -205,7 +205,7 @@ class _TeacherLeaveFormState extends State<TeacherLeaveForm> {
                 children: [
                   SizedBox(
                     width: fieldWidth,
-                    child: DropdownButtonFormField<StaffEntity>(
+                    child: DropdownButtonFormField<TeacherEntity>(
                       initialValue: _selectedTeacher,
                       isExpanded: true,
                       decoration: const InputDecoration(
@@ -214,11 +214,11 @@ class _TeacherLeaveFormState extends State<TeacherLeaveForm> {
                         border: OutlineInputBorder(),
                       ),
                       items: widget.teachers.map((teacher) {
-                        return DropdownMenuItem<StaffEntity>(
+                        return DropdownMenuItem<TeacherEntity>(
                           value: teacher,
                           child: Text(
                             '${teacher.fullName} '
-                            '(${teacher.staffId})',
+                            '(${teacher.employeeId})',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

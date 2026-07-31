@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'teacher_leave_page.dart';
-
 class StaffDashboardPage extends StatelessWidget {
   const StaffDashboardPage({
     required this.onViewStaff,
@@ -97,20 +95,6 @@ class StaffDashboardPage extends StatelessWidget {
                                 icon: Icons.payments_outlined,
                                 actionLabel: 'Open Salary',
                                 onTap: onSalary,
-                              ),
-                              _StaffDashboardCard(
-                                title: 'Teacher Leave',
-                                description:
-                                    'Create, approve and review teacher leave requests.',
-                                icon: Icons.school_outlined,
-                                actionLabel: 'Open Teacher Leave',
-                                onTap: () {
-                                  Navigator.of(context).push<void>(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => const TeacherLeavePage(),
-                                    ),
-                                  );
-                                },
                               ),
                               _StaffDashboardCard(
                                 title: 'Leave Management',

@@ -1,0 +1,256 @@
+import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/services/firebase_firestore_service.dart';
+import '../models/class_timetable_entry_model.dart';
+import '../models/timetable_configuration_model.dart';
+
+abstract class TimetableRemoteDataSource {
+  Future<TimetableConfigurationModel?> getConfiguration({
+    required String branchId,
+    required String academicSession,
+  });
+
+  Future<void> saveConfiguration(TimetableConfigurationModel configuration);
+
+  String generateConfigurationId();
+
+  Future<List<ClassTimetableEntryModel>> getClassTimetable({
+    required String branchId,
+    required String academicSession,
+    required String classId,
+    required String sectionId,
+  });
+
+  Future<List<ClassTimetableEntryModel>> getTeacherTimetable({
+    required String branchId,
+    required String academicSession,
+    required String teacherId,
+  });
+  Future<List<ClassTimetableEntryModel>> getDayTimetable({
+    required String branchId,
+    required String academicSession,
+    required int weekday,
+  });
+  Future<void> saveClassTimetableEntry(ClassTimetableEntryModel entry);
+
+  Future<void> deleteClassTimetableEntry(String entryId);
+
+  String generateClassTimetableEntryId();
+}
+
+class TimetableRemoteDataSourceImpl implements TimetableRemoteDataSource {
+  TimetableRemoteDataSourceImpl({required this.firestoreService});
+
+  final FirebaseFirestoreService firestoreService;
+
+  @override
+  Future<TimetableConfigurationModel?> getConfiguration({
+    required String branchId,
+    required String academicSession,
+  }) async {
+    final snapshot = await firestoreService
+        .collection(FirestorePaths.timetableConfigurations)
+        .where('branchId', isEqualTo: branchId.trim())
+        .where('academicSession', isEqualTo: academicSession.trim())
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+
+    final document = snapshot.docs.first;
+    return TimetableConfigurationModel.fromMap({
+      ...document.data(),
+      'id': document.id,
+    });
+  }
+
+  @override
+  Future<void> saveConfiguration(
+    TimetableConfigurationModel configuration,
+  ) async {
+    final existing = await getConfiguration(
+      branchId: configuration.branchId,
+      academicSession: configuration.academicSession,
+    );
+
+    if (existing != null && existing.id != configuration.id) {
+      throw StateError(
+        'A timetable configuration already exists for '
+        '${configuration.academicSession}.',
+      );
+    }
+
+    await firestoreService
+        .collection(FirestorePaths.timetableConfigurations)
+        .doc(configuration.id)
+        .set(configuration.toMap());
+  }
+
+  @override
+  String generateConfigurationId() {
+    return firestoreService
+        .collection(FirestorePaths.timetableConfigurations)
+        .doc()
+        .id;
+  }
+
+  @override
+  Future<List<ClassTimetableEntryModel>> getClassTimetable({
+    required String branchId,
+    required String academicSession,
+    required String classId,
+    required String sectionId,
+  }) async {
+    final entries = await _getSessionEntries(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
+
+    final filtered =
+        entries
+            .where(
+              (entry) =>
+                  entry.classId == classId.trim() &&
+                  entry.sectionId == sectionId.trim(),
+            )
+            .toList()
+          ..sort((first, second) {
+            final dayComparison = first.weekday.compareTo(second.weekday);
+            if (dayComparison != 0) {
+              return dayComparison;
+            }
+            return first.periodOrder.compareTo(second.periodOrder);
+          });
+
+    return List<ClassTimetableEntryModel>.unmodifiable(filtered);
+  }
+
+  @override
+  Future<List<ClassTimetableEntryModel>> getTeacherTimetable({
+    required String branchId,
+    required String academicSession,
+    required String teacherId,
+  }) async {
+    final entries = await _getSessionEntries(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
+
+    final filtered =
+        entries.where((entry) => entry.teacherId == teacherId.trim()).toList()
+          ..sort((first, second) {
+            final dayComparison = first.weekday.compareTo(second.weekday);
+            if (dayComparison != 0) {
+              return dayComparison;
+            }
+            return first.periodOrder.compareTo(second.periodOrder);
+          });
+
+    return List<ClassTimetableEntryModel>.unmodifiable(filtered);
+  }
+
+  @override
+  Future<List<ClassTimetableEntryModel>> getDayTimetable({
+    required String branchId,
+    required String academicSession,
+    required int weekday,
+  }) async {
+    final entries = await _getSessionEntries(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
+
+    final filtered = entries.where((entry) => entry.weekday == weekday).toList()
+      ..sort((first, second) {
+        final periodComparison = first.periodOrder.compareTo(
+          second.periodOrder,
+        );
+        if (periodComparison != 0) {
+          return periodComparison;
+        }
+        final classComparison = first.className.compareTo(second.className);
+        if (classComparison != 0) {
+          return classComparison;
+        }
+        return first.sectionName.compareTo(second.sectionName);
+      });
+
+    return List<ClassTimetableEntryModel>.unmodifiable(filtered);
+  }
+
+  @override
+  Future<void> saveClassTimetableEntry(ClassTimetableEntryModel entry) async {
+    final entries = await _getSessionEntries(
+      branchId: entry.branchId,
+      academicSession: entry.academicSession,
+    );
+
+    for (final existing in entries) {
+      if (existing.id == entry.id ||
+          existing.weekday != entry.weekday ||
+          existing.periodId != entry.periodId) {
+        continue;
+      }
+
+      final sameClassSlot =
+          existing.classId == entry.classId &&
+          existing.sectionId == entry.sectionId;
+      if (sameClassSlot) {
+        throw StateError(
+          '${entry.className} - ${entry.sectionName} already has '
+          '${existing.subjectName} in ${entry.periodLabel}.',
+        );
+      }
+
+      if (existing.teacherId == entry.teacherId) {
+        throw StateError(
+          '${entry.teacherName} is already assigned to '
+          '${existing.className} - ${existing.sectionName} '
+          'in ${entry.periodLabel}.',
+        );
+      }
+    }
+
+    await firestoreService
+        .collection(FirestorePaths.timetableEntries)
+        .doc(entry.id)
+        .set(entry.toMap());
+  }
+
+  @override
+  Future<void> deleteClassTimetableEntry(String entryId) {
+    return firestoreService
+        .collection(FirestorePaths.timetableEntries)
+        .doc(entryId.trim())
+        .delete();
+  }
+
+  @override
+  String generateClassTimetableEntryId() {
+    return firestoreService
+        .collection(FirestorePaths.timetableEntries)
+        .doc()
+        .id;
+  }
+
+  Future<List<ClassTimetableEntryModel>> _getSessionEntries({
+    required String branchId,
+    required String academicSession,
+  }) async {
+    final snapshot = await firestoreService
+        .collection(FirestorePaths.timetableEntries)
+        .where('branchId', isEqualTo: branchId.trim())
+        .where('academicSession', isEqualTo: academicSession.trim())
+        .get();
+
+    return snapshot.docs
+        .map(
+          (document) => ClassTimetableEntryModel.fromMap({
+            ...document.data(),
+            'id': document.id,
+          }),
+        )
+        .toList(growable: false);
+  }
+}

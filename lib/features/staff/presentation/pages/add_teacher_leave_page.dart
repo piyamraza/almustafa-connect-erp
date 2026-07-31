@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
-import '../../domain/entities/staff_entity.dart';
 import '../../domain/entities/staff_leave_entity.dart';
-import '../../domain/repositories/staff_repository.dart';
+import '../../../teachers/domain/entities/teacher_entity.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../bloc/staff_leave_bloc.dart';
 import '../bloc/staff_leave_event.dart';
 import '../bloc/staff_leave_state.dart';
@@ -31,7 +31,7 @@ class _AddTeacherLeaveView extends StatefulWidget {
 }
 
 class _AddTeacherLeaveViewState extends State<_AddTeacherLeaveView> {
-  late final Future<List<StaffEntity>> _teachersFuture;
+  late final Future<List<TeacherEntity>> _teachersFuture;
   bool _isSaving = false;
 
   @override
@@ -40,23 +40,15 @@ class _AddTeacherLeaveViewState extends State<_AddTeacherLeaveView> {
     _teachersFuture = _loadTeachers();
   }
 
-  Future<List<StaffEntity>> _loadTeachers() async {
-    final staff = await sl<StaffRepository>().getStaff();
-
-    final teachers =
-        staff
-            .where(
-              (member) =>
-                  member.isActive && isTeacherDesignation(member.designation),
-            )
-            .toList()
-          ..sort(
-            (first, second) => first.fullName.toLowerCase().compareTo(
-              second.fullName.toLowerCase(),
-            ),
-          );
-
-    return teachers;
+  Future<List<TeacherEntity>> _loadTeachers() async {
+    final teachers = await sl<TeacherRepository>().getTeachers();
+    final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
+    activeTeachers.sort(
+      (first, second) => first.fullName.toLowerCase().compareTo(
+        second.fullName.toLowerCase(),
+      ),
+    );
+    return activeTeachers;
   }
 
   Future<void> _saveLeave(TeacherLeaveFormData data) async {
@@ -73,9 +65,9 @@ class _AddTeacherLeaveViewState extends State<_AddTeacherLeaveView> {
     final leave = StaffLeaveEntity(
       id: '${data.teacher.id}_teacher_leave_${now.microsecondsSinceEpoch}',
       staffId: data.teacher.id,
-      staffCode: data.teacher.staffId,
+      staffCode: data.teacher.employeeId,
       staffName: data.teacher.fullName,
-      designation: data.teacher.designation,
+      designation: teacherLeaveDesignation(data.teacher.designation),
       leaveType: data.staffLeaveType,
       startDate: data.startDate,
       endDate: data.endDate,
@@ -122,7 +114,7 @@ class _AddTeacherLeaveViewState extends State<_AddTeacherLeaveView> {
       child: Scaffold(
         appBar: AppBar(title: const Text('Add Teacher Leave')),
         body: SafeArea(
-          child: FutureBuilder<List<StaffEntity>>(
+          child: FutureBuilder<List<TeacherEntity>>(
             future: _teachersFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -137,14 +129,13 @@ class _AddTeacherLeaveViewState extends State<_AddTeacherLeaveView> {
                 );
               }
 
-              final teachers = snapshot.data ?? const <StaffEntity>[];
+              final teachers = snapshot.data ?? const <TeacherEntity>[];
 
               if (teachers.isEmpty) {
                 return const _MessageView(
                   icon: Icons.school_outlined,
                   title: 'No active teachers found',
-                  message:
-                      'Add an active staff member with Teacher in the designation.',
+                  message: 'Add an active teacher in the Teachers module first.',
                 );
               }
 

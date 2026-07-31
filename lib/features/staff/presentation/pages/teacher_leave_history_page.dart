@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
-import '../../domain/entities/staff_entity.dart';
-import '../../domain/repositories/staff_repository.dart';
+import '../../../teachers/domain/entities/teacher_entity.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../bloc/staff_leave_bloc.dart';
 import '../bloc/staff_leave_event.dart';
 import '../bloc/staff_leave_state.dart';
@@ -31,8 +31,8 @@ class _TeacherLeaveHistoryView extends StatefulWidget {
 }
 
 class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
-  late final Future<List<StaffEntity>> _teachersFuture;
-  StaffEntity? _selectedTeacher;
+  late final Future<List<TeacherEntity>> _teachersFuture;
+  TeacherEntity? _selectedTeacher;
   late int _selectedYear;
   bool _initialized = false;
 
@@ -44,20 +44,15 @@ class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
     _teachersFuture = _loadTeachers();
   }
 
-  Future<List<StaffEntity>> _loadTeachers() async {
-    final staff = await sl<StaffRepository>().getStaff();
-
-    final teachers =
-        staff
-            .where((member) => isTeacherDesignation(member.designation))
-            .toList()
-          ..sort(
-            (first, second) => first.fullName.toLowerCase().compareTo(
-              second.fullName.toLowerCase(),
-            ),
-          );
-
-    return teachers;
+  Future<List<TeacherEntity>> _loadTeachers() async {
+    final teachers = await sl<TeacherRepository>().getTeachers();
+    final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
+    activeTeachers.sort(
+      (first, second) => first.fullName.toLowerCase().compareTo(
+        second.fullName.toLowerCase(),
+      ),
+    );
+    return activeTeachers;
   }
 
   void _loadHistory() {
@@ -101,7 +96,7 @@ class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Teacher Leave History')),
       body: SafeArea(
-        child: FutureBuilder<List<StaffEntity>>(
+        child: FutureBuilder<List<TeacherEntity>>(
           future: _teachersFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -115,7 +110,7 @@ class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
               );
             }
 
-            final teachers = snapshot.data ?? const <StaffEntity>[];
+            final teachers = snapshot.data ?? const <TeacherEntity>[];
 
             if (teachers.isEmpty) {
               return const _HistoryMessageView(
@@ -156,7 +151,7 @@ class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
                               final compact = constraints.maxWidth < 700;
 
                               final teacherField =
-                                  DropdownButtonFormField<StaffEntity>(
+                                  DropdownButtonFormField<TeacherEntity>(
                                     initialValue: _selectedTeacher,
                                     isExpanded: true,
                                     decoration: const InputDecoration(

@@ -14,6 +14,7 @@ class AttendancePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(title: const Text('Attendance')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

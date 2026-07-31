@@ -5,13 +5,14 @@ import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../staff/presentation/pages/add_staff_page.dart';
-import '../../../staff/presentation/pages/staff_attendance_page.dart';
+import '../../../staff/presentation/pages/staff_attendance_page.dart';
 import '../../../staff/presentation/pages/staff_salary_page.dart';
 import '../../../staff/presentation/pages/staff_leave_page.dart';
 import '../../../staff/presentation/pages/staff_dashboard_page.dart';
 import '../../../staff/presentation/pages/staff_list_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
+import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
 
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
@@ -24,10 +25,7 @@ class Sidebar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
           const Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 12,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Text(
               'MAIN MENU',
               style: TextStyle(
@@ -43,9 +41,7 @@ class Sidebar extends StatelessWidget {
             title: 'Students',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const StudentsPage(),
-                ),
+                MaterialPageRoute<void>(builder: (_) => const StudentsPage()),
               );
             },
           ),
@@ -77,13 +73,13 @@ class Sidebar extends StatelessWidget {
                           ),
                         );
                       },
-onAttendance: () {
-  Navigator.of(staffDashboardContext).push(
-    MaterialPageRoute<void>(
-      builder: (_) => const StaffAttendancePage(),
-    ),
-  );
-},
+                      onAttendance: () {
+                        Navigator.of(staffDashboardContext).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const StaffAttendancePage(),
+                          ),
+                        );
+                      },
                       onLeave: () {
                         Navigator.of(staffDashboardContext).push(
                           MaterialPageRoute<void>(
@@ -129,9 +125,7 @@ onAttendance: () {
             title: 'Attendance',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AttendancePage(),
-                ),
+                MaterialPageRoute<void>(builder: (_) => const AttendancePage()),
               );
             },
           ),
@@ -169,7 +163,13 @@ onAttendance: () {
             context,
             icon: Icons.schedule,
             title: 'Timetable',
-            onTap: () {},
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TimetableDashboardPage(),
+                ),
+              );
+            },
           ),
           _menuTile(
             context,
@@ -207,16 +207,8 @@ onAttendance: () {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: Colors.white,
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-        ),
-      ),
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
       onTap: onTap,
     );
   }
