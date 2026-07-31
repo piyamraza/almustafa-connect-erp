@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../domain/entities/result_export_request.dart';
 import '../bloc/results_bloc.dart';
 import '../bloc/results_event.dart';
 import '../bloc/results_state.dart';
 import '../widgets/published_results_filter_card.dart';
+import '../widgets/result_export_request_factory.dart';
+import '../widgets/results_export_actions.dart';
 import 'individual_report_card_page.dart';
 
 class ReportCardsPage extends StatelessWidget {
@@ -32,17 +35,17 @@ class _ReportCardsView extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ResultsBloc>()
-                .add(const RefreshPublishedResults()),
+            onPressed: () => context.read<ResultsBloc>().add(
+              const RefreshPublishedResults(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: BlocBuilder<ResultsBloc, ResultsState>(
         builder: (context, state) => switch (state) {
-          ResultsInitial() || ResultsLoading() =>
-            const Center(child: CircularProgressIndicator()),
+          ResultsInitial() ||
+          ResultsLoading() => const Center(child: CircularProgressIndicator()),
           ResultsFailure(:final message) => _ErrorState(message: message),
           PublishedResultsLoaded() => _ReportCardsContent(data: state),
         },
@@ -69,20 +72,34 @@ class _ReportCardsContent extends StatelessWidget {
             if (data.isLoading) const SizedBox(height: 12),
             PublishedResultsFilterCard(data: data, includeStudent: true),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${results.length} published report card${results.length == 1 ? '' : 's'}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '${results.length} published report card${results.length == 1 ? '' : 's'}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
+                ResultsExportActions(
+                  request: ResultExportRequestFactory.fromPublishedResults(
+                    type: ResultExportType.bulkReportCards,
+                    title: 'Bulk Report Cards',
+                    results: results,
+                    data: data,
+                    metrics: ResultExportRequestFactory.summaryMetrics(results),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Expanded(
               child: results.isEmpty
                   ? const _EmptyState(
-                      message: 'No published report cards match the selected filters.',
+                      message:
+                          'No published report cards match the selected filters.',
                     )
                   : _ReportCardList(results: results),
             ),
@@ -105,8 +122,8 @@ class _ReportCardList extends StatelessWidget {
         final columns = constraints.maxWidth >= 1120
             ? 3
             : constraints.maxWidth >= 700
-                ? 2
-                : 1;
+            ? 2
+            : 1;
         return GridView.builder(
           itemCount: results.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -141,9 +158,8 @@ class _ReportCardList extends StatelessWidget {
                               result.studentName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
@@ -158,9 +174,8 @@ class _ReportCardList extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '${result.percentage.toStringAsFixed(1)}% • ${result.grade}',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
                           const Icon(Icons.description_outlined),
@@ -201,11 +216,11 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(message, textAlign: TextAlign.center),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(message, textAlign: TextAlign.center),
+    ),
+  );
 }
 
 class _ErrorState extends StatelessWidget {
@@ -215,23 +230,22 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 46),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context
-                    .read<ResultsBloc>()
-                    .add(const LoadPublishedResults()),
-                child: const Text('Try Again'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 46),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () =>
+                context.read<ResultsBloc>().add(const LoadPublishedResults()),
+            child: const Text('Try Again'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

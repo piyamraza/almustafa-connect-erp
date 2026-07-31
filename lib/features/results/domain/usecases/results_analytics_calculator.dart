@@ -12,14 +12,18 @@ class ResultsAnalyticsCalculator {
     ResultAnalyticsData data,
     ResultAnalyticsFilter filter,
   ) {
-    return data.results.where((result) {
-      return (filter.academicSession == null ||
-              result.academicSession == filter.academicSession) &&
-          (filter.examId == null || result.examId == filter.examId) &&
-          (filter.classId == null || result.classId == filter.classId) &&
-          (filter.sectionId == null || result.sectionId == filter.sectionId) &&
-          (filter.studentId == null || result.studentId == filter.studentId);
-    }).toList(growable: false);
+    return data.results
+        .where((result) {
+          return (filter.academicSession == null ||
+                  result.academicSession == filter.academicSession) &&
+              (filter.examId == null || result.examId == filter.examId) &&
+              (filter.classId == null || result.classId == filter.classId) &&
+              (filter.sectionId == null ||
+                  result.sectionId == filter.sectionId) &&
+              (filter.studentId == null ||
+                  result.studentId == filter.studentId);
+        })
+        .toList(growable: false);
   }
 
   static List<SubjectStudentAnalysisRow> subjectRows(
@@ -46,29 +50,39 @@ class ResultsAnalyticsCalculator {
     final searched = query.isEmpty
         ? rows
         : rows
-            .where(
-              (row) => [
-                row.result.studentName,
-                row.result.rollNumber,
-                row.result.admissionNo,
-                row.subject.subjectName,
-              ].join(' ').toLowerCase().contains(query),
-            )
-            .toList(growable: false);
-    final sorted = [...searched]..sort((first, second) {
+              .where(
+                (row) => [
+                  row.result.studentName,
+                  row.result.rollNumber,
+                  row.result.admissionNo,
+                  row.subject.subjectName,
+                ].join(' ').toLowerCase().contains(query),
+              )
+              .toList(growable: false);
+    final sorted = [...searched]
+      ..sort((first, second) {
         switch (filter.sort) {
           case AnalyticsSort.marksAscending:
-            return first.subject.obtainedMarks.compareTo(second.subject.obtainedMarks);
+            return first.subject.obtainedMarks.compareTo(
+              second.subject.obtainedMarks,
+            );
           case AnalyticsSort.nameAscending:
-            return first.result.studentName.compareTo(second.result.studentName);
+            return first.result.studentName.compareTo(
+              second.result.studentName,
+            );
           case AnalyticsSort.passFirst:
-            final passOrder = (second.subject.isPassed ? 1 : 0)
-                .compareTo(first.subject.isPassed ? 1 : 0);
+            final passOrder = (second.subject.isPassed ? 1 : 0).compareTo(
+              first.subject.isPassed ? 1 : 0,
+            );
             return passOrder != 0
                 ? passOrder
-                : second.subject.obtainedMarks.compareTo(first.subject.obtainedMarks);
+                : second.subject.obtainedMarks.compareTo(
+                    first.subject.obtainedMarks,
+                  );
           case AnalyticsSort.marksDescending:
-            return second.subject.obtainedMarks.compareTo(first.subject.obtainedMarks);
+            return second.subject.obtainedMarks.compareTo(
+              first.subject.obtainedMarks,
+            );
         }
       });
     return sorted;
@@ -77,9 +91,13 @@ class ResultsAnalyticsCalculator {
   static SubjectAnalyticsSummary subjectSummary(
     List<SubjectStudentAnalysisRow> rows,
   ) {
-    final appeared = rows.where((row) => !row.subject.isAbsent).toList(growable: false);
+    final appeared = rows
+        .where((row) => !row.subject.isAbsent)
+        .toList(growable: false);
     final passed = rows.where((row) => row.subject.isPassed).length;
-    final marks = appeared.map((row) => row.subject.obtainedMarks).toList(growable: false);
+    final marks = appeared
+        .map((row) => row.subject.obtainedMarks)
+        .toList(growable: false);
     final totalMarks = rows.isEmpty ? 0.0 : rows.first.subject.totalMarks;
     final passingMarks = rows
         .map((row) => row.passingMarks)
@@ -92,7 +110,9 @@ class ResultsAnalyticsCalculator {
       passedStudents: passed,
       failedStudents: rows.length - passed,
       passPercentage: rows.isEmpty ? 0 : (passed / rows.length) * 100,
-      failPercentage: rows.isEmpty ? 0 : ((rows.length - passed) / rows.length) * 100,
+      failPercentage: rows.isEmpty
+          ? 0
+          : ((rows.length - passed) / rows.length) * 100,
       highestMarks: _max(marks),
       lowestMarks: _min(marks),
       averageMarks: _average(marks),
@@ -110,7 +130,8 @@ class ResultsAnalyticsCalculator {
         .where((result) => result.studentId == filter.studentId)
         .toList(growable: false);
     if (results.isEmpty) return null;
-    final ordered = [...results]..sort((first, second) {
+    final ordered = [...results]
+      ..sort((first, second) {
         final firstDate = first.publishedAt ?? first.updatedAt;
         final secondDate = second.publishedAt ?? second.updatedAt;
         return firstDate.compareTo(secondDate);
@@ -124,19 +145,20 @@ class ResultsAnalyticsCalculator {
             .add((subject.obtainedMarks / subject.totalMarks) * 100);
       }
     }
-    final subjectPerformances = subjectTotals.entries
-        .map(
-          (entry) => SubjectPerformanceSummary(
-            subjectName: entry.key,
-            averagePercentage: _average(entry.value),
-            examCount: entry.value.length,
-          ),
-        )
-        .toList()
-      ..sort(
-        (first, second) =>
-            second.averagePercentage.compareTo(first.averagePercentage),
-      );
+    final subjectPerformances =
+        subjectTotals.entries
+            .map(
+              (entry) => SubjectPerformanceSummary(
+                subjectName: entry.key,
+                averagePercentage: _average(entry.value),
+                examCount: entry.value.length,
+              ),
+            )
+            .toList()
+          ..sort(
+            (first, second) =>
+                second.averagePercentage.compareTo(first.averagePercentage),
+          );
     final first = ordered.first;
     return StudentPerformanceSummary(
       studentName: first.studentName,
@@ -167,7 +189,9 @@ class ResultsAnalyticsCalculator {
   ) {
     final groups = <String, List<ExamResultEntity>>{};
     for (final result in filteredResults(data, filter)) {
-      groups.putIfAbsent(result.classId, () => <ExamResultEntity>[]).add(result);
+      groups
+          .putIfAbsent(result.classId, () => <ExamResultEntity>[])
+          .add(result);
     }
     return _groupSummaries(groups, (result) => result.className);
   }
@@ -178,7 +202,9 @@ class ResultsAnalyticsCalculator {
   ) {
     final groups = <String, List<ExamResultEntity>>{};
     for (final result in filteredResults(data, filter)) {
-      groups.putIfAbsent(result.sectionId, () => <ExamResultEntity>[]).add(result);
+      groups
+          .putIfAbsent(result.sectionId, () => <ExamResultEntity>[])
+          .add(result);
     }
     return _groupSummaries(groups, (result) => result.sectionName);
   }
@@ -194,19 +220,50 @@ class ResultsAnalyticsCalculator {
           .putIfAbsent(row.subject.subjectName, () => <double>[])
           .add(row.percentage);
     }
-    final values = groups.entries
-        .map(
-          (entry) => SubjectPerformanceSummary(
-            subjectName: entry.key,
-            averagePercentage: _average(entry.value),
-            examCount: entry.value.length,
-          ),
-        )
-        .toList()
-      ..sort(
-        (first, second) =>
-            second.averagePercentage.compareTo(first.averagePercentage),
-      );
+    final values =
+        groups.entries
+            .map(
+              (entry) => SubjectPerformanceSummary(
+                subjectName: entry.key,
+                averagePercentage: _average(entry.value),
+                examCount: entry.value.length,
+              ),
+            )
+            .toList()
+          ..sort(
+            (first, second) =>
+                second.averagePercentage.compareTo(first.averagePercentage),
+          );
+    return values;
+  }
+
+  static List<ResultChartPoint> subjectPassPercentages(
+    ResultAnalyticsData data,
+    ResultAnalyticsFilter filter,
+  ) {
+    final groups = <String, List<SubjectStudentAnalysisRow>>{};
+    for (final row in subjectRows(data, filter.copyWith(clearSubject: true))) {
+      groups
+          .putIfAbsent(
+            row.subject.subjectName,
+            () => <SubjectStudentAnalysisRow>[],
+          )
+          .add(row);
+    }
+    final values =
+        groups.entries
+            .map(
+              (entry) => ResultChartPoint(
+                label: entry.key,
+                value: entry.value.isEmpty
+                    ? 0
+                    : (entry.value.where((row) => row.subject.isPassed).length /
+                              entry.value.length) *
+                          100,
+              ),
+            )
+            .toList()
+          ..sort((first, second) => first.label.compareTo(second.label));
     return values;
   }
 
@@ -225,12 +282,16 @@ class ResultsAnalyticsCalculator {
     final passed = results.where((result) => result.isPassed).length;
     return ResultAnalyticsOverview(
       totalPublishedResults: results.length,
-      totalStudentsEvaluated: results.map((result) => result.studentId).toSet().length,
+      totalStudentsEvaluated: results
+          .map((result) => result.studentId)
+          .toSet()
+          .length,
       passedResults: passed,
       failedResults: results.length - passed,
       passPercentage: results.isEmpty ? 0 : (passed / results.length) * 100,
-      failPercentage:
-          results.isEmpty ? 0 : ((results.length - passed) / results.length) * 100,
+      failPercentage: results.isEmpty
+          ? 0
+          : ((results.length - passed) / results.length) * 100,
       averagePercentage: _average(results.map((result) => result.percentage)),
       highestPercentage: _max(results.map((result) => result.percentage)),
       lowestPercentage: _min(results.map((result) => result.percentage)),
@@ -246,15 +307,25 @@ class ResultsAnalyticsCalculator {
     ResultAnalyticsFilter filter,
   ) {
     return filteredResults(data, filter)
-        .map(
-          (result) => StudentRiskSummary(
+        .map((result) {
+          final subjects = filter.subjectName == null
+              ? result.subjectResults
+              : result.subjectResults
+                    .where(
+                      (subject) =>
+                          _sameText(subject.subjectName, filter.subjectName!),
+                    )
+                    .toList(growable: false);
+          return StudentRiskSummary(
             result: result,
-            failedSubjects:
-                result.subjectResults.where((subject) => !subject.isPassed).length,
-            absentSubjects:
-                result.subjectResults.where((subject) => subject.isAbsent).length,
-          ),
-        )
+            failedSubjects: subjects
+                .where((subject) => !subject.isPassed)
+                .length,
+            absentSubjects: subjects
+                .where((subject) => subject.isAbsent)
+                .length,
+          );
+        })
         .toList(growable: false);
   }
 
@@ -262,12 +333,17 @@ class ResultsAnalyticsCalculator {
     ResultAnalyticsData data,
     ResultAnalyticsFilter filter,
   ) {
-    return subjectRows(data, filter).where((row) {
-      final passing = row.passingMarks;
-      if (passing == null || row.subject.isAbsent || row.subject.isPassed) return false;
-      return row.subject.obtainedMarks >= passing - filter.borderlineMargin &&
-          row.subject.obtainedMarks < passing;
-    }).toList(growable: false);
+    return subjectRows(data, filter)
+        .where((row) {
+          final passing = row.passingMarks;
+          if (passing == null || row.subject.isAbsent || row.subject.isPassed) {
+            return false;
+          }
+          return row.subject.obtainedMarks >=
+                  passing - filter.borderlineMargin &&
+              row.subject.obtainedMarks < passing;
+        })
+        .toList(growable: false);
   }
 
   static List<ExamResultEntity> topResults(
@@ -294,10 +370,16 @@ class ResultsAnalyticsCalculator {
       groups[result.grade.trim().isEmpty ? 'N/A' : result.grade] =
           (groups[result.grade.trim().isEmpty ? 'N/A' : result.grade] ?? 0) + 1;
     }
-    final points = groups.entries
-        .map((entry) => ResultChartPoint(label: entry.key, value: entry.value.toDouble()))
-        .toList()
-      ..sort((first, second) => first.label.compareTo(second.label));
+    final points =
+        groups.entries
+            .map(
+              (entry) => ResultChartPoint(
+                label: entry.key,
+                value: entry.value.toDouble(),
+              ),
+            )
+            .toList()
+          ..sort((first, second) => first.label.compareTo(second.label));
     return points;
   }
 
@@ -306,27 +388,33 @@ class ResultsAnalyticsCalculator {
     ResultAnalyticsFilter filter,
   ) {
     final groups = <String, List<ExamResultEntity>>{};
-    for (final result in filteredResults(data, filter.copyWith(clearExam: true))) {
+    for (final result in filteredResults(
+      data,
+      filter.copyWith(clearExam: true),
+    )) {
       groups.putIfAbsent(result.examId, () => <ExamResultEntity>[]).add(result);
     }
-    final values = groups.values
-        .map(
-          (items) => ResultChartPoint(
-            label: items.first.examName,
-            value: _average(items.map((item) => item.percentage)),
-          ),
-        )
-        .toList()
-      ..sort((first, second) => first.label.compareTo(second.label));
+    final values =
+        groups.values
+            .map(
+              (items) => ResultChartPoint(
+                label: items.first.examName,
+                value: _average(items.map((item) => item.percentage)),
+              ),
+            )
+            .toList()
+          ..sort((first, second) => first.label.compareTo(second.label));
     return values;
   }
 
-  static List<ResultChartPoint> studentTrend(StudentPerformanceSummary summary) =>
-      summary.examPerformances
-          .map(
-            (item) => ResultChartPoint(label: item.examName, value: item.percentage),
-          )
-          .toList(growable: false);
+  static List<ResultChartPoint> studentTrend(
+    StudentPerformanceSummary summary,
+  ) => summary.examPerformances
+      .map(
+        (item) =>
+            ResultChartPoint(label: item.examName, value: item.percentage),
+      )
+      .toList(growable: false);
 
   static List<PerformanceGroupSummary> _groupSummaries(
     Map<String, List<ExamResultEntity>> groups,
@@ -335,8 +423,9 @@ class ResultsAnalyticsCalculator {
     final values = groups.entries.map((entry) {
       final results = entry.value;
       final passed = results.where((result) => result.isPassed).length;
-      final ordered = [...results]
-        ..sort((first, second) => second.percentage.compareTo(first.percentage));
+      final ordered = [
+        ...results,
+      ]..sort((first, second) => second.percentage.compareTo(first.percentage));
       return PerformanceGroupSummary(
         id: entry.key,
         name: nameOf(results.first),
@@ -350,8 +439,7 @@ class ResultsAnalyticsCalculator {
         topPerformer: ordered.isEmpty ? null : ordered.first,
         weakestPerformer: ordered.isEmpty ? null : ordered.last,
       );
-    }).toList()
-      ..sort((first, second) => first.name.compareTo(second.name));
+    }).toList()..sort((first, second) => first.name.compareTo(second.name));
     return values;
   }
 

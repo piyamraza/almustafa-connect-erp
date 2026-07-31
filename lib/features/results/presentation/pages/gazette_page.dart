@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../domain/entities/result_export_request.dart';
 import '../bloc/results_bloc.dart';
 import '../bloc/results_event.dart';
 import '../bloc/results_state.dart';
 import '../widgets/published_results_filter_card.dart';
+import '../widgets/result_export_request_factory.dart';
+import '../widgets/results_export_actions.dart';
 
 class GazettePage extends StatelessWidget {
   const GazettePage({super.key});
@@ -31,17 +34,17 @@ class _GazetteView extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ResultsBloc>()
-                .add(const RefreshPublishedResults()),
+            onPressed: () => context.read<ResultsBloc>().add(
+              const RefreshPublishedResults(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: BlocBuilder<ResultsBloc, ResultsState>(
         builder: (context, state) => switch (state) {
-          ResultsInitial() || ResultsLoading() =>
-            const Center(child: CircularProgressIndicator()),
+          ResultsInitial() ||
+          ResultsLoading() => const Center(child: CircularProgressIndicator()),
           ResultsFailure(:final message) => _GazetteError(message: message),
           PublishedResultsLoaded() => _GazetteContent(data: state),
         },
@@ -57,7 +60,8 @@ class _GazetteContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ready = data.selectedAcademicSession != null && data.selectedExamId != null;
+    final ready =
+        data.selectedAcademicSession != null && data.selectedExamId != null;
     final rows = _gazetteRows(data.filteredResults);
     return SafeArea(
       top: false,
@@ -112,12 +116,26 @@ class _GazetteDocument extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _GazetteHeader(subtitle: heading),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ResultsExportActions(
+                request: ResultExportRequestFactory.fromPublishedResults(
+                  type: ResultExportType.gazette,
+                  title: 'Result Gazette',
+                  results: rows,
+                  data: data,
+                  metrics: ResultExportRequestFactory.summaryMetrics(rows),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             if (rows.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
                 child: Center(
-                  child: Text('No published results match the selected filters.'),
+                  child: Text(
+                    'No published results match the selected filters.',
+                  ),
                 ),
               )
             else
@@ -151,7 +169,9 @@ class _GazetteDocument extends StatelessWidget {
                             DataCell(Text(result.sectionName)),
                             DataCell(Text(_number(result.grandTotalMarks))),
                             DataCell(Text(_number(result.grandObtainedMarks))),
-                            DataCell(Text('${result.percentage.toStringAsFixed(1)}%')),
+                            DataCell(
+                              Text('${result.percentage.toStringAsFixed(1)}%'),
+                            ),
                             DataCell(Text(result.grade)),
                             DataCell(Text('${result.sectionPosition}')),
                             DataCell(Text(result.isPassed ? 'Pass' : 'Fail')),
@@ -192,7 +212,7 @@ class _GazetteHeader extends StatelessWidget {
             width: 52,
             height: 52,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox(
+            errorBuilder: (_, _, _) => const SizedBox(
               width: 52,
               height: 52,
               child: Icon(Icons.school_outlined),
@@ -206,12 +226,15 @@ class _GazetteHeader extends StatelessWidget {
             children: [
               Text(
                 'Almustafa Model School',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 2),
-              Text('RESULT GAZETTE', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'RESULT GAZETTE',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               if (subtitle.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
@@ -229,14 +252,14 @@ class _GazetteSelectionHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Select academic session and exam to view the published gazette.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    child: Padding(
+      padding: EdgeInsets.all(24),
+      child: Text(
+        'Select academic session and exam to view the published gazette.',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  );
 }
 
 class _GazetteError extends StatelessWidget {
@@ -246,25 +269,24 @@ class _GazetteError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 46),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context
-                    .read<ResultsBloc>()
-                    .add(const LoadPublishedResults()),
-                child: const Text('Try Again'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 46),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () =>
+                context.read<ResultsBloc>().add(const LoadPublishedResults()),
+            child: const Text('Try Again'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 List<ExamResultEntity> _gazetteRows(List<ExamResultEntity> values) {

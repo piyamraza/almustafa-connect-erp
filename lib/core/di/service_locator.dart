@@ -27,6 +27,16 @@ import '../../features/teachers/data/datasources/teacher_remote_datasource.dart'
 import '../../features/teachers/data/repositories/teacher_repository_impl.dart';
 import '../../features/teachers/domain/repositories/teacher_repository.dart';
 import '../../features/teachers/presentation/bloc/teacher_bloc.dart';
+import '../../features/staff/data/datasources/staff_remote_datasource.dart';
+import '../../features/staff/data/repositories/staff_repository_impl.dart';
+import '../../features/staff/domain/repositories/staff_repository.dart';
+import '../../features/staff/domain/usecases/add_staff.dart';
+import '../../features/staff/domain/usecases/delete_staff.dart';
+import '../../features/staff/domain/usecases/get_staff.dart';
+import '../../features/staff/domain/usecases/generate_staff_id.dart';
+import '../../features/staff/domain/usecases/toggle_staff_status.dart';
+import '../../features/staff/domain/usecases/update_staff.dart';
+import '../../features/staff/presentation/bloc/staff_bloc.dart';
 import '../../features/teachers/data/datasources/teacher_assignment_remote_datasource.dart';
 import '../../features/teachers/data/repositories/teacher_assignment_repository_impl.dart';
 import '../../features/teachers/domain/repositories/teacher_assignment_repository.dart';
@@ -75,7 +85,14 @@ import '../../features/exams/presentation/bloc/exam_subject_setup_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_marks_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_results_bloc.dart';
 import '../../features/results/domain/usecases/get_published_results.dart';
+import '../../features/results/domain/usecases/get_result_archive.dart';
+import '../../features/results/domain/usecases/get_results_analytics_data.dart';
+import '../../features/results/domain/services/results_export_service.dart';
+import '../../features/results/data/services/results_export_service_impl.dart';
 import '../../features/results/presentation/bloc/results_bloc.dart';
+import '../../features/results/presentation/bloc/results_export_bloc.dart';
+import '../../features/results/presentation/bloc/results_analytics_bloc.dart';
+import '../../features/results/presentation/bloc/result_archive_bloc.dart';
 import '../../features/results/presentation/bloc/result_details_bloc.dart';
 import '../../features/results/presentation/bloc/report_card_bloc.dart';
 import '../../features/results/presentation/bloc/teacher_results_bloc.dart';
@@ -93,9 +110,7 @@ Future<void> setupServiceLocator() async {
   // Services
   // =========================================================
 
-  sl.registerLazySingleton<FirebaseAuthService>(
-    () => FirebaseAuthService(),
-  );
+  sl.registerLazySingleton<FirebaseAuthService>(() => FirebaseAuthService());
 
   sl.registerLazySingleton<FirebaseFirestoreService>(
     () => FirebaseFirestoreService(),
@@ -117,16 +132,20 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-sl.registerLazySingleton<AttendanceRemoteDataSource>(
-  () => AttendanceRemoteDataSourceImpl(),
-);
+  sl.registerLazySingleton<AttendanceRemoteDataSource>(
+    () => AttendanceRemoteDataSourceImpl(),
+  );
 
   sl.registerLazySingleton<TeacherRemoteDataSource>(
     () => TeacherRemoteDataSourceImpl(
       firestoreService: sl<FirebaseFirestoreService>(),
     ),
   );
-
+  sl.registerLazySingleton<StaffRemoteDataSource>(
+    () => StaffRemoteDataSourceImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+    ),
+  );
   sl.registerLazySingleton<TeacherAssignmentRemoteDataSource>(
     () => TeacherAssignmentRemoteDataSourceImpl(
       firestoreService: sl<FirebaseFirestoreService>(),
@@ -179,9 +198,8 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
   );
 
   sl.registerLazySingleton<StudentRepository>(
-    () => StudentRepositoryImpl(
-      remoteDataSource: sl<StudentRemoteDataSource>(),
-    ),
+    () =>
+        StudentRepositoryImpl(remoteDataSource: sl<StudentRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<AttendanceRepository>(
@@ -191,9 +209,12 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
   );
 
   sl.registerLazySingleton<TeacherRepository>(
-    () => TeacherRepositoryImpl(
-      remoteDataSource: sl<TeacherRemoteDataSource>(),
-    ),
+    () =>
+        TeacherRepositoryImpl(remoteDataSource: sl<TeacherRemoteDataSource>()),
+  );
+
+  sl.registerLazySingleton<StaffRepository>(
+    () => StaffRepositoryImpl(remoteDataSource: sl<StaffRemoteDataSource>()),
   );
   sl.registerLazySingleton<TeacherAssignmentRepository>(
     () => TeacherAssignmentRepositoryImpl(
@@ -214,66 +235,48 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
     ),
   );
   sl.registerLazySingleton<ExamMarkRepository>(
-    () => ExamMarkRepositoryImpl(
-      source: sl<ExamMarkRemoteDataSource>(),
-    ),
+    () => ExamMarkRepositoryImpl(source: sl<ExamMarkRemoteDataSource>()),
   );
   sl.registerLazySingleton<ExamResultRepository>(
-    () => ExamResultRepositoryImpl(
-      source: sl<ExamResultRemoteDataSource>(),
-    ),
+    () => ExamResultRepositoryImpl(source: sl<ExamResultRemoteDataSource>()),
   );
   sl.registerLazySingleton<GradingRuleRepository>(
-    () => GradingRuleRepositoryImpl(
-      source: sl<GradingRuleRemoteDataSource>(),
-    ),
+    () => GradingRuleRepositoryImpl(source: sl<GradingRuleRemoteDataSource>()),
   );
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
       source: sl<AcademicStructureRemoteDataSource>(),
     ),
   );
+  sl.registerLazySingleton<ResultsExportService>(ResultsExportServiceImpl.new);
 
   // =========================================================
   // Use Cases
   // =========================================================
 
   sl.registerLazySingleton<LoginUseCase>(
-    () => LoginUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => LoginUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<LogoutUseCase>(
-    () => LogoutUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => LogoutUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<ForgotPasswordUseCase>(
-    () => ForgotPasswordUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => ForgotPasswordUseCase(sl<AuthenticationRepository>()),
   );
 
   sl.registerLazySingleton<GetCurrentUserUseCase>(
-    () => GetCurrentUserUseCase(
-      sl<AuthenticationRepository>(),
-    ),
+    () => GetCurrentUserUseCase(sl<AuthenticationRepository>()),
+  );
+  sl.registerLazySingleton<GetResultArchive>(
+    () => GetResultArchive(sl<GetPublishedResults>()),
   );
 
-  sl.registerLazySingleton<CreateExam>(
-    () => CreateExam(sl<ExamRepository>()),
-  );
-  sl.registerLazySingleton<UpdateExam>(
-    () => UpdateExam(sl<ExamRepository>()),
-  );
-  sl.registerLazySingleton<DeleteExam>(
-    () => DeleteExam(sl<ExamRepository>()),
-  );
-  sl.registerLazySingleton<GetExams>(
-    () => GetExams(sl<ExamRepository>()),
-  );
+  sl.registerLazySingleton<CreateExam>(() => CreateExam(sl<ExamRepository>()));
+  sl.registerLazySingleton<UpdateExam>(() => UpdateExam(sl<ExamRepository>()));
+  sl.registerLazySingleton<DeleteExam>(() => DeleteExam(sl<ExamRepository>()));
+  sl.registerLazySingleton<GetExams>(() => GetExams(sl<ExamRepository>()));
   sl.registerLazySingleton<GetExamById>(
     () => GetExamById(sl<ExamRepository>()),
   );
@@ -332,6 +335,12 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
   sl.registerLazySingleton<GetPublishedResults>(
     () => GetPublishedResults(sl<ExamResultRepository>()),
   );
+  sl.registerLazySingleton<GetResultsAnalyticsData>(
+    () => GetResultsAnalyticsData(
+      getPublishedResults: sl<GetPublishedResults>(),
+      getSubjectSetups: sl<GetExamSubjectSetups>(),
+    ),
+  );
   sl.registerLazySingleton<GetAttendanceByStudent>(
     () => GetAttendanceByStudent(sl<AttendanceRepository>()),
   );
@@ -342,6 +351,24 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
     () => GetStudentById(sl<StudentRepository>()),
   );
 
+  sl.registerLazySingleton<GetStaff>(() => GetStaff(sl<StaffRepository>()));
+
+  sl.registerLazySingleton<AddStaff>(() => AddStaff(sl<StaffRepository>()));
+
+  sl.registerLazySingleton<UpdateStaff>(
+    () => UpdateStaff(sl<StaffRepository>()),
+  );
+
+  sl.registerLazySingleton<DeleteStaff>(
+    () => DeleteStaff(sl<StaffRepository>()),
+  );
+
+  sl.registerLazySingleton<ToggleStaffStatus>(
+    () => ToggleStaffStatus(sl<StaffRepository>()),
+  );
+sl.registerLazySingleton<GenerateStaffId>(
+  () => GenerateStaffId(sl<StaffRepository>()),
+);
   // =========================================================
   // BLoCs
   // =========================================================
@@ -355,16 +382,10 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
     ),
   );
 
-  sl.registerFactory<StudentBloc>(
-    () => StudentBloc(
-      sl<StudentRepository>(),
-    ),
-  );
+  sl.registerFactory<StudentBloc>(() => StudentBloc(sl<StudentRepository>()));
 
   sl.registerFactory<AttendanceBloc>(
-    () => AttendanceBloc(
-      sl<AttendanceRepository>(),
-    ),
+    () => AttendanceBloc(sl<AttendanceRepository>()),
   );
 
   sl.registerLazySingleton<GenerateAttendanceReport>(
@@ -375,12 +396,20 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
     () => AttendanceReportBloc(sl<GenerateAttendanceReport>()),
   );
 
-  sl.registerFactory<TeacherBloc>(
-    () => TeacherBloc(sl<TeacherRepository>()),
-  );
+  sl.registerFactory<TeacherBloc>(() => TeacherBloc(sl<TeacherRepository>()));
   sl.registerFactory<TeacherAssignmentBloc>(
     () => TeacherAssignmentBloc(sl<TeacherAssignmentRepository>()),
   );
+  sl.registerFactory<StaffBloc>(
+    () => StaffBloc(
+      getStaff: sl<GetStaff>(),
+      addStaff: sl<AddStaff>(),
+      updateStaff: sl<UpdateStaff>(),
+      deleteStaff: sl<DeleteStaff>(),
+      toggleStaffStatus: sl<ToggleStaffStatus>(),
+    ),
+  );
+
   sl.registerFactory<TeacherAttendanceBloc>(
     () => TeacherAttendanceBloc(sl<TeacherAttendanceRepository>()),
   );
@@ -424,6 +453,15 @@ sl.registerLazySingleton<AttendanceRemoteDataSource>(
   );
   sl.registerFactory<ResultsBloc>(
     () => ResultsBloc(getPublishedResults: sl<GetPublishedResults>()),
+  );
+  sl.registerFactory<ResultsAnalyticsBloc>(
+    () => ResultsAnalyticsBloc(getAnalyticsData: sl<GetResultsAnalyticsData>()),
+  );
+  sl.registerFactory<ResultsExportBloc>(
+    () => ResultsExportBloc(exportService: sl<ResultsExportService>()),
+  );
+  sl.registerFactory<ResultArchiveBloc>(
+    () => ResultArchiveBloc(getResultArchive: sl<GetResultArchive>()),
   );
   sl.registerFactory<ResultDetailsBloc>(
     () => ResultDetailsBloc(getStudentById: sl<GetStudentById>()),

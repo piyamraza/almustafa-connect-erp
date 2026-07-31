@@ -80,17 +80,17 @@ class ResultAnalyticsFilter extends Equatable {
 
   @override
   List<Object?> get props => [
-        academicSession,
-        examId,
-        classId,
-        sectionId,
-        subjectName,
-        studentId,
-        searchQuery,
-        sort,
-        borderlineMargin,
-        lowPerformanceThreshold,
-      ];
+    academicSession,
+    examId,
+    classId,
+    sectionId,
+    subjectName,
+    studentId,
+    searchQuery,
+    sort,
+    borderlineMargin,
+    lowPerformanceThreshold,
+  ];
 }
 
 class ResultChartPoint extends Equatable {
@@ -114,8 +114,9 @@ class SubjectStudentAnalysisRow extends Equatable {
   final SubjectResultEntity subject;
   final double? passingMarks;
 
-  double get percentage =>
-      subject.totalMarks == 0 ? 0 : (subject.obtainedMarks / subject.totalMarks) * 100;
+  double get percentage => subject.totalMarks == 0
+      ? 0
+      : (subject.obtainedMarks / subject.totalMarks) * 100;
 
   @override
   List<Object?> get props => [result, subject, passingMarks];
@@ -152,19 +153,19 @@ class SubjectAnalyticsSummary extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalStudents,
-        appearedStudents,
-        absentStudents,
-        passedStudents,
-        failedStudents,
-        passPercentage,
-        failPercentage,
-        highestMarks,
-        lowestMarks,
-        averageMarks,
-        totalMarks,
-        passingMarks,
-      ];
+    totalStudents,
+    appearedStudents,
+    absentStudents,
+    passedStudents,
+    failedStudents,
+    passPercentage,
+    failPercentage,
+    highestMarks,
+    lowestMarks,
+    averageMarks,
+    totalMarks,
+    passingMarks,
+  ];
 }
 
 class StudentExamPerformance extends Equatable {
@@ -186,13 +187,13 @@ class StudentExamPerformance extends Equatable {
 
   @override
   List<Object?> get props => [
-        examId,
-        examName,
-        percentage,
-        grade,
-        position,
-        isPassed,
-      ];
+    examId,
+    examName,
+    percentage,
+    grade,
+    position,
+    isPassed,
+  ];
 }
 
 class SubjectPerformanceSummary extends Equatable {
@@ -239,15 +240,15 @@ class StudentPerformanceSummary extends Equatable {
 
   @override
   List<Object?> get props => [
-        studentName,
-        rollNumber,
-        admissionNo,
-        examPerformances,
-        subjectPerformances,
-        averagePercentage,
-        passedExams,
-        failedExams,
-      ];
+    studentName,
+    rollNumber,
+    admissionNo,
+    examPerformances,
+    subjectPerformances,
+    averagePercentage,
+    passedExams,
+    failedExams,
+  ];
 }
 
 class PerformanceGroupSummary extends Equatable {
@@ -279,18 +280,18 @@ class PerformanceGroupSummary extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        totalStudents,
-        passedStudents,
-        failedStudents,
-        passPercentage,
-        averagePercentage,
-        highestPercentage,
-        lowestPercentage,
-        topPerformer,
-        weakestPerformer,
-      ];
+    id,
+    name,
+    totalStudents,
+    passedStudents,
+    failedStudents,
+    passPercentage,
+    averagePercentage,
+    highestPercentage,
+    lowestPercentage,
+    topPerformer,
+    weakestPerformer,
+  ];
 }
 
 class StudentRiskSummary extends Equatable {
@@ -341,18 +342,18 @@ class ResultAnalyticsOverview extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalPublishedResults,
-        totalStudentsEvaluated,
-        passedResults,
-        failedResults,
-        passPercentage,
-        failPercentage,
-        averagePercentage,
-        highestPercentage,
-        lowestPercentage,
-        bestClass,
-        weakestClass,
-        bestSubject,
-        weakestSubject,
-      ];
+    totalPublishedResults,
+    totalStudentsEvaluated,
+    passedResults,
+    failedResults,
+    passPercentage,
+    failPercentage,
+    averagePercentage,
+    highestPercentage,
+    lowestPercentage,
+    bestClass,
+    weakestClass,
+    bestSubject,
+    weakestSubject,
+  ];
 }

@@ -11,6 +11,7 @@ class ResultsAnalyticsFilterCard extends StatefulWidget {
     required this.data,
     this.showSubject = false,
     this.showStudent = false,
+    this.showSection = true,
     this.showSearch = false,
     this.showSort = false,
     this.showRiskThresholds = false,
@@ -20,6 +21,7 @@ class ResultsAnalyticsFilterCard extends StatefulWidget {
   final ResultsAnalyticsLoaded data;
   final bool showSubject;
   final bool showStudent;
+  final bool showSection;
   final bool showSearch;
   final bool showSort;
   final bool showRiskThresholds;
@@ -29,13 +31,16 @@ class ResultsAnalyticsFilterCard extends StatefulWidget {
       _ResultsAnalyticsFilterCardState();
 }
 
-class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard> {
+class _ResultsAnalyticsFilterCardState
+    extends State<ResultsAnalyticsFilterCard> {
   late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController(text: widget.data.filter.searchQuery);
+    _searchController = TextEditingController(
+      text: widget.data.filter.searchQuery,
+    );
   }
 
   @override
@@ -87,7 +92,10 @@ class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard>
                   label: 'Exam',
                   value: data.filter.examId,
                   items: data.availableExams
-                      .map((value) => _AnalyticsOption(value.examId, value.examName))
+                      .map(
+                        (value) =>
+                            _AnalyticsOption(value.examId, value.examName),
+                      )
                       .toList(growable: false),
                   onChanged: (value) => bloc.add(FilterAnalyticsByExam(value)),
                   width: fieldWidth,
@@ -96,26 +104,31 @@ class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard>
                   label: 'Class',
                   value: data.filter.classId,
                   items: data.availableClasses
-                      .map((value) => _AnalyticsOption(value.classId, value.className))
+                      .map(
+                        (value) =>
+                            _AnalyticsOption(value.classId, value.className),
+                      )
                       .toList(growable: false),
                   onChanged: (value) => bloc.add(FilterAnalyticsByClass(value)),
                   width: fieldWidth,
                 ),
-                _AnalyticsSelect(
-                  label: 'Section',
-                  value: data.filter.sectionId,
-                  enabled: data.filter.classId != null,
-                  items: data.availableSections
-                      .map(
-                        (value) => _AnalyticsOption(
-                          value.sectionId,
-                          value.sectionName,
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) => bloc.add(FilterAnalyticsBySection(value)),
-                  width: fieldWidth,
-                ),
+                if (widget.showSection)
+                  _AnalyticsSelect(
+                    label: 'Section',
+                    value: data.filter.sectionId,
+                    enabled: data.filter.classId != null,
+                    items: data.availableSections
+                        .map(
+                          (value) => _AnalyticsOption(
+                            value.sectionId,
+                            value.sectionName,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) =>
+                        bloc.add(FilterAnalyticsBySection(value)),
+                    width: fieldWidth,
+                  ),
                 if (widget.showSubject)
                   _AnalyticsSelect(
                     label: 'Subject',
@@ -171,7 +184,7 @@ class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard>
                   SizedBox(
                     width: fieldWidth,
                     child: DropdownButtonFormField<AnalyticsSort>(
-                      value: data.filter.sort,
+                      initialValue: data.filter.sort,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Sort students',
@@ -206,16 +219,16 @@ class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard>
                   SizedBox(
                     width: fieldWidth,
                     child: DropdownButtonFormField<double>(
-                      value: data.filter.borderlineMargin,
+                      initialValue: data.filter.borderlineMargin,
                       decoration: const InputDecoration(
                         labelText: 'Borderline margin (marks)',
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 3, child: Text('3 marks')),
-                        DropdownMenuItem(value: 5, child: Text('5 marks')),
-                        DropdownMenuItem(value: 7, child: Text('7 marks')),
-                        DropdownMenuItem(value: 10, child: Text('10 marks')),
+                        DropdownMenuItem(value: 3.0, child: Text('3 marks')),
+                        DropdownMenuItem(value: 5.0, child: Text('5 marks')),
+                        DropdownMenuItem(value: 7.0, child: Text('7 marks')),
+                        DropdownMenuItem(value: 10.0, child: Text('10 marks')),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -228,16 +241,16 @@ class _ResultsAnalyticsFilterCardState extends State<ResultsAnalyticsFilterCard>
                   SizedBox(
                     width: fieldWidth,
                     child: DropdownButtonFormField<double>(
-                      value: data.filter.lowPerformanceThreshold,
+                      initialValue: data.filter.lowPerformanceThreshold,
                       decoration: const InputDecoration(
                         labelText: 'Low-performance threshold',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 33, child: Text('Below 33%')),
-                        DropdownMenuItem(value: 40, child: Text('Below 40%')),
-                        DropdownMenuItem(value: 50, child: Text('Below 50%')),
-                        DropdownMenuItem(value: 60, child: Text('Below 60%')),
+                        DropdownMenuItem(value: 33.0, child: Text('Below 33%')),
+                        DropdownMenuItem(value: 40.0, child: Text('Below 40%')),
+                        DropdownMenuItem(value: 50.0, child: Text('Below 50%')),
+                        DropdownMenuItem(value: 60.0, child: Text('Below 60%')),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -281,7 +294,7 @@ class _AnalyticsSelect extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

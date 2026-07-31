@@ -74,7 +74,9 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
       values.putIfAbsent(result.classId, () => result);
     }
     final classes = values.values.toList();
-    classes.sort((first, second) => first.className.compareTo(second.className));
+    classes.sort(
+      (first, second) => first.className.compareTo(second.className),
+    );
     return classes;
   }
 
@@ -91,7 +93,9 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
       values.putIfAbsent(result.sectionId, () => result);
     }
     final sections = values.values.toList();
-    sections.sort((first, second) => first.sectionName.compareTo(second.sectionName));
+    sections.sort(
+      (first, second) => first.sectionName.compareTo(second.sectionName),
+    );
     return sections;
   }
 
@@ -102,7 +106,9 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
       filter.copyWith(clearSubject: true, clearStudent: true),
     )) {
       for (final subject in result.subjectResults) {
-        if (subject.subjectName.trim().isNotEmpty) values.add(subject.subjectName);
+        if (subject.subjectName.trim().isNotEmpty) {
+          values.add(subject.subjectName);
+        }
       }
     }
     final subjects = values.toList();
@@ -119,7 +125,9 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
       values.putIfAbsent(result.studentId, () => result);
     }
     final students = values.values.toList();
-    students.sort((first, second) => first.studentName.compareTo(second.studentName));
+    students.sort(
+      (first, second) => first.studentName.compareTo(second.studentName),
+    );
     return students;
   }
 

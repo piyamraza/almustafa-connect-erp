@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../domain/entities/result_export_request.dart';
 import '../bloc/results_bloc.dart';
 import '../bloc/results_event.dart';
 import '../bloc/results_state.dart';
 import '../widgets/published_results_filter_card.dart';
+import '../widgets/result_export_request_factory.dart';
+import '../widgets/results_export_actions.dart';
 
 enum MeritScope { overall, classMerit, section }
 
@@ -41,25 +44,25 @@ class _MeritListViewState extends State<_MeritListView> {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ResultsBloc>()
-                .add(const RefreshPublishedResults()),
+            onPressed: () => context.read<ResultsBloc>().add(
+              const RefreshPublishedResults(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: BlocBuilder<ResultsBloc, ResultsState>(
         builder: (context, state) => switch (state) {
-          ResultsInitial() || ResultsLoading() =>
-            const Center(child: CircularProgressIndicator()),
+          ResultsInitial() ||
+          ResultsLoading() => const Center(child: CircularProgressIndicator()),
           ResultsFailure(:final message) => _MeritError(message: message),
           PublishedResultsLoaded() => _MeritContent(
-              data: state,
-              scope: _scope,
-              topLimit: _topLimit,
-              onScopeChanged: (value) => setState(() => _scope = value),
-              onLimitChanged: (value) => setState(() => _topLimit = value),
-            ),
+            data: state,
+            scope: _scope,
+            topLimit: _topLimit,
+            onScopeChanged: (value) => setState(() => _scope = value),
+            onLimitChanged: (value) => setState(() => _topLimit = value),
+          ),
         },
       ),
     );
@@ -103,6 +106,19 @@ class _MeritContent extends StatelessWidget {
               onScopeChanged: onScopeChanged,
               onLimitChanged: onLimitChanged,
             ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ResultsExportActions(
+                request: ResultExportRequestFactory.fromPublishedResults(
+                  type: ResultExportType.meritList,
+                  title: '${_scopeLabel(scope)} Merit List - Top $topLimit',
+                  results: results,
+                  data: data,
+                  metrics: ResultExportRequestFactory.summaryMetrics(results),
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: ready
@@ -141,9 +157,9 @@ class _MeritControls extends StatelessWidget {
           children: [
             Text(
               'Merit scope',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             ChoiceChip(
               label: const Text('Overall Merit'),
@@ -188,7 +204,9 @@ class _MeritTable extends StatelessWidget {
   Widget build(BuildContext context) {
     if (results.isEmpty) {
       return const Center(
-        child: Text('No published merit records are available for this selection.'),
+        child: Text(
+          'No published merit records are available for this selection.',
+        ),
       );
     }
     return LayoutBuilder(
@@ -196,7 +214,7 @@ class _MeritTable extends StatelessWidget {
         if (constraints.maxWidth < 700) {
           return ListView.separated(
             itemCount: results.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final result = results[index];
               return Card(
@@ -230,7 +248,9 @@ class _MeritTable extends StatelessWidget {
                       cells: [
                         DataCell(Text('${_rank(result, scope)}')),
                         DataCell(Text(result.studentName)),
-                        DataCell(Text('${result.percentage.toStringAsFixed(1)}%')),
+                        DataCell(
+                          Text('${result.percentage.toStringAsFixed(1)}%'),
+                        ),
                         DataCell(Text(result.grade)),
                       ],
                     ),
@@ -252,7 +272,8 @@ class _MeritSelectionHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = switch (scope) {
-      MeritScope.overall => 'Select academic session and exam to view overall merit.',
+      MeritScope.overall =>
+        'Select academic session and exam to view overall merit.',
       MeritScope.classMerit =>
         'Select academic session, exam, and class to view class merit.',
       MeritScope.section =>
@@ -269,25 +290,24 @@ class _MeritError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 46),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context
-                    .read<ResultsBloc>()
-                    .add(const LoadPublishedResults()),
-                child: const Text('Try Again'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 46),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () =>
+                context.read<ResultsBloc>().add(const LoadPublishedResults()),
+            child: const Text('Try Again'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 bool _isReady(PublishedResultsLoaded data, MeritScope scope) {
@@ -316,7 +336,13 @@ List<ExamResultEntity> _meritResults(
 }
 
 int _rank(ExamResultEntity result, MeritScope scope) => switch (scope) {
-      MeritScope.overall => result.overallRank,
-      MeritScope.classMerit => result.classPosition,
-      MeritScope.section => result.sectionPosition,
-    };
+  MeritScope.overall => result.overallRank,
+  MeritScope.classMerit => result.classPosition,
+  MeritScope.section => result.sectionPosition,
+};
+
+String _scopeLabel(MeritScope scope) => switch (scope) {
+  MeritScope.overall => 'Overall',
+  MeritScope.classMerit => 'Class',
+  MeritScope.section => 'Section',
+};

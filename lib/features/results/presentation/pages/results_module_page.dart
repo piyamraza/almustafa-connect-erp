@@ -5,6 +5,9 @@ import 'merit_list_page.dart';
 import 'published_results_page.dart';
 import 'report_cards_page.dart';
 import 'results_dashboard_page.dart';
+import 'results_analysis_hub_page.dart';
+import 'result_archive_page.dart';
+import 'results_reports_page.dart';
 import 'teacher_results_page.dart';
 
 class ResultsModulePage extends StatelessWidget {
@@ -53,21 +56,19 @@ class ResultsModulePage extends StatelessWidget {
     ),
     _ResultsModuleItem(
       title: 'Analysis',
-      description: 'Result analysis will be available in a later phase.',
+      description:
+          'Explore published-result statistics and performance insights.',
       icon: Icons.analytics_outlined,
-      isAvailable: false,
     ),
     _ResultsModuleItem(
       title: 'Reports',
-      description: 'Exportable result reports will be available in a later phase.',
+      description: 'Export published result reports in PDF or Excel format.',
       icon: Icons.assessment_outlined,
-      isAvailable: false,
     ),
     _ResultsModuleItem(
       title: 'Archive',
-      description: 'Result archive will be available in a later phase.',
+      description: 'Search historical published and locked result records.',
       icon: Icons.inventory_2_outlined,
-      isAvailable: false,
     ),
   ];
 
@@ -102,9 +103,7 @@ class ResultsModulePage extends StatelessWidget {
                       final item = _items[index];
                       return _ResultsModuleCard(
                         item: item,
-                        onOpen: item.isAvailable
-                            ? () => _openItem(context, index)
-                            : null,
+                        onOpen: () => _openItem(context, index),
                       );
                     },
                   ),
@@ -139,12 +138,13 @@ class ResultsModulePage extends StatelessWidget {
       5 => const ReportCardsPage(),
       6 => const MeritListPage(),
       7 => const GazettePage(),
+      8 => const ResultsAnalysisHubPage(),
+      9 => const ResultsReportsPage(),
+      10 => const ResultArchivePage(),
       _ => null,
     };
     if (page == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => page),
-    );
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 }
 
@@ -153,13 +153,11 @@ class _ResultsModuleItem {
     required this.title,
     required this.description,
     required this.icon,
-    this.isAvailable = true,
   });
 
   final String title;
   final String description;
   final IconData icon;
-  final bool isAvailable;
 }
 
 class _ResultsModuleCard extends StatelessWidget {
@@ -184,17 +182,10 @@ class _ResultsModuleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: item.isAvailable
-                      ? colors.primaryContainer
-                      : colors.surfaceContainerHighest,
+                  color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  item.icon,
-                  color: item.isAvailable
-                      ? colors.onPrimaryContainer
-                      : colors.onSurfaceVariant,
-                ),
+                child: Icon(item.icon, color: colors.onPrimaryContainer),
               ),
               const SizedBox(height: 20),
               Text(
@@ -219,7 +210,7 @@ class _ResultsModuleCard extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onOpen,
-                  child: Text(item.isAvailable ? 'Open' : 'Coming Soon'),
+                  child: const Text('Open'),
                 ),
               ),
             ],

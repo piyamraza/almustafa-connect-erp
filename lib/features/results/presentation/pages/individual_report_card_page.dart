@@ -5,9 +5,11 @@ import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../exams/presentation/widgets/result_status_chip.dart';
 import '../../../students/domain/entities/student_entity.dart';
+import '../../domain/entities/result_export_request.dart';
 import '../bloc/report_card_bloc.dart';
 import '../bloc/report_card_event.dart';
 import '../bloc/report_card_state.dart';
+import '../widgets/results_export_actions.dart';
 
 class IndividualReportCardPage extends StatelessWidget {
   const IndividualReportCardPage({required this.result, super.key});
@@ -33,12 +35,13 @@ class _IndividualReportCardView extends StatelessWidget {
       body: BlocBuilder<ReportCardBloc, ReportCardState>(
         builder: (context, state) {
           return switch (state) {
-            ReportCardInitial() =>
-              const Center(child: CircularProgressIndicator()),
+            ReportCardInitial() => const Center(
+              child: CircularProgressIndicator(),
+            ),
             ReportCardLoading(:final result) => _ReportCardContent(
-                result: result,
-                isLoading: true,
-              ),
+              result: result,
+              isLoading: true,
+            ),
             ReportCardLoaded(
               :final result,
               :final student,
@@ -49,10 +52,8 @@ class _IndividualReportCardView extends StatelessWidget {
                 student: student,
                 attendancePercentage: attendancePercentage,
               ),
-            ReportCardFailure(:final result, :final message) => _ReportCardContent(
-                result: result,
-                loadMessage: message,
-              ),
+            ReportCardFailure(:final result, :final message) =>
+              _ReportCardContent(result: result, loadMessage: message),
           };
         },
       ),
@@ -91,6 +92,25 @@ class _ReportCardContent extends StatelessWidget {
                   _InformationBanner(message: loadMessage!),
                   const SizedBox(height: 12),
                 ],
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ResultsExportActions(
+                    request: ResultExportRequest(
+                      type: ResultExportType.reportCard,
+                      title: 'Student Report Card',
+                      results: [result],
+                      student: student,
+                      attendancePercentage: attendancePercentage,
+                      filters: {
+                        'Academic Session': result.academicSession,
+                        'Exam': result.examName,
+                        'Class': result.className,
+                        'Section': result.sectionName,
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Card(
                   clipBehavior: Clip.antiAlias,
                   child: Padding(
@@ -142,7 +162,7 @@ class _SchoolHeader extends StatelessWidget {
             width: 68,
             height: 68,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: 68,
               height: 68,
               color: Theme.of(context).colorScheme.primaryContainer,
@@ -208,7 +228,10 @@ class _StudentInformation extends StatelessWidget {
         _Field(label: 'Roll No', value: _value(result.rollNumber)),
         _Field(label: 'Class', value: _value(result.className)),
         _Field(label: 'Section', value: _value(result.sectionName)),
-        _Field(label: 'Academic Session', value: _value(result.academicSession)),
+        _Field(
+          label: 'Academic Session',
+          value: _value(result.academicSession),
+        ),
         _Field(label: 'Exam', value: _value(result.examName)),
       ],
     );
@@ -218,7 +241,7 @@ class _StudentInformation extends StatelessWidget {
           radius: 42,
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           backgroundImage: photoUrl.isEmpty ? null : NetworkImage(photoUrl),
-          onBackgroundImageError: photoUrl.isEmpty ? null : (_, __) {},
+          onBackgroundImageError: photoUrl.isEmpty ? null : (_, _) {},
           child: photoUrl.isEmpty
               ? Text(initial, style: Theme.of(context).textTheme.headlineSmall)
               : null,
@@ -231,7 +254,11 @@ class _StudentInformation extends StatelessWidget {
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [photo, const SizedBox(width: 22), Expanded(child: information)],
+          children: [
+            photo,
+            const SizedBox(width: 22),
+            Expanded(child: information),
+          ],
         );
       },
     );
@@ -250,9 +277,9 @@ class _SubjectMarksTable extends StatelessWidget {
       children: [
         Text(
           'Subject-wise Marks',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         SingleChildScrollView(
@@ -289,7 +316,10 @@ class _SubjectMarksTable extends StatelessWidget {
 }
 
 class _ResultSummary extends StatelessWidget {
-  const _ResultSummary({required this.result, required this.attendancePercentage});
+  const _ResultSummary({
+    required this.result,
+    required this.attendancePercentage,
+  });
 
   final ExamResultEntity result;
   final double? attendancePercentage;
@@ -298,8 +328,14 @@ class _ResultSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final fields = [
       _Field(label: 'Total Marks', value: _number(result.grandTotalMarks)),
-      _Field(label: 'Obtained Marks', value: _number(result.grandObtainedMarks)),
-      _Field(label: 'Percentage', value: '${result.percentage.toStringAsFixed(1)}%'),
+      _Field(
+        label: 'Obtained Marks',
+        value: _number(result.grandObtainedMarks),
+      ),
+      _Field(
+        label: 'Percentage',
+        value: '${result.percentage.toStringAsFixed(1)}%',
+      ),
       _Field(label: 'Grade', value: result.grade),
       _Field(label: 'Position', value: '${result.sectionPosition}'),
       _Field(label: 'Result', value: result.isPassed ? 'Pass' : 'Fail'),
@@ -312,10 +348,7 @@ class _ResultSummary extends StatelessWidget {
         label: 'Published Date',
         value: _date(result.publishedAt ?? result.updatedAt),
       ),
-      _Field(
-        label: 'Result Status',
-        value: result.status.name.toUpperCase(),
-      ),
+      _Field(label: 'Result Status', value: result.status.name.toUpperCase()),
     ];
     return Container(
       width: double.infinity,
@@ -344,7 +377,11 @@ class _Remarks extends StatelessWidget {
       spacing: 28,
       runSpacing: 16,
       children: [
-        _Field(label: 'Teacher Remarks', value: _value(teacherRemarks), wide: true),
+        _Field(
+          label: 'Teacher Remarks',
+          value: _value(teacherRemarks),
+          wide: true,
+        ),
         _Field(
           label: 'Principal Remarks',
           value: _value(result.principalRemarks),
@@ -376,9 +413,9 @@ class _Field extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),

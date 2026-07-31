@@ -7,9 +7,8 @@ import 'results_analytics_state.dart';
 
 class ResultsAnalyticsBloc
     extends Bloc<ResultsAnalyticsEvent, ResultsAnalyticsState> {
-  ResultsAnalyticsBloc({required GetResultsAnalyticsData getAnalyticsData})
-      : _getAnalyticsData = getAnalyticsData,
-        super(const ResultsAnalyticsInitial()) {
+  ResultsAnalyticsBloc({required this.getAnalyticsData})
+    : super(const ResultsAnalyticsInitial()) {
     on<LoadResultsAnalytics>(_onLoad);
     on<RefreshResultsAnalytics>(_onRefresh);
     on<FilterAnalyticsBySession>(_onSession);
@@ -24,7 +23,7 @@ class ResultsAnalyticsBloc
     on<SetAnalyticsLowPerformanceThreshold>(_onLowPerformanceThreshold);
   }
 
-  final GetResultsAnalyticsData _getAnalyticsData;
+  final GetResultsAnalyticsData getAnalyticsData;
 
   Future<void> _onLoad(
     LoadResultsAnalytics event,
@@ -32,7 +31,7 @@ class ResultsAnalyticsBloc
   ) async {
     emit(const ResultsAnalyticsLoading());
     try {
-      emit(ResultsAnalyticsLoaded(data: await _getAnalyticsData()));
+      emit(ResultsAnalyticsLoaded(data: await getAnalyticsData()));
     } catch (error) {
       emit(ResultsAnalyticsFailure(_message(error)));
     }
@@ -49,7 +48,7 @@ class ResultsAnalyticsBloc
     }
     emit(current.copyWith(isRefreshing: true));
     try {
-      final data = await _getAnalyticsData();
+      final data = await getAnalyticsData();
       emit(ResultsAnalyticsLoaded(data: data, filter: current.filter));
     } catch (error) {
       emit(ResultsAnalyticsFailure(_message(error)));
@@ -161,10 +160,8 @@ class ResultsAnalyticsBloc
   void _onBorderlineMargin(
     SetAnalyticsBorderlineMargin event,
     Emitter<ResultsAnalyticsState> emit,
-  ) => _update(
-    emit,
-    (filter) => filter.copyWith(borderlineMargin: event.value),
-  );
+  ) =>
+      _update(emit, (filter) => filter.copyWith(borderlineMargin: event.value));
 
   void _onLowPerformanceThreshold(
     SetAnalyticsLowPerformanceThreshold event,

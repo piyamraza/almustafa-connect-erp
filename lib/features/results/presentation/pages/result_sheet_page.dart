@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../domain/entities/result_export_request.dart';
 import '../bloc/results_bloc.dart';
 import '../bloc/results_event.dart';
 import '../bloc/results_state.dart';
 import '../widgets/published_results_filter_card.dart';
+import '../widgets/result_export_request_factory.dart';
+import '../widgets/results_export_actions.dart';
 
 enum ResultSheetKind { classSheet, sectionSheet }
 
@@ -45,24 +48,24 @@ class _ResultSheetViewState extends State<_ResultSheetView> {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ResultsBloc>()
-                .add(const RefreshPublishedResults()),
+            onPressed: () => context.read<ResultsBloc>().add(
+              const RefreshPublishedResults(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: BlocBuilder<ResultsBloc, ResultsState>(
         builder: (context, state) => switch (state) {
-          ResultsInitial() || ResultsLoading() =>
-            const Center(child: CircularProgressIndicator()),
+          ResultsInitial() ||
+          ResultsLoading() => const Center(child: CircularProgressIndicator()),
           ResultsFailure(:final message) => _SheetError(message: message),
           PublishedResultsLoaded() => _ResultSheetContent(
-              data: state,
-              kind: widget.kind,
-              sort: _sort,
-              onSortChanged: (value) => setState(() => _sort = value),
-            ),
+            data: state,
+            kind: widget.kind,
+            sort: _sort,
+            onSortChanged: (value) => setState(() => _sort = value),
+          ),
         },
       ),
     );
@@ -85,7 +88,8 @@ class _ResultSheetContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSection = kind == ResultSheetKind.sectionSheet;
-    final selectionComplete = data.selectedAcademicSession != null &&
+    final selectionComplete =
+        data.selectedAcademicSession != null &&
         data.selectedExamId != null &&
         data.selectedClassId != null &&
         (!isSection || data.selectedSectionId != null);
@@ -104,6 +108,23 @@ class _ResultSheetContent extends StatelessWidget {
               count: selectionComplete ? results.length : 0,
               sort: sort,
               onSortChanged: onSortChanged,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ResultsExportActions(
+                request: ResultExportRequestFactory.fromPublishedResults(
+                  type: isSection
+                      ? ResultExportType.sectionSheet
+                      : ResultExportType.classSheet,
+                  title: isSection
+                      ? 'Section Result Sheet'
+                      : 'Class Result Sheet',
+                  results: selectionComplete ? results : const [],
+                  data: data,
+                  metrics: ResultExportRequestFactory.summaryMetrics(results),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -136,15 +157,15 @@ class _SheetToolbar extends StatelessWidget {
         Expanded(
           child: Text(
             '$count student${count == 1 ? '' : 's'}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         SizedBox(
           width: 190,
           child: DropdownButtonFormField<ResultSheetSort>(
-            value: sort,
+            initialValue: sort,
             decoration: const InputDecoration(
               labelText: 'Sort by',
               border: OutlineInputBorder(),
@@ -196,7 +217,7 @@ class _ResultSheetTable extends StatelessWidget {
         if (constraints.maxWidth < 820) {
           return ListView.separated(
             itemCount: results.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) =>
                 _MobileSheetRow(result: results[index], kind: kind),
           );
@@ -228,7 +249,9 @@ class _ResultSheetTable extends StatelessWidget {
                           DataCell(Text(_emptyAsDash(result.admissionNo))),
                           DataCell(Text(result.studentName)),
                           DataCell(Text(_number(result.grandObtainedMarks))),
-                          DataCell(Text('${result.percentage.toStringAsFixed(1)}%')),
+                          DataCell(
+                            Text('${result.percentage.toStringAsFixed(1)}%'),
+                          ),
                           DataCell(Text(result.grade)),
                           DataCell(Text('${_position(result, kind)}')),
                           DataCell(Text(result.isPassed ? 'Pass' : 'Fail')),
@@ -261,9 +284,9 @@ class _MobileSheetRow extends StatelessWidget {
           children: [
             Text(
               result.studentName,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
@@ -274,11 +297,20 @@ class _MobileSheetRow extends StatelessWidget {
               spacing: 18,
               runSpacing: 8,
               children: [
-                _Value(label: 'Obtained', value: _number(result.grandObtainedMarks)),
-                _Value(label: 'Percentage', value: '${result.percentage.toStringAsFixed(1)}%'),
+                _Value(
+                  label: 'Obtained',
+                  value: _number(result.grandObtainedMarks),
+                ),
+                _Value(
+                  label: 'Percentage',
+                  value: '${result.percentage.toStringAsFixed(1)}%',
+                ),
                 _Value(label: 'Grade', value: result.grade),
                 _Value(label: 'Position', value: '${_position(result, kind)}'),
-                _Value(label: 'Result', value: result.isPassed ? 'Pass' : 'Fail'),
+                _Value(
+                  label: 'Result',
+                  value: result.isPassed ? 'Pass' : 'Fail',
+                ),
               ],
             ),
           ],
@@ -296,13 +328,13 @@ class _Value extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
-          Text(value),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      Text(value),
+    ],
+  );
 }
 
 class _SelectionState extends StatelessWidget {
@@ -312,16 +344,16 @@ class _SelectionState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            isSection
-                ? 'Select academic session, exam, class, and section to view the result sheet.'
-                : 'Select academic session, exam, and class to view the result sheet.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        isSection
+            ? 'Select academic session, exam, class, and section to view the result sheet.'
+            : 'Select academic session, exam, and class to view the result sheet.',
+        textAlign: TextAlign.center,
+      ),
+    ),
+  );
 }
 
 class _EmptySheet extends StatelessWidget {
@@ -331,11 +363,11 @@ class _EmptySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(message, textAlign: TextAlign.center),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(message, textAlign: TextAlign.center),
+    ),
+  );
 }
 
 class _SheetError extends StatelessWidget {
@@ -345,25 +377,24 @@ class _SheetError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 46),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context
-                    .read<ResultsBloc>()
-                    .add(const LoadPublishedResults()),
-                child: const Text('Try Again'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 46),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () =>
+                context.read<ResultsBloc>().add(const LoadPublishedResults()),
+            child: const Text('Try Again'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 enum ResultSheetSort { rollNumber, name, percentage, position }
@@ -378,9 +409,13 @@ List<ExamResultEntity> _sortResults(
     return switch (sort) {
       ResultSheetSort.rollNumber => _rollOrder(first, second),
       ResultSheetSort.name => first.studentName.compareTo(second.studentName),
-      ResultSheetSort.percentage => second.percentage.compareTo(first.percentage),
-      ResultSheetSort.position =>
-        _position(first, kind).compareTo(_position(second, kind)),
+      ResultSheetSort.percentage => second.percentage.compareTo(
+        first.percentage,
+      ),
+      ResultSheetSort.position => _position(
+        first,
+        kind,
+      ).compareTo(_position(second, kind)),
     };
   });
   return values;
@@ -388,8 +423,8 @@ List<ExamResultEntity> _sortResults(
 
 int _position(ExamResultEntity result, ResultSheetKind kind) =>
     kind == ResultSheetKind.classSheet
-        ? result.classPosition
-        : result.sectionPosition;
+    ? result.classPosition
+    : result.sectionPosition;
 
 int _rollOrder(ExamResultEntity first, ExamResultEntity second) {
   final firstValue = int.tryParse(first.rollNumber.trim());
