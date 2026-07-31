@@ -7,7 +7,6 @@ import '../bloc/staff_salary_bloc.dart';
 import '../bloc/staff_salary_event.dart';
 import '../bloc/staff_salary_state.dart';
 import '../widgets/staff_salary_adjustment_form.dart';
-import 'staff_salary_slip_page.dart';
 
 class StaffSalaryDetailsPage extends StatelessWidget {
   const StaffSalaryDetailsPage({
@@ -283,24 +282,6 @@ class _StaffSalaryDetailsViewState
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Salary Details'),
-          actions: [
-            IconButton(
-              tooltip: 'Print Salary Slip',
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (_) => StaffSalarySlipPage(
-                      salary: _salary,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(
-                Icons.print_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
         ),
         body: SafeArea(
           child: LayoutBuilder(

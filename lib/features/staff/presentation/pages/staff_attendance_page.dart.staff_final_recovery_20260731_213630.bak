@@ -10,7 +10,6 @@ import '../bloc/staff_attendance_event.dart';
 import '../bloc/staff_attendance_state.dart';
 import '../widgets/staff_attendance_list_item.dart';
 import 'staff_attendance_history_page.dart';
-import 'staff_attendance_report_page.dart';
 import 'staff_monthly_attendance_page.dart';
 
 class StaffAttendancePage extends StatelessWidget {
@@ -19,9 +18,12 @@ class StaffAttendancePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<StaffAttendanceBloc>(
-      create: (_) =>
-          sl<StaffAttendanceBloc>()
-            ..add(LoadStaffAttendanceByDateEvent(DateTime.now())),
+      create: (_) => sl<StaffAttendanceBloc>()
+        ..add(
+          LoadStaffAttendanceByDateEvent(
+            DateTime.now(),
+          ),
+        ),
       child: const _StaffAttendanceView(),
     );
   }
@@ -90,11 +92,15 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
     });
 
     context.read<StaffAttendanceBloc>().add(
-      LoadStaffAttendanceByDateEvent(_selectedDate),
-    );
+          LoadStaffAttendanceByDateEvent(
+            _selectedDate,
+          ),
+        );
   }
 
-  void _initializeExistingRecords(List<StaffAttendanceEntity> records) {
+  void _initializeExistingRecords(
+    List<StaffAttendanceEntity> records,
+  ) {
     final currentDateKey = _dateKey(_selectedDate);
 
     if (_initializedDateKey == currentDateKey) {
@@ -146,8 +152,7 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
         staffName: staff.fullName,
         designation: staff.designation,
         attendanceDate: attendanceDate,
-        status:
-            _selectedStatuses[staff.id] ??
+        status: _selectedStatuses[staff.id] ??
             existingRecord?.status ??
             StaffAttendanceStatus.present,
         remarks: _remarks[staff.id] ?? existingRecord?.remarks ?? '',
@@ -157,8 +162,11 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
     }).toList();
 
     context.read<StaffAttendanceBloc>().add(
-      SaveStaffAttendanceEvent(records: records, date: attendanceDate),
-    );
+          SaveStaffAttendanceEvent(
+            records: records,
+            date: attendanceDate,
+          ),
+        );
   }
 
   void _handleAttendanceState(
@@ -198,20 +206,14 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
     }
   }
 
-  void _markAllPresent(List<StaffEntity> activeStaff) {
+  void _markAllPresent(
+    List<StaffEntity> activeStaff,
+  ) {
     setState(() {
       for (final staff in activeStaff) {
         _selectedStatuses[staff.id] = StaffAttendanceStatus.present;
       }
     });
-  }
-
-  void _openAttendanceReport() {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const StaffAttendanceReportPage(),
-      ),
-    );
   }
 
   void _openHistory() {
@@ -239,11 +241,6 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
           title: const Text('Staff Attendance'),
           actions: [
             IconButton(
-              tooltip: 'Attendance Report',
-              onPressed: _openAttendanceReport,
-              icon: const Icon(Icons.description_outlined),
-            ),
-            IconButton(
               tooltip: 'Attendance History',
               onPressed: _openHistory,
               icon: const Icon(Icons.history_outlined),
@@ -261,44 +258,53 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
             future: _staffFuture,
             builder: (context, staffSnapshot) {
               if (staffSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
               }
 
               if (staffSnapshot.hasError) {
-                return _ErrorView(message: staffSnapshot.error.toString());
+                return _ErrorView(
+                  message: staffSnapshot.error.toString(),
+                );
               }
 
-              final activeStaff =
-                  (staffSnapshot.data ?? const <StaffEntity>[])
-                      .where((staff) => staff.isActive)
-                      .toList()
-                    ..sort(
-                      (first, second) => first.fullName.toLowerCase().compareTo(
+              final activeStaff = (staffSnapshot.data ?? const <StaffEntity>[])
+                  .where((staff) => staff.isActive)
+                  .toList()
+                ..sort(
+                  (first, second) => first.fullName.toLowerCase().compareTo(
                         second.fullName.toLowerCase(),
                       ),
-                    );
+                );
 
               return BlocBuilder<StaffAttendanceBloc, StaffAttendanceState>(
                 builder: (context, attendanceState) {
-                  if (attendanceState is StaffAttendanceLoading && !_isSaving) {
-                    return const Center(child: CircularProgressIndicator());
+                  if (attendanceState is StaffAttendanceLoading &&
+                      !_isSaving) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
                   }
 
-                  if (attendanceState is StaffAttendanceError && !_isSaving) {
+                  if (attendanceState is StaffAttendanceError &&
+                      !_isSaving) {
                     return _ErrorView(
                       message: attendanceState.message,
                       onRetry: () {
                         context.read<StaffAttendanceBloc>().add(
-                          LoadStaffAttendanceByDateEvent(_selectedDate),
-                        );
+                              LoadStaffAttendanceByDateEvent(
+                                _selectedDate,
+                              ),
+                            );
                       },
                     );
                   }
 
                   final existingRecords =
                       attendanceState is StaffAttendanceLoaded
-                      ? attendanceState.records
-                      : const <StaffAttendanceEntity>[];
+                          ? attendanceState.records
+                          : const <StaffAttendanceEntity>[];
 
                   _initializeExistingRecords(existingRecords);
 
@@ -307,8 +313,8 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
                       final horizontalPadding = constraints.maxWidth >= 1200
                           ? 32.0
                           : constraints.maxWidth >= 700
-                          ? 24.0
-                          : 16.0;
+                              ? 24.0
+                              : 16.0;
 
                       return Column(
                         children: [
@@ -365,17 +371,19 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
                                         },
                                         itemBuilder: (context, index) {
                                           final staff = activeStaff[index];
-                                          final existingRecord = existingRecords
-                                              .where(
-                                                (record) =>
-                                                    record.staffId == staff.id,
-                                              )
-                                              .firstOrNull;
+                                          final existingRecord =
+                                              existingRecords
+                                                  .where(
+                                                    (record) =>
+                                                        record.staffId ==
+                                                        staff.id,
+                                                  )
+                                                  .firstOrNull;
 
                                           final status =
                                               _selectedStatuses[staff.id] ??
-                                              existingRecord?.status ??
-                                              StaffAttendanceStatus.present;
+                                                  existingRecord?.status ??
+                                                  StaffAttendanceStatus.present;
 
                                           return StaffAttendanceListItem(
                                             key: ValueKey(
@@ -385,8 +393,8 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
                                             status: status,
                                             remarks:
                                                 _remarks[staff.id] ??
-                                                existingRecord?.remarks ??
-                                                '',
+                                                    existingRecord?.remarks ??
+                                                    '',
                                             isEnabled: !_isSaving,
                                             onStatusChanged: (newStatus) {
                                               setState(() {
@@ -488,10 +496,14 @@ class _AttendanceHeader extends StatelessWidget {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: Text(isSaving ? 'Saving...' : 'Save Attendance'),
+                  label: Text(
+                    isSaving ? 'Saving...' : 'Save Attendance',
+                  ),
                 ),
               ],
             );
@@ -499,7 +511,11 @@ class _AttendanceHeader extends StatelessWidget {
             if (isCompact) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [information, const SizedBox(height: 16), actions],
+                children: [
+                  information,
+                  const SizedBox(height: 16),
+                  actions,
+                ],
               );
             }
 
@@ -558,7 +574,10 @@ class _EmptyStaffView extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, this.onRetry});
+  const _ErrorView({
+    required this.message,
+    this.onRetry,
+  });
 
   final String message;
   final VoidCallback? onRetry;
@@ -588,7 +607,10 @@ class _ErrorView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(message, textAlign: TextAlign.center),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+              ),
               if (onRetry != null) ...[
                 const SizedBox(height: 20),
                 FilledButton.icon(

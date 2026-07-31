@@ -11,7 +11,6 @@ import '../widgets/staff_leave_summary_card.dart';
 import 'add_staff_leave_page.dart';
 import 'staff_leave_approval_page.dart';
 import 'staff_leave_history_page.dart';
-import 'staff_leave_report_page.dart';
 
 class StaffLeavePage extends StatelessWidget {
   const StaffLeavePage({super.key});
@@ -29,7 +28,8 @@ class _StaffLeaveView extends StatefulWidget {
   const _StaffLeaveView();
 
   @override
-  State<_StaffLeaveView> createState() => _StaffLeaveViewState();
+  State<_StaffLeaveView> createState() =>
+      _StaffLeaveViewState();
 }
 
 class _StaffLeaveViewState extends State<_StaffLeaveView> {
@@ -53,11 +53,16 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
     final now = DateTime.now();
 
     return _selectedMonth.year < now.year ||
-        (_selectedMonth.year == now.year && _selectedMonth.month < now.month);
+        (_selectedMonth.year == now.year &&
+            _selectedMonth.month < now.month);
   }
 
   DateTime get _monthEnd {
-    return DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    return DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    );
   }
 
   String _formatMonth(DateTime date) {
@@ -81,11 +86,11 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
 
   void _loadMonth() {
     context.read<StaffLeaveBloc>().add(
-      LoadStaffLeavesByDateRangeEvent(
-        startDate: _selectedMonth,
-        endDate: _monthEnd,
-      ),
-    );
+          LoadStaffLeavesByDateRangeEvent(
+            startDate: _selectedMonth,
+            endDate: _monthEnd,
+          ),
+        );
   }
 
   void _showPreviousMonth() {
@@ -120,7 +125,11 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
     final now = DateTime.now();
 
     setState(() {
-      _selectedMonth = DateTime(now.year, now.month, 1);
+      _selectedMonth = DateTime(
+        now.year,
+        now.month,
+        1,
+      );
     });
 
     _loadMonth();
@@ -128,7 +137,9 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
 
   Future<void> _openAddLeave() async {
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(builder: (_) => const AddStaffLeavePage()),
+      MaterialPageRoute<bool>(
+        builder: (_) => const AddStaffLeavePage(),
+      ),
     );
 
     if (saved == true && mounted) {
@@ -138,7 +149,10 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
 
   Future<void> _openApprovals() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const StaffLeaveApprovalPage()),
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            const StaffLeaveApprovalPage(),
+      ),
     );
 
     if (mounted) {
@@ -146,19 +160,19 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
     }
   }
 
-  void _openLeaveReport() {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const StaffLeaveReportPage()),
-    );
-  }
-
   void _openHistory() {
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const StaffLeaveHistoryPage()),
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            const StaffLeaveHistoryPage(),
+      ),
     );
   }
 
-  void _handleState(BuildContext context, StaffLeaveState state) {
+  void _handleState(
+    BuildContext context,
+    StaffLeaveState state,
+  ) {
     if (state is StaffLeaveError) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -171,7 +185,8 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
       return;
     }
 
-    if (state is StaffLeaveLoaded && state.successMessage != null) {
+    if (state is StaffLeaveLoaded &&
+        state.successMessage != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -192,24 +207,25 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
           title: const Text('Staff Leave Management'),
           actions: [
             IconButton(
-              tooltip: 'Leave Report',
-              onPressed: _openLeaveReport,
-              icon: const Icon(Icons.description_outlined),
-            ),
-            IconButton(
               tooltip: 'Pending Approvals',
               onPressed: _openApprovals,
-              icon: const Icon(Icons.approval_outlined),
+              icon: const Icon(
+                Icons.approval_outlined,
+              ),
             ),
             IconButton(
               tooltip: 'Leave History',
               onPressed: _openHistory,
-              icon: const Icon(Icons.history_outlined),
+              icon: const Icon(
+                Icons.history_outlined,
+              ),
             ),
             IconButton(
               tooltip: 'Refresh',
               onPressed: _loadMonth,
-              icon: const Icon(Icons.refresh_outlined),
+              icon: const Icon(
+                Icons.refresh_outlined,
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -222,15 +238,18 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth >= 1200
-                  ? 32.0
-                  : constraints.maxWidth >= 700
-                  ? 24.0
-                  : 16.0;
+              final horizontalPadding =
+                  constraints.maxWidth >= 1200
+                      ? 32.0
+                      : constraints.maxWidth >= 700
+                          ? 24.0
+                          : 16.0;
 
               return Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
+                  constraints: const BoxConstraints(
+                    maxWidth: 1200,
+                  ),
                   child: Column(
                     children: [
                       Padding(
@@ -241,20 +260,25 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
                           18,
                         ),
                         child: _MonthHeader(
-                          monthLabel: _formatMonth(_selectedMonth),
+                          monthLabel:
+                              _formatMonth(_selectedMonth),
                           canMoveNext: _canMoveNext,
                           onPrevious: _showPreviousMonth,
                           onNext: _showNextMonth,
-                          onCurrentMonth: _showCurrentMonth,
+                          onCurrentMonth:
+                              _showCurrentMonth,
                         ),
                       ),
                       Expanded(
-                        child: BlocBuilder<StaffLeaveBloc, StaffLeaveState>(
+                        child: BlocBuilder<
+                            StaffLeaveBloc,
+                            StaffLeaveState>(
                           builder: (context, state) {
                             if (state is StaffLeaveInitial ||
                                 state is StaffLeaveLoading) {
                               return const Center(
-                                child: CircularProgressIndicator(),
+                                child:
+                                    CircularProgressIndicator(),
                               );
                             }
 
@@ -268,7 +292,8 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
                             if (state is StaffLeaveLoaded) {
                               return _LeaveContent(
                                 leaves: state.leaves,
-                                horizontalPadding: horizontalPadding,
+                                horizontalPadding:
+                                    horizontalPadding,
                                 onAddLeave: _openAddLeave,
                               );
                             }
@@ -312,7 +337,9 @@ class _MonthHeader extends StatelessWidget {
       elevation: 0,
       margin: EdgeInsets.zero,
       color: theme.colorScheme.primaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(22),
         child: LayoutBuilder(
@@ -324,8 +351,11 @@ class _MonthHeader extends StatelessWidget {
               children: [
                 Text(
                   monthLabel,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                  style:
+                      theme.textTheme.headlineSmall?.copyWith(
+                    color: theme
+                        .colorScheme
+                        .onPrimaryContainer,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -333,7 +363,9 @@ class _MonthHeader extends StatelessWidget {
                 Text(
                   'Create, approve and review staff leave requests.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color: theme
+                        .colorScheme
+                        .onPrimaryContainer,
                   ),
                 ),
               ],
@@ -346,25 +378,37 @@ class _MonthHeader extends StatelessWidget {
                 IconButton.outlined(
                   tooltip: 'Previous Month',
                   onPressed: onPrevious,
-                  icon: const Icon(Icons.chevron_left_rounded),
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: onCurrentMonth,
-                  icon: const Icon(Icons.today_outlined),
+                  icon: const Icon(
+                    Icons.today_outlined,
+                  ),
                   label: const Text('Current Month'),
                 ),
                 IconButton.outlined(
                   tooltip: 'Next Month',
-                  onPressed: canMoveNext ? onNext : null,
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  onPressed:
+                      canMoveNext ? onNext : null,
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                  ),
                 ),
               ],
             );
 
             if (compact) {
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [information, const SizedBox(height: 18), controls],
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
+                children: [
+                  information,
+                  const SizedBox(height: 18),
+                  controls,
+                ],
               );
             }
 
@@ -395,9 +439,15 @@ class _LeaveContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pending = leaves.where((leave) => leave.isPending).toList();
-    final approved = leaves.where((leave) => leave.isApproved).toList();
-    final rejected = leaves.where((leave) => leave.isRejected).toList();
+    final pending = leaves
+        .where((leave) => leave.isPending)
+        .toList();
+    final approved = leaves
+        .where((leave) => leave.isApproved)
+        .toList();
+    final rejected = leaves
+        .where((leave) => leave.isRejected)
+        .toList();
 
     final approvedDays = approved.fold<double>(
       0,
@@ -405,18 +455,26 @@ class _LeaveContent extends StatelessWidget {
     );
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 96),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        0,
+        horizontalPadding,
+        96,
+      ),
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
             const spacing = 14.0;
-            final columns = constraints.maxWidth >= 1100
-                ? 4
-                : constraints.maxWidth >= 650
-                ? 2
-                : 1;
+            final columns =
+                constraints.maxWidth >= 1100
+                    ? 4
+                    : constraints.maxWidth >= 650
+                        ? 2
+                        : 1;
             final cardWidth =
-                (constraints.maxWidth - spacing * (columns - 1)) / columns;
+                (constraints.maxWidth -
+                    spacing * (columns - 1)) /
+                columns;
 
             return Wrap(
               spacing: spacing,
@@ -445,7 +503,12 @@ class _LeaveContent extends StatelessWidget {
                     title: 'Approved',
                     value: approved.length.toString(),
                     subtitle:
-                        '${approvedDays.toStringAsFixed(approvedDays == approvedDays.roundToDouble() ? 0 : 1)} day(s)',
+                        '${approvedDays.toStringAsFixed(
+                      approvedDays ==
+                              approvedDays.roundToDouble()
+                          ? 0
+                          : 1,
+                    )} day(s)',
                     icon: Icons.check_circle_outline,
                     iconColor: Colors.green,
                   ),
@@ -465,12 +528,16 @@ class _LeaveContent extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         if (leaves.isEmpty)
-          _EmptyLeaveView(onAddLeave: onAddLeave)
+          _EmptyLeaveView(
+            onAddLeave: onAddLeave,
+          )
         else
           ...leaves.map(
             (leave) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: StaffLeaveListItem(leave: leave),
+              child: StaffLeaveListItem(
+                leave: leave,
+              ),
             ),
           ),
       ],
@@ -479,7 +546,9 @@ class _LeaveContent extends StatelessWidget {
 }
 
 class _EmptyLeaveView extends StatelessWidget {
-  const _EmptyLeaveView({required this.onAddLeave});
+  const _EmptyLeaveView({
+    required this.onAddLeave,
+  });
 
   final VoidCallback onAddLeave;
 
@@ -491,7 +560,10 @@ class _EmptyLeaveView extends StatelessWidget {
       elevation: 0,
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 50,
+        ),
         child: Column(
           children: [
             Icon(
@@ -528,7 +600,10 @@ class _EmptyLeaveView extends StatelessWidget {
 }
 
 class _LeaveError extends StatelessWidget {
-  const _LeaveError({required this.message, required this.onRetry});
+  const _LeaveError({
+    required this.message,
+    required this.onRetry,
+  });
 
   final String message;
   final VoidCallback onRetry;
@@ -542,7 +617,11 @@ class _LeaveError extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: theme.colorScheme.error,
+            ),
             const SizedBox(height: 16),
             Text(
               'Unable to load staff leaves',
@@ -551,7 +630,10 @@ class _LeaveError extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onRetry,

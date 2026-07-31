@@ -6,7 +6,6 @@ import '../../domain/entities/staff_salary_entity.dart';
 import '../bloc/staff_salary_bloc.dart';
 import '../bloc/staff_salary_event.dart';
 import '../bloc/staff_salary_state.dart';
-import '../services/staff_payroll_excel_service.dart';
 import '../widgets/staff_salary_list_item.dart';
 import '../widgets/staff_salary_summary_card.dart';
 import 'staff_payroll_report_page.dart';
@@ -172,67 +171,6 @@ class _StaffSalaryViewState
     _loadSelectedMonth();
   }
 
-  Future<void> _exportPayrollExcel() async {
-    final currentState =
-        context.read<StaffSalaryBloc>().state;
-
-    if (currentState is! StaffSalaryLoaded ||
-        currentState.salaries.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Generate salaries before exporting Excel.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-      return;
-    }
-
-    final messenger =
-        ScaffoldMessenger.of(context);
-
-    try {
-      await StaffPayrollExcelService
-          .exportMonthlyPayroll(
-        salaries: currentState.salaries,
-        salaryMonth: _selectedMonth,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Payroll Excel export completed.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Excel export failed: $error',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    }
-  }
   void _openPayrollReport() {
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -300,12 +238,6 @@ class _StaffSalaryViewState
           title: const Text('Staff Salary Management'),
           actions: [
             IconButton(
-              tooltip: 'Export Payroll Excel',
-              onPressed: _exportPayrollExcel,
-              icon: const Icon(
-                Icons.table_view_outlined,
-              ),
-            ),            IconButton(
               tooltip: 'Monthly Payroll Report',
               onPressed: _openPayrollReport,
               icon: const Icon(

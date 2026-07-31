@@ -624,7 +624,6 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<UpdateStaffLeaveStatus>(
     () => UpdateStaffLeaveStatus(
       sl<StaffLeaveRepository>(),
-      sl<StaffAttendanceRepository>(),
     ),
   );
   sl.registerLazySingleton<GetStaffSalariesByMonth>(
