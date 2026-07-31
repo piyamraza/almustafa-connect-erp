@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'teacher_leave_page.dart';
+
 class StaffDashboardPage extends StatelessWidget {
   const StaffDashboardPage({
     required this.onViewStaff,
     required this.onAddStaff,
     required this.onAttendance,
-    required this.onSalary,
+    required this.onSalary,
     required this.onLeave,
     super.key,
   });
@@ -14,28 +16,24 @@ class StaffDashboardPage extends StatelessWidget {
   final VoidCallback onAddStaff;
   final VoidCallback onAttendance;
   final VoidCallback onSalary;
-
+
   final VoidCallback onLeave;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Staff Management'),
-      ),
+      appBar: AppBar(title: const Text('Staff Management')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final horizontalPadding = constraints.maxWidth >= 1200
                 ? 32.0
                 : constraints.maxWidth >= 700
-                    ? 24.0
-                    : 16.0;
+                ? 24.0
+                : 16.0;
 
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1200,
-                ),
+                constraints: const BoxConstraints(maxWidth: 1200),
                 child: CustomScrollView(
                   slivers: [
                     SliverPadding(
@@ -57,72 +55,79 @@ class StaffDashboardPage extends StatelessWidget {
                         32,
                       ),
                       sliver: SliverLayoutBuilder(
-                        builder: (
-                          context,
-                          sliverConstraints,
-                        ) {
-                          final width =
-                              sliverConstraints.crossAxisExtent;
+                        builder: (context, sliverConstraints) {
+                          final width = sliverConstraints.crossAxisExtent;
 
                           final columnCount = width >= 900
                               ? 3
                               : width >= 560
-                                  ? 2
-                                  : 1;
+                              ? 2
+                              : 1;
 
                           return SliverGrid(
-                            delegate: SliverChildListDelegate.fixed(
-                              [
-                                _StaffDashboardCard(
-                                  title: 'Staff Directory',
-                                  description:
-                                      'View, search, edit and manage all staff records.',
-                                  icon: Icons.groups_outlined,
-                                  actionLabel: 'View Staff',
-                                  onTap: onViewStaff,
-                                ),
-                                _StaffDashboardCard(
-                                  title: 'Add Staff',
-                                  description:
-                                      'Register a new staff member and employment details.',
-                                  icon:
-                                      Icons.person_add_alt_1_outlined,
-                                  actionLabel: 'Add Staff',
-                                  onTap: onAddStaff,
-                                ),
-                                _StaffDashboardCard(
-                                  title: 'Staff Attendance',
-                                  description:
-                                      'Mark daily attendance and review attendance records.',
-                                  icon: Icons.fact_check_outlined,
-                                  actionLabel: 'Open Attendance',
-                                  onTap: onAttendance,
-                                ),
-                                _StaffDashboardCard(
-                                  title: 'Salary Management',
-                                  description:
-                                      'Generate salaries, record payments and review salary history.',
-                                  icon: Icons.payments_outlined,
-                                  actionLabel: 'Open Salary',
-                                  onTap: onSalary,
-                                ),
-                                _StaffDashboardCard(
-                                  title: 'Leave Management',
-                                  description:
-                                      'Create, approve and review staff leave requests.',
-                                  icon: Icons.event_available_outlined,
-                                  actionLabel: 'Open Leave',
-                                  onTap: onLeave,
-                                ),
-                              ],
-                            ),
+                            delegate: SliverChildListDelegate.fixed([
+                              _StaffDashboardCard(
+                                title: 'Staff Directory',
+                                description:
+                                    'View, search, edit and manage all staff records.',
+                                icon: Icons.groups_outlined,
+                                actionLabel: 'View Staff',
+                                onTap: onViewStaff,
+                              ),
+                              _StaffDashboardCard(
+                                title: 'Add Staff',
+                                description:
+                                    'Register a new staff member and employment details.',
+                                icon: Icons.person_add_alt_1_outlined,
+                                actionLabel: 'Add Staff',
+                                onTap: onAddStaff,
+                              ),
+                              _StaffDashboardCard(
+                                title: 'Staff Attendance',
+                                description:
+                                    'Mark daily attendance and review attendance records.',
+                                icon: Icons.fact_check_outlined,
+                                actionLabel: 'Open Attendance',
+                                onTap: onAttendance,
+                              ),
+                              _StaffDashboardCard(
+                                title: 'Salary Management',
+                                description:
+                                    'Generate salaries, record payments and review salary history.',
+                                icon: Icons.payments_outlined,
+                                actionLabel: 'Open Salary',
+                                onTap: onSalary,
+                              ),
+                              _StaffDashboardCard(
+                                title: 'Teacher Leave',
+                                description:
+                                    'Create, approve and review teacher leave requests.',
+                                icon: Icons.school_outlined,
+                                actionLabel: 'Open Teacher Leave',
+                                onTap: () {
+                                  Navigator.of(context).push<void>(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const TeacherLeavePage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _StaffDashboardCard(
+                                title: 'Leave Management',
+                                description:
+                                    'Create, approve and review staff leave requests.',
+                                icon: Icons.event_available_outlined,
+                                actionLabel: 'Open Leave',
+                                onTap: onLeave,
+                              ),
+                            ]),
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: columnCount,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              mainAxisExtent: 220,
-                            ),
+                                  crossAxisCount: columnCount,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  mainAxisExtent: 220,
+                                ),
                           );
                         },
                       ),
@@ -149,9 +154,7 @@ class _DashboardHeader extends StatelessWidget {
       elevation: 0,
       margin: EdgeInsets.zero,
       color: theme.colorScheme.primaryContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: LayoutBuilder(
@@ -179,8 +182,7 @@ class _DashboardHeader extends StatelessWidget {
                 Text(
                   'Staff Management',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color:
-                        theme.colorScheme.onPrimaryContainer,
+                    color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -188,8 +190,7 @@ class _DashboardHeader extends StatelessWidget {
                 Text(
                   'Manage staff profiles, attendance, salaries and employment records.',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color:
-                        theme.colorScheme.onPrimaryContainer,
+                    color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
               ],
@@ -198,11 +199,7 @@ class _DashboardHeader extends StatelessWidget {
             if (isCompact) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  icon,
-                  const SizedBox(height: 18),
-                  information,
-                ],
+                children: [icon, const SizedBox(height: 18), information],
               );
             }
 
@@ -210,9 +207,7 @@ class _DashboardHeader extends StatelessWidget {
               children: [
                 icon,
                 const SizedBox(width: 20),
-                Expanded(
-                  child: information,
-                ),
+                Expanded(child: information),
               ],
             );
           },
@@ -249,9 +244,7 @@ class _StaffDashboardCard extends StatelessWidget {
       color: colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: colorScheme.outlineVariant),
       ),
       child: InkWell(
         onTap: onTap,

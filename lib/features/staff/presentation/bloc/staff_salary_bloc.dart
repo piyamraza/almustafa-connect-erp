@@ -12,14 +12,11 @@ class StaffSalaryBloc
     extends Bloc<StaffSalaryEvent, StaffSalaryState> {
   StaffSalaryBloc({
     required this._generateStaffMonthlySalaries,
-    required GetStaffSalariesByMonth
-        getStaffSalariesByMonth,
+    required this._getStaffSalariesByMonth,
     required this._getStaffSalaryByStaff,
     required this._saveStaffSalary,
     required this._updateStaffSalaryPaymentStatus,
-  })  : _getStaffSalariesByMonth =
-            getStaffSalariesByMonth,
-        super(const StaffSalaryInitial()) {
+  }) : super(const StaffSalaryInitial()) {
     on<LoadStaffSalariesByMonthEvent>(
       _onLoadStaffSalariesByMonth,
     );

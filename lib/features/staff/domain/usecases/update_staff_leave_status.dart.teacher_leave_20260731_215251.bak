@@ -24,7 +24,10 @@ class UpdateStaffLeaveStatus {
         status == StaffLeaveStatus.rejected;
 
     if (status == StaffLeaveStatus.approved) {
-      await _markApprovedLeaveAttendance(leave: leave, updatedAt: now);
+      await _markApprovedLeaveAttendance(
+        leave: leave,
+        updatedAt: now,
+      );
     }
 
     await _leaveRepository.updateLeaveStatus(
@@ -44,7 +47,8 @@ class UpdateStaffLeaveStatus {
     final startDate = _normalizeDate(leave.startDate);
     final endDate = _normalizeDate(leave.endDate);
 
-    final existingAttendance = await _attendanceRepository.getAttendanceByStaff(
+    final existingAttendance =
+        await _attendanceRepository.getAttendanceByStaff(
       staffId: leave.staffId,
       startDate: startDate,
       endDate: endDate,
@@ -63,9 +67,11 @@ class UpdateStaffLeaveStatus {
 
       await _attendanceRepository.saveAttendance(
         StaffAttendanceEntity(
-          id:
-              existing?.id ??
-              _attendanceId(staffId: leave.staffId, date: currentDate),
+          id: existing?.id ??
+              _attendanceId(
+                staffId: leave.staffId,
+                date: currentDate,
+              ),
           staffId: leave.staffId,
           staffCode: leave.staffCode,
           staffName: leave.staffName,
@@ -78,20 +84,21 @@ class UpdateStaffLeaveStatus {
         ),
       );
 
-      currentDate = currentDate.add(const Duration(days: 1));
+      currentDate = currentDate.add(
+        const Duration(days: 1),
+      );
     }
   }
 
-  String _attendanceRemarks(StaffLeaveEntity leave) {
+  String _attendanceRemarks(
+    StaffLeaveEntity leave,
+  ) {
     final leaveType = switch (leave.leaveType) {
       StaffLeaveType.casual => 'Casual Leave',
       StaffLeaveType.sick => 'Sick Leave',
       StaffLeaveType.annual => 'Annual Leave',
       StaffLeaveType.unpaid => 'Unpaid Leave',
-      StaffLeaveType.other =>
-        leave.designation.toLowerCase().contains('teacher')
-            ? 'Leave'
-            : 'Other Leave',
+      StaffLeaveType.other => 'Other Leave',
     };
 
     final duration = switch (leave.duration) {
@@ -102,19 +109,28 @@ class UpdateStaffLeaveStatus {
     return 'Approved $leaveType ($duration)';
   }
 
-  String _attendanceId({required String staffId, required DateTime date}) {
+  String _attendanceId({
+    required String staffId,
+    required DateTime date,
+  }) {
     return '${staffId}_${_dateKey(date)}';
   }
 
   String _dateKey(DateTime date) {
     final normalizedDate = _normalizeDate(date);
-    final month = normalizedDate.month.toString().padLeft(2, '0');
-    final day = normalizedDate.day.toString().padLeft(2, '0');
+    final month =
+        normalizedDate.month.toString().padLeft(2, '0');
+    final day =
+        normalizedDate.day.toString().padLeft(2, '0');
 
     return '${normalizedDate.year}$month$day';
   }
 
   DateTime _normalizeDate(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+    );
   }
 }

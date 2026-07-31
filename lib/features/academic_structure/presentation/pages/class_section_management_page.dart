@@ -287,17 +287,140 @@ class _ClassCard extends StatelessWidget {
 }
 
 class _SectionsPage extends StatefulWidget {
-  const _SectionsPage({required this.academicClass, required this.repository});
+  const _SectionsPage({
+    required this.academicClass,
+    required this.repository,
+  });
+
   final AcademicClassEntity academicClass;
   final AcademicStructureRepository repository;
-  @override State<_SectionsPage> createState() => _SectionsPageState();
+
+  @override
+  State<_SectionsPage> createState() => _SectionsPageState();
 }
 
 class _SectionsPageState extends State<_SectionsPage> {
   late Future<List<SectionEntity>> _future;
-  @override void initState(){super.initState();_reload();}
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
   void _reload() {
     _future = widget.repository.getSections();
   }
-  Future<void> _save([SectionEntity? existing]) async { final controller=TextEditingController(text:existing?.name);final name=await showDialog<String>(context:context,builder:(context)=>AlertDialog(title:Text(existing==null?'Add Section':'Edit Section'),content:TextField(controller:controller,autofocus:true,decoration:const InputDecoration(labelText:'Section name')),actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,controller.text.trim()),child:const Text('Save'))]));if(name==null||name.isEmpty)return;final now=DateTime.now();try{await widget.repository.saveSection(SectionEntity(id:existing?.id??widget.repository.generateSectionId(),classId:widget.academicClass.id,name:name,isActive:existing?.isActive??true,createdAt:existing?.createdAt??now,updatedAt:now));if(mounted)setState(_reload);}catch(error){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(error.toString())));}}
-  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text('${widget.academicClass.name} Sections')),floatingActionButton:FloatingActionButton.extended(onPressed:_save,icon:const Icon(Icons.add),label:const Text('Add Section')),body:FutureBuilder<List<SectionEntity>>(future:_future,builder:(context,snapshot){if(snapshot.connectionState!=ConnectionState.done)return const Center(child:CircularProgressIndicator());final sections=(snapshot.data??const <SectionEntity>[]).where((value)=>value.classId==widget.academicClass.id).toList();return sections.isEmpty?const Center(child:Text('No sections added yet.')):ListView.builder(itemCount:sections.length,itemBuilder:(context,index){final section=sections[index];return ListTile(title:Text(section.name),trailing:Wrap(children:[IconButton(onPressed:()=>_save(section),icon:const Icon(Icons.edit_outlined)),IconButton(onPressed:()async{try{await widget.repository.deleteSection(section.id);if(mounted)setState(_reload);}catch(error){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(error.toString().replaceFirst('StateError: ',''))));}},icon:const Icon(Icons.delete_outline))]));});}));}
+
+  Future<void> _save([SectionEntity? existing]) async {
+    final controller = TextEditingController(text: existing?.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(existing == null ? 'Add Section' : 'Edit Section'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Section name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty) return;
+
+    final now = DateTime.now();
+    try {
+      await widget.repository.saveSection(
+        SectionEntity(
+          id: existing?.id ?? widget.repository.generateSectionId(),
+          classId: widget.academicClass.id,
+          name: name,
+          isActive: existing?.isActive ?? true,
+          createdAt: existing?.createdAt ?? now,
+          updatedAt: now,
+        ),
+      );
+      if (!mounted) return;
+      setState(_reload);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error);
+    }
+  }
+
+  Future<void> _delete(SectionEntity section) async {
+    try {
+      await widget.repository.deleteSection(section.id);
+      if (!mounted) return;
+      setState(_reload);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error);
+    }
+  }
+
+  void _showMessage(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString().replaceFirst('StateError: ', '')),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('${widget.academicClass.name} Sections')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _save,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Section'),
+      ),
+      body: FutureBuilder<List<SectionEntity>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final sections = (snapshot.data ?? const <SectionEntity>[])
+              .where((value) => value.classId == widget.academicClass.id)
+              .toList(growable: false);
+          if (sections.isEmpty) {
+            return const Center(child: Text('No sections added yet.'));
+          }
+          return ListView.builder(
+            itemCount: sections.length,
+            itemBuilder: (context, index) {
+              final section = sections[index];
+              return ListTile(
+                title: Text(section.name),
+                trailing: Wrap(
+                  children: [
+                    IconButton(
+                      onPressed: () => _save(section),
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                    IconButton(
+                      onPressed: () => _delete(section),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}

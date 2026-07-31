@@ -116,7 +116,7 @@ class StaffPayrollExcelService {
       horizontalAlign: HorizontalAlign.Right,
       verticalAlign: VerticalAlign.Center,
       numberFormat:
-          CustomNumericNumFormat('#,##0.00'),
+          CustomNumericNumFormat(formatCode: '#,##0.00'),
     );
 
     final boldAmountStyle = CellStyle(
@@ -126,7 +126,7 @@ class StaffPayrollExcelService {
       backgroundColorHex:
           ExcelColor.fromHexString('#DBEAFE'),
       numberFormat:
-          CustomNumericNumFormat('#,##0.00'),
+          CustomNumericNumFormat(formatCode: '#,##0.00'),
     );
 
     sheet.merge(
@@ -370,7 +370,7 @@ class StaffPayrollExcelService {
       horizontalAlign: HorizontalAlign.Right,
       verticalAlign: VerticalAlign.Center,
       numberFormat:
-          CustomNumericNumFormat('#,##0.00'),
+          CustomNumericNumFormat(formatCode: '#,##0.00'),
     );
 
     final paidStyle = CellStyle(

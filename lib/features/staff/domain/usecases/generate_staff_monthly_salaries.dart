@@ -9,14 +9,11 @@ import '../repositories/staff_salary_repository.dart';
 
 class GenerateStaffMonthlySalaries {
   const GenerateStaffMonthlySalaries({
-    required StaffRepository staffRepository,
-    required StaffAttendanceRepository attendanceRepository,
-    required StaffLeaveRepository leaveRepository,
-    required StaffSalaryRepository salaryRepository,
-  })  : _staffRepository = staffRepository,
-        _attendanceRepository = attendanceRepository,
-        _leaveRepository = leaveRepository,
-        _salaryRepository = salaryRepository;
+    required this._staffRepository,
+    required this._attendanceRepository,
+    required this._leaveRepository,
+    required this._salaryRepository,
+  });
 
   final StaffRepository _staffRepository;
   final StaffAttendanceRepository _attendanceRepository;
