@@ -4,8 +4,7 @@ import '../datasources/exam_mark_remote_datasource.dart';
 import '../models/exam_mark_model.dart';
 
 class ExamMarkRepositoryImpl implements ExamMarkRepository {
-  ExamMarkRepositoryImpl({required ExamMarkRemoteDataSource source})
-      : _source = source;
+  ExamMarkRepositoryImpl({required this._source});
 
   final ExamMarkRemoteDataSource _source;
 

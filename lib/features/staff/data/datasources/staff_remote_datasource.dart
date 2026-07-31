@@ -14,8 +14,8 @@ abstract class StaffRemoteDataSource {
 
 class StaffRemoteDataSourceImpl implements StaffRemoteDataSource {
   StaffRemoteDataSourceImpl({
-    required FirebaseFirestoreService firestoreService,
-  }) : _firestoreService = firestoreService;
+    required this._firestoreService,
+  });
 
   final FirebaseFirestoreService _firestoreService;
 

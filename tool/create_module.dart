@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 void main(List<String> args) {
@@ -32,17 +34,20 @@ void main(List<String> args) {
   }
 
   final files = {
-    '$featurePath/domain/entities/${module}_entity.dart':
-        _entityTemplate(modulePascal),
+    '$featurePath/domain/entities/${module}_entity.dart': _entityTemplate(
+      modulePascal,
+    ),
 
     '$featurePath/domain/repositories/${module}_repository.dart':
         _repositoryTemplate(modulePascal),
 
-    '$featurePath/domain/usecases/get_${module}.dart':
-        _useCaseTemplate(modulePascal),
+    '$featurePath/domain/usecases/get_$module.dart': _useCaseTemplate(
+      modulePascal,
+    ),
 
-    '$featurePath/data/models/${module}_model.dart':
-        _modelTemplate(modulePascal),
+    '$featurePath/data/models/${module}_model.dart': _modelTemplate(
+      modulePascal,
+    ),
 
     '$featurePath/data/datasources/${module}_remote_datasource.dart':
         _datasourceTemplate(modulePascal),
@@ -50,17 +55,21 @@ void main(List<String> args) {
     '$featurePath/data/repositories/${module}_repository_impl.dart':
         _repositoryImplTemplate(modulePascal),
 
-    '$featurePath/presentation/bloc/${module}_bloc.dart':
-        _blocTemplate(modulePascal),
+    '$featurePath/presentation/bloc/${module}_bloc.dart': _blocTemplate(
+      modulePascal,
+    ),
 
-    '$featurePath/presentation/bloc/${module}_event.dart':
-        _eventTemplate(modulePascal),
+    '$featurePath/presentation/bloc/${module}_event.dart': _eventTemplate(
+      modulePascal,
+    ),
 
-    '$featurePath/presentation/bloc/${module}_state.dart':
-        _stateTemplate(modulePascal),
+    '$featurePath/presentation/bloc/${module}_state.dart': _stateTemplate(
+      modulePascal,
+    ),
 
-    '$featurePath/presentation/pages/${module}_page.dart':
-        _pageTemplate(modulePascal),
+    '$featurePath/presentation/pages/${module}_page.dart': _pageTemplate(
+      modulePascal,
+    ),
   };
 
   files.forEach((path, content) {
@@ -86,61 +95,71 @@ String _toPascalCase(String value) {
       .join();
 }
 
-String _entityTemplate(String name) => '''
+String _entityTemplate(String name) =>
+    '''
 class ${name}Entity {
 
 }
 ''';
 
-String _repositoryTemplate(String name) => '''
+String _repositoryTemplate(String name) =>
+    '''
 abstract class ${name}Repository {
 
 }
 ''';
 
-String _useCaseTemplate(String name) => '''
+String _useCaseTemplate(String name) =>
+    '''
 class Get${name}UseCase {
 
 }
 ''';
 
-String _modelTemplate(String name) => '''
+String _modelTemplate(String name) =>
+    '''
 class ${name}Model {
 
 }
 ''';
 
-String _datasourceTemplate(String name) => '''
+String _datasourceTemplate(String name) =>
+    '''
 abstract class ${name}RemoteDataSource {
 
 }
 ''';
 
-String _repositoryImplTemplate(String name) => '''
+String _repositoryImplTemplate(String name) =>
+    '''
 class ${name}RepositoryImpl {
 
 }
 ''';
 
-String _blocTemplate(String name) => '''
+String _blocTemplate(String name) =>
+    '''
 class ${name}Bloc {
 
 }
 ''';
 
-String _eventTemplate(String name) => '''
+String _eventTemplate(String name) =>
+    '''
 abstract class ${name}Event {
 
 }
 ''';
 
-String _stateTemplate(String name) => '''
+String _stateTemplate(String name) =>
+    '''
 abstract class ${name}State {
 
 }
 ''';
 
-String _pageTemplate(String name) => '''
+String _pageTemplate(String name) =>
+    '''
 class ${name}Page {
 
 }

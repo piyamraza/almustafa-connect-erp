@@ -3,5 +3,253 @@ import '../../../../core/services/firebase_firestore_service.dart';
 import '../models/academic_class_model.dart';
 import '../models/academic_subject_model.dart';
 import '../models/section_model.dart';
-abstract class AcademicStructureRemoteDataSource { Future<List<AcademicClassModel>> getClasses(); Future<List<SectionModel>> getSections(); Future<List<AcademicSubjectModel>> getSubjects(); Future<List<AcademicSubjectModel>> getSubjectsForClass(String classId); Future<void> saveClass(AcademicClassModel value); Future<void> saveSection(SectionModel value); Future<void> saveSubject(AcademicSubjectModel value); Future<void> deleteClass(String id); Future<void> deleteSection(String id); Future<void> deleteSubject(String id); Future<int> copySubjects({required String sourceClassId,required String targetClassId}); String generateClassId(); String generateSectionId(); String generateSubjectId(); }
-class AcademicStructureRemoteDataSourceImpl implements AcademicStructureRemoteDataSource { AcademicStructureRemoteDataSourceImpl({required FirebaseFirestoreService firestoreService}):_service=firestoreService; final FirebaseFirestoreService _service; @override Future<List<AcademicClassModel>> getClasses()async{final data=await _service.collection(FirestorePaths.classes).orderBy('name').get();return data.docs.map((doc)=>AcademicClassModel.fromMap({...doc.data(),'id':doc.id})).toList();}@override Future<List<SectionModel>> getSections()async{final data=await _service.collection(FirestorePaths.sections).orderBy('name').get();return data.docs.map((doc)=>SectionModel.fromMap({...doc.data(),'id':doc.id})).toList();}@override Future<List<AcademicSubjectModel>> getSubjects()async{final data=await _service.collection(FirestorePaths.academicSubjects).orderBy('name').get();return data.docs.map((doc)=>AcademicSubjectModel.fromMap({...doc.data(),'id':doc.id})).toList();}@override Future<List<AcademicSubjectModel>> getSubjectsForClass(String classId)async{final data=await _service.collection(FirestorePaths.academicSubjects).where('classId',isEqualTo:classId).get();final subjects=data.docs.map((doc)=>AcademicSubjectModel.fromMap({...doc.data(),'id':doc.id})).toList();subjects.sort((a,b)=>a.name.compareTo(b.name));return subjects;}@override Future<void> saveClass(AcademicClassModel value)async{final existing=await _service.collection(FirestorePaths.classes).where('nameKey',isEqualTo:value.name.trim().toLowerCase()).limit(1).get();if(existing.docs.any((doc)=>doc.id!=value.id))throw StateError('A class with this name already exists.');await _service.collection(FirestorePaths.classes).doc(value.id).set(value.toMap());}@override Future<void> saveSection(SectionModel value)async{final existing=await _service.collection(FirestorePaths.sections).where('classSectionKey',isEqualTo:value.classSectionKey).limit(1).get();if(existing.docs.any((doc)=>doc.id!=value.id))throw StateError('This section already exists for the selected class.');await _service.collection(FirestorePaths.sections).doc(value.id).set(value.toMap());}@override Future<void> saveSubject(AcademicSubjectModel value)async{final existing=await _service.collection(FirestorePaths.academicSubjects).where('classSubjectKey',isEqualTo:value.classSubjectKey).limit(1).get();if(existing.docs.any((doc)=>doc.id!=value.id))throw StateError('This subject already exists for the selected class.');await _service.collection(FirestorePaths.academicSubjects).doc(value.id).set(value.toMap());}@override Future<void> deleteClass(String id)async{final students=await _service.collection(FirestorePaths.students).where('classId',isEqualTo:id).limit(1).get();final sections=await _service.collection(FirestorePaths.sections).where('classId',isEqualTo:id).limit(1).get();final subjects=await _service.collection(FirestorePaths.academicSubjects).where('classId',isEqualTo:id).limit(1).get();if(students.docs.isNotEmpty||sections.docs.isNotEmpty||subjects.docs.isNotEmpty)throw StateError('This class is in use and cannot be deleted.');await _service.collection(FirestorePaths.classes).doc(id).delete();}@override Future<void> deleteSection(String id)async{await _service.collection(FirestorePaths.sections).doc(id).delete();}@override Future<void> deleteSubject(String id)async{await _service.collection(FirestorePaths.academicSubjects).doc(id).delete();}@override Future<int> copySubjects({required String sourceClassId,required String targetClassId})async{if(sourceClassId==targetClassId)throw StateError('Choose a different source class.');final source=await getSubjectsForClass(sourceClassId);final target=await getSubjectsForClass(targetClassId);final existing=target.map((value)=>value.name.trim().toLowerCase()).toSet();final now=DateTime.now();final copy=source.where((value)=>existing.add(value.name.trim().toLowerCase())).map((value)=>AcademicSubjectModel(id:generateSubjectId(),classId:targetClassId,name:value.name,isActive:value.isActive,createdAt:now,updatedAt:now)).toList();for(var start=0;start<copy.length;start+=500){final end=start+500>copy.length?copy.length:start+500;final batch=_service.instance.batch();for(final value in copy.sublist(start,end)){batch.set(_service.collection(FirestorePaths.academicSubjects).doc(value.id),value.toMap());}await batch.commit();}return copy.length;}@override String generateClassId()=>_service.collection(FirestorePaths.classes).doc().id;@override String generateSectionId()=>_service.collection(FirestorePaths.sections).doc().id;@override String generateSubjectId()=>_service.collection(FirestorePaths.academicSubjects).doc().id;}
+
+abstract class AcademicStructureRemoteDataSource {
+  Future<List<AcademicClassModel>> getClasses();
+  Future<List<SectionModel>> getSections();
+  Future<List<AcademicSubjectModel>> getSubjects();
+  Future<List<AcademicSubjectModel>> getSubjectsForClass(String classId);
+  Future<List<AcademicSubjectModel>> getSubjectsForClassSection(
+    String classId,
+    String sectionId,
+  );
+  Future<void> saveClass(AcademicClassModel value);
+  Future<void> saveSection(SectionModel value);
+  Future<void> saveSubject(AcademicSubjectModel value);
+  Future<void> deleteClass(String id);
+  Future<void> deleteSection(String id);
+  Future<void> deleteSubject(String id);
+  Future<int> copySubjects({
+    required String sourceClassId,
+    required String targetClassId,
+    String? sourceSectionId,
+    String? targetSectionId,
+  });
+  String generateClassId();
+  String generateSectionId();
+  String generateSubjectId();
+}
+
+class AcademicStructureRemoteDataSourceImpl
+    implements AcademicStructureRemoteDataSource {
+  AcademicStructureRemoteDataSourceImpl({
+    required FirebaseFirestoreService firestoreService,
+  }) : _service = firestoreService;
+
+  final FirebaseFirestoreService _service;
+
+  @override
+  Future<List<AcademicClassModel>> getClasses() async {
+    final data = await _service
+        .collection(FirestorePaths.classes)
+        .orderBy('name')
+        .get();
+    return data.docs
+        .map((doc) => AcademicClassModel.fromMap({...doc.data(), 'id': doc.id}))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<SectionModel>> getSections() async {
+    final data = await _service
+        .collection(FirestorePaths.sections)
+        .orderBy('name')
+        .get();
+    return data.docs
+        .map((doc) => SectionModel.fromMap({...doc.data(), 'id': doc.id}))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<AcademicSubjectModel>> getSubjects() async {
+    final data = await _service
+        .collection(FirestorePaths.academicSubjects)
+        .orderBy('name')
+        .get();
+    return data.docs
+        .map((doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<AcademicSubjectModel>> getSubjectsForClass(String classId) async {
+    final subjects = await _subjectsForClass(classId);
+    return subjects.where((value) => value.sectionId == null).toList(growable: false);
+  }
+
+  @override
+  Future<List<AcademicSubjectModel>> getSubjectsForClassSection(
+    String classId,
+    String sectionId,
+  ) async {
+    final subjects = await _subjectsForClass(classId);
+    return subjects
+        .where((value) => value.sectionId == sectionId)
+        .toList(growable: false);
+  }
+
+  Future<List<AcademicSubjectModel>> _subjectsForClass(String classId) async {
+    final data = await _service
+        .collection(FirestorePaths.academicSubjects)
+        .where('classId', isEqualTo: classId)
+        .get();
+    final subjects = data.docs
+        .map((doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}))
+        .toList();
+    subjects.sort((first, second) => first.name.compareTo(second.name));
+    return subjects;
+  }
+
+  @override
+  Future<void> saveClass(AcademicClassModel value) async {
+    final existing = await _service
+        .collection(FirestorePaths.classes)
+        .where('nameKey', isEqualTo: value.name.trim().toLowerCase())
+        .limit(1)
+        .get();
+    if (existing.docs.any((doc) => doc.id != value.id)) {
+      throw StateError('A class with this name already exists.');
+    }
+    await _service.collection(FirestorePaths.classes).doc(value.id).set(value.toMap());
+  }
+
+  @override
+  Future<void> saveSection(SectionModel value) async {
+    final existing = await _service
+        .collection(FirestorePaths.sections)
+        .where('classSectionKey', isEqualTo: value.classSectionKey)
+        .limit(1)
+        .get();
+    if (existing.docs.any((doc) => doc.id != value.id)) {
+      throw StateError('This section already exists for the selected class.');
+    }
+    await _service.collection(FirestorePaths.sections).doc(value.id).set(value.toMap());
+  }
+
+  @override
+  Future<void> saveSubject(AcademicSubjectModel value) async {
+    final existing = await _subjectsForClass(value.classId);
+    final duplicate = existing.any(
+      (subject) =>
+          subject.id != value.id &&
+          subject.sectionId == value.sectionId &&
+          subject.name.trim().toLowerCase() == value.name.trim().toLowerCase(),
+    );
+    if (duplicate) {
+      throw StateError(
+        value.sectionId == null
+            ? 'This class already has a subject with this name.'
+            : 'This section already has a subject with this name.',
+      );
+    }
+    await _service
+        .collection(FirestorePaths.academicSubjects)
+        .doc(value.id)
+        .set(value.toMap());
+  }
+
+  @override
+  Future<void> deleteClass(String id) async {
+    final students = await _service
+        .collection(FirestorePaths.students)
+        .where('classId', isEqualTo: id)
+        .limit(1)
+        .get();
+    final sections = await _service
+        .collection(FirestorePaths.sections)
+        .where('classId', isEqualTo: id)
+        .limit(1)
+        .get();
+    final subjects = await _service
+        .collection(FirestorePaths.academicSubjects)
+        .where('classId', isEqualTo: id)
+        .limit(1)
+        .get();
+    if (students.docs.isNotEmpty ||
+        sections.docs.isNotEmpty ||
+        subjects.docs.isNotEmpty) {
+      throw StateError('This class is in use and cannot be deleted.');
+    }
+    await _service.collection(FirestorePaths.classes).doc(id).delete();
+  }
+
+  @override
+  Future<void> deleteSection(String id) async {
+    final subjects = await _service
+        .collection(FirestorePaths.academicSubjects)
+        .where('sectionId', isEqualTo: id)
+        .limit(1)
+        .get();
+    if (subjects.docs.isNotEmpty) {
+      throw StateError(
+        'This section has subject overrides. Delete them from Subjects first.',
+      );
+    }
+    await _service.collection(FirestorePaths.sections).doc(id).delete();
+  }
+
+  @override
+  Future<void> deleteSubject(String id) async {
+    await _service.collection(FirestorePaths.academicSubjects).doc(id).delete();
+  }
+
+  @override
+  Future<int> copySubjects({
+    required String sourceClassId,
+    required String targetClassId,
+    String? sourceSectionId,
+    String? targetSectionId,
+  }) async {
+    if (sourceClassId == targetClassId && sourceSectionId == targetSectionId) {
+      throw StateError('Choose a different source subject list.');
+    }
+
+    final source = sourceSectionId == null
+        ? await getSubjectsForClass(sourceClassId)
+        : await getSubjectsForClassSection(sourceClassId, sourceSectionId);
+    final target = targetSectionId == null
+        ? await getSubjectsForClass(targetClassId)
+        : await getSubjectsForClassSection(targetClassId, targetSectionId);
+    final existingNames = target
+        .map((value) => value.name.trim().toLowerCase())
+        .toSet();
+    final now = DateTime.now();
+    final copies = source
+        .where((value) => existingNames.add(value.name.trim().toLowerCase()))
+        .map(
+          (value) => AcademicSubjectModel(
+            id: generateSubjectId(),
+            classId: targetClassId,
+            sectionId: targetSectionId,
+            name: value.name,
+            isActive: value.isActive,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        )
+        .toList(growable: false);
+
+    for (var start = 0; start < copies.length; start += 500) {
+      final end = start + 500 > copies.length ? copies.length : start + 500;
+      final batch = _service.instance.batch();
+      for (final value in copies.sublist(start, end)) {
+        batch.set(
+          _service.collection(FirestorePaths.academicSubjects).doc(value.id),
+          value.toMap(),
+        );
+      }
+      await batch.commit();
+    }
+    return copies.length;
+  }
+
+  @override
+  String generateClassId() => _service.collection(FirestorePaths.classes).doc().id;
+
+  @override
+  String generateSectionId() => _service.collection(FirestorePaths.sections).doc().id;
+
+  @override
+  String generateSubjectId() =>
+      _service.collection(FirestorePaths.academicSubjects).doc().id;
+}

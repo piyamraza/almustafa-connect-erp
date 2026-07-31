@@ -225,7 +225,7 @@ class _ExamsViewState extends State<_ExamsView> {
                         return ListView.separated(
                           physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: exams.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (context, index) => _ExamListCard(
                             exam: exams[index],
                             isDesktop: constraints.maxWidth >= 900,

@@ -16,19 +16,13 @@ import 'exam_subject_setup_state.dart';
 
 class ExamSubjectSetupBloc extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupState> {
   ExamSubjectSetupBloc({
-    required get_usecase.GetExamSubjectSetups getSetups,
-    required create_usecase.CreateExamSubjectSetups createSetups,
-    required update_usecase.UpdateExamSubjectSetup updateSetup,
-    required delete_usecase.DeleteExamSubjectSetup deleteSetup,
-    required ExamRepository examRepository,
-    required AcademicStructureRepository academicStructureRepository,
-  })  : _getSetups = getSetups,
-        _createSetups = createSetups,
-        _updateSetup = updateSetup,
-        _deleteSetup = deleteSetup,
-        _examRepository = examRepository,
-        _academicStructureRepository = academicStructureRepository,
-        super(const ExamSubjectSetupInitial()) {
+    required this._getSetups,
+    required this._createSetups,
+    required this._updateSetup,
+    required this._deleteSetup,
+    required this._examRepository,
+    required this._academicStructureRepository,
+  })  : super(const ExamSubjectSetupInitial()) {
     on<LoadExamSubjectSetups>(_load);
     on<RefreshExamSubjectSetups>(_refresh);
     on<CreateExamSubjectSetups>(_create);
@@ -274,20 +268,34 @@ class ExamSubjectSetupBloc extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupS
     List<AcademicSubjectEntity> subjects,
   ) {
     final classNames = {for (final value in classes) value.id: value.name};
-    final subjectsByClass = <String, List<String>>{};
+    final defaultSubjectsByClass = <String, List<String>>{};
+    final subjectsBySection = <String, List<String>>{};
     for (final subject in subjects.where((value) => value.isActive)) {
-      subjectsByClass.putIfAbsent(subject.classId, () => []).add(subject.name);
+      if (subject.sectionId == null) {
+        defaultSubjectsByClass
+            .putIfAbsent(subject.classId, () => [])
+            .add(subject.name);
+      } else {
+        subjectsBySection.putIfAbsent(subject.sectionId!, () => []).add(subject.name);
+      }
     }
-    for (final values in subjectsByClass.values) {
+    for (final values in defaultSubjectsByClass.values) {
+      values.sort();
+    }
+    for (final values in subjectsBySection.values) {
       values.sort();
     }
 
     final result = <String, List<String>>{};
     for (final section in sections.where((value) => value.isActive)) {
       final className = classNames[section.classId];
-      final classSubjects = subjectsByClass[section.classId];
-      if (className == null || classSubjects == null) continue;
-      result['$className|${section.name}'] = classSubjects;
+      final sectionSubjects = subjectsBySection[section.id];
+      final defaultSubjects = defaultSubjectsByClass[section.classId];
+      final effectiveSubjects = sectionSubjects?.isNotEmpty == true
+          ? sectionSubjects
+          : defaultSubjects;
+      if (className == null || effectiveSubjects == null) continue;
+      result['$className|${section.name}'] = effectiveSubjects;
     }
     return result;
   }

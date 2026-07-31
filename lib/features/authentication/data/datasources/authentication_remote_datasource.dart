@@ -10,9 +10,7 @@ abstract class AuthenticationRemoteDataSource {
 
   Future<void> signOut();
 
-  Future<void> sendPasswordResetEmail({
-    required String email,
-  });
+  Future<void> sendPasswordResetEmail({required String email});
 
   User? getCurrentUser();
 
@@ -21,28 +19,21 @@ abstract class AuthenticationRemoteDataSource {
 
 class AuthenticationRemoteDataSourceImpl
     implements AuthenticationRemoteDataSource {
-  AuthenticationRemoteDataSourceImpl({
-    required FirebaseAuthService authService,
-  }) : _authService = authService;
+  AuthenticationRemoteDataSourceImpl({required this._authService});
 
   final FirebaseAuthService _authService;
 
   @override
-Future<UserCredential> signIn({
-  required String email,
-  required String password,
-}) async {
-  print("REMOTE: Before Firebase SignIn");
-
-  final result = await _authService.instance.signInWithEmailAndPassword(
-    email: email,
-    password: password,
-  );
-
-  print("REMOTE: After Firebase SignIn");
-
-  return result;
-}
+  Future<UserCredential> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final result = await _authService.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return result;
+  }
 
   @override
   Future<void> signOut() {
@@ -50,12 +41,8 @@ Future<UserCredential> signIn({
   }
 
   @override
-  Future<void> sendPasswordResetEmail({
-    required String email,
-  }) {
-    return _authService.instance.sendPasswordResetEmail(
-      email: email,
-    );
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _authService.instance.sendPasswordResetEmail(email: email);
   }
 
   @override

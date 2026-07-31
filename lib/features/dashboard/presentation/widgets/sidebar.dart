@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../students/presentation/pages/students_page.dart';
-import '../../../attendance/presentation/pages/attendance_page.dart';
-import '../../../teachers/presentation/pages/teachers_module_page.dart';
-import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
+import '../../../attendance/presentation/pages/attendance_page.dart';
+import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
+import '../../../staff/presentation/pages/add_staff_page.dart';
+import '../../../staff/presentation/pages/staff_attendance_page.dart';
+import '../../../staff/presentation/pages/staff_dashboard_page.dart';
+import '../../../staff/presentation/pages/staff_list_page.dart';
+import '../../../students/presentation/pages/students_page.dart';
+import '../../../teachers/presentation/pages/teachers_module_page.dart';
+
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
 
@@ -30,120 +35,144 @@ class Sidebar extends StatelessWidget {
               ),
             ),
           ),
-
-                    
-
-         _menuTile(
-  context,
-  icon: Icons.school,
-  title: 'Students',
-  onTap: () {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const StudentsPage(),
-      ),
-    );
-  },
-),
-
+          _menuTile(
+            context,
+            icon: Icons.school,
+            title: 'Students',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const StudentsPage(),
+                ),
+              );
+            },
+          ),
           _menuTile(
             context,
             icon: Icons.person,
             title: 'Teachers',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => const TeachersModulePage(),
                 ),
               );
             },
           ),
-
           _menuTile(
             context,
             icon: Icons.badge,
             title: 'Staff',
-            onTap: () {},
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (staffDashboardContext) {
+                    return StaffDashboardPage(
+                      onViewStaff: () {
+                        Navigator.of(staffDashboardContext).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const StaffListPage(),
+                          ),
+                        );
+                      },
+onAttendance: () {
+  Navigator.of(staffDashboardContext).push(
+    MaterialPageRoute<void>(
+      builder: (_) => const StaffAttendancePage(),
+    ),
+  );
+},
+                      onAddStaff: () {
+                        Navigator.of(staffDashboardContext).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const AddStaffPage(),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              );
+            },
           ),
-
           _menuTile(
             context,
             icon: Icons.class_,
             title: 'Classes',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClassSectionManagementPage())),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ClassSectionManagementPage(),
+                ),
+              );
+            },
           ),
-
-
-                    _menuTile(
+          _menuTile(
             context,
             icon: Icons.fact_check,
             title: 'Attendance',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => const AttendancePage(),
                 ),
               );
             },
           ),
-
           _menuTile(
             context,
             icon: Icons.payments,
             title: 'Fee Management',
             onTap: () {},
           ),
-
           _menuTile(
             context,
             icon: Icons.quiz,
             title: 'Examinations',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ExaminationDashboardPage(),
-              ),
-            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ExaminationDashboardPage(),
+                ),
+              );
+            },
           ),
-
           _menuTile(
             context,
             icon: Icons.grade,
             title: 'Results',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ResultsModulePage(),
-              ),
-            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ResultsModulePage(),
+                ),
+              );
+            },
           ),
-
           _menuTile(
             context,
             icon: Icons.schedule,
             title: 'Timetable',
             onTap: () {},
           ),
-
           _menuTile(
             context,
             icon: Icons.local_library,
             title: 'Library',
             onTap: () {},
           ),
-
-                    _menuTile(
+          _menuTile(
             context,
             icon: Icons.family_restroom,
             title: 'Parents',
             onTap: () {},
           ),
-
           _menuTile(
             context,
             icon: Icons.assessment,
             title: 'Reports',
             onTap: () {},
           ),
-
           _menuTile(
             context,
             icon: Icons.settings,
@@ -175,5 +204,4 @@ class Sidebar extends StatelessWidget {
       onTap: onTap,
     );
   }
-
 }

@@ -13,17 +13,12 @@ import 'exam_results_state.dart';
 
 class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
   ExamResultsBloc({
-    required GetExams getExams,
-    required GetExamSubjectSetupsForExam getSubjectSetupsForExam,
-    required GetExamResults getExamResults,
-    required GenerateExamResults generateExamResults,
-    required UpdateExamResultStatus updateResultStatus,
-  })  : _getExams = getExams,
-        _getSubjectSetupsForExam = getSubjectSetupsForExam,
-        _getExamResults = getExamResults,
-        _generateExamResults = generateExamResults,
-        _updateResultStatus = updateResultStatus,
-        super(const ExamResultsInitial()) {
+    required this._getExams,
+    required this._getSubjectSetupsForExam,
+    required this._getExamResults,
+    required this._generateExamResults,
+    required this._updateResultStatus,
+  })  : super(const ExamResultsInitial()) {
     on<LoadResultSummary>(_onLoad);
     on<RefreshResultSummary>(_onRefresh);
     on<SelectResultExam>(_onSelectExam);

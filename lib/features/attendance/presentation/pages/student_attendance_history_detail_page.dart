@@ -185,12 +185,12 @@ class _StudentAttendanceHistoryDetailPageState
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: records.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final record = records[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: _statusColor(record.status).withOpacity(0.14),
+                              backgroundColor: _statusColor(record.status).withValues(alpha: 0.14),
                               child: Icon(Icons.calendar_today_outlined, color: _statusColor(record.status)),
                             ),
                             title: Text(_formatDate(record.attendanceDate)),
@@ -273,7 +273,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Chip(
         label: Text(status.name.toUpperCase()),
-        backgroundColor: _statusColor(status).withOpacity(0.14),
+        backgroundColor: _statusColor(status).withValues(alpha: 0.14),
         side: BorderSide.none,
         labelStyle: TextStyle(color: _statusColor(status), fontWeight: FontWeight.bold),
       );

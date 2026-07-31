@@ -14,19 +14,13 @@ import 'exam_marks_state.dart';
 
 class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   ExamMarksBloc({
-    required GetExams getExams,
-    required GetExamSubjectSetupsForExam getSubjectSetupsForExam,
-    required GetStudentsByClassAndSection getStudentsByClassAndSection,
-    required GetExamMarks getExamMarks,
-    required SaveExamMarks saveExamMarks,
-    required DeleteExamMark deleteExamMark,
-  })  : _getExams = getExams,
-        _getSubjectSetupsForExam = getSubjectSetupsForExam,
-        _getStudentsByClassAndSection = getStudentsByClassAndSection,
-        _getExamMarks = getExamMarks,
-        _saveExamMarks = saveExamMarks,
-        _deleteExamMark = deleteExamMark,
-        super(const ExamMarksInitial()) {
+    required this._getExams,
+    required this._getSubjectSetupsForExam,
+    required this._getStudentsByClassAndSection,
+    required this._getExamMarks,
+    required this._saveExamMarks,
+    required this._deleteExamMark,
+  })  : super(const ExamMarksInitial()) {
     on<LoadMarksEntry>(_onLoad);
     on<RefreshMarksEntry>(_onRefresh);
     on<SelectMarksExam>(_onSelectExam);

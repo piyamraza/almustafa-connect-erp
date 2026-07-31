@@ -55,7 +55,7 @@ class _TeacherLeavePageState extends State<TeacherLeavePage> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _type,
+                      initialValue: _type,
                       decoration: const InputDecoration(labelText: 'Leave type', border: OutlineInputBorder()),
                       items: const [
                         DropdownMenuItem(value: 'Casual Leave', child: Text('Casual Leave')),
@@ -81,7 +81,7 @@ class _TeacherLeavePageState extends State<TeacherLeavePage> {
                     ? const Center(child: Text('No leave requests yet.'))
                     : ListView.separated(
                         itemCount: _requests.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = _requests[index];
                           return ListTile(title: Text(item.type), subtitle: Text('${item.reason}\n${item.range.start.day}/${item.range.start.month} - ${item.range.end.day}/${item.range.end.month}'), isThreeLine: true, trailing: Chip(label: Text(item.status)));

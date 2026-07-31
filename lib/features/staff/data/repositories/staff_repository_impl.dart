@@ -5,8 +5,8 @@ import '../models/staff_model.dart';
 
 class StaffRepositoryImpl implements StaffRepository {
   StaffRepositoryImpl({
-    required StaffRemoteDataSource remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+    required this._remoteDataSource,
+  });
 
   final StaffRemoteDataSource _remoteDataSource;
 

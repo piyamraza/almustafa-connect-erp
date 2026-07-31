@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../domain/entities/attendance_entity.dart';
 import '../../domain/entities/attendance_report.dart';
 import '../bloc/attendance_report_bloc.dart';
 import '../bloc/attendance_report_event.dart';
 import '../bloc/attendance_report_state.dart';
 import '../services/attendance_report_export_service.dart';
+import '../widgets/attendance_academic_structure.dart';
 
 class AttendanceReportsPage extends StatelessWidget {
   const AttendanceReportsPage({super.key});
@@ -15,8 +17,9 @@ class AttendanceReportsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<AttendanceReportBloc>(
-      create: (_) => sl<AttendanceReportBloc>()
-        ..add(GenerateAttendanceReportEvent(_defaultFilter())),
+      create: (_) =>
+          sl<AttendanceReportBloc>()
+            ..add(GenerateAttendanceReportEvent(_defaultFilter())),
       child: const _AttendanceReportsView(),
     );
   }
@@ -35,19 +38,32 @@ class _AttendanceReportsView extends StatefulWidget {
   const _AttendanceReportsView();
 
   @override
-  State<_AttendanceReportsView> createState() =>
-      _AttendanceReportsViewState();
+  State<_AttendanceReportsView> createState() => _AttendanceReportsViewState();
 }
 
 class _AttendanceReportsViewState extends State<_AttendanceReportsView> {
   late AttendanceReportFilter _filter = AttendanceReportsPage._defaultFilter();
+  final _academicStructureRepository = sl<AcademicStructureRepository>();
   final AttendanceReportExportService _exportService =
       AttendanceReportExportService();
+  late Future<AttendanceAcademicStructure> _academicStructureFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloadAcademicStructure();
+  }
+
+  void _reloadAcademicStructure() {
+    _academicStructureFuture = AttendanceAcademicStructure.load(
+      _academicStructureRepository,
+    );
+  }
 
   void _generateReport() {
-    context
-        .read<AttendanceReportBloc>()
-        .add(GenerateAttendanceReportEvent(_filter));
+    context.read<AttendanceReportBloc>().add(
+      GenerateAttendanceReportEvent(_filter),
+    );
   }
 
   void _updateFilter({
@@ -124,55 +140,79 @@ class _AttendanceReportsViewState extends State<_AttendanceReportsView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance Reports')),
       body: SafeArea(
-        child: BlocBuilder<AttendanceReportBloc, AttendanceReportState>(
-          builder: (context, state) {
-            final report = state is AttendanceReportLoaded ? state.report : null;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1440),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _FilterPanel(
-                        filter: _filter,
-                        report: report,
-                        onTypeChanged: _changeReportType,
-                        onFromDatePressed: () => _selectDate(isFromDate: true),
-                        onToDatePressed: () => _selectDate(isFromDate: false),
-                        onClassChanged: (value) => _updateFilter(
-                          classId: value,
-                          clearClass: value == null,
-                        ),
-                        onSectionChanged: (value) => _updateFilter(
-                          sectionId: value,
-                          clearSection: value == null,
-                        ),
-                        onStudentChanged: (value) => _updateFilter(
-                          studentId: value,
-                          clearStudent: value == null,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (state is AttendanceReportLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(48),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      else if (state is AttendanceReportError)
-                        Center(child: Text(state.message))
-                      else if (report != null)
-                        _ReportContent(
-                          report: report,
-                          onExport: (action) => _export(action, report),
-                        ),
-                    ],
-                  ),
+        child: FutureBuilder<AttendanceAcademicStructure>(
+          future: _academicStructureFuture,
+          builder: (context, structureSnapshot) {
+            if (structureSnapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (structureSnapshot.hasError) {
+              return Center(
+                child: FilledButton.icon(
+                  onPressed: () => setState(_reloadAcademicStructure),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry loading classes'),
                 ),
-              ),
+              );
+            }
+            final structure = structureSnapshot.data!;
+            return BlocBuilder<AttendanceReportBloc, AttendanceReportState>(
+              builder: (context, state) {
+                final report = state is AttendanceReportLoaded
+                    ? state.report
+                    : null;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1440),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _FilterPanel(
+                            filter: _filter,
+                            report: report,
+                            academicStructure: structure,
+                            onTypeChanged: _changeReportType,
+                            onFromDatePressed: () =>
+                                _selectDate(isFromDate: true),
+                            onToDatePressed: () =>
+                                _selectDate(isFromDate: false),
+                            onClassChanged: (value) => _updateFilter(
+                              classId: value,
+                              clearClass: value == null,
+                              clearSection: true,
+                            ),
+                            onSectionChanged: (value) => _updateFilter(
+                              sectionId: value,
+                              clearSection: value == null,
+                            ),
+                            onStudentChanged: (value) => _updateFilter(
+                              studentId: value,
+                              clearStudent: value == null,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          if (state is AttendanceReportLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(48),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          else if (state is AttendanceReportError)
+                            Center(child: Text(state.message))
+                          else if (report != null)
+                            _ReportContent(
+                              report: report,
+                              onExport: (action) => _export(action, report),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
           },
         ),
@@ -207,6 +247,7 @@ class _FilterPanel extends StatelessWidget {
   const _FilterPanel({
     required this.filter,
     required this.report,
+    required this.academicStructure,
     required this.onTypeChanged,
     required this.onFromDatePressed,
     required this.onToDatePressed,
@@ -217,6 +258,7 @@ class _FilterPanel extends StatelessWidget {
 
   final AttendanceReportFilter filter;
   final AttendanceReport? report;
+  final AttendanceAcademicStructure academicStructure;
   final ValueChanged<AttendanceReportType> onTypeChanged;
   final VoidCallback onFromDatePressed;
   final VoidCallback onToDatePressed;
@@ -228,10 +270,10 @@ class _FilterPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<AttendanceEntity> records =
         report?.records ?? const <AttendanceEntity>[];
-    final classes = records.map((record) => record.classId).toSet().toList()
-      ..sort();
-    final sections = records.map((record) => record.sectionId).toSet().toList()
-      ..sort();
+    final classes = academicStructure.classNames;
+    final sections = filter.classId == null
+        ? const <String>[]
+        : academicStructure.sectionNamesForClass(filter.classId!);
     final students = <String, String>{
       for (final record in records) record.studentId: record.studentName,
     };
@@ -246,7 +288,7 @@ class _FilterPanel extends StatelessWidget {
             SizedBox(
               width: 210,
               child: DropdownButtonFormField<AttendanceReportType>(
-                value: filter.type,
+                initialValue: filter.type,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Report type',
@@ -352,7 +394,7 @@ class _StringFilter extends StatelessWidget {
     return SizedBox(
       width: 190,
       child: DropdownButtonFormField<String>(
-        value: selectedValue,
+        initialValue: selectedValue,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
@@ -415,8 +457,8 @@ class _ReportContent extends StatelessWidget {
             final count = constraints.maxWidth >= 1050
                 ? 6
                 : constraints.maxWidth >= 650
-                    ? 3
-                    : 2;
+                ? 3
+                : 2;
             return GridView.count(
               crossAxisCount: count,
               shrinkWrap: true,
@@ -446,7 +488,10 @@ class _ReportContent extends StatelessWidget {
         const SizedBox(height: 20),
         _Charts(report: report),
         const SizedBox(height: 20),
-        Text(_tableTitle(report.filter.type), style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          _tableTitle(report.filter.type),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 8),
         _ReportSummaryTable(report: report),
       ],
@@ -475,9 +520,9 @@ class _MetricCard extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -509,12 +554,7 @@ class _Charts extends StatelessWidget {
           title: 'Attendance distribution',
           child: Column(
             children: distribution
-                .map(
-                  (item) => _DistributionRow(
-                    item: item,
-                    total: total,
-                  ),
-                )
+                .map((item) => _DistributionRow(item: item, total: total))
                 .toList(),
           ),
         );
@@ -638,7 +678,8 @@ class _ReportSummaryTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = report.filter.type;
-    final isStudent = type == AttendanceReportType.studentWise ||
+    final isStudent =
+        type == AttendanceReportType.studentWise ||
         type == AttendanceReportType.monthly ||
         type == AttendanceReportType.dateRange;
     final groups = switch (type) {
@@ -680,20 +721,22 @@ class _ReportSummaryTable extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          columns: isStudent ? const [
-            DataColumn(label: Text('Admission #')),
-            DataColumn(label: Text('Student')),
-            DataColumn(label: Text('Class')),
-            DataColumn(label: Text('Present / Total')),
-            DataColumn(label: Text('Attendance %')),
-          ] : const [
-            DataColumn(label: Text('Group')),
-            DataColumn(label: Text('Present')),
-            DataColumn(label: Text('Absent')),
-            DataColumn(label: Text('Late')),
-            DataColumn(label: Text('Leave')),
-            DataColumn(label: Text('Attendance %')),
-          ],
+          columns: isStudent
+              ? const [
+                  DataColumn(label: Text('Admission #')),
+                  DataColumn(label: Text('Student')),
+                  DataColumn(label: Text('Class')),
+                  DataColumn(label: Text('Present / Total')),
+                  DataColumn(label: Text('Attendance %')),
+                ]
+              : const [
+                  DataColumn(label: Text('Group')),
+                  DataColumn(label: Text('Present')),
+                  DataColumn(label: Text('Absent')),
+                  DataColumn(label: Text('Late')),
+                  DataColumn(label: Text('Leave')),
+                  DataColumn(label: Text('Attendance %')),
+                ],
           rows: rows,
         ),
       ),

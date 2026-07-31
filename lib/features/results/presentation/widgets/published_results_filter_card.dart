@@ -183,7 +183,7 @@ class ResultFilterSelect extends StatelessWidget {
     return SizedBox(
       width: 230,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

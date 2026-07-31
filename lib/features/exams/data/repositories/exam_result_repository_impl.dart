@@ -4,8 +4,7 @@ import '../datasources/exam_result_remote_datasource.dart';
 import '../models/exam_result_model.dart';
 
 class ExamResultRepositoryImpl implements ExamResultRepository {
-  ExamResultRepositoryImpl({required ExamResultRemoteDataSource source})
-      : _source = source;
+  ExamResultRepositoryImpl({required this._source});
 
   final ExamResultRemoteDataSource _source;
 

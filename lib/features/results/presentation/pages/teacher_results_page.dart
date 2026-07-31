@@ -119,7 +119,7 @@ class _TeacherResultsFilters extends StatelessWidget {
             SizedBox(
               width: MediaQuery.sizeOf(context).width < 430 ? 230 : 320,
               child: DropdownButtonFormField<String>(
-                value: data.availableTeachers
+                initialValue: data.availableTeachers
                         .any((teacher) => teacher.id == data.selectedTeacherId)
                     ? data.selectedTeacherId
                     : null,
@@ -192,7 +192,7 @@ class _StringFilter extends StatelessWidget {
     return SizedBox(
       width: 230,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

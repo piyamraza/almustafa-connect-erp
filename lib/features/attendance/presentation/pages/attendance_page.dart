@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import 'mark_attendance_page.dart';
 import 'attendance_history_page.dart';
@@ -115,8 +114,7 @@ class _AttendanceCard extends StatefulWidget {
     required this.title,
     required this.icon,
     this.onTap,
-    this.isDisabled = false,
-  });
+  }) : isDisabled = false;
 
   @override
   State<_AttendanceCard> createState() => _AttendanceCardState();
@@ -130,7 +128,7 @@ class _AttendanceCardState extends State<_AttendanceCard> {
     final theme = Theme.of(context);
 
     final cardColor = widget.isDisabled
-        ? theme.colorScheme.surfaceVariant
+        ? theme.colorScheme.surfaceContainerHighest
         : theme.colorScheme.surface;
 
     final elevation = _hovering && !widget.isDisabled ? 6.0 : 2.0;
@@ -146,7 +144,7 @@ class _AttendanceCardState extends State<_AttendanceCard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: elevation * 4,
               offset: Offset(0, elevation),
             ),
@@ -169,7 +167,7 @@ class _AttendanceCardState extends State<_AttendanceCard> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(

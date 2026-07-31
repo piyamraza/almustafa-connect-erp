@@ -12,13 +12,10 @@ import 'teacher_results_state.dart';
 
 class TeacherResultsBloc extends Bloc<TeacherResultsEvent, TeacherResultsState> {
   TeacherResultsBloc({
-    required TeacherRepository teacherRepository,
-    required TeacherAssignmentRepository assignmentRepository,
-    required GetPublishedResults getPublishedResults,
-  })  : _teacherRepository = teacherRepository,
-        _assignmentRepository = assignmentRepository,
-        _getPublishedResults = getPublishedResults,
-        super(const TeacherResultsInitial()) {
+    required this._teacherRepository,
+    required this._assignmentRepository,
+    required this._getPublishedResults,
+  })  : super(const TeacherResultsInitial()) {
     on<LoadTeacherResults>(_onLoad);
     on<RefreshTeacherResults>(_onRefresh);
     on<SelectTeacherForResults>(_onSelectTeacher);

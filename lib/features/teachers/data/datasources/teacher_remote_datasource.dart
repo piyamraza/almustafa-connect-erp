@@ -10,7 +10,7 @@ abstract class TeacherRemoteDataSource {
 }
 
 class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
-  TeacherRemoteDataSourceImpl({required FirebaseFirestoreService firestoreService}) : _firestoreService = firestoreService;
+  TeacherRemoteDataSourceImpl({required this._firestoreService});
   final FirebaseFirestoreService _firestoreService;
 
   @override

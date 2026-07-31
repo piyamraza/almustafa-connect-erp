@@ -316,7 +316,7 @@ class _SetupSelect extends StatelessWidget {
     return SizedBox(
       width: 250,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

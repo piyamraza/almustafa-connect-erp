@@ -20,7 +20,17 @@ class TeacherAssignmentsPage extends StatelessWidget {
     return BlocProvider<TeacherAssignmentBloc>(
       create: (_) => sl<TeacherAssignmentBloc>()
         ..add(const LoadTeacherAssignments()),
-      child: const _AssignmentsView(),
+      child: BlocListener<TeacherAssignmentBloc, TeacherAssignmentState>(
+        listenWhen: (_, current) => current is TeacherAssignmentError,
+        listener: (context, state) {
+          if (state is TeacherAssignmentError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        child: const _AssignmentsView(),
+      ),
     );
   }
 }
@@ -129,7 +139,9 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
               }),
               onSectionChanged: (value) => setState(() {
                 _selectedSection = value;
+                _selectedSubject = null;
                 _sectionController.text = value ?? '';
+                _subjectController.clear();
               }),
               onSubjectChanged: (value) => setState(() {
                 _selectedSubject = value;
@@ -243,20 +255,38 @@ class _AssignmentForm extends StatelessWidget {
                       )
                       .map((value) => value.name),
               ]..sort();
+              SectionEntity? selectedSectionEntity;
+              for (final section in allSections) {
+                if (section.classId == selectedClassEntity?.id &&
+                    section.name == selectedSection) {
+                  selectedSectionEntity = section;
+                  break;
+                }
+              }
+              final sectionSubjects = <AcademicSubjectEntity>[
+                if (selectedClassEntity != null && selectedSectionEntity != null)
+                  ...allSubjects.where(
+                    (value) =>
+                        value.isActive &&
+                        value.classId == selectedClassEntity!.id &&
+                        value.sectionId == selectedSectionEntity!.id,
+                  ),
+              ];
               final subjects = <String>[
-                if (selectedClassEntity != null)
-                  ...allSubjects
-                      .where(
+                ...(sectionSubjects.isNotEmpty
+                    ? sectionSubjects
+                    : allSubjects.where(
                         (value) =>
                             value.isActive &&
-                            value.classId == selectedClassEntity!.id,
-                      )
-                      .map((value) => value.name),
+                            value.classId == selectedClassEntity?.id &&
+                            value.sectionId == null,
+                      ))
+                    .map((value) => value.name),
               ]..sort();
               return Column(
                 children: [
                   DropdownButtonFormField<TeacherEntity>(
-                    value: selectedTeacher,
+                    initialValue: selectedTeacher,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Teacher',
@@ -306,7 +336,7 @@ class _AssignmentForm extends StatelessWidget {
                             value: selectedSubject,
                             items: subjects,
                             onChanged: onSubjectChanged,
-                            enabled: selectedClass != null,
+                            enabled: selectedSection != null,
                           ),
                           _field(sessionController, 'Academic session', width),
                         ],
@@ -360,7 +390,7 @@ class _AssignmentForm extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
-        value: items.contains(value) ? value : null,
+        initialValue: items.contains(value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
         items: items
@@ -383,8 +413,12 @@ class _AssignmentsList extends StatelessWidget {
         if (state is TeacherAssignmentLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (state is TeacherAssignmentError) return Center(child: Text(state.message));
+        if (state is TeacherAssignmentError && state.assignments.isEmpty) {
+          return Center(child: Text(state.message));
+        }
         final assignments = state is TeacherAssignmentLoaded
+            ? state.assignments
+            : state is TeacherAssignmentError
             ? state.assignments
             : const <TeacherAssignmentEntity>[];
         return Card(
@@ -392,7 +426,7 @@ class _AssignmentsList extends StatelessWidget {
               ? const Center(child: Text('No academic assignments yet.'))
               : ListView.separated(
                   itemCount: assignments.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final assignment = assignments[index];
                     return ListTile(

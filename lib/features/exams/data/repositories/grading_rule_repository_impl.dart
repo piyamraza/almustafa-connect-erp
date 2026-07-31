@@ -3,8 +3,7 @@ import '../../domain/repositories/grading_rule_repository.dart';
 import '../datasources/grading_rule_remote_datasource.dart';
 
 class GradingRuleRepositoryImpl implements GradingRuleRepository {
-  GradingRuleRepositoryImpl({required GradingRuleRemoteDataSource source})
-      : _source = source;
+  GradingRuleRepositoryImpl({required this._source});
 
   final GradingRuleRemoteDataSource _source;
 

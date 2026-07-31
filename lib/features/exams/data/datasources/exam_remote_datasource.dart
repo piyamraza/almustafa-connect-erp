@@ -28,8 +28,8 @@ abstract class ExamRemoteDataSource {
 
 class ExamRemoteDataSourceImpl implements ExamRemoteDataSource {
   ExamRemoteDataSourceImpl({
-    required FirebaseFirestoreService firestoreService,
-  }) : _firestoreService = firestoreService;
+    required this._firestoreService,
+  });
 
   final FirebaseFirestoreService _firestoreService;
 

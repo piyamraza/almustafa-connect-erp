@@ -5,9 +5,8 @@ import 'result_details_event.dart';
 import 'result_details_state.dart';
 
 class ResultDetailsBloc extends Bloc<ResultDetailsEvent, ResultDetailsState> {
-  ResultDetailsBloc({required GetStudentById getStudentById})
-      : _getStudentById = getStudentById,
-        super(const ResultDetailsInitial()) {
+  ResultDetailsBloc({required this._getStudentById})
+      : super(const ResultDetailsInitial()) {
     on<LoadResultDetails>(_onLoad);
   }
 

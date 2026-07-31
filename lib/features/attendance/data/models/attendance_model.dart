@@ -76,6 +76,7 @@ class AttendanceModel extends AttendanceEntity {
     };
   }
 
+  @override
   AttendanceModel copyWith({
     String? id,
     String? studentId,

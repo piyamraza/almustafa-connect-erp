@@ -152,7 +152,7 @@ class _StudentPhoto extends StatelessWidget {
       radius: 44,
       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       backgroundImage: url.isEmpty ? null : NetworkImage(url),
-      onBackgroundImageError: url.isEmpty ? null : (_, __) {},
+      onBackgroundImageError: url.isEmpty ? null : (_, _) {},
       child: url.isEmpty
           ? Text(initial, style: Theme.of(context).textTheme.headlineSmall)
           : null,

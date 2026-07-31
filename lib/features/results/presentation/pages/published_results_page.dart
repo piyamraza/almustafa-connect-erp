@@ -290,7 +290,7 @@ class _ResultListToolbar extends StatelessWidget {
         SizedBox(
           width: 200,
           child: DropdownButtonFormField<ResultSort>(
-            value: sort,
+            initialValue: sort,
             decoration: const InputDecoration(
               labelText: 'Sort by',
               border: OutlineInputBorder(),
@@ -329,7 +329,7 @@ class _ResultsTable extends StatelessWidget {
         if (constraints.maxWidth < 880) {
           return ListView.separated(
             itemCount: results.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) =>
                 _MobileResultCard(result: results[index]),
           );
@@ -391,7 +391,7 @@ class _DesktopResultsTable extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: results.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final result = results[index];
                     return Padding(
@@ -520,7 +520,7 @@ class _FilterSelect extends StatelessWidget {
     return SizedBox(
       width: 230,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

@@ -375,11 +375,11 @@ class _ResultsTable extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 900) {
+        if (constraints.maxWidth < 1090) {
           return ListView.separated(
             itemCount: results.length,
             padding: const EdgeInsets.only(bottom: 4),
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) => _MobileResultCard(result: results[index]),
           );
         }
@@ -409,7 +409,7 @@ class _DesktopResultsTable extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final studentWidth = (constraints.maxWidth - fixedWidth)
+          final studentWidth = (constraints.maxWidth - fixedWidth - 32)
               .clamp(210.0, double.infinity)
               .toDouble();
           return Column(
@@ -436,7 +436,7 @@ class _DesktopResultsTable extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: results.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final result = results[index];
                     return Padding(
@@ -591,7 +591,7 @@ class _ResultSelect extends StatelessWidget {
     return SizedBox(
       width: 250,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
         items: [

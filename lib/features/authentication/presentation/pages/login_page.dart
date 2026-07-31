@@ -34,11 +34,9 @@ class _LoginView extends StatefulWidget {
 class _LoginViewState extends State<_LoginView> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController =
-      TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  final TextEditingController _passwordController =
-      TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
 
@@ -50,17 +48,16 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   void _login() {
-    print("LOGIN BUTTON PRESSED");
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     context.read<AuthenticationBloc>().add(
-          LoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      LoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
   }
 
   @override
@@ -68,19 +65,15 @@ class _LoginViewState extends State<_LoginView> {
     return BlocListener<AuthenticationBloc, AuthenticationState>(
       listener: (context, state) {
         if (state is Authenticated) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Login Successful"),
-    ),
-  );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login Successful")));
 
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const DashboardPage(),
-    ),
-  );
-}
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardPage()),
+          );
+        }
       },
       child: Scaffold(
         backgroundColor: const Color(0xffF4F6F8),
@@ -92,30 +85,20 @@ class _LoginViewState extends State<_LoginView> {
               child: Card(
                 elevation: 8,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.all(30),
-                  child: BlocBuilder<
-                      AuthenticationBloc,
-                      AuthenticationState>(
+                  padding: const EdgeInsets.all(30),
+                  child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
                     builder: (context, state) {
-                      final bool loading =
-                          state is AuthenticationLoading;
+                      final bool loading = state is AuthenticationLoading;
 
                       return Form(
                         key: _formKey,
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.stretch,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-
-                            Image.asset(
-                              'assets/images/logo.jpeg',
-                              height: 110,
-                            ),
+                            Image.asset('assets/images/logo.jpeg', height: 110),
 
                             const SizedBox(height: 20),
 
@@ -124,8 +107,7 @@ class _LoginViewState extends State<_LoginView> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 26,
-                                fontWeight:
-                                    FontWeight.bold,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
 
@@ -139,19 +121,14 @@ class _LoginViewState extends State<_LoginView> {
                             const SizedBox(height: 30),
 
                             TextFormField(
-                              controller:
-                                  _emailController,
-                              decoration:
-                                  const InputDecoration(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
                                 labelText: "Email",
-                                border:
-                                    OutlineInputBorder(),
-                                prefixIcon:
-                                    Icon(Icons.email),
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.email),
                               ),
                               validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty) {
+                                if (value == null || value.isEmpty) {
                                   return "Enter email";
                                 }
 
@@ -162,38 +139,27 @@ class _LoginViewState extends State<_LoginView> {
                             const SizedBox(height: 18),
 
                             TextFormField(
-                              controller:
-                                  _passwordController,
-                              obscureText:
-                                  _obscurePassword,
-                              decoration:
-                                  InputDecoration(
-                                labelText:
-                                    "Password",
-                                border:
-                                    const OutlineInputBorder(),
-                                prefixIcon:
-                                    const Icon(Icons.lock),
-                                suffixIcon:
-                                    IconButton(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
+                                labelText: "Password",
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.lock),
+                                suffixIcon: IconButton(
                                   onPressed: () {
                                     setState(() {
-                                      _obscurePassword =
-                                          !_obscurePassword;
+                                      _obscurePassword = !_obscurePassword;
                                     });
                                   },
                                   icon: Icon(
                                     _obscurePassword
-                                        ? Icons
-                                            .visibility_off
-                                        : Icons
-                                            .visibility,
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
                                   ),
                                 ),
                               ),
                               validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty) {
+                                if (value == null || value.isEmpty) {
                                   return "Enter password";
                                 }
 
@@ -211,8 +177,7 @@ class _LoginViewState extends State<_LoginView> {
                                     ? const SizedBox(
                                         width: 22,
                                         height: 22,
-                                        child:
-                                            CircularProgressIndicator(
+                                        child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           color: Colors.white,
                                         ),
@@ -221,8 +186,7 @@ class _LoginViewState extends State<_LoginView> {
                                         "LOGIN",
                                         style: TextStyle(
                                           fontSize: 16,
-                                          fontWeight:
-                                              FontWeight.bold,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                               ),
@@ -232,37 +196,22 @@ class _LoginViewState extends State<_LoginView> {
 
                             TextButton(
                               onPressed: () {
-                                if (_emailController
-                                    .text
-                                    .trim()
-                                    .isEmpty) {
-                                  ScaffoldMessenger.of(
-                                          context)
-                                      .showSnackBar(
+                                if (_emailController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                        "Enter your email first.",
-                                      ),
+                                      content: Text("Enter your email first."),
                                     ),
                                   );
                                   return;
                                 }
 
-                                context
-                                    .read<
-                                        AuthenticationBloc>()
-                                    .add(
-                                      ForgotPasswordRequested(
-                                        email:
-                                            _emailController
-                                                .text
-                                                .trim(),
-                                      ),
-                                    );
+                                context.read<AuthenticationBloc>().add(
+                                  ForgotPasswordRequested(
+                                    email: _emailController.text.trim(),
+                                  ),
+                                );
                               },
-                              child: const Text(
-                                "Forgot Password?",
-                              ),
+                              child: const Text("Forgot Password?"),
                             ),
 
                             const SizedBox(height: 15),
@@ -273,8 +222,7 @@ class _LoginViewState extends State<_LoginView> {
 
                             const Text(
                               "Version 1.0.0",
-                              textAlign:
-                                  TextAlign.center,
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 12,

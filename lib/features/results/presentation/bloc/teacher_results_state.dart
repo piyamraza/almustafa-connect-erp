@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/entities/teacher_entity.dart';
-import '../../domain/entities/teacher_subject_result_summary.dart';
 
 sealed class TeacherResultsState extends Equatable {
   const TeacherResultsState();

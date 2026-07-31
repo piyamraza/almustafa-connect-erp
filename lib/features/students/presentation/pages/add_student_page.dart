@@ -14,57 +14,44 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 
-
 class AddStudentPage extends StatefulWidget {
   final StudentEntity? student;
 
-  const AddStudentPage({
-    super.key,
-    this.student,
-  });
+  const AddStudentPage({super.key, this.student});
 
   bool get isEdit => student != null;
 
   @override
   State<AddStudentPage> createState() => _AddStudentPageState();
 }
+
 class _AddStudentPageState extends State<AddStudentPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final TextEditingController _studentNameController = TextEditingController();
 
-  final TextEditingController _studentNameController =
+  final TextEditingController _admissionNoController = TextEditingController();
+
+  final TextEditingController _rollNumberController = TextEditingController();
+
+  final TextEditingController _fatherNameController = TextEditingController();
+
+  final TextEditingController _motherNameController = TextEditingController();
+
+  final TextEditingController _mobileController = TextEditingController();
+
+  final TextEditingController _guardianEmailController =
       TextEditingController();
 
-  final TextEditingController _admissionNoController =
-      TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
 
-  final TextEditingController _rollNumberController =
-      TextEditingController();
-
-final TextEditingController _fatherNameController =
-    TextEditingController();
-
-final TextEditingController _motherNameController =
-    TextEditingController();
-
-final TextEditingController _mobileController =
-    TextEditingController();
-
-final TextEditingController _guardianEmailController =
-    TextEditingController();
-
-  final TextEditingController _addressController =
-      TextEditingController();
-
-  final TextEditingController _dobController =
-      TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-final StudentRepository _repository =
-    sl<StudentRepository>();
+  final StudentRepository _repository = sl<StudentRepository>();
 
-bool _isSaving = false;
+  bool _isSaving = false;
 
-Uint8List? _imageBytes;
+  Uint8List? _imageBytes;
 
   String? selectedClass;
   String? selectedSection;
@@ -94,20 +81,14 @@ Uint8List? _imageBytes;
     }
     if (academicClass == null) return const [];
     final values = _academicSections
-        .where(
-          (value) => value.isActive && value.classId == academicClass!.id,
-        )
+        .where((value) => value.isActive && value.classId == academicClass!.id)
         .map((value) => value.name)
         .toList();
     values.sort();
     return values;
   }
 
-  final List<String> genders = const [
-    'Male',
-    'Female',
-  ];
-
+  final List<String> genders = const ['Male', 'Female'];
 
   Future<void> _pickDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -127,198 +108,182 @@ Uint8List? _imageBytes;
     }
   }
 
-Future<void> _pickImage(ImageSource source) async {
-  final XFile? image = await _picker.pickImage(
-    source: source,
-    imageQuality: 80,
-  );
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
 
-  if (image == null) return;
+    if (image == null) return;
 
-  final bytes = await image.readAsBytes();
+    final bytes = await image.readAsBytes();
 
-setState(() {
-  _imageBytes = bytes;
-});
-}
-
-Future<void> _showImagePicker() async {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      return SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-void _showLoadingDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    },
-  );
-}
-
-void _hideLoadingDialog() {
-  Navigator.of(
-    context,
-    rootNavigator: true,
-  ).pop();
-}
-List<String> _getMissingOptionalFields() {
-  final missing = <String>[];
-
-
-  if (_motherNameController.text.trim().isEmpty) {
-    missing.add('Mother Name');
+    setState(() {
+      _imageBytes = bytes;
+    });
   }
 
-  if (_mobileController.text.trim().isEmpty) {
-    missing.add('Guardian Mobile');
-  }
-
-  if (_guardianEmailController.text.trim().isEmpty) {
-    missing.add('Guardian Email');
-  }
-
-  if (selectedSection == null) {
-    missing.add('Section');
-  }
-
-  if (selectedDate == null) {
-    missing.add('Date of Birth');
-  }
-
-  if (_addressController.text.trim().isEmpty) {
-    missing.add('Address');
-  }
-
-  return missing;
-}
-Future<bool> _showSaveAnywayDialog(
-  List<String> missingFields,
-) async {
-  final result = await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Optional Information Missing'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Future<void> _showImagePicker() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
             children: [
-              const Text(
-                'The following optional fields are empty:',
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
               ),
-              const SizedBox(height: 12),
-
-              ...missingFields.map(
-                (field) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('• $field'),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              const Text(
-                'Do you want to save the student anyway?',
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, false);
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, true);
-            },
-            child: const Text('Save Anyway'),
-          ),
-        ],
-      );
-    },
-  );
-
-  return result ?? false;
-}
-Future<void> _saveStudent() async {
-  if (!_formKey.currentState!.validate()) {
-    return;
+        );
+      },
+    );
   }
-final missingFields = _getMissingOptionalFields();
 
-if (missingFields.isNotEmpty) {
-  final shouldContinue =
-      await _showSaveAnywayDialog(missingFields);
-
-  if (!shouldContinue) {
-    return;
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
   }
-}
 
-  setState(() {
-    _isSaving = true;
-  });
+  void _hideLoadingDialog() {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
 
- 
-   final studentId = widget.isEdit
-    ? widget.student!.id
-    : _repository.generateStudentId();
-final fullName = _studentNameController.text.trim();
+  List<String> _getMissingOptionalFields() {
+    final missing = <String>[];
 
-final nameParts = fullName.split(' ');
+    if (_motherNameController.text.trim().isEmpty) {
+      missing.add('Mother Name');
+    }
 
-final firstName =
-    nameParts.isNotEmpty ? nameParts.first : '';
+    if (_mobileController.text.trim().isEmpty) {
+      missing.add('Guardian Mobile');
+    }
 
-final lastName =
-    nameParts.length > 1
-        ? nameParts.sublist(1).join(' ')
-        : '';
-final admissionNo =
-    _admissionNoController.text.trim().isEmpty
+    if (_guardianEmailController.text.trim().isEmpty) {
+      missing.add('Guardian Email');
+    }
+
+    if (selectedSection == null) {
+      missing.add('Section');
+    }
+
+    if (selectedDate == null) {
+      missing.add('Date of Birth');
+    }
+
+    if (_addressController.text.trim().isEmpty) {
+      missing.add('Address');
+    }
+
+    return missing;
+  }
+
+  Future<bool> _showSaveAnywayDialog(List<String> missingFields) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Optional Information Missing'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('The following optional fields are empty:'),
+                const SizedBox(height: 12),
+
+                ...missingFields.map(
+                  (field) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text('• $field'),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text('Do you want to save the student anyway?'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Save Anyway'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
+  Future<void> _saveStudent() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final missingFields = _getMissingOptionalFields();
+
+    if (missingFields.isNotEmpty) {
+      final shouldContinue = await _showSaveAnywayDialog(missingFields);
+
+      if (!shouldContinue) {
+        return;
+      }
+
+      if (!mounted) return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final studentId = widget.isEdit
+        ? widget.student!.id
+        : _repository.generateStudentId();
+    final fullName = _studentNameController.text.trim();
+
+    final nameParts = fullName.split(' ');
+
+    final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+
+    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+    final admissionNo = _admissionNoController.text.trim().isEmpty
         ? 'ADM${DateTime.now().millisecondsSinceEpoch}'
         : _admissionNoController.text.trim();
     String imageUrl = '';
 
     if (_imageBytes != null) {
-  imageUrl = await _repository.uploadStudentPhoto(
-    studentId,
-    _imageBytes!,
-  );
-}
+      imageUrl = await _repository.uploadStudentPhoto(studentId, _imageBytes!);
+    }
+    if (!mounted) return;
     final student = StudentEntity(
       id: studentId,
       admissionNo: admissionNo,
@@ -336,641 +301,587 @@ final admissionNo =
       address: _addressController.text.trim(),
       profileImageUrl: imageUrl,
       isActive: true,
-      createdAt: widget.isEdit
-    ? widget.student!.createdAt
-    : DateTime.now(),
+      createdAt: widget.isEdit ? widget.student!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
     );
-_isSaving = true;
+    _isSaving = true;
     if (widget.isEdit) {
-  context.read<StudentBloc>().add(
-    UpdateStudentEvent(student),
-  );
-} else {
-  context.read<StudentBloc>().add(
-    AddStudentEvent(student),
-  );
-}
-
-   }
-@override
-void initState() {
-  super.initState();
-
-  _loadAcademicStructure();
-
-  if (!widget.isEdit) return;
-
-  final student = widget.student!;
-
-  _studentNameController.text = student.fullName;
-  _admissionNoController.text = student.admissionNo;
-  _rollNumberController.text = student.rollNumber;
-  _fatherNameController.text = student.fatherName;
-  _motherNameController.text = student.motherName;
-  _mobileController.text = student.guardianPhone;
-  _guardianEmailController.text = student.guardianEmail;
-  _addressController.text = student.address;
-
-  selectedClass = student.classId;
-  selectedSection = student.sectionId;
-  selectedGender = student.gender;
-  selectedDate = student.dateOfBirth;
-
-  _dobController.text =
-      '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}';
-}
-
-Future<void> _loadAcademicStructure() async {
-  try {
-    final repository = sl<AcademicStructureRepository>();
-    final data = await Future.wait<Object>([
-      repository.getClasses(),
-      repository.getSections(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _academicClasses = data[0] as List<AcademicClassEntity>;
-      _academicSections = data[1] as List<SectionEntity>;
-      if (!classes.contains(selectedClass)) {
-        selectedClass = null;
-        selectedSection = null;
-      } else if (!sections.contains(selectedSection)) {
-        selectedSection = null;
-      }
-    });
-  } catch (_) {
-    // The existing form remains usable while the master data is unavailable.
+      context.read<StudentBloc>().add(UpdateStudentEvent(student));
+    } else {
+      context.read<StudentBloc>().add(AddStudentEvent(student));
+    }
   }
-}
+
+  @override
+  void initState() {
+    super.initState();
+
+    _loadAcademicStructure();
+
+    if (!widget.isEdit) return;
+
+    final student = widget.student!;
+
+    _studentNameController.text = student.fullName;
+    _admissionNoController.text = student.admissionNo;
+    _rollNumberController.text = student.rollNumber;
+    _fatherNameController.text = student.fatherName;
+    _motherNameController.text = student.motherName;
+    _mobileController.text = student.guardianPhone;
+    _guardianEmailController.text = student.guardianEmail;
+    _addressController.text = student.address;
+
+    selectedClass = student.classId;
+    selectedSection = student.sectionId;
+    selectedGender = student.gender;
+    selectedDate = student.dateOfBirth;
+
+    _dobController.text =
+        '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}';
+  }
+
+  Future<void> _loadAcademicStructure() async {
+    try {
+      final repository = sl<AcademicStructureRepository>();
+      final data = await Future.wait<Object>([
+        repository.getClasses(),
+        repository.getSections(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _academicClasses = data[0] as List<AcademicClassEntity>;
+        _academicSections = data[1] as List<SectionEntity>;
+        if (!classes.contains(selectedClass)) {
+          selectedClass = null;
+          selectedSection = null;
+        } else if (!sections.contains(selectedSection)) {
+          selectedSection = null;
+        }
+      });
+    } catch (_) {
+      // The existing form remains usable while the master data is unavailable.
+    }
+  }
+
   @override
   void dispose() {
-_studentNameController.dispose();
-_admissionNoController.dispose();
-_rollNumberController.dispose();
-_fatherNameController.dispose();
-_motherNameController.dispose();
-_mobileController.dispose();
-_guardianEmailController.dispose();
-_addressController.dispose();
-_dobController.dispose();
+    _studentNameController.dispose();
+    _admissionNoController.dispose();
+    _rollNumberController.dispose();
+    _fatherNameController.dispose();
+    _motherNameController.dispose();
+    _mobileController.dispose();
+    _guardianEmailController.dispose();
+    _addressController.dispose();
+    _dobController.dispose();
 
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDesktop =
-        MediaQuery.of(context).size.width > 900;
+    final bool isDesktop = MediaQuery.of(context).size.width > 900;
 
     return BlocListener<StudentBloc, StudentState>(
-  listener: (context, state) {
-  if (state is StudentLoading && !_isSaving) {
-  return;
-}
+      listener: (context, state) {
+        if (state is StudentLoading && !_isSaving) {
+          return;
+        }
 
-if (state is StudentLoading) {
-  _showLoadingDialog();
-}
-else if (
-    state is StudentLoaded &&
-    _isSaving
-) {
-    _hideLoadingDialog();
+        if (state is StudentLoading) {
+          _showLoadingDialog();
+        } else if (state is StudentLoaded && _isSaving) {
+          _hideLoadingDialog();
 
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-      });
-    }
+          if (mounted) {
+            setState(() {
+              _isSaving = false;
+            });
+          }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Student added successfully'),
-      ),
-    );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Student added successfully')),
+          );
 
-    if (Navigator.canPop(context)) {
-  Navigator.of(context).pop(true);
-}
-  } else if (state is StudentError) {
-    _hideLoadingDialog();
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop(true);
+          }
+        } else if (state is StudentError) {
+          _hideLoadingDialog();
 
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-      });
-    }
+          if (mounted) {
+            setState(() {
+              _isSaving = false;
+            });
+          }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(state.message),
-      ),
-    );
-  }
-},
-  child: Scaffold(
-      appBar: AppBar(
-        title: Text(
-  widget.isEdit ? 'Edit Student' : 'Add Student',
-),
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 1100,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.isEdit ? 'Edit Student' : 'Add Student'),
+        ),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 55,
+                            backgroundImage: _imageBytes != null
+                                ? MemoryImage(_imageBytes!)
+                                : null,
+                            child: _imageBytes == null
+                                ? const Icon(Icons.person, size: 55)
+                                : null,
+                          ),
 
-                  Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-  radius: 55,
-  backgroundImage: _imageBytes != null
-      ? MemoryImage(_imageBytes!)
-      : null,
-  child: _imageBytes == null
-      ? const Icon(
-          Icons.person,
-          size: 55,
-        )
-      : null,
-),
-
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor:
-                                Theme.of(context)
-                                    .colorScheme
-                                    .primary,
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              iconSize: 18,
-                              color: Colors.white,
-                              onPressed: _showImagePicker,
-                              icon: const Icon(
-                                Icons.camera_alt,
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                iconSize: 18,
+                                color: Colors.white,
+                                onPressed: _showImagePicker,
+                                icon: const Icon(Icons.camera_alt),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-                  _sectionTitle('Basic Information'),
+                    _sectionTitle('Basic Information'),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  if (isDesktop)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _textField(
-                            controller:
-                                _studentNameController,
-                            label: 'Student Name',
-                            icon: Icons.person,
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
-                                return 'Student Name is required';
-                              }
+                    if (isDesktop)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _textField(
+                              controller: _studentNameController,
+                              label: 'Student Name',
+                              icon: Icons.person,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Student Name is required';
+                                }
 
-                              return null;
-                            },
+                                return null;
+                              },
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(width: 20),
+                          const SizedBox(width: 20),
 
-                        Expanded(
-                          child: _textField(
-                            controller:
-                                _admissionNoController,
-                            label: 'Admission No.',
-                            icon: Icons.badge,
-                            validator: (value) {
-
-                              return null;
-                            },
+                          Expanded(
+                            child: _textField(
+                              controller: _admissionNoController,
+                              label: 'Admission No.',
+                              icon: Icons.badge,
+                              validator: (value) {
+                                return null;
+                              },
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(width: 20),
+                          const SizedBox(width: 20),
 
-                        Expanded(
-                          child: _textField(
-                            controller: _rollNumberController,
-                            label: 'Roll Number',
-                            icon: Icons.format_list_numbered,
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Roll Number is required';
-                              }
-                              return null;
-                            },
+                          Expanded(
+                            child: _textField(
+                              controller: _rollNumberController,
+                              label: 'Roll Number',
+                              icon: Icons.format_list_numbered,
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Roll Number is required';
+                                }
+                                return null;
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    _textField(
-                      controller:
-                          _studentNameController,
-                      label: 'Student Name',
-                      icon: Icons.person,
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Student Name is required';
-                        }
+                        ],
+                      )
+                    else ...[
+                      _textField(
+                        controller: _studentNameController,
+                        label: 'Student Name',
+                        icon: Icons.person,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Student Name is required';
+                          }
 
-                        return null;
-                      },
-                    ),
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _textField(
+                        controller: _admissionNoController,
+                        label: 'Admission No.',
+                        icon: Icons.badge,
+                        validator: (value) {
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _textField(
+                        controller: _rollNumberController,
+                        label: 'Roll Number',
+                        icon: Icons.format_list_numbered,
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Roll Number is required';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
 
                     const SizedBox(height: 16),
 
                     _textField(
-                      controller:
-                          _admissionNoController,
-                      label: 'Admission No.',
-                      icon: Icons.badge,
-                      validator: (value) {
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _textField(
-                      controller: _rollNumberController,
-                      label: 'Roll Number',
-                      icon: Icons.format_list_numbered,
-                      keyboardType: TextInputType.number,
+                      controller: _fatherNameController,
+                      label: 'Father Name',
+                      icon: Icons.family_restroom,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Roll Number is required';
+                          return 'Father Name is required';
                         }
+
                         return null;
                       },
                     ),
-                  ],
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 16),
+                    _textField(
+                      controller: _motherNameController,
+                      label: 'Mother Name',
+                      icon: Icons.family_restroom,
+                    ),
 
-                  _textField(
-                    controller: _fatherNameController,
-                    label: 'Father Name',
-                    icon: Icons.family_restroom,
-                    validator: (value) {
-                      if (value == null ||
-                          value.trim().isEmpty) {
-                        return 'Father Name is required';
-                      }
+                    const SizedBox(height: 35),
 
-                      return null;
-                    },
-                  ),
-const SizedBox(height: 16),
+                    _sectionTitle('Academic Information'),
 
-_textField(
-  controller: _motherNameController,
-  label: 'Mother Name',
-  icon: Icons.family_restroom,
-),
-
-                  const SizedBox(height: 35),
-
-                  _sectionTitle(
-                    'Academic Information',
-                  ),
-
-                  const SizedBox(height: 20),
-                  if (isDesktop)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedClass,
-                            decoration: _inputDecoration(
-                              'Class',
-                              Icons.school,
+                    const SizedBox(height: 20),
+                    if (isDesktop)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedClass,
+                              decoration: _inputDecoration(
+                                'Class',
+                                Icons.school,
+                              ),
+                              items: classes
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select Class';
+                                }
+                                return null;
+                              },
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedClass = value;
+                                  selectedSection = null;
+                                });
+                              },
                             ),
-                            items: classes
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Please select Class';
-                              }
-                              return null;
-                            },
-                            onChanged: (value) {
-                              setState(() {
-                                selectedClass = value;
-                                selectedSection = null;
-                              });
-                            },
                           ),
-                        ),
 
-                        const SizedBox(width: 20),
+                          const SizedBox(width: 20),
 
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedSection,
-                            decoration: _inputDecoration(
-                              'Section',
-                              Icons.groups,
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedSection,
+                              decoration: _inputDecoration(
+                                'Section',
+                                Icons.groups,
+                              ),
+                              items: sections
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              validator: (value) {
+                                return null;
+                              },
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedSection = value;
+                                });
+                              },
                             ),
-                            items: sections
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            validator: (value) {
-                              return null;
-                            },
-                            onChanged: (value) {
-                              setState(() {
-                                selectedSection = value;
-                              });
-                            },
                           ),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    DropdownButtonFormField<String>(
-                      value: selectedClass,
-                      decoration: _inputDecoration(
-                        'Class',
-                        Icons.school,
+                        ],
+                      )
+                    else ...[
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedClass,
+                        decoration: _inputDecoration('Class', Icons.school),
+                        items: classes
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select Class';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            selectedClass = value;
+                            selectedSection = null;
+                          });
+                        },
                       ),
-                      items: classes
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
+
+                      const SizedBox(height: 16),
+
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedSection,
+                        decoration: _inputDecoration('Section', Icons.groups),
+                        items: sections
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        validator: (value) {
+                          return null;
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            selectedSection = value;
+                          });
+                        },
+                      ),
+                    ],
+
+                    const SizedBox(height: 35),
+
+                    _sectionTitle('Personal Information'),
+
+                    const SizedBox(height: 20),
+
+                    if (isDesktop)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedGender,
+                              decoration: _inputDecoration('Gender', Icons.wc),
+                              items: genders
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select Gender';
+                                }
+                                return null;
+                              },
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedGender = value;
+                                });
+                              },
                             ),
-                          )
-                          .toList(),
+                          ),
+
+                          const SizedBox(width: 20),
+
+                          Expanded(
+                            child: TextFormField(
+                              controller: _dobController,
+                              readOnly: true,
+                              validator: (value) {
+                                return null;
+                              },
+                              onTap: _pickDate,
+                              decoration: _inputDecoration(
+                                'Date of Birth',
+                                Icons.calendar_today,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedGender,
+                        decoration: _inputDecoration('Gender', Icons.wc),
+                        items: genders
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select Gender';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            selectedGender = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _dobController,
+                        readOnly: true,
+                        validator: (value) {
+                          return null;
+                        },
+                        onTap: _pickDate,
+                        decoration: _inputDecoration(
+                          'Date of Birth',
+                          Icons.calendar_today,
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+
+                    _textField(
+                      controller: _mobileController,
+                      label: 'Guardian Mobile',
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
                       validator: (value) {
-                        if (value == null) {
-                          return 'Please select Class';
+                        if (value == null || value.trim().isEmpty) {
+                          return null;
                         }
+
+                        if (!RegExp(r'^\d{11}$').hasMatch(value.trim())) {
+                          return 'Mobile Number must be exactly 11 digits';
+                        }
+
                         return null;
-                      },
-                      onChanged: (value) {
-                        setState(() {
-                          selectedClass = value;
-                          selectedSection = null;
-                        });
                       },
                     ),
 
                     const SizedBox(height: 16),
 
-                    DropdownButtonFormField<String>(
-                      value: selectedSection,
-                      decoration: _inputDecoration(
-                        'Section',
-                        Icons.groups,
-                      ),
-                      items: sections
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
- validator: (value) {
-    return null;
-  },
-                      onChanged: (value) {
-                        setState(() {
-                          selectedSection = value;
-                        });
-                      },
-                    ),
-                  ],
-
-                  const SizedBox(height: 35),
-
-                  _sectionTitle(
-                    'Personal Information',
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  if (isDesktop)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedGender,
-                            decoration: _inputDecoration(
-                              'Gender',
-                              Icons.wc,
-                            ),
-                            items: genders
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Please select Gender';
-                              }
-                              return null;
-                            },
-                            onChanged: (value) {
-                              setState(() {
-                                selectedGender = value;
-                              });
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(width: 20),
-
-                        Expanded(
-                          child: TextFormField(
-                            controller: _dobController,
-                            readOnly: true,
-                            validator: (value) {
-                              return null;
-                            },
-                            onTap: _pickDate,
-                            decoration: _inputDecoration(
-                              'Date of Birth',
-                              Icons.calendar_today,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    DropdownButtonFormField<String>(
-                      value: selectedGender,
-                      decoration: _inputDecoration(
-                        'Gender',
-                        Icons.wc,
-                      ),
-                      items: genders
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
+                    _textField(
+                      controller: _guardianEmailController,
+                      label: 'Guardian Email',
+                      icon: Icons.email,
+                      keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null) {
-                          return 'Please select Gender';
+                        if (value == null || value.trim().isEmpty) {
+                          return null;
                         }
+
+                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+
+                        if (!emailRegex.hasMatch(value.trim())) {
+                          return 'Please enter a valid email address';
+                        }
+
                         return null;
-                      },
-                      onChanged: (value) {
-                        setState(() {
-                          selectedGender = value;
-                        });
                       },
                     ),
 
                     const SizedBox(height: 16),
 
-                    TextFormField(
-                      controller: _dobController,
-                      readOnly: true,
-                      validator: (value) {                        return null;
+                    _textField(
+                      controller: _addressController,
+                      label: 'Address',
+                      icon: Icons.home,
+                      maxLines: 3,
+                      validator: (value) {
+                        return null;
                       },
-                      onTap: _pickDate,
-                      decoration: _inputDecoration(
-                        'Date of Birth',
-                        Icons.calendar_today,
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _saveStudent,
+                        icon: const Icon(Icons.save),
+                        label: Text(
+                          widget.isEdit ? 'Update Student' : 'Save Student',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
-
-                  const SizedBox(height: 16),
-
-                 _textField(
-  controller: _mobileController,
-  label: 'Guardian Mobile',
-  icon: Icons.phone,
-  keyboardType: TextInputType.phone,
-  validator: (value) {
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-
-    if (!RegExp(r'^\d{11}$').hasMatch(value.trim())) {
-      return 'Mobile Number must be exactly 11 digits';
-    }
-
-    return null;
-  },
-),
-
-const SizedBox(height: 16),
-
-_textField(
-  controller: _guardianEmailController,
-  label: 'Guardian Email',
-  icon: Icons.email,
-  keyboardType: TextInputType.emailAddress,
-  validator: (value) {
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-
-    final emailRegex =
-        RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Please enter a valid email address';
-    }
-
-    return null;
-  },
-),
-
-                  const SizedBox(height: 16),
-
-                  _textField(
-                    controller: _addressController,
-                    label: 'Address',
-                    icon: Icons.home,
-                    maxLines: 3,
-                    validator: (value) {
-  return null;
-},
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _saveStudent,
-                      icon: const Icon(Icons.save),
-                      label: Text(
-  widget.isEdit
-      ? 'Update Student'
-      : 'Save Student',
-  style: const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-  ),
-),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-           ),
-    ),
-  );
-}
+      ),
+    );
+  }
 
   Widget _sectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
+      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
     );
   }
 
@@ -978,8 +889,7 @@ _textField(
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    TextInputType keyboardType =
-        TextInputType.text,
+    TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
@@ -988,25 +898,16 @@ _textField(
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      decoration: _inputDecoration(
-        label,
-        icon,
-      ),
+      decoration: _inputDecoration(label, icon),
     );
   }
 
-  InputDecoration _inputDecoration(
-    String label,
-    IconData icon,
-  ) {
+  InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon),
       filled: true,
-      border: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

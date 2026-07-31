@@ -4,7 +4,7 @@ import '../datasources/teacher_remote_datasource.dart';
 import '../models/teacher_model.dart';
 
 class TeacherRepositoryImpl implements TeacherRepository {
-  TeacherRepositoryImpl({required TeacherRemoteDataSource remoteDataSource}) : _remoteDataSource = remoteDataSource;
+  TeacherRepositoryImpl({required this._remoteDataSource});
   final TeacherRemoteDataSource _remoteDataSource;
   @override Future<List<TeacherEntity>> getTeachers() => _remoteDataSource.getTeachers();
   @override Future<void> saveTeacher(TeacherEntity teacher) => _remoteDataSource.saveTeacher(TeacherModel.fromEntity(teacher));

@@ -11,17 +11,12 @@ import 'exam_state.dart';
 
 class ExamBloc extends Bloc<ExamEvent, ExamState> {
   ExamBloc({
-    required get_usecase.GetExams getExams,
-    required create_usecase.CreateExam createExam,
-    required update_usecase.UpdateExam updateExam,
-    required delete_usecase.DeleteExam deleteExam,
-    required status_usecase.SetExamActiveStatus setExamActiveStatus,
-  })  : _getExams = getExams,
-        _createExam = createExam,
-        _updateExam = updateExam,
-        _deleteExam = deleteExam,
-        _setExamActiveStatus = setExamActiveStatus,
-        super(const ExamInitial()) {
+    required this._getExams,
+    required this._createExam,
+    required this._updateExam,
+    required this._deleteExam,
+    required this._setExamActiveStatus,
+  })  : super(const ExamInitial()) {
     on<LoadExams>(_onLoadExams);
     on<RefreshExams>(_onRefreshExams);
     on<CreateExam>(_onCreateExam);

@@ -9,11 +9,9 @@ import 'report_card_state.dart';
 
 class ReportCardBloc extends Bloc<ReportCardEvent, ReportCardState> {
   ReportCardBloc({
-    required GetStudentById getStudentById,
-    required GetAttendanceByStudent getAttendanceByStudent,
-  })  : _getStudentById = getStudentById,
-        _getAttendanceByStudent = getAttendanceByStudent,
-        super(const ReportCardInitial()) {
+    required this._getStudentById,
+    required this._getAttendanceByStudent,
+  })  : super(const ReportCardInitial()) {
     on<LoadReportCard>(_onLoad);
   }
 

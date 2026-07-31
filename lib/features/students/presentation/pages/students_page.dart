@@ -248,7 +248,7 @@ class _StudentsViewState extends State<_StudentsView> {
                                     physics:
                                         const AlwaysScrollableScrollPhysics(),
                                     itemCount: filteredStudents.length,
-                                    separatorBuilder: (_, __) =>
+                                    separatorBuilder: (_, _) =>
                                         const Divider(height: 1),
                                     itemBuilder: (context, index) {
                                       final student = filteredStudents[index];
@@ -428,7 +428,7 @@ class _StudentFilters extends StatelessWidget {
             SizedBox(
               width: 170,
               child: DropdownButtonFormField<bool>(
-                value: selectedActiveStatus,
+                initialValue: selectedActiveStatus,
                 decoration: const InputDecoration(
                   labelText: 'Status',
                   border: OutlineInputBorder(),
@@ -485,7 +485,7 @@ class _StringFilter extends StatelessWidget {
     return SizedBox(
       width: 170,
       child: DropdownButtonFormField<String>(
-        value: values.contains(value) ? value : null,
+        initialValue: values.contains(value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

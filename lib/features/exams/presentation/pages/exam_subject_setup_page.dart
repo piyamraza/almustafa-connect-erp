@@ -193,7 +193,7 @@ class _SubjectSetupViewState extends State<_SubjectSetupView> {
                         ? ListView(children: const [SizedBox(height: 220, child: Center(child: Text('No subject setups found.')))])
                         : ListView.separated(
                             itemCount: data.setups.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               final setup = data.setups[index];
                               return Card(
@@ -226,4 +226,4 @@ class _SubjectSetupViewState extends State<_SubjectSetupView> {
 }
 
 class _Choice { const _Choice(this.id, this.name); final String id; final String name; }
-class _FilterDrop extends StatelessWidget { const _FilterDrop({required this.label,required this.value,required this.items,required this.onChanged}); final String label; final String? value; final List<_Choice> items; final ValueChanged<String?> onChanged; @override Widget build(BuildContext context)=>SizedBox(width:220,child:DropdownButtonFormField<String>(value:items.any((item)=>item.id==value)?value:null,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:[const DropdownMenuItem(value:null,child:Text('All')),...items.map((item)=>DropdownMenuItem(value:item.id,child:Text(item.name,overflow:TextOverflow.ellipsis)))],onChanged:onChanged)); }
+class _FilterDrop extends StatelessWidget { const _FilterDrop({required this.label,required this.value,required this.items,required this.onChanged}); final String label; final String? value; final List<_Choice> items; final ValueChanged<String?> onChanged; @override Widget build(BuildContext context)=>SizedBox(width:220,child:DropdownButtonFormField<String>(initialValue:items.any((item)=>item.id==value)?value:null,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:[const DropdownMenuItem(value:null,child:Text('All')),...items.map((item)=>DropdownMenuItem(value:item.id,child:Text(item.name,overflow:TextOverflow.ellipsis)))],onChanged:onChanged)); }

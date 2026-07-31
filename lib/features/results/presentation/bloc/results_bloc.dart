@@ -5,9 +5,8 @@ import 'results_event.dart';
 import 'results_state.dart';
 
 class ResultsBloc extends Bloc<ResultsEvent, ResultsState> {
-  ResultsBloc({required GetPublishedResults getPublishedResults})
-      : _getPublishedResults = getPublishedResults,
-        super(const ResultsInitial()) {
+  ResultsBloc({required this._getPublishedResults})
+      : super(const ResultsInitial()) {
     on<LoadPublishedResults>(_onLoad);
     on<RefreshPublishedResults>(_onRefresh);
     on<FilterResultsBySession>(_onFilterSession);

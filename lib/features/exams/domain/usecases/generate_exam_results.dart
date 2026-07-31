@@ -13,18 +13,13 @@ import '../repositories/grading_rule_repository.dart';
 
 class GenerateExamResults {
   const GenerateExamResults({
-    required ExamRepository examRepository,
-    required ExamSubjectSetupRepository subjectSetupRepository,
-    required ExamMarkRepository markRepository,
-    required StudentRepository studentRepository,
-    required GradingRuleRepository gradingRuleRepository,
-    required ExamResultRepository resultRepository,
-  })  : _examRepository = examRepository,
-        _subjectSetupRepository = subjectSetupRepository,
-        _markRepository = markRepository,
-        _studentRepository = studentRepository,
-        _gradingRuleRepository = gradingRuleRepository,
-        _resultRepository = resultRepository;
+    required this._examRepository,
+    required this._subjectSetupRepository,
+    required this._markRepository,
+    required this._studentRepository,
+    required this._gradingRuleRepository,
+    required this._resultRepository,
+  });
 
   final ExamRepository _examRepository;
   final ExamSubjectSetupRepository _subjectSetupRepository;

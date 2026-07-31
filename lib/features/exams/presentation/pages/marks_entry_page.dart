@@ -50,9 +50,12 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
 
   void _synchroniseControllers(ExamMarksLoaded state) {
     final setupId = state.selectedSubjectSetupId;
-    final signature = state.marks
-        .map((mark) => '${mark.id}:${mark.updatedAt.microsecondsSinceEpoch}')
-        .join('|');
+    final signature = [
+      ...state.students.map((student) => student.id),
+      ...state.marks.map(
+        (mark) => '${mark.id}:${mark.updatedAt.microsecondsSinceEpoch}',
+      ),
+    ].join('|');
     if (_loadedSetupId == setupId && _loadedMarksSignature == signature) return;
 
     for (final controller in _marksControllers.values) {
@@ -472,7 +475,7 @@ class _DesktopMarksTable extends StatelessWidget {
           const remarksWidth = 230.0;
           const deleteWidth = 48.0;
           const fixedWidth = rollWidth + admissionWidth + marksWidth + absentWidth + remarksWidth + deleteWidth;
-          final nameWidth = (constraints.maxWidth - fixedWidth)
+          final nameWidth = (constraints.maxWidth - fixedWidth - 32)
               .clamp(180.0, double.infinity)
               .toDouble();
           return Column(
@@ -501,7 +504,7 @@ class _DesktopMarksTable extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: data.visibleStudents.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final student = data.visibleStudents[index];
                     final mark = data.markForStudent(student.id);
@@ -587,7 +590,7 @@ class _MobileMarksList extends StatelessWidget {
     final totalMarks = data.selectedSubjectSetup!.totalMarks;
     return ListView.separated(
       itemCount: data.visibleStudents.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final student = data.visibleStudents[index];
         final mark = data.markForStudent(student.id);
@@ -702,7 +705,7 @@ class _MarksSelect extends StatelessWidget {
     return SizedBox(
       width: 250,
       child: DropdownButtonFormField<String>(
-        value: items.any((item) => item.id == value) ? value : null,
+        initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

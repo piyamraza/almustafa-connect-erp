@@ -12,15 +12,11 @@ import 'authentication_state.dart';
 class AuthenticationBloc
     extends Bloc<AuthenticationEvent, AuthenticationState> {
   AuthenticationBloc({
-    required LoginUseCase loginUseCase,
-    required LogoutUseCase logoutUseCase,
-    required ForgotPasswordUseCase forgotPasswordUseCase,
-    required GetCurrentUserUseCase getCurrentUserUseCase,
-  })  : _loginUseCase = loginUseCase,
-        _logoutUseCase = logoutUseCase,
-        _forgotPasswordUseCase = forgotPasswordUseCase,
-        _getCurrentUserUseCase = getCurrentUserUseCase,
-        super(const AuthenticationInitial()) {
+    required this._loginUseCase,
+    required this._logoutUseCase,
+    required this._forgotPasswordUseCase,
+    required this._getCurrentUserUseCase,
+  }) : super(const AuthenticationInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
     on<ForgotPasswordRequested>(_onForgotPasswordRequested);
@@ -34,42 +30,29 @@ class AuthenticationBloc
   final GetCurrentUserUseCase _getCurrentUserUseCase;
 
   Future<void> _onLoginRequested(
-  LoginRequested event,
-  Emitter<AuthenticationState> emit,
-) async {
-  print("BLOC: LoginRequested received");
+    LoginRequested event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    emit(const AuthenticationLoading());
 
-  emit(const AuthenticationLoading());
-
-  try {
-    final credential = await _loginUseCase(
-      email: event.email,
-      password: event.password,
-    );
-     print("Firebase login completed");
-    final user = credential.user;
-
-    if (user != null) {
-      emit(
-        Authenticated(
-          user: user,
-        ),
+    try {
+      final credential = await _loginUseCase(
+        email: event.email,
+        password: event.password,
       );
-    } else {
-      emit(
-        const AuthenticationFailure(
-          message: 'Unable to authenticate user.',
-        ),
-      );
+      final user = credential.user;
+
+      if (user != null) {
+        emit(Authenticated(user: user));
+      } else {
+        emit(
+          const AuthenticationFailure(message: 'Unable to authenticate user.'),
+        );
+      }
+    } catch (e) {
+      emit(AuthenticationFailure(message: e.toString()));
     }
-  } catch (e) {
-    emit(
-      AuthenticationFailure(
-        message: e.toString(),
-      ),
-    );
   }
-}
 
   Future<void> _onLogoutRequested(
     LogoutRequested event,
@@ -82,11 +65,7 @@ class AuthenticationBloc
 
       emit(const Unauthenticated());
     } catch (e) {
-      emit(
-        AuthenticationFailure(
-          message: e.toString(),
-        ),
-      );
+      emit(AuthenticationFailure(message: e.toString()));
     }
   }
 
@@ -97,17 +76,11 @@ class AuthenticationBloc
     emit(const AuthenticationLoading());
 
     try {
-      await _forgotPasswordUseCase(
-        email: event.email,
-      );
+      await _forgotPasswordUseCase(email: event.email);
 
       emit(const PasswordResetEmailSent());
     } catch (e) {
-      emit(
-        AuthenticationFailure(
-          message: e.toString(),
-        ),
-      );
+      emit(AuthenticationFailure(message: e.toString()));
     }
   }
 
@@ -118,11 +91,7 @@ class AuthenticationBloc
     final user = _getCurrentUserUseCase();
 
     if (user != null) {
-      emit(
-        Authenticated(
-          user: user,
-        ),
-      );
+      emit(Authenticated(user: user));
     } else {
       emit(const Unauthenticated());
     }

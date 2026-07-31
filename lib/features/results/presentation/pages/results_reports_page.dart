@@ -131,21 +131,38 @@ class _ResultsReportsContent extends StatelessWidget {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 1100
-                      ? 3
-                      : constraints.maxWidth >= 700
-                      ? 2
-                      : 1;
-                  return GridView.builder(
-                    itemCount: reportItems.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: columns == 1 ? 1.8 : 1.35,
+                  const spacing = 10.0;
+                  final fitsInOneRow = constraints.maxWidth >= 1100;
+                  final cardWidth = fitsInOneRow
+                      ? (constraints.maxWidth -
+                              (spacing * (reportItems.length - 1))) /
+                          reportItems.length
+                      : 220.0;
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      height: 176,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var index = 0;
+                                index < reportItems.length;
+                                index++) ...[
+                              if (index > 0) const SizedBox(width: spacing),
+                              SizedBox(
+                                width: cardWidth,
+                                child: _ReportCard(
+                                  item: reportItems[index],
+                                  data: data,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                    itemBuilder: (context, index) =>
-                        _ReportCard(item: reportItems[index], data: data),
                   );
                 },
               ),
@@ -182,19 +199,41 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(item.icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 12),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              Icon(
+                item.icon,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              ResultsExportActions(
+                compact: true,
+                request: ResultExportRequestFactory.fromPublishedResults(
+                  type: item.type,
+                  title: item.title,
+                  results: item.results,
+                  data: data,
+                  metrics: ResultExportRequestFactory.summaryMetrics(
+                    item.results,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -207,21 +246,6 @@ class _ReportCard extends StatelessWidget {
           Text(
             '${item.results.length} published student${item.results.length == 1 ? '' : 's'}',
             style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ResultsExportActions(
-              request: ResultExportRequestFactory.fromPublishedResults(
-                type: item.type,
-                title: item.title,
-                results: item.results,
-                data: data,
-                metrics: ResultExportRequestFactory.summaryMetrics(
-                  item.results,
-                ),
-              ),
-            ),
           ),
         ],
       ),

@@ -11,17 +11,12 @@ import 'staff_state.dart';
 
 class StaffBloc extends Bloc<StaffEvent, StaffState> {
   StaffBloc({
-    required GetStaff getStaff,
-    required AddStaff addStaff,
-    required UpdateStaff updateStaff,
-    required DeleteStaff deleteStaff,
-    required ToggleStaffStatus toggleStaffStatus,
-  })  : _getStaff = getStaff,
-        _addStaff = addStaff,
-        _updateStaff = updateStaff,
-        _deleteStaff = deleteStaff,
-        _toggleStaffStatus = toggleStaffStatus,
-        super(const StaffInitial()) {
+    required this._getStaff,
+    required this._addStaff,
+    required this._updateStaff,
+    required this._deleteStaff,
+    required this._toggleStaffStatus,
+  })  : super(const StaffInitial()) {
     on<LoadStaffEvent>(_onLoadStaff);
     on<AddStaffEvent>(_onAddStaff);
     on<UpdateStaffEvent>(_onUpdateStaff);
