@@ -1,0 +1,715 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../domain/entities/staff_salary_entity.dart';
+import '../bloc/staff_salary_bloc.dart';
+import '../bloc/staff_salary_event.dart';
+import '../bloc/staff_salary_state.dart';
+import '../widgets/staff_salary_list_item.dart';
+import '../widgets/staff_salary_summary_card.dart';
+import 'staff_salary_details_page.dart';
+import 'staff_salary_history_page.dart';
+
+class StaffSalaryPage extends StatelessWidget {
+  const StaffSalaryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<StaffSalaryBloc>(
+      create: (_) => sl<StaffSalaryBloc>(),
+      child: const _StaffSalaryView(),
+    );
+  }
+}
+
+class _StaffSalaryView extends StatefulWidget {
+  const _StaffSalaryView();
+
+  @override
+  State<_StaffSalaryView> createState() =>
+      _StaffSalaryViewState();
+}
+
+class _StaffSalaryViewState
+    extends State<_StaffSalaryView> {
+  late DateTime _selectedMonth;
+  bool _isGenerating = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final now = DateTime.now();
+
+    _selectedMonth = DateTime(
+      now.year,
+      now.month,
+      1,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSelectedMonth();
+      }
+    });
+  }
+
+  bool get _canMoveNext {
+    final now = DateTime.now();
+
+    return _selectedMonth.year < now.year ||
+        (_selectedMonth.year == now.year &&
+            _selectedMonth.month < now.month);
+  }
+
+  String _formatCurrency(double value) {
+    final amount = value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
+
+    return 'Rs. $amount';
+  }
+
+  String _formatMonth(DateTime date) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  void _loadSelectedMonth() {
+    context.read<StaffSalaryBloc>().add(
+          LoadStaffSalariesByMonthEvent(
+            _selectedMonth,
+          ),
+        );
+  }
+
+  void _generateSalaries() {
+    setState(() {
+      _isGenerating = true;
+    });
+
+    context.read<StaffSalaryBloc>().add(
+          GenerateStaffMonthlySalariesEvent(
+            _selectedMonth,
+          ),
+        );
+  }
+
+  void _showPreviousMonth() {
+    setState(() {
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month - 1,
+        1,
+      );
+    });
+
+    _loadSelectedMonth();
+  }
+
+  void _showNextMonth() {
+    if (!_canMoveNext) {
+      return;
+    }
+
+    setState(() {
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + 1,
+        1,
+      );
+    });
+
+    _loadSelectedMonth();
+  }
+
+  void _showCurrentMonth() {
+    final now = DateTime.now();
+
+    setState(() {
+      _selectedMonth = DateTime(
+        now.year,
+        now.month,
+        1,
+      );
+    });
+
+    _loadSelectedMonth();
+  }
+
+  Future<void> _openDetails(
+    StaffSalaryEntity salary,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StaffSalaryDetailsPage(
+          salary: salary,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _loadSelectedMonth();
+  }
+
+  void _openHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            const StaffSalaryHistoryPage(),
+      ),
+    );
+  }
+
+  void _handleState(
+    BuildContext context,
+    StaffSalaryState state,
+  ) {
+    if (state is StaffSalaryError) {
+      setState(() {
+        _isGenerating = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(state.message),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+      return;
+    }
+
+    if (state is StaffSalaryLoaded) {
+      setState(() {
+        _isGenerating = false;
+      });
+
+      if (state.successMessage != null &&
+          state.successMessage!.trim().isNotEmpty) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(state.successMessage!),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<StaffSalaryBloc, StaffSalaryState>(
+      listener: _handleState,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Staff Salary Management'),
+          actions: [
+            IconButton(
+              tooltip: 'Salary History',
+              onPressed: _openHistory,
+              icon: const Icon(
+                Icons.history_outlined,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Refresh',
+              onPressed: _loadSelectedMonth,
+              icon: const Icon(
+                Icons.refresh_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding =
+                  constraints.maxWidth >= 1200
+                      ? 32.0
+                      : constraints.maxWidth >= 700
+                          ? 24.0
+                          : 16.0;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 1200,
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          20,
+                          horizontalPadding,
+                          18,
+                        ),
+                        child: _SalaryMonthHeader(
+                          monthLabel:
+                              _formatMonth(_selectedMonth),
+                          canMoveNext: _canMoveNext,
+                          isGenerating: _isGenerating,
+                          onPrevious: _showPreviousMonth,
+                          onNext: _showNextMonth,
+                          onCurrentMonth:
+                              _showCurrentMonth,
+                          onGenerate: _generateSalaries,
+                        ),
+                      ),
+                      Expanded(
+                        child: BlocBuilder<
+                            StaffSalaryBloc,
+                            StaffSalaryState>(
+                          builder: (context, state) {
+                            if (state is StaffSalaryInitial ||
+                                state is StaffSalaryLoading) {
+                              return const Center(
+                                child:
+                                    CircularProgressIndicator(),
+                              );
+                            }
+
+                            if (state is StaffSalaryError) {
+                              return _SalaryErrorView(
+                                message: state.message,
+                                onRetry: _loadSelectedMonth,
+                              );
+                            }
+
+                            if (state is StaffSalaryLoaded) {
+                              return _SalaryContent(
+                                salaries: state.salaries,
+                                horizontalPadding:
+                                    horizontalPadding,
+                                formatCurrency:
+                                    _formatCurrency,
+                                onOpenDetails:
+                                    _openDetails,
+                                onGenerate:
+                                    _generateSalaries,
+                              );
+                            }
+
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SalaryMonthHeader extends StatelessWidget {
+  const _SalaryMonthHeader({
+    required this.monthLabel,
+    required this.canMoveNext,
+    required this.isGenerating,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onCurrentMonth,
+    required this.onGenerate,
+  });
+
+  final String monthLabel;
+  final bool canMoveNext;
+  final bool isGenerating;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onCurrentMonth;
+  final VoidCallback onGenerate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: theme.colorScheme.primaryContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 800;
+
+            final information = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  monthLabel,
+                  style:
+                      theme.textTheme.headlineSmall?.copyWith(
+                    color: theme
+                        .colorScheme
+                        .onPrimaryContainer,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Generate and manage monthly staff salaries.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme
+                        .colorScheme
+                        .onPrimaryContainer,
+                  ),
+                ),
+              ],
+            );
+
+            final controls = Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                IconButton.outlined(
+                  tooltip: 'Previous Month',
+                  onPressed:
+                      isGenerating ? null : onPrevious,
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed:
+                      isGenerating ? null : onCurrentMonth,
+                  icon: const Icon(
+                    Icons.today_outlined,
+                  ),
+                  label: const Text('Current Month'),
+                ),
+                IconButton.outlined(
+                  tooltip: 'Next Month',
+                  onPressed:
+                      canMoveNext && !isGenerating
+                          ? onNext
+                          : null,
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed:
+                      isGenerating ? null : onGenerate,
+                  icon: isGenerating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.auto_awesome_outlined,
+                        ),
+                  label: Text(
+                    isGenerating
+                        ? 'Generating...'
+                        : 'Generate Salaries',
+                  ),
+                ),
+              ],
+            );
+
+            if (isCompact) {
+              return Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
+                children: [
+                  information,
+                  const SizedBox(height: 18),
+                  controls,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: information),
+                const SizedBox(width: 20),
+                controls,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SalaryContent extends StatelessWidget {
+  const _SalaryContent({
+    required this.salaries,
+    required this.horizontalPadding,
+    required this.formatCurrency,
+    required this.onOpenDetails,
+    required this.onGenerate,
+  });
+
+  final List<StaffSalaryEntity> salaries;
+  final double horizontalPadding;
+  final String Function(double value) formatCurrency;
+  final ValueChanged<StaffSalaryEntity> onOpenDetails;
+  final VoidCallback onGenerate;
+
+  @override
+  Widget build(BuildContext context) {
+    final paidSalaries = salaries
+        .where((salary) => salary.isPaid)
+        .toList();
+    final unpaidSalaries = salaries
+        .where((salary) => !salary.isPaid)
+        .toList();
+
+    final totalNetSalary = salaries.fold<double>(
+      0,
+      (total, salary) => total + salary.netSalary,
+    );
+    final paidAmount = paidSalaries.fold<double>(
+      0,
+      (total, salary) => total + salary.netSalary,
+    );
+    final outstandingAmount = unpaidSalaries.fold<double>(
+      0,
+      (total, salary) => total + salary.netSalary,
+    );
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        0,
+        horizontalPadding,
+        32,
+      ),
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 14.0;
+            final columns =
+                constraints.maxWidth >= 1100
+                    ? 4
+                    : constraints.maxWidth >= 650
+                        ? 2
+                        : 1;
+            final cardWidth =
+                (constraints.maxWidth -
+                    spacing * (columns - 1)) /
+                columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: StaffSalarySummaryCard(
+                    title: 'Staff Salaries',
+                    value: salaries.length.toString(),
+                    icon: Icons.groups_outlined,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: StaffSalarySummaryCard(
+                    title: 'Total Payroll',
+                    value:
+                        formatCurrency(totalNetSalary),
+                    icon:
+                        Icons.account_balance_wallet_outlined,
+                    iconColor: Colors.blue,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: StaffSalarySummaryCard(
+                    title: 'Paid Amount',
+                    value: formatCurrency(paidAmount),
+                    subtitle:
+                        '${paidSalaries.length} paid record'
+                        '${paidSalaries.length == 1 ? '' : 's'}',
+                    icon: Icons.check_circle_outline,
+                    iconColor: Colors.green,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: StaffSalarySummaryCard(
+                    title: 'Outstanding',
+                    value:
+                        formatCurrency(outstandingAmount),
+                    subtitle:
+                        '${unpaidSalaries.length} unpaid record'
+                        '${unpaidSalaries.length == 1 ? '' : 's'}',
+                    icon:
+                        Icons.pending_actions_outlined,
+                    iconColor: Colors.orange,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        if (salaries.isEmpty)
+          _EmptySalaryView(
+            onGenerate: onGenerate,
+          )
+        else
+          ...salaries.map(
+            (salary) => Padding(
+              padding: const EdgeInsets.only(
+                bottom: 12,
+              ),
+              child: StaffSalaryListItem(
+                salary: salary,
+                onTap: () =>
+                    onOpenDetails(salary),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _EmptySalaryView extends StatelessWidget {
+  const _EmptySalaryView({
+    required this.onGenerate,
+  });
+
+  final VoidCallback onGenerate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 50,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.payments_outlined,
+              size: 68,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Salaries not generated',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Generate salary records for the selected month.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color:
+                    theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onGenerate,
+              icon: const Icon(
+                Icons.auto_awesome_outlined,
+              ),
+              label: const Text('Generate Salaries'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SalaryErrorView extends StatelessWidget {
+  const _SalaryErrorView({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Unable to load staff salaries',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(
+                Icons.refresh_outlined,
+              ),
+              label: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

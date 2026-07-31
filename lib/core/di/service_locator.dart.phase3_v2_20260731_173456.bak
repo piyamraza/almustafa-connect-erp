@@ -70,41 +70,22 @@ import '../../features/results/presentation/bloc/results_bloc.dart';
 import '../../features/results/presentation/bloc/results_export_bloc.dart';
 import '../../features/results/presentation/bloc/teacher_results_bloc.dart';
 import '../../features/staff/data/datasources/staff_attendance_remote_datasource.dart';
-import '../../features/staff/data/datasources/staff_leave_remote_datasource.dart';
-import '../../features/staff/data/datasources/staff_salary_remote_datasource.dart';
 import '../../features/staff/data/datasources/staff_remote_datasource.dart';
 import '../../features/staff/data/repositories/staff_attendance_repository_impl.dart';
-import '../../features/staff/data/repositories/staff_leave_repository_impl.dart';
-import '../../features/staff/data/repositories/staff_salary_repository_impl.dart';
 import '../../features/staff/data/repositories/staff_repository_impl.dart';
 import '../../features/staff/domain/repositories/staff_attendance_repository.dart';
-import '../../features/staff/domain/repositories/staff_leave_repository.dart';
-import '../../features/staff/domain/repositories/staff_salary_repository.dart';
 import '../../features/staff/domain/repositories/staff_repository.dart';
 import '../../features/staff/domain/usecases/add_staff.dart';
 import '../../features/staff/domain/usecases/delete_staff.dart';
 import '../../features/staff/domain/usecases/generate_staff_id.dart';
-import '../../features/staff/domain/usecases/delete_staff_leave.dart';
-import '../../features/staff/domain/usecases/get_pending_staff_leaves.dart';
-import '../../features/staff/domain/usecases/get_staff_leaves_by_date_range.dart';
-import '../../features/staff/domain/usecases/get_staff_leaves_by_staff.dart';
-import '../../features/staff/domain/usecases/save_staff_leave.dart';
-import '../../features/staff/domain/usecases/update_staff_leave_status.dart';
-import '../../features/staff/domain/usecases/generate_staff_monthly_salaries.dart';
-import '../../features/staff/domain/usecases/get_staff_salaries_by_month.dart';
-import '../../features/staff/domain/usecases/get_staff_salary_by_staff.dart';
 import '../../features/staff/domain/usecases/get_staff.dart';
 import '../../features/staff/domain/usecases/get_staff_attendance_by_date.dart';
 import '../../features/staff/domain/usecases/get_staff_attendance_by_date_range.dart';
 import '../../features/staff/domain/usecases/get_staff_attendance_by_staff.dart';
 import '../../features/staff/domain/usecases/save_staff_attendance.dart';
-import '../../features/staff/domain/usecases/save_staff_salary.dart';
-import '../../features/staff/domain/usecases/update_staff_salary_payment_status.dart';
 import '../../features/staff/domain/usecases/toggle_staff_status.dart';
 import '../../features/staff/domain/usecases/update_staff.dart';
 import '../../features/staff/presentation/bloc/staff_attendance_bloc.dart';
-import '../../features/staff/presentation/bloc/staff_leave_bloc.dart';
-import '../../features/staff/presentation/bloc/staff_salary_bloc.dart';
 import '../../features/staff/presentation/bloc/staff_bloc.dart';
 import '../../features/students/data/datasources/student_remote_datasource.dart';
 import '../../features/students/data/repositories/student_repository_impl.dart';
@@ -176,16 +157,6 @@ Future<void> setupServiceLocator() async {
 
   sl.registerLazySingleton<StaffAttendanceRemoteDataSource>(
     () => StaffAttendanceRemoteDataSourceImpl(
-      firestoreService: sl<FirebaseFirestoreService>(),
-    ),
-  );
-  sl.registerLazySingleton<StaffLeaveRemoteDataSource>(
-    () => StaffLeaveRemoteDataSourceImpl(
-      sl<FirebaseFirestoreService>(),
-    ),
-  );
-  sl.registerLazySingleton<StaffSalaryRemoteDataSource>(
-    () => StaffSalaryRemoteDataSourceImpl(
       firestoreService: sl<FirebaseFirestoreService>(),
     ),
   );
@@ -275,16 +246,6 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<StaffAttendanceRepository>(
     () => StaffAttendanceRepositoryImpl(
       remoteDataSource: sl<StaffAttendanceRemoteDataSource>(),
-    ),
-  );
-  sl.registerLazySingleton<StaffLeaveRepository>(
-    () => StaffLeaveRepositoryImpl(
-      sl<StaffLeaveRemoteDataSource>(),
-    ),
-  );
-  sl.registerLazySingleton<StaffSalaryRepository>(
-    () => StaffSalaryRepositoryImpl(
-      remoteDataSource: sl<StaffSalaryRemoteDataSource>(),
     ),
   );
 
@@ -591,72 +552,6 @@ Future<void> setupServiceLocator() async {
   );
 
   // =========================================================
-  sl.registerLazySingleton<GetStaffLeavesByDateRange>(
-    () => GetStaffLeavesByDateRange(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<GetStaffLeavesByStaff>(
-    () => GetStaffLeavesByStaff(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<GetPendingStaffLeaves>(
-    () => GetPendingStaffLeaves(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<SaveStaffLeave>(
-    () => SaveStaffLeave(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<DeleteStaffLeave>(
-    () => DeleteStaffLeave(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<UpdateStaffLeaveStatus>(
-    () => UpdateStaffLeaveStatus(
-      sl<StaffLeaveRepository>(),
-    ),
-  );
-  sl.registerLazySingleton<GetStaffSalariesByMonth>(
-    () => GetStaffSalariesByMonth(
-      sl<StaffSalaryRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<GetStaffSalaryByStaff>(
-    () => GetStaffSalaryByStaff(
-      sl<StaffSalaryRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<SaveStaffSalary>(
-    () => SaveStaffSalary(
-      sl<StaffSalaryRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<UpdateStaffSalaryPaymentStatus>(
-    () => UpdateStaffSalaryPaymentStatus(
-      sl<StaffSalaryRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton<GenerateStaffMonthlySalaries>(
-    () => GenerateStaffMonthlySalaries(
-      staffRepository: sl<StaffRepository>(),
-      attendanceRepository: sl<StaffAttendanceRepository>(),
-      salaryRepository: sl<StaffSalaryRepository>(),
-    ),
-  );
   // BLoCs
   // =========================================================
 
@@ -725,30 +620,6 @@ Future<void> setupServiceLocator() async {
           sl<GetStaffAttendanceByDateRange>(),
       saveStaffAttendance:
           sl<SaveStaffAttendance>(),
-    ),
-  );
-  sl.registerFactory<StaffLeaveBloc>(
-    () => StaffLeaveBloc(
-      sl<GetStaffLeavesByDateRange>(),
-      sl<GetStaffLeavesByStaff>(),
-      sl<GetPendingStaffLeaves>(),
-      sl<SaveStaffLeave>(),
-      sl<DeleteStaffLeave>(),
-      sl<UpdateStaffLeaveStatus>(),
-    ),
-  );
-  sl.registerFactory<StaffSalaryBloc>(
-    () => StaffSalaryBloc(
-      generateStaffMonthlySalaries:
-          sl<GenerateStaffMonthlySalaries>(),
-      getStaffSalariesByMonth:
-          sl<GetStaffSalariesByMonth>(),
-      getStaffSalaryByStaff:
-          sl<GetStaffSalaryByStaff>(),
-      saveStaffSalary:
-          sl<SaveStaffSalary>(),
-      updateStaffSalaryPaymentStatus:
-          sl<UpdateStaffSalaryPaymentStatus>(),
     ),
   );
 

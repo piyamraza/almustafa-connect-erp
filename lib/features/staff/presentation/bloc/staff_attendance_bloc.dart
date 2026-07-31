@@ -11,11 +11,10 @@ class StaffAttendanceBloc
     extends Bloc<StaffAttendanceEvent, StaffAttendanceState> {
   StaffAttendanceBloc({
     required this._getStaffAttendanceByDate,
-    required GetStaffAttendanceByStaff getStaffAttendanceByStaff,
+    required this._getStaffAttendanceByStaff,
     required this._getStaffAttendanceByDateRange,
     required this._saveStaffAttendance,
-  })  : _getStaffAttendanceByStaff = getStaffAttendanceByStaff,
-        super(const StaffAttendanceInitial()) {
+  })  : super(const StaffAttendanceInitial()) {
     on<LoadStaffAttendanceByDateEvent>(
       _onLoadStaffAttendanceByDate,
     );

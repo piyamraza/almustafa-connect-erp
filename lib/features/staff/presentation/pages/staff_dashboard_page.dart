@@ -5,13 +5,17 @@ class StaffDashboardPage extends StatelessWidget {
     required this.onViewStaff,
     required this.onAddStaff,
     required this.onAttendance,
+    required this.onSalary,
+    required this.onLeave,
     super.key,
   });
 
   final VoidCallback onViewStaff;
   final VoidCallback onAddStaff;
   final VoidCallback onAttendance;
-
+  final VoidCallback onSalary;
+
+  final VoidCallback onLeave;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,7 +57,10 @@ class StaffDashboardPage extends StatelessWidget {
                         32,
                       ),
                       sliver: SliverLayoutBuilder(
-                        builder: (context, sliverConstraints) {
+                        builder: (
+                          context,
+                          sliverConstraints,
+                        ) {
                           final width =
                               sliverConstraints.crossAxisExtent;
 
@@ -78,7 +85,8 @@ class StaffDashboardPage extends StatelessWidget {
                                   title: 'Add Staff',
                                   description:
                                       'Register a new staff member and employment details.',
-                                  icon: Icons.person_add_alt_1_outlined,
+                                  icon:
+                                      Icons.person_add_alt_1_outlined,
                                   actionLabel: 'Add Staff',
                                   onTap: onAddStaff,
                                 ),
@@ -90,13 +98,21 @@ class StaffDashboardPage extends StatelessWidget {
                                   actionLabel: 'Open Attendance',
                                   onTap: onAttendance,
                                 ),
-                                const _StaffDashboardCard(
+                                _StaffDashboardCard(
                                   title: 'Salary Management',
                                   description:
-                                      'Manage staff salaries, payments and salary history.',
+                                      'Generate salaries, record payments and review salary history.',
                                   icon: Icons.payments_outlined,
-                                  actionLabel: 'Coming Soon',
-                                  isEnabled: false,
+                                  actionLabel: 'Open Salary',
+                                  onTap: onSalary,
+                                ),
+                                _StaffDashboardCard(
+                                  title: 'Leave Management',
+                                  description:
+                                      'Create, approve and review staff leave requests.',
+                                  icon: Icons.event_available_outlined,
+                                  actionLabel: 'Open Leave',
+                                  onTap: onLeave,
                                 ),
                               ],
                             ),
@@ -163,15 +179,17 @@ class _DashboardHeader extends StatelessWidget {
                 Text(
                   'Staff Management',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color:
+                        theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Manage staff profiles, attendance and employment records.',
+                  'Manage staff profiles, attendance, salaries and employment records.',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color:
+                        theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
               ],
@@ -192,7 +210,9 @@ class _DashboardHeader extends StatelessWidget {
               children: [
                 icon,
                 const SizedBox(width: 20),
-                Expanded(child: information),
+                Expanded(
+                  child: information,
+                ),
               ],
             );
           },
@@ -208,31 +228,25 @@ class _StaffDashboardCard extends StatelessWidget {
     required this.description,
     required this.icon,
     required this.actionLabel,
-    this.onTap,
-    this.isEnabled = true,
+    required this.onTap,
   });
 
   final String title;
   final String description;
   final IconData icon;
   final String actionLabel;
-  final VoidCallback? onTap;
-  final bool isEnabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final effectiveOnTap = isEnabled ? onTap : null;
-
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      color: isEnabled
-          ? colorScheme.surfaceContainerLow
-          : colorScheme.surfaceContainerLow.withValues(alpha: 0.65),
+      color: colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
@@ -240,7 +254,7 @@ class _StaffDashboardCard extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: effectiveOnTap,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -251,17 +265,13 @@ class _StaffDashboardCard extends StatelessWidget {
                 height: 52,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isEnabled
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainerHighest,
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
                   size: 28,
-                  color: isEnabled
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
+                  color: colorScheme.onPrimaryContainer,
                 ),
               ),
               const SizedBox(height: 16),
@@ -271,9 +281,7 @@ class _StaffDashboardCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: isEnabled
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurfaceVariant,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 7),
@@ -297,22 +305,16 @@ class _StaffDashboardCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: isEnabled
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
+                        color: colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
-                    isEnabled
-                        ? Icons.arrow_forward_rounded
-                        : Icons.lock_clock_outlined,
+                    Icons.arrow_forward_rounded,
                     size: 20,
-                    color: isEnabled
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+                    color: colorScheme.primary,
                   ),
                 ],
               ),

@@ -7,7 +7,6 @@ import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../staff/presentation/pages/add_staff_page.dart';
 import '../../../staff/presentation/pages/staff_attendance_page.dart';
 import '../../../staff/presentation/pages/staff_salary_page.dart';
-import '../../../staff/presentation/pages/staff_leave_page.dart';
 import '../../../staff/presentation/pages/staff_dashboard_page.dart';
 import '../../../staff/presentation/pages/staff_list_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
@@ -84,13 +83,6 @@ onAttendance: () {
     ),
   );
 },
-                      onLeave: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const StaffLeavePage(),
-                          ),
-                        );
-                      },
                       onSalary: () {
                         Navigator.of(staffDashboardContext).push(
                           MaterialPageRoute<void>(

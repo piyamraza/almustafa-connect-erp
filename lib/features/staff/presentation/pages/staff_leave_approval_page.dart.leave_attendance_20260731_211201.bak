@@ -1,0 +1,402 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../domain/entities/staff_leave_entity.dart';
+import '../bloc/staff_leave_bloc.dart';
+import '../bloc/staff_leave_event.dart';
+import '../bloc/staff_leave_state.dart';
+import '../widgets/staff_leave_list_item.dart';
+
+class StaffLeaveApprovalPage extends StatelessWidget {
+  const StaffLeaveApprovalPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<StaffLeaveBloc>(
+      create: (_) => sl<StaffLeaveBloc>()
+        ..add(const LoadPendingStaffLeavesEvent()),
+      child: const _StaffLeaveApprovalView(),
+    );
+  }
+}
+
+class _StaffLeaveApprovalView extends StatelessWidget {
+  const _StaffLeaveApprovalView();
+
+  Future<void> _showDecisionDialog({
+    required BuildContext context,
+    required StaffLeaveEntity leave,
+    required StaffLeaveStatus status,
+  }) async {
+    final remarksController = TextEditingController();
+    final approvedByController = TextEditingController(
+      text: 'Admin',
+    );
+
+    final result = await showDialog<_DecisionData>(
+      context: context,
+      builder: (dialogContext) {
+        final isApproval =
+            status == StaffLeaveStatus.approved;
+
+        return AlertDialog(
+          title: Text(
+            isApproval
+                ? 'Approve Leave Request'
+                : 'Reject Leave Request',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${leave.staffName} â€¢ '
+                  '${leave.totalDays.toStringAsFixed(
+                    leave.totalDays ==
+                            leave.totalDays.roundToDouble()
+                        ? 0
+                        : 1,
+                  )} day(s)',
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: approvedByController,
+                  textCapitalization:
+                      TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Approved / Reviewed By',
+                    prefixIcon:
+                        Icon(Icons.admin_panel_settings_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: remarksController,
+                  maxLines: 3,
+                  textCapitalization:
+                      TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: isApproval
+                        ? 'Approval Remarks'
+                        : 'Rejection Remarks',
+                    prefixIcon: const Icon(
+                      Icons.notes_outlined,
+                    ),
+                    border: const OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final approvedBy =
+                    approvedByController.text.trim();
+
+                if (approvedBy.isEmpty) {
+                  return;
+                }
+
+                Navigator.of(dialogContext).pop(
+                  _DecisionData(
+                    approvedBy: approvedBy,
+                    remarks:
+                        remarksController.text.trim(),
+                  ),
+                );
+              },
+              child: Text(
+                isApproval ? 'Approve' : 'Reject',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    remarksController.dispose();
+    approvedByController.dispose();
+
+    if (result == null || !context.mounted) {
+      return;
+    }
+
+    context.read<StaffLeaveBloc>().add(
+          UpdateStaffLeaveStatusEvent(
+            leaveId: leave.id,
+            status: status,
+            approvalRemarks: result.remarks,
+            approvedBy: result.approvedBy,
+          ),
+        );
+  }
+
+  void _handleState(
+    BuildContext context,
+    StaffLeaveState state,
+  ) {
+    if (state is StaffLeaveError) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(state.message),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+      return;
+    }
+
+    if (state is StaffLeaveLoaded &&
+        state.successMessage != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(state.successMessage!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<StaffLeaveBloc, StaffLeaveState>(
+      listener: _handleState,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pending Leave Approvals'),
+          actions: [
+            IconButton(
+              tooltip: 'Refresh',
+              onPressed: () {
+                context.read<StaffLeaveBloc>().add(
+                      const LoadPendingStaffLeavesEvent(),
+                    );
+              },
+              icon: const Icon(Icons.refresh_outlined),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding =
+                  constraints.maxWidth >= 1200
+                      ? 32.0
+                      : constraints.maxWidth >= 700
+                          ? 24.0
+                          : 16.0;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 1200,
+                  ),
+                  child: BlocBuilder<
+                      StaffLeaveBloc,
+                      StaffLeaveState>(
+                    builder: (context, state) {
+                      if (state is StaffLeaveInitial ||
+                          state is StaffLeaveLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      if (state is StaffLeaveError) {
+                        return _ApprovalError(
+                          message: state.message,
+                          onRetry: () {
+                            context.read<StaffLeaveBloc>().add(
+                                  const LoadPendingStaffLeavesEvent(),
+                                );
+                          },
+                        );
+                      }
+
+                      if (state is StaffLeaveLoaded) {
+                        if (state.leaves.isEmpty) {
+                          return const _NoPendingLeaves();
+                        }
+
+                        return ListView.separated(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            20,
+                            horizontalPadding,
+                            32,
+                          ),
+                          itemCount: state.leaves.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final leave = state.leaves[index];
+
+                            return StaffLeaveListItem(
+                              leave: leave,
+                              trailing: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      _showDecisionDialog(
+                                        context: context,
+                                        leave: leave,
+                                        status:
+                                            StaffLeaveStatus
+                                                .rejected,
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                    ),
+                                    label:
+                                        const Text('Reject'),
+                                  ),
+                                  FilledButton.icon(
+                                    onPressed: () {
+                                      _showDecisionDialog(
+                                        context: context,
+                                        leave: leave,
+                                        status:
+                                            StaffLeaveStatus
+                                                .approved,
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                    ),
+                                    label:
+                                        const Text('Approve'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      }
+
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DecisionData {
+  const _DecisionData({
+    required this.approvedBy,
+    required this.remarks,
+  });
+
+  final String approvedBy;
+  final String remarks;
+}
+
+class _NoPendingLeaves extends StatelessWidget {
+  const _NoPendingLeaves();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.task_alt_outlined,
+              size: 70,
+              color: Colors.green,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No pending leave requests',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All staff leave requests have been reviewed.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ApprovalError extends StatelessWidget {
+  const _ApprovalError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Unable to load pending leaves',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_outlined),
+              label: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

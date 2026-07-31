@@ -1,0 +1,28 @@
+import '../entities/staff_leave_entity.dart';
+import '../repositories/staff_leave_repository.dart';
+
+class UpdateStaffLeaveStatus {
+  const UpdateStaffLeaveStatus(this.repository);
+
+  final StaffLeaveRepository repository;
+
+  Future<void> call({
+    required String leaveId,
+    required StaffLeaveStatus status,
+    required String approvalRemarks,
+    required String approvedBy,
+  }) {
+    final isDecision =
+        status == StaffLeaveStatus.approved ||
+        status == StaffLeaveStatus.rejected;
+
+    return repository.updateLeaveStatus(
+      leaveId: leaveId,
+      status: status,
+      approvalRemarks: approvalRemarks.trim(),
+      approvedBy: isDecision ? approvedBy.trim() : '',
+      approvedAt: isDecision ? DateTime.now() : null,
+      updatedAt: DateTime.now(),
+    );
+  }
+}
