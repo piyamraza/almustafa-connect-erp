@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
-import '../../../exams/presentation/pages/exams_page.dart';
+import '../../../exams/presentation/pages/examination_dashboard_page.dart';
+import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
+import '../../../results/presentation/pages/results_module_page.dart';
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
 
@@ -68,15 +70,9 @@ class Sidebar extends StatelessWidget {
             context,
             icon: Icons.class_,
             title: 'Classes',
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClassSectionManagementPage())),
           ),
 
-          _menuTile(
-            context,
-            icon: Icons.groups,
-            title: 'Sections',
-            onTap: () {},
-          ),
 
                     _menuTile(
             context,
@@ -102,14 +98,22 @@ class Sidebar extends StatelessWidget {
             context,
             icon: Icons.quiz,
             title: 'Examinations',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExamsPage())),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ExaminationDashboardPage(),
+              ),
+            ),
           ),
 
           _menuTile(
             context,
             icon: Icons.grade,
             title: 'Results',
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ResultsModulePage(),
+              ),
+            ),
           ),
 
           _menuTile(
@@ -171,4 +175,5 @@ class Sidebar extends StatelessWidget {
       onTap: onTap,
     );
   }
+
 }

@@ -1,0 +1,4 @@
+import '../entities/academic_class_entity.dart';
+import '../entities/academic_subject_entity.dart';
+import '../entities/section_entity.dart';
+abstract class AcademicStructureRepository { Future<List<AcademicClassEntity>> getClasses(); Future<List<SectionEntity>> getSections(); Future<List<AcademicSubjectEntity>> getSubjects(); Future<List<AcademicSubjectEntity>> getSubjectsForClass(String classId); Future<void> saveClass(AcademicClassEntity value); Future<void> saveSection(SectionEntity value); Future<void> saveSubject(AcademicSubjectEntity value); Future<void> deleteClass(String id); Future<void> deleteSection(String id); Future<void> deleteSubject(String id); Future<int> copySubjects({required String sourceClassId,required String targetClassId}); String generateClassId(); String generateSectionId(); String generateSubjectId(); }

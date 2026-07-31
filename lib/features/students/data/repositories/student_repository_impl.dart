@@ -18,6 +18,17 @@ class StudentRepositoryImpl implements StudentRepository {
   }
 
   @override
+  Future<List<StudentEntity>> getStudentsByClassAndSection({
+    required String classId,
+    required String sectionId,
+  }) {
+    return _remoteDataSource.getStudentsByClassAndSection(
+      classId: classId,
+      sectionId: sectionId,
+    );
+  }
+
+  @override
   Future<StudentEntity?> getStudentById(String id) {
     return _remoteDataSource.getStudentById(id);
   }

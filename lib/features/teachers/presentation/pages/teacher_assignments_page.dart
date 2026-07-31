@@ -6,6 +6,10 @@ import '../../domain/entities/teacher_assignment_entity.dart';
 import '../../domain/entities/teacher_entity.dart';
 import '../../domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/repositories/teacher_repository.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../bloc/teacher_assignment_bloc.dart';
 
 class TeacherAssignmentsPage extends StatelessWidget {
@@ -37,13 +41,23 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
     text: '${DateTime.now().year}-${DateTime.now().year + 1}',
   );
   late final Future<List<TeacherEntity>> _teachersFuture;
+  late final Future<List<AcademicClassEntity>> _classesFuture;
+  late final Future<List<SectionEntity>> _sectionsFuture;
+  late final Future<List<AcademicSubjectEntity>> _subjectsFuture;
   TeacherEntity? _selectedTeacher;
+  String? _selectedClass;
+  String? _selectedSection;
+  String? _selectedSubject;
   bool _isClassTeacher = false;
 
   @override
   void initState() {
     super.initState();
     _teachersFuture = sl<TeacherRepository>().getTeachers();
+    final structureRepository = sl<AcademicStructureRepository>();
+    _classesFuture = structureRepository.getClasses();
+    _sectionsFuture = structureRepository.getSections();
+    _subjectsFuture = structureRepository.getSubjects();
   }
 
   @override
@@ -91,7 +105,13 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
             _AssignmentForm(
               formKey: _formKey,
               teachersFuture: _teachersFuture,
+              classesFuture: _classesFuture,
+              sectionsFuture: _sectionsFuture,
+              subjectsFuture: _subjectsFuture,
               selectedTeacher: _selectedTeacher,
+              selectedClass: _selectedClass,
+              selectedSection: _selectedSection,
+              selectedSubject: _selectedSubject,
               classController: _classController,
               sectionController: _sectionController,
               subjectController: _subjectController,
@@ -99,6 +119,22 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
               isClassTeacher: _isClassTeacher,
               onTeacherChanged: (teacher) =>
                   setState(() => _selectedTeacher = teacher),
+              onClassChanged: (value) => setState(() {
+                _selectedClass = value;
+                _selectedSection = null;
+                _selectedSubject = null;
+                _classController.text = value ?? '';
+                _sectionController.clear();
+                _subjectController.clear();
+              }),
+              onSectionChanged: (value) => setState(() {
+                _selectedSection = value;
+                _sectionController.text = value ?? '';
+              }),
+              onSubjectChanged: (value) => setState(() {
+                _selectedSubject = value;
+                _subjectController.text = value ?? '';
+              }),
               onClassTeacherChanged: (value) =>
                   setState(() => _isClassTeacher = value),
               onSave: _saveAssignment,
@@ -116,26 +152,44 @@ class _AssignmentForm extends StatelessWidget {
   const _AssignmentForm({
     required this.formKey,
     required this.teachersFuture,
+    required this.classesFuture,
+    required this.sectionsFuture,
+    required this.subjectsFuture,
     required this.selectedTeacher,
+    required this.selectedClass,
+    required this.selectedSection,
+    required this.selectedSubject,
     required this.classController,
     required this.sectionController,
     required this.subjectController,
     required this.sessionController,
     required this.isClassTeacher,
     required this.onTeacherChanged,
+    required this.onClassChanged,
+    required this.onSectionChanged,
+    required this.onSubjectChanged,
     required this.onClassTeacherChanged,
     required this.onSave,
   });
 
   final GlobalKey<FormState> formKey;
   final Future<List<TeacherEntity>> teachersFuture;
+  final Future<List<AcademicClassEntity>> classesFuture;
+  final Future<List<SectionEntity>> sectionsFuture;
+  final Future<List<AcademicSubjectEntity>> subjectsFuture;
   final TeacherEntity? selectedTeacher;
+  final String? selectedClass;
+  final String? selectedSection;
+  final String? selectedSubject;
   final TextEditingController classController;
   final TextEditingController sectionController;
   final TextEditingController subjectController;
   final TextEditingController sessionController;
   final bool isClassTeacher;
   final ValueChanged<TeacherEntity?> onTeacherChanged;
+  final ValueChanged<String?> onClassChanged;
+  final ValueChanged<String?> onSectionChanged;
+  final ValueChanged<String?> onSubjectChanged;
   final ValueChanged<bool> onClassTeacherChanged;
   final VoidCallback onSave;
 
@@ -146,10 +200,59 @@ class _AssignmentForm extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Form(
           key: formKey,
-          child: FutureBuilder<List<TeacherEntity>>(
-            future: teachersFuture,
+          child: FutureBuilder<List<Object>>(
+            future: Future.wait<Object>([
+              teachersFuture,
+              classesFuture,
+              sectionsFuture,
+              subjectsFuture,
+            ]),
             builder: (context, snapshot) {
-              final teachers = snapshot.data ?? const <TeacherEntity>[];
+              final values = snapshot.data;
+              final teachers = values == null
+                  ? const <TeacherEntity>[]
+                  : values[0] as List<TeacherEntity>;
+              final classes = values == null
+                  ? const <AcademicClassEntity>[]
+                  : values[1] as List<AcademicClassEntity>;
+              final allSections = values == null
+                  ? const <SectionEntity>[]
+                  : values[2] as List<SectionEntity>;
+              final allSubjects = values == null
+                  ? const <AcademicSubjectEntity>[]
+                  : values[3] as List<AcademicSubjectEntity>;
+              AcademicClassEntity? selectedClassEntity;
+              for (final academicClass in classes) {
+                if (academicClass.name == selectedClass) {
+                  selectedClassEntity = academicClass;
+                  break;
+                }
+              }
+              final classNames = classes
+                  .where((value) => value.isActive)
+                  .map((value) => value.name)
+                  .toList()
+                ..sort();
+              final sections = <String>[
+                if (selectedClassEntity != null)
+                  ...allSections
+                      .where(
+                        (value) =>
+                            value.isActive &&
+                            value.classId == selectedClassEntity!.id,
+                      )
+                      .map((value) => value.name),
+              ]..sort();
+              final subjects = <String>[
+                if (selectedClassEntity != null)
+                  ...allSubjects
+                      .where(
+                        (value) =>
+                            value.isActive &&
+                            value.classId == selectedClassEntity!.id,
+                      )
+                      .map((value) => value.name),
+              ]..sort();
               return Column(
                 children: [
                   DropdownButtonFormField<TeacherEntity>(
@@ -182,9 +285,29 @@ class _AssignmentForm extends StatelessWidget {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          _field(classController, 'Class', width),
-                          _field(sectionController, 'Section', width),
-                          _field(subjectController, 'Subject', width),
+                          _dropdown(
+                            label: 'Class',
+                            width: width,
+                            value: selectedClass,
+                            items: classNames,
+                            onChanged: onClassChanged,
+                          ),
+                          _dropdown(
+                            label: 'Section',
+                            width: width,
+                            value: selectedSection,
+                            items: sections,
+                            onChanged: onSectionChanged,
+                            enabled: selectedClass != null,
+                          ),
+                          _dropdown(
+                            label: 'Subject',
+                            width: width,
+                            value: selectedSubject,
+                            items: subjects,
+                            onChanged: onSubjectChanged,
+                            enabled: selectedClass != null,
+                          ),
                           _field(sessionController, 'Academic session', width),
                         ],
                       );
@@ -222,6 +345,29 @@ class _AssignmentForm extends StatelessWidget {
             ? '$label is required'
             : null,
         decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      ),
+    );
+  }
+
+  Widget _dropdown({
+    required String label,
+    required double width,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+    bool enabled = true,
+  }) {
+    return SizedBox(
+      width: width,
+      child: DropdownButtonFormField<String>(
+        value: items.contains(value) ? value : null,
+        isExpanded: true,
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        items: items
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+            .toList(),
+        onChanged: enabled ? onChanged : null,
+        validator: (value) => value == null ? '$label is required' : null,
       ),
     );
   }

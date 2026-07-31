@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
-
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../domain/entities/student_entity.dart';
 import '../../domain/repositories/student_repository.dart';
 
@@ -70,27 +72,36 @@ Uint8List? _imageBytes;
 
   DateTime? selectedDate;
 
-  final List<String> classes = const [
-    'Nursery',
-    'KG',
-    'Class 1',
-    'Class 2',
-    'Class 3',
-    'Class 4',
-    'Class 5',
-    'Class 6',
-    'Class 7',
-    'Class 8',
-    'Class 9',
-    'Class 10',
-  ];
+  List<AcademicClassEntity> _academicClasses = const [];
+  List<SectionEntity> _academicSections = const [];
 
-  final List<String> sections = const [
-    'A',
-    'B',
-    'C',
-    'D',
-  ];
+  List<String> get classes {
+    final values = _academicClasses
+        .where((value) => value.isActive)
+        .map((value) => value.name)
+        .toList();
+    values.sort();
+    return values;
+  }
+
+  List<String> get sections {
+    AcademicClassEntity? academicClass;
+    for (final value in _academicClasses) {
+      if (value.name == selectedClass) {
+        academicClass = value;
+        break;
+      }
+    }
+    if (academicClass == null) return const [];
+    final values = _academicSections
+        .where(
+          (value) => value.isActive && value.classId == academicClass!.id,
+        )
+        .map((value) => value.name)
+        .toList();
+    values.sort();
+    return values;
+  }
 
   final List<String> genders = const [
     'Male',
@@ -346,6 +357,8 @@ _isSaving = true;
 void initState() {
   super.initState();
 
+  _loadAcademicStructure();
+
   if (!widget.isEdit) return;
 
   final student = widget.student!;
@@ -366,6 +379,29 @@ void initState() {
 
   _dobController.text =
       '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}';
+}
+
+Future<void> _loadAcademicStructure() async {
+  try {
+    final repository = sl<AcademicStructureRepository>();
+    final data = await Future.wait<Object>([
+      repository.getClasses(),
+      repository.getSections(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _academicClasses = data[0] as List<AcademicClassEntity>;
+      _academicSections = data[1] as List<SectionEntity>;
+      if (!classes.contains(selectedClass)) {
+        selectedClass = null;
+        selectedSection = null;
+      } else if (!sections.contains(selectedSection)) {
+        selectedSection = null;
+      }
+    });
+  } catch (_) {
+    // The existing form remains usable while the master data is unavailable.
+  }
 }
   @override
   void dispose() {
@@ -652,6 +688,7 @@ _textField(
                             onChanged: (value) {
                               setState(() {
                                 selectedClass = value;
+                                selectedSection = null;
                               });
                             },
                           ),
@@ -710,6 +747,7 @@ _textField(
                       onChanged: (value) {
                         setState(() {
                           selectedClass = value;
+                          selectedSection = null;
                         });
                       },
                     ),

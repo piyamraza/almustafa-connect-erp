@@ -12,6 +12,11 @@ abstract class StudentRemoteDataSource {
   String generateStudentId();
   Future<List<StudentModel>> getStudents();
 
+  Future<List<StudentModel>> getStudentsByClassAndSection({
+    required String classId,
+    required String sectionId,
+  });
+
   Future<StudentModel?> getStudentById(String id);
 
   Future<void> addStudent(StudentModel student);
@@ -80,6 +85,23 @@ Future<void> addStudent(StudentModel student) async {
       data['id'] = doc.id;
       return StudentModel.fromMap(data);
     }).toList();
+  }
+
+  @override
+  Future<List<StudentModel>> getStudentsByClassAndSection({
+    required String classId,
+    required String sectionId,
+  }) async {
+    final snapshot = await _collection
+        .where('classId', isEqualTo: classId)
+        .where('sectionId', isEqualTo: sectionId)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return StudentModel.fromMap(data);
+    }).toList(growable: false);
   }
 
   @override

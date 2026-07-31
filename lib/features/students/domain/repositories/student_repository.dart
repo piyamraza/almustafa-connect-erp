@@ -5,6 +5,11 @@ import '../entities/student_entity.dart';
 abstract class StudentRepository {
   Future<List<StudentEntity>> getStudents();
 
+  Future<List<StudentEntity>> getStudentsByClassAndSection({
+    required String classId,
+    required String sectionId,
+  });
+
   Future<StudentEntity?> getStudentById(String id);
 
   Future<void> addStudent(StudentEntity student);

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import '../bloc/student_event.dart';
@@ -35,6 +38,16 @@ class _StudentsViewState extends State<_StudentsView> {
   String? _selectedSection;
   String? _selectedGender;
   bool? _selectedActiveStatus;
+  late final Future<List<AcademicClassEntity>> _classesFuture;
+  late final Future<List<SectionEntity>> _sectionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final repository = sl<AcademicStructureRepository>();
+    _classesFuture = repository.getClasses();
+    _sectionsFuture = repository.getSections();
+  }
 
   bool get _hasActiveFilters =>
       _selectedClass != null ||
@@ -161,34 +174,53 @@ class _StudentsViewState extends State<_StudentsView> {
                   final filteredStudents = _filterStudents(state.students);
                   return Column(
                     children: [
-                      _StudentFilters(
-                        students: state.students,
-                        selectedClass: _selectedClass,
-                        selectedSection: _selectedSection,
-                        selectedGender: _selectedGender,
-                        selectedActiveStatus: _selectedActiveStatus,
-                        hasActiveFilters: _hasActiveFilters,
-                        onClassChanged: (value) =>
-                            setState(() => _selectedClass = value),
-                        onSectionChanged: (value) =>
-                            setState(() => _selectedSection = value),
-                        onGenderChanged: (value) =>
-                            setState(() => _selectedGender = value),
-                        onActiveStatusChanged: (value) =>
-                            setState(() => _selectedActiveStatus = value),
-                        onClear: _clearFilters,
-                        onAddStudent: () async {
-                          final result = await Navigator.of(context).push<bool>(
-                            MaterialPageRoute(
-                              builder: (_) => BlocProvider.value(
-                                value: context.read<StudentBloc>(),
-                                child: const AddStudentPage(),
-                              ),
-                            ),
+                      FutureBuilder<List<Object>>(
+                        future: Future.wait<Object>([
+                          _classesFuture,
+                          _sectionsFuture,
+                        ]),
+                        builder: (context, structureSnapshot) {
+                          final data = structureSnapshot.data;
+                          final classes = data == null
+                              ? const <AcademicClassEntity>[]
+                              : data[0] as List<AcademicClassEntity>;
+                          final sections = data == null
+                              ? const <SectionEntity>[]
+                              : data[1] as List<SectionEntity>;
+                          return _StudentFilters(
+                            students: state.students,
+                            academicClasses: classes,
+                            academicSections: sections,
+                            selectedClass: _selectedClass,
+                            selectedSection: _selectedSection,
+                            selectedGender: _selectedGender,
+                            selectedActiveStatus: _selectedActiveStatus,
+                            hasActiveFilters: _hasActiveFilters,
+                            onClassChanged: (value) => setState(() {
+                              _selectedClass = value;
+                              _selectedSection = null;
+                            }),
+                            onSectionChanged: (value) =>
+                                setState(() => _selectedSection = value),
+                            onGenderChanged: (value) =>
+                                setState(() => _selectedGender = value),
+                            onActiveStatusChanged: (value) =>
+                                setState(() => _selectedActiveStatus = value),
+                            onClear: _clearFilters,
+                            onAddStudent: () async {
+                              final result = await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider.value(
+                                    value: context.read<StudentBloc>(),
+                                    child: const AddStudentPage(),
+                                  ),
+                                ),
+                              );
+                              if (result == true && context.mounted) {
+                                await _refreshStudents(context);
+                              }
+                            },
                           );
-                          if (result == true && context.mounted) {
-                            await _refreshStudents(context);
-                          }
                         },
                       ),
                       const SizedBox(height: 16),
@@ -292,6 +324,8 @@ class _StudentsViewState extends State<_StudentsView> {
 class _StudentFilters extends StatelessWidget {
   const _StudentFilters({
     required this.students,
+    required this.academicClasses,
+    required this.academicSections,
     required this.selectedClass,
     required this.selectedSection,
     required this.selectedGender,
@@ -306,6 +340,8 @@ class _StudentFilters extends StatelessWidget {
   });
 
   final List<StudentEntity> students;
+  final List<AcademicClassEntity> academicClasses;
+  final List<SectionEntity> academicSections;
   final String? selectedClass;
   final String? selectedSection;
   final String? selectedGender;
@@ -320,8 +356,29 @@ class _StudentFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final classes = _values(students.map((student) => student.classId));
-    final sections = _values(students.map((student) => student.sectionId));
+    final classes = _values(
+      academicClasses
+          .where((academicClass) => academicClass.isActive)
+          .map((academicClass) => academicClass.name),
+    );
+    AcademicClassEntity? selectedAcademicClass;
+    for (final academicClass in academicClasses) {
+      if (academicClass.name == selectedClass) {
+        selectedAcademicClass = academicClass;
+        break;
+      }
+    }
+    final sections = selectedAcademicClass == null
+        ? const <String>[]
+        : _values(
+            academicSections
+                .where(
+                  (section) =>
+                      section.isActive &&
+                      section.classId == selectedAcademicClass!.id,
+                )
+                .map((section) => section.name),
+          );
     final genders = _values(students.map((student) => student.gender));
     return Card(
       child: Padding(
