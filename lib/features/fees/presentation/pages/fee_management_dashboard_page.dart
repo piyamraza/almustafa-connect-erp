@@ -143,12 +143,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
       ),
     );
   }
-
-  static void _comingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature will be added in the next phase.')),
-    );
-  }
 }
 
 class _FeeFeature {

@@ -197,6 +197,42 @@ import '../../features/academic_calendar/presentation/bloc/academic_calendar_val
 import '../../features/academic_calendar/presentation/bloc/academic_year_wizard_bloc.dart';
 import '../../features/academic_calendar/presentation/bloc/academic_calendar_bloc.dart';
 
+import '../../features/homework/data/repositories/homework_repository_impl.dart';
+import '../../features/homework/domain/repositories/homework_repository.dart';
+import '../../features/homework/presentation/bloc/homework_bloc.dart';
+
+import 'package:firebase_storage/firebase_storage.dart';
+import '../../features/homework/data/services/homework_attachment_service_impl.dart';
+import '../../features/homework/domain/services/homework_attachment_service.dart';
+
+import '../../features/homework/data/repositories/homework_submission_repository_impl.dart';
+import '../../features/homework/domain/repositories/homework_submission_repository.dart';
+import '../../features/homework/presentation/bloc/homework_submission_bloc.dart';
+
+import '../../features/notices/data/repositories/notice_repository_impl.dart';
+import '../../features/notices/domain/repositories/notice_repository.dart';
+import '../../features/notices/presentation/bloc/notice_bloc.dart';
+
+import '../../features/notices/data/repositories/notice_receipt_repository_impl.dart';
+import '../../features/notices/domain/repositories/notice_receipt_repository.dart';
+import '../../features/notices/data/services/notice_attachment_service_impl.dart';
+import '../../features/notices/domain/services/notice_attachment_service.dart';
+import '../../features/notices/data/services/notice_delivery_service_impl.dart';
+import '../../features/notices/domain/services/notice_delivery_service.dart';
+import '../../features/notices/presentation/bloc/notice_receipt_bloc.dart';
+
+import '../../features/parent_portal/data/repositories/parent_portal_repository_impl.dart';
+import '../../features/parent_portal/domain/repositories/parent_portal_repository.dart';
+import '../../features/parent_portal/presentation/bloc/parent_portal_bloc.dart';
+
+import '../../features/parent_portal/data/services/parent_academic_service_impl.dart';
+import '../../features/parent_portal/domain/services/parent_academic_service.dart';
+import '../../features/parent_portal/presentation/bloc/parent_academic_bloc.dart';
+
+import '../../features/parent_portal/data/services/parent_communication_service_impl.dart';
+import '../../features/parent_portal/domain/services/parent_communication_service.dart';
+import '../../features/parent_portal/presentation/bloc/parent_communication_bloc.dart';
+
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
@@ -205,6 +241,7 @@ Future<void> setupServiceLocator() async {
   // =========================================================
 
   sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
+  sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
   sl.registerLazySingleton<FirebaseFirestoreService>(
     FirebaseFirestoreService.new,
@@ -422,6 +459,41 @@ Future<void> setupServiceLocator() async {
 
   sl.registerLazySingleton<GradingRuleRepository>(
     () => GradingRuleRepositoryImpl(source: sl<GradingRuleRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<HomeworkAttachmentService>(
+    () => HomeworkAttachmentServiceImpl(sl<FirebaseStorage>()),
+  );
+  sl.registerLazySingleton<ParentCommunicationService>(
+    () => ParentCommunicationServiceImpl(sl<FirebaseFirestore>()),
+  );
+  sl.registerLazySingleton<ParentAcademicService>(
+    () => ParentAcademicServiceImpl(sl<FirebaseFirestore>()),
+  );
+  sl.registerLazySingleton<ParentPortalRepository>(
+    () => ParentPortalRepositoryImpl(
+      sl<FirebaseFirestoreService>(),
+      sl<StudentRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<NoticeReceiptRepository>(
+    () => NoticeReceiptRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+
+  sl.registerLazySingleton<NoticeAttachmentService>(
+    () => NoticeAttachmentServiceImpl(sl<FirebaseStorage>()),
+  );
+
+  sl.registerLazySingleton<NoticeDeliveryService>(
+    () => NoticeDeliveryServiceImpl(sl<NoticeRepository>()),
+  );
+  sl.registerLazySingleton<NoticeRepository>(
+    () => NoticeRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<HomeworkSubmissionRepository>(
+    () => HomeworkSubmissionRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<HomeworkRepository>(
+    () => HomeworkRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AcademicCalendarPolicyService>(
     () => AcademicCalendarPolicyServiceImpl(
@@ -728,6 +800,25 @@ Future<void> setupServiceLocator() async {
   );
   // BLoCs
   // =========================================================
+  sl.registerFactory<ParentCommunicationBloc>(
+    () => ParentCommunicationBloc(sl<ParentCommunicationService>()),
+  );
+  sl.registerFactory<ParentAcademicBloc>(
+    () => ParentAcademicBloc(sl<ParentAcademicService>()),
+  );
+  sl.registerFactory<ParentPortalBloc>(
+    () => ParentPortalBloc(sl<ParentPortalRepository>()),
+  );
+  sl.registerFactory<NoticeReceiptBloc>(
+    () => NoticeReceiptBloc(sl<NoticeReceiptRepository>()),
+  );
+  sl.registerFactory<NoticeBloc>(() => NoticeBloc(sl<NoticeRepository>()));
+  sl.registerFactory<HomeworkSubmissionBloc>(
+    () => HomeworkSubmissionBloc(sl<HomeworkSubmissionRepository>()),
+  );
+  sl.registerFactory<HomeworkBloc>(
+    () => HomeworkBloc(sl<HomeworkRepository>()),
+  );
   sl.registerFactory<AcademicCalendarValidationBloc>(
     () => AcademicCalendarValidationBloc(sl<ValidateAcademicCalendar>()),
   );

@@ -63,7 +63,11 @@ class GenerateAutoTimetable {
         )
         .toList();
 
-    final days = configuration.workingDays.toList()..sort();
+    final List<int> days =
+        (configuration.workingDays as Iterable<dynamic>)
+            .map<int>((day) => (day as num).toInt())
+            .toList()
+          ..sort();
     final periods = configuration.orderedPeriods
         .where((period) => period.isTeaching)
         .toList(growable: false);
@@ -226,15 +230,15 @@ class GenerateAutoTimetable {
     }
 
     final int totalAvailableSlots =
-    classSectionCount * days.length * periods.length;
+        (classSectionCount * days.length * periods.length).toInt();
 
-return AutoTimetableGenerationResult(
-  generatedEntries: generated,
-  warnings: warnings,
-  totalClassSections: classSectionCount,
-  totalAvailableSlots: totalAvailableSlots,
-  preservedEntries: request.replaceExisting ? 0 : existing.length,
-);
+    return AutoTimetableGenerationResult(
+      generatedEntries: generated,
+      warnings: warnings,
+      totalClassSections: classSectionCount,
+      totalAvailableSlots: totalAvailableSlots,
+      preservedEntries: request.replaceExisting ? 0 : existing.length,
+    );
   }
 
   Future<void> save(

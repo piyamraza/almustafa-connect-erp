@@ -33,4 +33,9 @@ class FirestorePaths {
   static const String feePayments = 'fee_payments';
   static const String academicCalendarEvents = 'academic_calendar_events';
   static const String academicYearConfigs = 'academic_year_configs';
+  static const String homework = 'homework';
+  static const String homeworkSubmissions = 'homework_submissions';
+  static const String notices = 'notices';
+  static const String noticeReceipts = 'notice_receipts';
+  static const String parentAccounts = 'parent_accounts';
 }

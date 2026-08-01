@@ -324,7 +324,7 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            const Row(
+            Row(
               children: [
                 for (final day in [
                   'Mon',
@@ -337,11 +337,11 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
                 ])
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
                       child: Text(
                         day,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

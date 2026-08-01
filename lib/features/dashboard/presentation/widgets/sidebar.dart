@@ -15,9 +15,14 @@ import '../../../staff/presentation/pages/staff_list_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
 import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
-import '../pages/module_placeholder_page.dart';
 
 import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
+
+import '../../../homework/presentation/pages/homework_dashboard_page.dart';
+
+import '../../../notices/presentation/pages/notices_dashboard_page.dart';
+
+import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
 
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
@@ -201,12 +206,7 @@ class Sidebar extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const ModulePlaceholderPage(
-                    title: 'Homework Management',
-                    icon: Icons.menu_book_outlined,
-                    description:
-                        'Create, assign and track daily homework for classes and students.',
-                  ),
+                  builder: (_) => const HomeworkDashboardPage(),
                 ),
               );
             },
@@ -230,12 +230,7 @@ class Sidebar extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const ModulePlaceholderPage(
-                    title: 'Notices & Circulars',
-                    icon: Icons.campaign_outlined,
-                    description:
-                        'Publish school-wide and targeted notices and circulars.',
-                  ),
+                  builder: (_) => const NoticesDashboardPage(),
                 ),
               );
             },
@@ -245,7 +240,13 @@ class Sidebar extends StatelessWidget {
             context,
             icon: Icons.family_restroom,
             title: 'Parents',
-            onTap: () {},
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ParentPortalDashboardPage(),
+                ),
+              );
+            },
           ),
           _menuTile(
             context,

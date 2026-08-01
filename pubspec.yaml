@@ -45,12 +45,14 @@ dependencies:
   shared_preferences: ^2.5.3
   internet_connection_checker_plus: ^2.7.2
   image_picker: ^1.2.0
+  file_picker: ^10.3.3
   uuid: ^4.5.1
   pdf: ^3.11.3
   printing: ^5.13.4
   excel: ^4.0.6
   path_provider: ^2.1.5
   share_plus: ^10.1.4
+  url_launcher: ^6.3.2
   fl_chart: ^1.2.0
   
   # The following adds the Cupertino Icons font to your application.
