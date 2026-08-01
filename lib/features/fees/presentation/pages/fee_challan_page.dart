@@ -208,9 +208,10 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
                                 ),
                               ),
                               SizedBox(
-                                width: 180,
+                                width: 220,
                                 child: DropdownButtonFormField<int>(
                                   initialValue: _copyCount,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Copies',
                                     border: OutlineInputBorder(),
@@ -226,7 +227,10 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
                                     ),
                                     DropdownMenuItem(
                                       value: 3,
-                                      child: Text('School + Parent + Bank'),
+                                      child: Text(
+                                        'School + Parent + Bank',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                   onChanged: busy

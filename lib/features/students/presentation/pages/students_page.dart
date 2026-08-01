@@ -328,21 +328,47 @@ class _StudentsViewState extends State<_StudentsView> {
             ),
           ],
         );
-        final title = const Column(
+        final title = Row(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Students',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w700,
-                color: _textPrimary,
+            SizedBox(
+              width: 46,
+              height: 46,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  foregroundColor: _brandBlue,
+                  side: const BorderSide(color: _borderColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Tooltip(
+                  message: 'Back to Dashboard',
+                  child: Icon(Icons.arrow_back),
+                ),
               ),
             ),
-            SizedBox(height: 4),
-            Text(
-              'Manage admissions, profiles and student records',
-              style: TextStyle(color: _textSecondary, fontSize: 15),
+            const SizedBox(width: 14),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Students',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Manage admissions, profiles and student records',
+                  style: TextStyle(color: _textSecondary, fontSize: 15),
+                ),
+              ],
             ),
           ],
         );
@@ -458,7 +484,7 @@ class _SummaryCards extends StatelessWidget {
         '${_percentage(boys, students.length)}% of total students',
         Icons.face_6_outlined,
         const Color(0xFF3578F6),
-        'assets/icons/students/boy-student.png',
+        _MetricIllustration.boy,
       ),
       _MetricData(
         'Girls',
@@ -466,7 +492,7 @@ class _SummaryCards extends StatelessWidget {
         '${_percentage(girls, students.length)}% of total students',
         Icons.face_3_outlined,
         const Color(0xFFE54868),
-        'assets/icons/students/girl-student.png',
+        _MetricIllustration.girl,
       ),
     ];
     return LayoutBuilder(
@@ -498,6 +524,8 @@ class _SummaryCards extends StatelessWidget {
       total == 0 ? '0' : (value * 100 / total).toStringAsFixed(1);
 }
 
+enum _MetricIllustration { boy, girl }
+
 class _MetricData {
   const _MetricData(
     this.label,
@@ -505,14 +533,14 @@ class _MetricData {
     this.caption,
     this.icon,
     this.color, [
-    this.assetPath,
+    this.illustration,
   ]);
   final String label;
   final int value;
   final String caption;
   final IconData icon;
   final Color color;
-  final String? assetPath;
+  final _MetricIllustration? illustration;
 }
 
 class _MetricCard extends StatelessWidget {
@@ -552,15 +580,15 @@ class _MetricCard extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: data.assetPath == null
+            child: data.illustration == null
                 ? Icon(data.icon, color: data.color, size: 36)
                 : Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Image.asset(
-                      data.assetPath!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.contain,
+                    padding: const EdgeInsets.all(8),
+                    child: CustomPaint(
+                      painter: _StudentAvatarPainter(
+                        color: data.color,
+                        girl: data.illustration == _MetricIllustration.girl,
+                      ),
                     ),
                   ),
           ),
@@ -599,6 +627,81 @@ class _MetricCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StudentAvatarPainter extends CustomPainter {
+  const _StudentAvatarPainter({required this.color, required this.girl});
+
+  final Color color;
+  final bool girl;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 48, size.height / 48);
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final dot = Paint()..color = color;
+
+    if (girl) {
+      final hair = Path()
+        ..moveTo(24, 5)
+        ..cubicTo(12, 5, 8, 13, 9, 28)
+        ..cubicTo(10, 35, 7, 39, 5, 40)
+        ..cubicTo(10, 42, 14, 40, 15, 36)
+        ..moveTo(24, 5)
+        ..cubicTo(36, 5, 40, 13, 39, 28)
+        ..cubicTo(38, 35, 41, 39, 43, 40)
+        ..cubicTo(38, 42, 34, 40, 33, 36);
+      canvas.drawPath(hair, stroke);
+      final fringe = Path()
+        ..moveTo(24, 6)
+        ..cubicTo(22, 12, 17, 14, 14, 17)
+        ..moveTo(24, 6)
+        ..cubicTo(26, 12, 31, 14, 34, 17);
+      canvas.drawPath(fringe, stroke);
+      canvas.drawOval(const Rect.fromLTWH(12, 13, 24, 25), stroke);
+      final shoulders = Path()
+        ..moveTo(9, 47)
+        ..cubicTo(11, 41, 16, 39, 19, 38)
+        ..cubicTo(20, 42, 28, 42, 29, 38)
+        ..cubicTo(32, 39, 37, 41, 39, 47);
+      canvas.drawPath(shoulders, stroke);
+    } else {
+      canvas.drawOval(const Rect.fromLTWH(11, 11, 26, 27), stroke);
+      final hair = Path()
+        ..moveTo(12, 20)
+        ..cubicTo(12, 9, 19, 5, 28, 7)
+        ..cubicTo(34, 8, 37, 12, 36, 18)
+        ..cubicTo(30, 14, 21, 14, 13, 18);
+      canvas.drawPath(hair, stroke);
+      final shoulders = Path()
+        ..moveTo(6, 47)
+        ..cubicTo(7, 41, 13, 38, 18, 37)
+        ..lineTo(24, 43)
+        ..lineTo(30, 37)
+        ..cubicTo(35, 38, 41, 41, 42, 47);
+      canvas.drawPath(shoulders, stroke);
+      canvas.drawLine(const Offset(18, 37), const Offset(18, 41), stroke);
+      canvas.drawLine(const Offset(30, 37), const Offset(30, 41), stroke);
+    }
+
+    canvas.drawCircle(const Offset(19, 25), 1.15, dot);
+    canvas.drawCircle(const Offset(29, 25), 1.15, dot);
+    final smile = Path()
+      ..moveTo(20, 30)
+      ..quadraticBezierTo(24, 34, 28, 30);
+    canvas.drawPath(smile, stroke);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _StudentAvatarPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.girl != girl;
 }
 
 class _DirectoryCard extends StatelessWidget {

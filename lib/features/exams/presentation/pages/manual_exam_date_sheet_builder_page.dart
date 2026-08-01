@@ -61,7 +61,7 @@ class _ManualExamDateSheetBuilderPageState
   Future<void> _loadReferences() async {
     try {
       final values = await Future.wait<Object?>([
-        sl<ExamRepository>().getExams(isActive: true),
+        sl<ExamRepository>().getExams(),
         sl<AcademicStructureRepository>().getClasses(),
         sl<AcademicStructureRepository>().getSections(),
         sl<AcademicStructureRepository>().getSubjects(),
@@ -70,7 +70,9 @@ class _ManualExamDateSheetBuilderPageState
 
       if (!mounted) return;
 
-      final exams = values[0] as List<ExamEntity>;
+      final exams = (values[0] as List<ExamEntity>)
+          .where((exam) => exam.isActive)
+          .toList();
       final classes =
           (values[1] as List<AcademicClassEntity>)
               .where((item) => item.isActive)

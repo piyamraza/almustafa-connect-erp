@@ -10,6 +10,8 @@ import 'user_role_assignments_page.dart';
 
 import 'access_control_production_readiness_page.dart';
 
+import 'user_accounts_management_page.dart';
+
 class RolesPermissionsPage extends StatelessWidget {
   const RolesPermissionsPage({super.key});
 
@@ -44,6 +46,17 @@ class _RolesPermissionsView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Roles & Permissions'),
         actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const UserAccountsManagementPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.person_add_alt_1),
+            label: const Text('User Accounts'),
+          ),
           TextButton.icon(
             onPressed: () {
               Navigator.of(context).push<void>(

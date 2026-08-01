@@ -62,7 +62,8 @@ class _AutoExamDateSheetGeneratorViewState
 
   Future<void> _loadExams() async {
     try {
-      final exams = await sl<ExamRepository>().getExams(isActive: true);
+      final allExams = await sl<ExamRepository>().getExams();
+      final exams = allExams.where((exam) => exam.isActive).toList();
       if (!mounted) return;
       setState(() {
         _exams = exams;

@@ -10,6 +10,10 @@ import '../../domain/entities/monthly_fee_due_entity.dart';
 import '../bloc/fee_collection_bloc.dart';
 import '../bloc/fee_document_bloc.dart';
 
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+
 class FeeCollectionPage extends StatelessWidget {
   const FeeCollectionPage({super.key});
 
@@ -39,6 +43,10 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   final _referenceController = TextEditingController();
   final _notesController = TextEditingController();
   List<StudentEntity> _students = const [];
+  List<AcademicClassEntity> _classes = const [];
+  List<SectionEntity> _sections = const [];
+  String? _selectedClassId;
+  String? _selectedSectionId;
   StudentEntity? _selectedStudent;
   final Set<String> _selectedDueIds = {};
   FeePaymentMethod _method = FeePaymentMethod.cash;
@@ -63,13 +71,51 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   }
 
   Future<void> _loadStudents() async {
+    setState(() => _loadingStudents = true);
+
     try {
-      final students = await sl<StudentRepository>().getStudents();
+      final repository = sl<AcademicStructureRepository>();
+      final values = await Future.wait<Object>([
+        sl<StudentRepository>().getStudents(),
+        repository.getClasses(),
+        repository.getSections(),
+      ]);
+
       if (!mounted) return;
+
+      final students =
+          (values[0] as List<StudentEntity>)
+              .where((item) => item.isActive)
+              .toList()
+            ..sort(
+              (a, b) =>
+                  a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()),
+            );
+
+      final classes =
+          (values[1] as List<AcademicClassEntity>)
+              .where((item) => item.isActive)
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
+
+      final sections =
+          (values[2] as List<SectionEntity>)
+              .where((item) => item.isActive)
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
+
       setState(() {
-        _students = students.where((item) => item.isActive).toList()
-          ..sort((a, b) => a.fullName.compareTo(b.fullName));
+        _students = students;
+        _classes = classes;
+        _sections = sections;
         _loadingStudents = false;
+
+        if (_selectedClassId != null &&
+            !classes.any((item) => item.id == _selectedClassId)) {
+          _selectedClassId = null;
+          _selectedSectionId = null;
+          _selectedStudent = null;
+        }
       });
     } catch (error) {
       if (!mounted) return;
@@ -93,15 +139,76 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     );
   }
 
+  String _normal(String value) => value.trim().toLowerCase();
+
+  AcademicClassEntity? get _selectedClass {
+    final id = _selectedClassId;
+    if (id == null) return null;
+
+    for (final item in _classes) {
+      if (item.id == id) return item;
+    }
+
+    return null;
+  }
+
+  SectionEntity? get _selectedSection {
+    final id = _selectedSectionId;
+    if (id == null) return null;
+
+    for (final item in _sections) {
+      if (item.id == id) return item;
+    }
+
+    return null;
+  }
+
+  List<SectionEntity> get _availableSections {
+    final classId = _selectedClassId;
+    if (classId == null) return const [];
+
+    return _sections
+        .where((section) => section.classId == classId)
+        .toList(growable: false);
+  }
+
+  bool _matchesClass(StudentEntity student) {
+    final selected = _selectedClass;
+    if (selected == null) return false;
+
+    final value = _normal(student.classId);
+    return value == _normal(selected.id) || value == _normal(selected.name);
+  }
+
+  bool _matchesSection(StudentEntity student) {
+    final selected = _selectedSection;
+    if (selected == null) return false;
+
+    final value = _normal(student.sectionId);
+    return value == _normal(selected.id) || value == _normal(selected.name);
+  }
+
   List<StudentEntity> get _visibleStudents {
+    if (_selectedClassId == null || _selectedSectionId == null) {
+      return const [];
+    }
+
     final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return _students;
-    return _students.where((student) {
-      return student.fullName.toLowerCase().contains(query) ||
-          student.admissionNo.toLowerCase().contains(query) ||
-          student.rollNumber.toLowerCase().contains(query) ||
-          student.guardianPhone.toLowerCase().contains(query);
-    }).toList();
+
+    return _students
+        .where((student) {
+          if (!_matchesClass(student) || !_matchesSection(student)) {
+            return false;
+          }
+
+          if (query.isEmpty) return true;
+
+          return student.fullName.toLowerCase().contains(query) ||
+              student.admissionNo.toLowerCase().contains(query) ||
+              student.rollNumber.toLowerCase().contains(query) ||
+              student.guardianPhone.toLowerCase().contains(query);
+        })
+        .toList(growable: false);
   }
 
   double _selectedOutstanding(List<MonthlyFeeDueEntity> dues) {
@@ -247,41 +354,157 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(14),
-                              child: TextFormField(
-                                controller: _searchController,
-                                onChanged: (value) =>
-                                    setState(() => _query = value),
-                                decoration: const InputDecoration(
-                                  labelText:
-                                      'Search student / admission / mobile',
-                                  prefixIcon: Icon(Icons.search),
-                                  border: OutlineInputBorder(),
-                                ),
+                              child: Column(
+                                children: [
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedClassId,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      labelText: '1. Select Class',
+                                      prefixIcon: Icon(Icons.school_outlined),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    items: _classes
+                                        .map(
+                                          (item) => DropdownMenuItem(
+                                            value: item.id,
+                                            child: Text(item.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: busy
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _selectedClassId = value;
+                                              _selectedSectionId = null;
+                                              _selectedStudent = null;
+                                              _selectedDueIds.clear();
+                                              _searchController.clear();
+                                              _query = '';
+                                            });
+                                          },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  DropdownButtonFormField<String>(
+                                    initialValue:
+                                        _availableSections.any(
+                                          (item) =>
+                                              item.id == _selectedSectionId,
+                                        )
+                                        ? _selectedSectionId
+                                        : null,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      labelText: '2. Select Section',
+                                      prefixIcon: Icon(
+                                        Icons.view_list_outlined,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    items: _availableSections
+                                        .map(
+                                          (item) => DropdownMenuItem(
+                                            value: item.id,
+                                            child: Text(item.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: busy || _selectedClassId == null
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _selectedSectionId = value;
+                                              _selectedStudent = null;
+                                              _selectedDueIds.clear();
+                                              _searchController.clear();
+                                              _query = '';
+                                            });
+                                          },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _searchController,
+                                    enabled: _selectedSectionId != null,
+                                    onChanged: (value) =>
+                                        setState(() => _query = value),
+                                    decoration: const InputDecoration(
+                                      labelText: '3. Search selected section',
+                                      prefixIcon: Icon(Icons.search),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             Expanded(
-                              child: ListView.builder(
-                                itemCount: _visibleStudents.length,
-                                itemBuilder: (context, index) {
-                                  final student = _visibleStudents[index];
-                                  return ListTile(
-                                    selected:
-                                        _selectedStudent?.id == student.id,
-                                    leading: CircleAvatar(
-                                      child: Text(
-                                        student.fullName
-                                            .substring(0, 1)
-                                            .toUpperCase(),
+                              child: _selectedClassId == null
+                                  ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Text(
+                                          'Select a class first.',
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
+                                    )
+                                  : _selectedSectionId == null
+                                  ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Text(
+                                          'Now select a section.',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    )
+                                  : _visibleStudents.isEmpty
+                                  ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Text(
+                                          'No active students found in this section.',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: _visibleStudents.length,
+                                      itemBuilder: (context, index) {
+                                        final student = _visibleStudents[index];
+                                        final name = student.fullName.trim();
+                                        return ListTile(
+                                          selected:
+                                              _selectedStudent?.id ==
+                                              student.id,
+                                          selectedTileColor: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer
+                                              .withValues(alpha: .35),
+                                          leading: CircleAvatar(
+                                            child: Text(
+                                              name.isEmpty
+                                                  ? '?'
+                                                  : name[0].toUpperCase(),
+                                            ),
+                                          ),
+                                          title: Text(student.fullName),
+                                          subtitle: Text(
+                                            '${student.admissionNo}\n'
+                                            'Roll: '
+                                            '${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
+                                          ),
+                                          isThreeLine: true,
+                                          trailing:
+                                              _selectedStudent?.id == student.id
+                                              ? const Icon(Icons.check_circle)
+                                              : null,
+                                          onTap: busy
+                                              ? null
+                                              : () => _selectStudent(student),
+                                        );
+                                      },
                                     ),
-                                    title: Text(student.fullName),
-                                    subtitle: Text(student.admissionNo),
-                                    onTap: busy
-                                        ? null
-                                        : () => _selectStudent(student),
-                                  );
-                                },
-                              ),
                             ),
                           ],
                         ),
@@ -615,7 +838,8 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                 tooltip: 'Cancel payment',
                                 onPressed:
                                     busy ||
-                                        payment.status == FeePaymentStatus.cancelled
+                                        payment.status ==
+                                            FeePaymentStatus.cancelled
                                     ? null
                                     : () => _cancelPayment(payment),
                                 icon: const Icon(Icons.cancel_outlined),

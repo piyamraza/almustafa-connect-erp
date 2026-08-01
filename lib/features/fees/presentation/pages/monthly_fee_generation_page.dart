@@ -615,6 +615,7 @@ class _MonthlyFeeGenerationViewState extends State<_MonthlyFeeGenerationView> {
                 rows: [
                   for (final due in dues)
                     DataRow(
+                      color: WidgetStatePropertyAll(_dueRowColor(due)),
                       cells: [
                         DataCell(Text(due.studentName)),
                         DataCell(Text(due.admissionNo)),
@@ -634,7 +635,32 @@ class _MonthlyFeeGenerationViewState extends State<_MonthlyFeeGenerationView> {
                           Text('Rs. ${due.netPayable.toStringAsFixed(0)}'),
                         ),
                         DataCell(Text(_date(due.dueDate))),
-                        DataCell(Text(due.status.name.toUpperCase())),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _dueStatusColor(
+                                due,
+                              ).withValues(alpha: .14),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _dueStatusColor(
+                                  due,
+                                ).withValues(alpha: .35),
+                              ),
+                            ),
+                            child: Text(
+                              due.status.name.toUpperCase(),
+                              style: TextStyle(
+                                color: _dueStatusColor(due),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
                         DataCell(
                           IconButton(
                             tooltip: 'Delete generated due',
@@ -663,6 +689,38 @@ class _MonthlyFeeGenerationViewState extends State<_MonthlyFeeGenerationView> {
         ],
       ),
     );
+  }
+
+  Color _dueRowColor(MonthlyFeeDueEntity due) {
+    if (due.status == MonthlyFeeDueStatus.paid) {
+      return const Color(0xFFE8F7EE);
+    }
+
+    if (due.status == MonthlyFeeDueStatus.cancelled) {
+      return const Color(0xFFF1F3F5);
+    }
+
+    if (due.paidAmount > 0) {
+      return const Color(0xFFFFF5DB);
+    }
+
+    return const Color(0xFFFFECEC);
+  }
+
+  Color _dueStatusColor(MonthlyFeeDueEntity due) {
+    if (due.status == MonthlyFeeDueStatus.paid) {
+      return const Color(0xFF15803D);
+    }
+
+    if (due.status == MonthlyFeeDueStatus.cancelled) {
+      return const Color(0xFF64748B);
+    }
+
+    if (due.paidAmount > 0) {
+      return const Color(0xFFB45309);
+    }
+
+    return const Color(0xFFDC2626);
   }
 
   static String _scopeLabel(FeeGenerationScope scope) => switch (scope) {

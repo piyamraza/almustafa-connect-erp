@@ -5,10 +5,7 @@ import '../../../../core/services/firebase_firestore_service.dart';
 import '../models/exam_model.dart';
 
 abstract class ExamRemoteDataSource {
-  Future<List<ExamModel>> getExams({
-    String? academicSession,
-    bool? isActive,
-  });
+  Future<List<ExamModel>> getExams({String? academicSession, bool? isActive});
 
   Future<ExamModel?> getExamById(String id);
 
@@ -27,9 +24,7 @@ abstract class ExamRemoteDataSource {
 }
 
 class ExamRemoteDataSourceImpl implements ExamRemoteDataSource {
-  ExamRemoteDataSourceImpl({
-    required this._firestoreService,
-  });
+  ExamRemoteDataSourceImpl({required this._firestoreService});
 
   final FirebaseFirestoreService _firestoreService;
 
@@ -45,22 +40,23 @@ class ExamRemoteDataSourceImpl implements ExamRemoteDataSource {
     Query<Map<String, dynamic>> query = _examsCollection;
 
     if (academicSession != null && academicSession.trim().isNotEmpty) {
-      query = query.where(
-        'academicSession',
-        isEqualTo: academicSession.trim(),
-      );
+      query = query.where('academicSession', isEqualTo: academicSession.trim());
     }
     if (isActive != null) {
       query = query.where('isActive', isEqualTo: isActive);
     }
 
-    final snapshot = await query.orderBy('createdAt', descending: true).get();
-    return snapshot.docs
-        .map((document) => ExamModel.fromMap({
-              ...document.data(),
-              'id': document.id,
-            }))
-        .toList(growable: false);
+    // Sort locally so filtered reads do not require a Firestore composite
+    // index (for example: isActive + createdAt).
+    final snapshot = await query.get();
+    final exams = snapshot.docs
+        .map(
+          (document) =>
+              ExamModel.fromMap({...document.data(), 'id': document.id}),
+        )
+        .toList();
+    exams.sort((first, second) => second.createdAt.compareTo(first.createdAt));
+    return exams;
   }
 
   @override
