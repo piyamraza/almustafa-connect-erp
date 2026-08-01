@@ -13,9 +13,17 @@ class StudentEntity {
   final String sectionId;
 
   final String fatherName;
+  final String fatherCnic;
+  final String fatherPhone;
   final String motherName;
+  final String motherCnic;
+  final String motherPhone;
+  final String guardianName;
+  final String guardianCnic;
   final String guardianPhone;
   final String guardianEmail;
+  final String bloodGroup;
+  final String medicalAllergies;
 
   final String address;
 
@@ -37,9 +45,17 @@ class StudentEntity {
     required this.classId,
     required this.sectionId,
     required this.fatherName,
+    this.fatherCnic = '',
+    this.fatherPhone = '',
     required this.motherName,
+    this.motherCnic = '',
+    this.motherPhone = '',
+    this.guardianName = '',
+    this.guardianCnic = '',
     required this.guardianPhone,
     required this.guardianEmail,
+    this.bloodGroup = '',
+    this.medicalAllergies = '',
     required this.address,
     required this.profileImageUrl,
     required this.isActive,
@@ -60,9 +76,17 @@ class StudentEntity {
     String? classId,
     String? sectionId,
     String? fatherName,
+    String? fatherCnic,
+    String? fatherPhone,
     String? motherName,
+    String? motherCnic,
+    String? motherPhone,
+    String? guardianName,
+    String? guardianCnic,
     String? guardianPhone,
     String? guardianEmail,
+    String? bloodGroup,
+    String? medicalAllergies,
     String? address,
     String? profileImageUrl,
     bool? isActive,
@@ -80,9 +104,17 @@ class StudentEntity {
       classId: classId ?? this.classId,
       sectionId: sectionId ?? this.sectionId,
       fatherName: fatherName ?? this.fatherName,
+      fatherCnic: fatherCnic ?? this.fatherCnic,
+      fatherPhone: fatherPhone ?? this.fatherPhone,
       motherName: motherName ?? this.motherName,
+      motherCnic: motherCnic ?? this.motherCnic,
+      motherPhone: motherPhone ?? this.motherPhone,
+      guardianName: guardianName ?? this.guardianName,
+      guardianCnic: guardianCnic ?? this.guardianCnic,
       guardianPhone: guardianPhone ?? this.guardianPhone,
       guardianEmail: guardianEmail ?? this.guardianEmail,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
+      medicalAllergies: medicalAllergies ?? this.medicalAllergies,
       address: address ?? this.address,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       isActive: isActive ?? this.isActive,

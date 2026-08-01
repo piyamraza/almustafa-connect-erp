@@ -35,8 +35,15 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final TextEditingController _rollNumberController = TextEditingController();
 
   final TextEditingController _fatherNameController = TextEditingController();
+  final TextEditingController _fatherCnicController = TextEditingController();
+  final TextEditingController _fatherPhoneController = TextEditingController();
 
   final TextEditingController _motherNameController = TextEditingController();
+  final TextEditingController _motherCnicController = TextEditingController();
+  final TextEditingController _motherPhoneController = TextEditingController();
+
+  final TextEditingController _guardianNameController = TextEditingController();
+  final TextEditingController _guardianCnicController = TextEditingController();
 
   final TextEditingController _mobileController = TextEditingController();
 
@@ -46,16 +53,23 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final TextEditingController _addressController = TextEditingController();
 
   final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _medicalAllergiesController =
+      TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final StudentRepository _repository = sl<StudentRepository>();
 
   bool _isSaving = false;
+  bool _settingSystemAdmissionNumber = false;
+  bool _admissionNumberManuallyEdited = false;
+  bool _settingSystemRollNumber = false;
+  bool _rollNumberManuallyEdited = false;
 
   Uint8List? _imageBytes;
 
   String? selectedClass;
   String? selectedSection;
   String? selectedGender;
+  String? selectedBloodGroup;
 
   DateTime? selectedDate;
 
@@ -89,6 +103,16 @@ class _AddStudentPageState extends State<AddStudentPage> {
   }
 
   final List<String> genders = const ['Male', 'Female'];
+  final List<String> bloodGroups = const [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+  ];
 
   Future<void> _pickDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -105,6 +129,69 @@ class _AddStudentPageState extends State<AddStudentPage> {
         _dobController.text =
             '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
       });
+    }
+  }
+
+  void _setSystemRollNumber(String value) {
+    _settingSystemRollNumber = true;
+    _rollNumberController.text = value;
+    _settingSystemRollNumber = false;
+  }
+
+  void _setSystemAdmissionNumber(String value) {
+    _settingSystemAdmissionNumber = true;
+    _admissionNoController.text = value;
+    _settingSystemAdmissionNumber = false;
+  }
+
+  String _admissionNumberForSequence(int sequence) {
+    final year = DateTime.now().year;
+    return 'ADM-$year-${sequence.toString().padLeft(4, '0')}';
+  }
+
+  Future<void> _loadSystemGeneratedNumbers() async {
+    _setSystemAdmissionNumber(_admissionNumberForSequence(1));
+    _setSystemRollNumber('1');
+    try {
+      final students = await _repository.getStudents();
+      var highestRollNumber = 0;
+      final usedAdmissionNumbers = students
+          .map((student) => student.admissionNo.trim().toUpperCase())
+          .toSet();
+      final admissionPrefix = 'ADM-${DateTime.now().year}-';
+      var highestAdmissionSequence = 0;
+      for (final student in students) {
+        final rollNumber = int.tryParse(student.rollNumber.trim());
+        if (rollNumber != null && rollNumber > highestRollNumber) {
+          highestRollNumber = rollNumber;
+        }
+        final admissionNumber = student.admissionNo.trim().toUpperCase();
+        if (admissionNumber.startsWith(admissionPrefix)) {
+          final sequence = int.tryParse(
+            admissionNumber.substring(admissionPrefix.length),
+          );
+          if (sequence != null && sequence > highestAdmissionSequence) {
+            highestAdmissionSequence = sequence;
+          }
+        }
+      }
+      var admissionSequence = highestAdmissionSequence + 1;
+      while (usedAdmissionNumbers.contains(
+        _admissionNumberForSequence(admissionSequence),
+      )) {
+        admissionSequence++;
+      }
+      if (!mounted) return;
+      if (!_admissionNumberManuallyEdited) {
+        _setSystemAdmissionNumber(
+          _admissionNumberForSequence(admissionSequence),
+        );
+      }
+      if (!_rollNumberManuallyEdited) {
+        _setSystemRollNumber('${highestRollNumber + 1}');
+      }
+    } catch (_) {
+      // Keep the initial generated values when records cannot be loaded.
     }
   }
 
@@ -245,6 +332,25 @@ class _AddStudentPageState extends State<AddStudentPage> {
     return result ?? false;
   }
 
+  String _selectedClassIdForSave() {
+    for (final academicClass in _academicClasses) {
+      if (academicClass.id == selectedClass ||
+          academicClass.name == selectedClass) {
+        return academicClass.id;
+      }
+    }
+    return selectedClass ?? '';
+  }
+
+  String _selectedSectionIdForSave() {
+    for (final section in _academicSections) {
+      if (section.id == selectedSection || section.name == selectedSection) {
+        return section.id;
+      }
+    }
+    return selectedSection ?? '';
+  }
+
   Future<void> _saveStudent() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -276,7 +382,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
     final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
     final admissionNo = _admissionNoController.text.trim().isEmpty
-        ? 'ADM${DateTime.now().millisecondsSinceEpoch}'
+        ? 'ADM-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch}'
         : _admissionNoController.text.trim();
     String imageUrl = '';
 
@@ -292,15 +398,23 @@ class _AddStudentPageState extends State<AddStudentPage> {
       lastName: lastName,
       gender: selectedGender!,
       dateOfBirth: selectedDate ?? DateTime.now(),
-      classId: selectedClass!,
-      sectionId: selectedSection ?? '',
+      classId: _selectedClassIdForSave(),
+      sectionId: _selectedSectionIdForSave(),
       fatherName: _fatherNameController.text.trim(),
+      fatherCnic: _fatherCnicController.text.trim(),
+      fatherPhone: _fatherPhoneController.text.trim(),
       motherName: _motherNameController.text.trim(),
+      motherCnic: _motherCnicController.text.trim(),
+      motherPhone: _motherPhoneController.text.trim(),
+      guardianName: _guardianNameController.text.trim(),
+      guardianCnic: _guardianCnicController.text.trim(),
       guardianPhone: _mobileController.text.trim(),
       guardianEmail: _guardianEmailController.text.trim(),
+      bloodGroup: selectedBloodGroup ?? '',
+      medicalAllergies: _medicalAllergiesController.text.trim(),
       address: _addressController.text.trim(),
       profileImageUrl: imageUrl,
-      isActive: true,
+      isActive: widget.isEdit ? widget.student!.isActive : true,
       createdAt: widget.isEdit ? widget.student!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -318,7 +432,20 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
     _loadAcademicStructure();
 
-    if (!widget.isEdit) return;
+    if (!widget.isEdit) {
+      _admissionNoController.addListener(() {
+        if (!_settingSystemAdmissionNumber) {
+          _admissionNumberManuallyEdited = true;
+        }
+      });
+      _rollNumberController.addListener(() {
+        if (!_settingSystemRollNumber) {
+          _rollNumberManuallyEdited = true;
+        }
+      });
+      _loadSystemGeneratedNumbers();
+      return;
+    }
 
     final student = widget.student!;
 
@@ -326,7 +453,13 @@ class _AddStudentPageState extends State<AddStudentPage> {
     _admissionNoController.text = student.admissionNo;
     _rollNumberController.text = student.rollNumber;
     _fatherNameController.text = student.fatherName;
+    _fatherCnicController.text = student.fatherCnic;
+    _fatherPhoneController.text = student.fatherPhone;
     _motherNameController.text = student.motherName;
+    _motherCnicController.text = student.motherCnic;
+    _motherPhoneController.text = student.motherPhone;
+    _guardianNameController.text = student.guardianName;
+    _guardianCnicController.text = student.guardianCnic;
     _mobileController.text = student.guardianPhone;
     _guardianEmailController.text = student.guardianEmail;
     _addressController.text = student.address;
@@ -334,7 +467,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
     selectedClass = student.classId;
     selectedSection = student.sectionId;
     selectedGender = student.gender;
+    selectedBloodGroup = student.bloodGroup.isEmpty ? null : student.bloodGroup;
     selectedDate = student.dateOfBirth;
+    _medicalAllergiesController.text = student.medicalAllergies;
 
     _dobController.text =
         '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}';
@@ -348,15 +483,30 @@ class _AddStudentPageState extends State<AddStudentPage> {
         repository.getSections(),
       ]);
       if (!mounted) return;
+      final storedClass = selectedClass;
+      final storedSection = selectedSection;
       setState(() {
         _academicClasses = data[0] as List<AcademicClassEntity>;
         _academicSections = data[1] as List<SectionEntity>;
-        if (!classes.contains(selectedClass)) {
-          selectedClass = null;
-          selectedSection = null;
-        } else if (!sections.contains(selectedSection)) {
-          selectedSection = null;
+        AcademicClassEntity? matchingClass;
+        for (final academicClass in _academicClasses) {
+          if (academicClass.id == storedClass ||
+              academicClass.name == storedClass) {
+            matchingClass = academicClass;
+            break;
+          }
         }
+        selectedClass = matchingClass?.name;
+
+        SectionEntity? matchingSection;
+        for (final section in _academicSections) {
+          if ((section.id == storedSection || section.name == storedSection) &&
+              (matchingClass == null || section.classId == matchingClass.id)) {
+            matchingSection = section;
+            break;
+          }
+        }
+        selectedSection = matchingSection?.name;
       });
     } catch (_) {
       // The existing form remains usable while the master data is unavailable.
@@ -369,11 +519,18 @@ class _AddStudentPageState extends State<AddStudentPage> {
     _admissionNoController.dispose();
     _rollNumberController.dispose();
     _fatherNameController.dispose();
+    _fatherCnicController.dispose();
+    _fatherPhoneController.dispose();
     _motherNameController.dispose();
+    _motherCnicController.dispose();
+    _motherPhoneController.dispose();
+    _guardianNameController.dispose();
+    _guardianCnicController.dispose();
     _mobileController.dispose();
     _guardianEmailController.dispose();
     _addressController.dispose();
     _dobController.dispose();
+    _medicalAllergiesController.dispose();
 
     super.dispose();
   }
@@ -499,6 +656,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
                               controller: _admissionNoController,
                               label: 'Admission No.',
                               icon: Icons.badge,
+                              helperText:
+                                  'System generated; manual entry allowed',
                               validator: (value) {
                                 return null;
                               },
@@ -513,6 +672,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
                               label: 'Roll Number',
                               icon: Icons.format_list_numbered,
                               keyboardType: TextInputType.number,
+                              helperText:
+                                  'Next number suggested; manual entry allowed',
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Roll Number is required';
@@ -543,6 +704,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
                         controller: _admissionNoController,
                         label: 'Admission No.',
                         icon: Icons.badge,
+                        helperText: 'System generated; manual entry allowed',
                         validator: (value) {
                           return null;
                         },
@@ -555,6 +717,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
                         label: 'Roll Number',
                         icon: Icons.format_list_numbered,
                         keyboardType: TextInputType.number,
+                        helperText:
+                            'Next number suggested; manual entry allowed',
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Roll Number is required';
@@ -566,24 +730,37 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
                     const SizedBox(height: 16),
 
-                    _textField(
-                      controller: _fatherNameController,
-                      label: 'Father Name',
-                      icon: Icons.family_restroom,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Father Name is required';
-                        }
+                    _sectionTitle('Parent & Guardian Information'),
 
-                        return null;
-                      },
+                    const SizedBox(height: 20),
+
+                    _familyInformationRow(
+                      isDesktop: isDesktop,
+                      relation: 'Father',
+                      nameController: _fatherNameController,
+                      cnicController: _fatherCnicController,
+                      phoneController: _fatherPhoneController,
+                      nameRequired: true,
                     ),
+
                     const SizedBox(height: 16),
 
-                    _textField(
-                      controller: _motherNameController,
-                      label: 'Mother Name',
-                      icon: Icons.family_restroom,
+                    _familyInformationRow(
+                      isDesktop: isDesktop,
+                      relation: 'Mother',
+                      nameController: _motherNameController,
+                      cnicController: _motherCnicController,
+                      phoneController: _motherPhoneController,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _familyInformationRow(
+                      isDesktop: isDesktop,
+                      relation: 'Guardian',
+                      nameController: _guardianNameController,
+                      cnicController: _guardianCnicController,
+                      phoneController: _mobileController,
                     ),
 
                     const SizedBox(height: 35),
@@ -800,26 +977,6 @@ class _AddStudentPageState extends State<AddStudentPage> {
                     const SizedBox(height: 16),
 
                     _textField(
-                      controller: _mobileController,
-                      label: 'Guardian Mobile',
-                      icon: Icons.phone,
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return null;
-                        }
-
-                        if (!RegExp(r'^\d{11}$').hasMatch(value.trim())) {
-                          return 'Mobile Number must be exactly 11 digits';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _textField(
                       controller: _guardianEmailController,
                       label: 'Guardian Email',
                       icon: Icons.email,
@@ -839,7 +996,79 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 35),
+
+                    _sectionTitle('Medical Information'),
+
+                    const SizedBox(height: 20),
+
+                    if (isDesktop)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedBloodGroup,
+                              decoration: _inputDecoration(
+                                'Blood Group',
+                                Icons.bloodtype_outlined,
+                              ),
+                              items: bloodGroups
+                                  .map(
+                                    (group) => DropdownMenuItem(
+                                      value: group,
+                                      child: Text(group),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) =>
+                                  setState(() => selectedBloodGroup = value),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            flex: 2,
+                            child: _textField(
+                              controller: _medicalAllergiesController,
+                              label: 'Medical Allergies (if any)',
+                              icon: Icons.medical_information_outlined,
+                              maxLines: 2,
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedBloodGroup,
+                        decoration: _inputDecoration(
+                          'Blood Group',
+                          Icons.bloodtype_outlined,
+                        ),
+                        items: bloodGroups
+                            .map(
+                              (group) => DropdownMenuItem(
+                                value: group,
+                                child: Text(group),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => selectedBloodGroup = value),
+                      ),
+                      const SizedBox(height: 16),
+                      _textField(
+                        controller: _medicalAllergiesController,
+                        label: 'Medical Allergies (if any)',
+                        icon: Icons.medical_information_outlined,
+                        maxLines: 3,
+                      ),
+                    ],
+
+                    const SizedBox(height: 35),
+
+                    _sectionTitle('Contact Information'),
+
+                    const SizedBox(height: 20),
 
                     _textField(
                       controller: _addressController,
@@ -878,6 +1107,84 @@ class _AddStudentPageState extends State<AddStudentPage> {
     );
   }
 
+  Widget _familyInformationRow({
+    required bool isDesktop,
+    required String relation,
+    required TextEditingController nameController,
+    required TextEditingController cnicController,
+    required TextEditingController phoneController,
+    bool nameRequired = false,
+  }) {
+    final fields = <Widget>[
+      _textField(
+        controller: nameController,
+        label: '$relation Name',
+        icon: Icons.family_restroom,
+        validator: nameRequired
+            ? (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return '$relation Name is required';
+                }
+                return null;
+              }
+            : null,
+      ),
+      _textField(
+        controller: cnicController,
+        label: '$relation CNIC #',
+        icon: Icons.credit_card_outlined,
+        keyboardType: TextInputType.number,
+        validator: _validateCnic,
+      ),
+      _textField(
+        controller: phoneController,
+        label: '$relation Mobile Number',
+        icon: Icons.phone_outlined,
+        keyboardType: TextInputType.phone,
+        validator: _validateMobile,
+      ),
+    ];
+    if (!isDesktop) {
+      return Column(
+        children: [
+          fields[0],
+          const SizedBox(height: 16),
+          fields[1],
+          const SizedBox(height: 16),
+          fields[2],
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: fields[0]),
+        const SizedBox(width: 20),
+        Expanded(child: fields[1]),
+        const SizedBox(width: 20),
+        Expanded(child: fields[2]),
+      ],
+    );
+  }
+
+  String? _validateCnic(String? value) {
+    final cnic = value?.trim() ?? '';
+    if (cnic.isEmpty) return null;
+    if (!RegExp(r'^\d{13}$').hasMatch(cnic)) {
+      return 'CNIC must contain exactly 13 digits';
+    }
+    return null;
+  }
+
+  String? _validateMobile(String? value) {
+    final mobile = value?.trim() ?? '';
+    if (mobile.isEmpty) return null;
+    if (!RegExp(r'^\d{11}$').hasMatch(mobile)) {
+      return 'Mobile number must contain exactly 11 digits';
+    }
+    return null;
+  }
+
   Widget _sectionTitle(String title) {
     return Text(
       title,
@@ -891,6 +1198,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    String? hintText,
+    String? helperText,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
@@ -898,7 +1207,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      decoration: _inputDecoration(label, icon),
+      decoration: _inputDecoration(
+        label,
+        icon,
+      ).copyWith(hintText: hintText, helperText: helperText),
     );
   }
 

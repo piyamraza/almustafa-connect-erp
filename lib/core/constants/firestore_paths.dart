@@ -38,4 +38,7 @@ class FirestorePaths {
   static const String notices = 'notices';
   static const String noticeReceipts = 'notice_receipts';
   static const String parentAccounts = 'parent_accounts';
+  static const String parentNotifications = 'parent_notifications';
+  static const String appRoles = 'app_roles';
+  static const String userRoleAssignments = 'user_roles';
 }

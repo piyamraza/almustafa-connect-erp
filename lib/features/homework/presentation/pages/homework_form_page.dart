@@ -43,6 +43,7 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
   HomeworkStatus _status = HomeworkStatus.draft;
   bool _loading = true;
   bool _uploading = false;
+  bool _saving = false;
   late final String _homeworkId;
 
   HomeworkEntity? get _source => widget.existing ?? widget.copyFrom;
@@ -187,109 +188,146 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving) return;
+
+    if (!_formKey.currentState!.validate()) {
+      _snack('Please complete all required fields.');
+      return;
+    }
+
     if ([_classId, _sectionId, _subjectId, _teacherId].contains(null)) {
       _snack('Class, section, subject and teacher are required.');
       return;
     }
 
-    final calendar = await sl<AcademicCalendarPolicyService>()
-        .validateHomeworkDueDate(
-          academicSession: widget.academicSession,
-          date: _due,
-        );
-    if (!calendar.allowed) {
-      if (calendar.suggestedDate == null) {
-        _snack(calendar.message);
-        return;
+    setState(() => _saving = true);
+
+    try {
+      final calendar = await sl<AcademicCalendarPolicyService>()
+          .validateHomeworkDueDate(
+            academicSession: widget.academicSession,
+            date: _due,
+          );
+
+      if (!mounted) return;
+
+      if (!calendar.allowed) {
+        if (calendar.suggestedDate == null) {
+          _snack(calendar.message);
+          return;
+        }
+
+        final useSuggested =
+            await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Invalid Due Date'),
+                content: Text(
+                  '${calendar.message}\n\n'
+                  'Suggested: ${_date(calendar.suggestedDate!)}',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: const Text('Use Suggested'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (!useSuggested) return;
+        _due = calendar.suggestedDate!;
       }
-      final useSuggested =
-          await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Invalid Due Date'),
-              content: Text(
-                '${calendar.message}\n\n'
-                'Suggested: ${_date(calendar.suggestedDate!)}',
+
+      final now = DateTime.now();
+      final old = widget.existing;
+
+      final homework = HomeworkEntity(
+        id: _homeworkId,
+        academicSession: widget.academicSession,
+        classId: _classId!,
+        className: _name(_classes, _classId),
+        sectionId: _sectionId!,
+        sectionName: _name(_sections, _sectionId),
+        subjectId: _subjectId!,
+        subjectName: _name(_subjects, _subjectId),
+        teacherId: _teacherId!,
+        teacherName: _teacherName(),
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        instructions: _instructions.text.trim(),
+        assignedDate: _assigned,
+        dueDate: _due,
+        status: _status,
+        attachments: _attachments,
+        createdBy: old?.createdBy ?? 'Admin',
+        updatedBy: 'Admin',
+        publishedBy: _status == HomeworkStatus.published
+            ? 'Admin'
+            : old?.publishedBy,
+        createdAt: old?.createdAt ?? now,
+        updatedAt: now,
+        publishedAt: _status == HomeworkStatus.published
+            ? old?.publishedAt ?? now
+            : old?.publishedAt,
+        sourceHomeworkId: widget.copyFrom?.id ?? old?.sourceHomeworkId,
+      );
+
+      final repository = sl<HomeworkRepository>();
+      final duplicate = await repository.duplicateExists(homework);
+
+      if (!mounted) return;
+
+      if (duplicate) {
+        final proceed =
+            await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Possible Duplicate'),
+                content: const Text(
+                  'Same title, class, section and subject already '
+                  'exist for this assigned date. Save anyway?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: const Text('Save Anyway'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  child: const Text('Use Suggested'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-      if (!useSuggested) return;
-      _due = calendar.suggestedDate!;
+            ) ??
+            false;
+
+        if (!proceed) return;
+      }
+
+      await repository.saveHomework(homework);
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (error, stackTrace) {
+      debugPrint('Homework save failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      _snack(
+        'Homework could not be saved: '
+        '${error.toString().replaceFirst('StateError: ', '')}',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
-
-    final now = DateTime.now();
-    final old = widget.existing;
-    final homework = HomeworkEntity(
-      id: _homeworkId,
-      academicSession: widget.academicSession,
-      classId: _classId!,
-      className: _name(_classes, _classId),
-      sectionId: _sectionId!,
-      sectionName: _name(_sections, _sectionId),
-      subjectId: _subjectId!,
-      subjectName: _name(_subjects, _subjectId),
-      teacherId: _teacherId!,
-      teacherName: _teacherName(),
-      title: _title.text.trim(),
-      description: _description.text.trim(),
-      instructions: _instructions.text.trim(),
-      assignedDate: _assigned,
-      dueDate: _due,
-      status: _status,
-      attachments: _attachments,
-      createdBy: old?.createdBy ?? 'Admin',
-      updatedBy: 'Admin',
-      publishedBy: _status == HomeworkStatus.published
-          ? 'Admin'
-          : old?.publishedBy,
-      createdAt: old?.createdAt ?? now,
-      updatedAt: now,
-      publishedAt: _status == HomeworkStatus.published
-          ? old?.publishedAt ?? now
-          : old?.publishedAt,
-      sourceHomeworkId: widget.copyFrom?.id ?? old?.sourceHomeworkId,
-    );
-
-    final duplicate = await sl<HomeworkRepository>().duplicateExists(homework);
-    if (duplicate && mounted) {
-      final proceed =
-          await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Possible Duplicate'),
-              content: const Text(
-                'Same title, class, section and subject already exist '
-                'for this assigned date. Save anyway?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  child: const Text('Save Anyway'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-      if (!proceed) return;
-    }
-
-    if (mounted) Navigator.pop(context, homework);
   }
 
   void _snack(String message) {
@@ -480,9 +518,14 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.save),
-                label: const Text('Save Homework'),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(_saving ? 'Saving...' : 'Save Homework'),
               ),
             ),
           ],

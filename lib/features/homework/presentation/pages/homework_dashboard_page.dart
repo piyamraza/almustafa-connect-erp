@@ -48,8 +48,8 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     HomeworkEntity? existing,
     HomeworkEntity? copyFrom,
   }) async {
-    final value = await Navigator.of(context).push<HomeworkEntity>(
-      MaterialPageRoute(
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => HomeworkFormPage(
           existing: existing,
           copyFrom: copyFrom,
@@ -57,8 +57,15 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
         ),
       ),
     );
-    if (value != null && mounted) {
-      context.read<HomeworkBloc>().add(SaveHomework(value));
+
+    if (saved == true && mounted) {
+      _load();
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Homework saved successfully.')),
+        );
     }
   }
 

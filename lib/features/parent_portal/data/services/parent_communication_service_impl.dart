@@ -5,8 +5,7 @@ import '../../domain/entities/parent_account_entity.dart';
 import '../../domain/entities/parent_communication_dashboard_entity.dart';
 import '../../domain/services/parent_communication_service.dart';
 
-class ParentCommunicationServiceImpl
-    implements ParentCommunicationService {
+class ParentCommunicationServiceImpl implements ParentCommunicationService {
   const ParentCommunicationServiceImpl(this._firestore);
 
   final FirebaseFirestore _firestore;
@@ -45,35 +44,23 @@ class ParentCommunicationServiceImpl
       academicSession,
     );
 
-    final calendarItems = _calendarItems(
-      values[7],
-      student,
-      academicSession,
-    );
+    final calendarItems = _calendarItems(values[7], student, academicSession);
 
     final totalOutstanding = fees.fold<double>(
       0,
-      (sum, item) => sum + (item.outstanding > 0 ? item.outstanding : 0),
+      (total, item) => total + (item.outstanding > 0 ? item.outstanding : 0),
     );
-    final unpaidCount =
-        fees.where((item) => item.outstanding > 0).length;
-    final unreadNoticeCount =
-        notices.where((item) => !item.isRead).length;
+    final unpaidCount = fees.where((item) => item.outstanding > 0).length;
+    final unreadNoticeCount = notices.where((item) => !item.isRead).length;
     final pendingAcknowledgementCount = notices
-        .where(
-          (item) =>
-              item.acknowledgementRequired &&
-              !item.isAcknowledged,
-        )
+        .where((item) => item.acknowledgementRequired && !item.isAcknowledged)
         .length;
     final now = DateTime.now();
     final upcomingEventCount = calendarItems
         .where(
           (item) =>
               item.startDate != null &&
-              !item.startDate!.isBefore(
-                DateTime(now.year, now.month, now.day),
-              ),
+              !item.startDate!.isBefore(DateTime(now.year, now.month, now.day)),
         )
         .length;
 
@@ -81,8 +68,7 @@ class ParentCommunicationServiceImpl
       totalOutstanding: totalOutstanding,
       unpaidCount: unpaidCount,
       unreadNoticeCount: unreadNoticeCount,
-      pendingAcknowledgementCount:
-          pendingAcknowledgementCount,
+      pendingAcknowledgementCount: pendingAcknowledgementCount,
       upcomingEventCount: upcomingEventCount,
       fees: fees,
       notices: notices,
@@ -112,8 +98,7 @@ class ParentCommunicationServiceImpl
       'readAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
       'createdAt': snapshot.exists
-          ? snapshot.data()?['createdAt'] ??
-              Timestamp.fromDate(now)
+          ? (snapshot.data()?['createdAt'] ?? Timestamp.fromDate(now))
           : Timestamp.fromDate(now),
     }, SetOptions(merge: true));
   }
@@ -143,8 +128,9 @@ class ParentCommunicationServiceImpl
     }, SetOptions(merge: true));
   }
 
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
-      _safeCollection(String name) async {
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _safeCollection(
+    String name,
+  ) async {
     try {
       return (await _firestore.collection(name).get()).docs;
     } catch (_) {
@@ -192,47 +178,35 @@ class ParentCommunicationServiceImpl
       if (!_belongsToStudent(map, student)) continue;
       if (!_matchesSession(map, session)) continue;
 
-      final amount = _number(
-            map,
-            ['totalAmount', 'amount', 'payableAmount'],
-          ) ??
-          0;
-      final paidAmount = paymentsByFee[doc.id] ??
-          (_number(map, ['paidAmount']) ?? 0);
+      final amount =
+          _number(map, ['totalAmount', 'amount', 'payableAmount']) ?? 0;
+      final paidAmount =
+          paymentsByFee[doc.id] ?? (_number(map, ['paidAmount']) ?? 0);
 
       items.add(
         ParentFeeItemEntity(
           id: doc.id,
-          title: _string(
-            map,
-            ['title', 'feeTitle', 'description'],
-            fallback: 'Monthly Fee',
-          ),
-          month: _string(
-            map,
-            ['monthName', 'month', 'feeMonth'],
-          ),
+          title: _string(map, [
+            'title',
+            'feeTitle',
+            'description',
+          ], fallback: 'Monthly Fee'),
+          month: _string(map, ['monthName', 'month', 'feeMonth']),
           amount: amount,
           paidAmount: paidAmount,
           status: paidAmount >= amount && amount > 0
               ? 'Paid'
-              : _string(
-                  map,
-                  ['status', 'paymentStatus'],
-                  fallback: 'Unpaid',
-                ),
+              : _string(map, ['status', 'paymentStatus'], fallback: 'Unpaid'),
           dueDate: _date(map, ['dueDate']),
-          challanUrl: challanByFee[doc.id] ??
-              _string(map, ['challanUrl']),
-          receiptUrl: receiptByFee[doc.id] ??
-              _string(map, ['receiptUrl']),
+          challanUrl: challanByFee[doc.id] ?? _string(map, ['challanUrl']),
+          receiptUrl: receiptByFee[doc.id] ?? _string(map, ['receiptUrl']),
         ),
       );
     }
 
     items.sort(
-      (a, b) => (b.dueDate ?? DateTime(1970))
-          .compareTo(a.dueDate ?? DateTime(1970)),
+      (a, b) =>
+          (b.dueDate ?? DateTime(1970)).compareTo(a.dueDate ?? DateTime(1970)),
     );
     return items;
   }
@@ -269,11 +243,11 @@ class ParentCommunicationServiceImpl
       if (expireAt != null && expireAt.isBefore(now)) continue;
 
       final receipt = receiptByNotice[doc.id];
-      final receiptStatus =
-          _string(receipt ?? const {}, ['status']).toLowerCase();
+      final receiptStatus = _string(receipt ?? const {}, [
+        'status',
+      ]).toLowerCase();
 
-      final rawAttachments =
-          map['attachments'] as List<dynamic>? ?? const [];
+      final rawAttachments = map['attachments'] as List<dynamic>? ?? const [];
       final attachmentUrls = rawAttachments
           .whereType<Map<String, dynamic>>()
           .map((item) => item['fileUrl']?.toString() ?? '')
@@ -285,15 +259,10 @@ class ParentCommunicationServiceImpl
           id: doc.id,
           title: _string(map, ['title'], fallback: 'Notice'),
           message: _string(map, ['message']),
-          priority: _string(
-            map,
-            ['priority'],
-            fallback: 'normal',
-          ),
+          priority: _string(map, ['priority'], fallback: 'normal'),
           publishAt: publishAt,
           expireAt: expireAt,
-          isRead: receiptStatus == 'read' ||
-              receiptStatus == 'acknowledged',
+          isRead: receiptStatus == 'read' || receiptStatus == 'acknowledged',
           acknowledgementRequired:
               map['acknowledgementRequired'] as bool? ?? false,
           isAcknowledged: receiptStatus == 'acknowledged',
@@ -303,8 +272,9 @@ class ParentCommunicationServiceImpl
     }
 
     items.sort(
-      (a, b) => (b.publishAt ?? DateTime(1970))
-          .compareTo(a.publishAt ?? DateTime(1970)),
+      (a, b) => (b.publishAt ?? DateTime(1970)).compareTo(
+        a.publishAt ?? DateTime(1970),
+      ),
     );
     return items;
   }
@@ -323,62 +293,36 @@ class ParentCommunicationServiceImpl
       items.add(
         ParentCalendarItemEntity(
           id: doc.id,
-          title: _string(
-            map,
-            ['title', 'eventName'],
-            fallback: 'School Event',
-          ),
-          type: _string(
-            map,
-            ['type', 'eventType'],
-            fallback: 'event',
-          ),
-          startDate: _date(
-            map,
-            ['startDate', 'date', 'eventDate'],
-          ),
+          title: _string(map, ['title', 'eventName'], fallback: 'School Event'),
+          type: _string(map, ['type', 'eventType'], fallback: 'event'),
+          startDate: _date(map, ['startDate', 'date', 'eventDate']),
           endDate: _date(map, ['endDate']),
-          description: _string(
-            map,
-            ['description', 'notes'],
-          ),
+          description: _string(map, ['description', 'notes']),
         ),
       );
     }
 
     items.sort(
-      (a, b) => (a.startDate ?? DateTime(2100))
-          .compareTo(b.startDate ?? DateTime(2100)),
+      (a, b) => (a.startDate ?? DateTime(2100)).compareTo(
+        b.startDate ?? DateTime(2100),
+      ),
     );
     return items;
   }
 
-  bool _noticeTargetsStudent(
-    Map<String, dynamic> map,
-    StudentEntity student,
-  ) {
-    final audience = _string(
-      map,
-      ['audienceType'],
-      fallback: 'wholeSchool',
-    );
+  bool _noticeTargetsStudent(Map<String, dynamic> map, StudentEntity student) {
+    final audience = _string(map, ['audienceType'], fallback: 'wholeSchool');
 
-    if ([
-      'wholeSchool',
-      'students',
-      'parents',
-    ].contains(audience)) {
+    if (['wholeSchool', 'students', 'parents'].contains(audience)) {
       return true;
     }
 
-    final classIds =
-        (map['classIds'] as List<dynamic>? ?? const [])
-            .map((e) => e.toString())
-            .toList();
-    final sectionIds =
-        (map['sectionIds'] as List<dynamic>? ?? const [])
-            .map((e) => e.toString())
-            .toList();
+    final classIds = (map['classIds'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList();
+    final sectionIds = (map['sectionIds'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList();
 
     if (audience == 'selectedClasses') {
       return classIds.contains(student.classId);
@@ -401,32 +345,16 @@ class ParentCommunicationServiceImpl
         (sectionId.isEmpty || sectionId == student.sectionId);
   }
 
-  bool _belongsToStudent(
-    Map<String, dynamic> map,
-    StudentEntity student,
-  ) {
-    final studentId = _string(
-      map,
-      ['studentId', 'studentID'],
-    );
-    final admissionNo = _string(
-      map,
-      ['admissionNo', 'admissionNumber'],
-    );
+  bool _belongsToStudent(Map<String, dynamic> map, StudentEntity student) {
+    final studentId = _string(map, ['studentId', 'studentID']);
+    final admissionNo = _string(map, ['admissionNo', 'admissionNumber']);
 
     return studentId == student.id ||
-        (admissionNo.isNotEmpty &&
-            admissionNo == student.admissionNo);
+        (admissionNo.isNotEmpty && admissionNo == student.admissionNo);
   }
 
-  bool _matchesSession(
-    Map<String, dynamic> map,
-    String session,
-  ) {
-    final value = _string(
-      map,
-      ['academicSession', 'session', 'academicYear'],
-    );
+  bool _matchesSession(Map<String, dynamic> map, String session) {
+    final value = _string(map, ['academicSession', 'session', 'academicYear']);
     return value.isEmpty || value == session;
   }
 
@@ -444,10 +372,7 @@ class ParentCommunicationServiceImpl
     return fallback;
   }
 
-  double? _number(
-    Map<String, dynamic> map,
-    List<String> keys,
-  ) {
+  double? _number(Map<String, dynamic> map, List<String> keys) {
     for (final key in keys) {
       final value = map[key];
       if (value is num) return value.toDouble();
@@ -457,10 +382,7 @@ class ParentCommunicationServiceImpl
     return null;
   }
 
-  DateTime? _date(
-    Map<String, dynamic> map,
-    List<String> keys,
-  ) {
+  DateTime? _date(Map<String, dynamic> map, List<String> keys) {
     for (final key in keys) {
       final value = map[key];
       if (value is Timestamp) return value.toDate();

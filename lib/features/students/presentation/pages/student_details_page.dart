@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/student_entity.dart';
+import '../bloc/student_bloc.dart';
 import 'add_student_page.dart';
 
 class StudentDetailsPage extends StatelessWidget {
   final StudentEntity student;
 
-  const StudentDetailsPage({
-    super.key,
-    required this.student,
-  });
+  const StudentDetailsPage({super.key, required this.student});
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -23,8 +22,9 @@ class StudentDetailsPage extends StatelessWidget {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddStudentPage(
-          student: student,
+        builder: (_) => BlocProvider.value(
+          value: context.read<StudentBloc>(),
+          child: AddStudentPage(student: student),
         ),
       ),
     );
@@ -36,77 +36,57 @@ class StudentDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool desktop =
-        MediaQuery.of(context).size.width >= 1000;
+    final bool desktop = MediaQuery.of(context).size.width >= 1000;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Details'),
-      ),
+      appBar: AppBar(title: const Text('Student Details')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 1400,
-            ),
+            constraints: const BoxConstraints(maxWidth: 1400),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Header(
-                  student: student,
-                  onEdit: () => _editStudent(context),
-                ),
+                _Header(student: student, onEdit: () => _editStudent(context)),
 
                 const SizedBox(height: 24),
 
                 if (desktop)
                   Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Column(
                           children: [
                             _InfoSection(
-                              title:
-                                  'Personal Information',
+                              title: 'Personal Information',
                               icon: Icons.person,
                               children: [
                                 _InfoTile(
                                   label: 'Full Name',
-                                  value:
-                                      student.fullName,
+                                  value: student.fullName,
                                 ),
                                 _InfoTile(
                                   label: 'Gender',
                                   value: student.gender,
                                 ),
                                 _InfoTile(
-                                  label:
-                                      'Date of Birth',
-                                  value: _formatDate(
-                                    student
-                                        .dateOfBirth,
-                                  ),
+                                  label: 'Date of Birth',
+                                  value: _formatDate(student.dateOfBirth),
                                 ),
                               ],
                             ),
 
-                            const SizedBox(
-                                height: 20),
+                            const SizedBox(height: 20),
 
                             _InfoSection(
-                              title:
-                                  'Academic Information',
+                              title: 'Academic Information',
                               icon: Icons.school,
                               children: [
                                 _InfoTile(
-                                  label:
-                                      'Admission No.',
-                                  value: student
-                                      .admissionNo,
+                                  label: 'Admission No.',
+                                  value: student.admissionNo,
                                 ),
                                 _InfoTile(
                                   label: 'Roll Number',
@@ -114,37 +94,28 @@ class StudentDetailsPage extends StatelessWidget {
                                 ),
                                 _InfoTile(
                                   label: 'Class',
-                                  value:
-                                      student.classId,
+                                  value: student.classId,
                                 ),
                                 _InfoTile(
                                   label: 'Section',
-                                  value: student
-                                      .sectionId,
+                                  value: student.sectionId,
                                 ),
                               ],
                             ),
 
-                            const SizedBox(
-                                height: 20),
+                            const SizedBox(height: 20),
 
                             _InfoSection(
-                              title:
-                                  'Parent Information',
-                              icon:
-                                  Icons.family_restroom,
+                              title: 'Parent Information',
+                              icon: Icons.family_restroom,
                               children: [
                                 _InfoTile(
-                                  label:
-                                      'Father Name',
-                                  value: student
-                                      .fatherName,
+                                  label: 'Father Name',
+                                  value: student.fatherName,
                                 ),
                                 _InfoTile(
-                                  label:
-                                      'Mother Name',
-                                  value: student
-                                      .motherName,
+                                  label: 'Mother Name',
+                                  value: student.motherName,
                                 ),
                               ],
                             ),
@@ -158,60 +129,42 @@ class StudentDetailsPage extends StatelessWidget {
                         child: Column(
                           children: [
                             _InfoSection(
-                              title:
-                                  'Contact Information',
+                              title: 'Contact Information',
                               icon: Icons.contact_mail,
                               children: [
                                 _InfoTile(
-                                  label:
-                                      'Mobile Number',
-                                  value: student
-                                      .guardianPhone,
+                                  label: 'Mobile Number',
+                                  value: student.guardianPhone,
                                 ),
                                 _InfoTile(
                                   label: 'Email',
-                                  value: student
-                                      .guardianEmail,
+                                  value: student.guardianEmail,
                                 ),
                                 _InfoTile(
                                   label: 'Address',
-                                  value:
-                                      student.address,
+                                  value: student.address,
                                   multiline: true,
                                 ),
                               ],
                             ),
 
-                            const SizedBox(
-                                height: 20),
+                            const SizedBox(height: 20),
 
                             _InfoSection(
-                              title:
-                                  'System Information',
+                              title: 'System Information',
                               icon: Icons.info,
                               children: [
                                 _InfoTile(
-                                  label:
-                                      'Student ID',
+                                  label: 'Student ID',
                                   value: student.id,
                                 ),
                                 _InfoTile(
-                                  label:
-                                      'Created Date',
-                                  value:
-                                      _formatDate(
-                                    student
-                                        .createdAt,
-                                  ),
+                                  label: 'Created Date',
+                                  value: _formatDate(student.createdAt),
                                 ),
                                 _InfoTile(
-                                  label:
-                                      'Updated Date',
-                                  value:
-                                      _formatDate(
-                                    student
-                                        .updatedAt,
-                                  ),
+                                  label: 'Updated Date',
+                                  value: _formatDate(student.updatedAt),
                                 ),
                               ],
                             ),
@@ -224,23 +177,17 @@ class StudentDetailsPage extends StatelessWidget {
                   Column(
                     children: [
                       _InfoSection(
-                        title:
-                            'Personal Information',
+                        title: 'Personal Information',
                         icon: Icons.person,
                         children: [
                           _InfoTile(
                             label: 'Full Name',
                             value: student.fullName,
                           ),
+                          _InfoTile(label: 'Gender', value: student.gender),
                           _InfoTile(
-                            label: 'Gender',
-                            value: student.gender,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Date of Birth',
-                            value: _formatDate(
-                                student.dateOfBirth),
+                            label: 'Date of Birth',
+                            value: _formatDate(student.dateOfBirth),
                           ),
                         ],
                       ),
@@ -248,28 +195,35 @@ class StudentDetailsPage extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       _InfoSection(
-                        title:
-                            'Academic Information',
+                        title: 'Academic Information',
                         icon: Icons.school,
                         children: [
                           _InfoTile(
-                            label:
-                                'Admission No.',
-                            value:
-                                student.admissionNo,
+                            label: 'Admission No.',
+                            value: student.admissionNo,
                           ),
                           _InfoTile(
                             label: 'Roll Number',
                             value: student.rollNumber,
                           ),
+                          _InfoTile(label: 'Class', value: student.classId),
+                          _InfoTile(label: 'Section', value: student.sectionId),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _InfoSection(
+                        title: 'Parent Information',
+                        icon: Icons.family_restroom,
+                        children: [
                           _InfoTile(
-                            label: 'Class',
-                            value: student.classId,
+                            label: 'Father Name',
+                            value: student.fatherName,
                           ),
                           _InfoTile(
-                            label: 'Section',
-                            value:
-                                student.sectionId,
+                            label: 'Mother Name',
+                            value: student.motherName,
                           ),
                         ],
                       ),
@@ -277,49 +231,20 @@ class StudentDetailsPage extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       _InfoSection(
-                        title:
-                            'Parent Information',
-                        icon:
-                            Icons.family_restroom,
+                        title: 'Contact Information',
+                        icon: Icons.contact_mail,
                         children: [
                           _InfoTile(
-                            label:
-                                'Father Name',
-                            value:
-                                student.fatherName,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Mother Name',
-                            value:
-                                student.motherName,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      _InfoSection(
-                        title:
-                            'Contact Information',
-                        icon:
-                            Icons.contact_mail,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Mobile Number',
-                            value: student
-                                .guardianPhone,
+                            label: 'Mobile Number',
+                            value: student.guardianPhone,
                           ),
                           _InfoTile(
                             label: 'Email',
-                            value: student
-                                .guardianEmail,
+                            value: student.guardianEmail,
                           ),
                           _InfoTile(
                             label: 'Address',
-                            value:
-                                student.address,
+                            value: student.address,
                             multiline: true,
                           ),
                         ],
@@ -328,28 +253,17 @@ class StudentDetailsPage extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       _InfoSection(
-                        title:
-                            'System Information',
+                        title: 'System Information',
                         icon: Icons.info,
                         children: [
+                          _InfoTile(label: 'Student ID', value: student.id),
                           _InfoTile(
-                            label:
-                                'Student ID',
-                            value: student.id,
+                            label: 'Created Date',
+                            value: _formatDate(student.createdAt),
                           ),
                           _InfoTile(
-                            label:
-                                'Created Date',
-                            value: _formatDate(
-                                student
-                                    .createdAt),
-                          ),
-                          _InfoTile(
-                            label:
-                                'Updated Date',
-                            value: _formatDate(
-                                student
-                                    .updatedAt),
+                            label: 'Updated Date',
+                            value: _formatDate(student.updatedAt),
                           ),
                         ],
                       ),
@@ -368,15 +282,11 @@ class _Header extends StatelessWidget {
   final StudentEntity student;
   final VoidCallback onEdit;
 
-  const _Header({
-    required this.student,
-    required this.onEdit,
-  });
+  const _Header({required this.student, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
-    final desktop =
-        MediaQuery.of(context).size.width >= 800;
+    final desktop = MediaQuery.of(context).size.width >= 800;
 
     return Card(
       elevation: 1,
@@ -390,10 +300,8 @@ class _Header extends StatelessWidget {
                   Expanded(child: _info()),
                   FilledButton.icon(
                     onPressed: onEdit,
-                    icon:
-                        const Icon(Icons.edit),
-                    label: const Text(
-                        'Edit Student'),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Student'),
                   ),
                 ],
               )
@@ -407,10 +315,8 @@ class _Header extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: onEdit,
-                      icon: const Icon(
-                          Icons.edit),
-                      label: const Text(
-                          'Edit Student'),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit Student'),
                     ),
                   ),
                 ],
@@ -422,43 +328,31 @@ class _Header extends StatelessWidget {
   Widget _avatar() {
     return CircleAvatar(
       radius: 55,
-      backgroundImage:
-          student.profileImageUrl.isNotEmpty
-              ? NetworkImage(
-                  student.profileImageUrl)
-              : null,
-      child:
-          student.profileImageUrl.isEmpty
-              ? const Icon(
-                  Icons.person,
-                  size: 55,
-                )
-              : null,
+      backgroundImage: student.profileImageUrl.isNotEmpty
+          ? NetworkImage(student.profileImageUrl)
+          : null,
+      child: student.profileImageUrl.isEmpty
+          ? const Icon(Icons.person, size: 55)
+          : null,
     );
   }
 
   Widget _info() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           student.fullName,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
-        Text(
-          'Admission No: ${student.admissionNo}',
-        ),
+        Text('Admission No: ${student.admissionNo}'),
         const SizedBox(height: 4),
-        Text('Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}'),
-        const SizedBox(height: 14),
-        _StatusChip(
-          active: student.isActive,
+        Text(
+          'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
         ),
+        const SizedBox(height: 14),
+        _StatusChip(active: student.isActive),
       ],
     );
   }
@@ -467,24 +361,17 @@ class _Header extends StatelessWidget {
 class _StatusChip extends StatelessWidget {
   final bool active;
 
-  const _StatusChip({
-    required this.active,
-  });
+  const _StatusChip({required this.active});
 
   @override
   Widget build(BuildContext context) {
     return Chip(
       avatar: Icon(
-        active
-            ? Icons.check_circle
-            : Icons.cancel,
+        active ? Icons.check_circle : Icons.cancel,
         size: 18,
         color: Colors.white,
       ),
-      backgroundColor:
-          active
-              ? Colors.green
-              : Colors.red,
+      backgroundColor: active ? Colors.green : Colors.red,
       label: Text(
         active ? 'Active' : 'Inactive',
         style: const TextStyle(
@@ -495,6 +382,7 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
+
 class _InfoSection extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -514,8 +402,7 @@ class _InfoSection extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -523,13 +410,9 @@ class _InfoSection extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -555,12 +438,10 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayValue =
-        value.trim().isEmpty ? '-' : value;
+    final displayValue = value.trim().isEmpty ? '-' : value;
 
     return Padding(
-      padding:
-          const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Row(
         crossAxisAlignment: multiline
             ? CrossAxisAlignment.start
@@ -580,10 +461,7 @@ class _InfoTile extends StatelessWidget {
           Expanded(
             child: SelectableText(
               displayValue,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 15,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
             ),
           ),
         ],

@@ -11,6 +11,9 @@ import 'parent_academic_dashboard_page.dart';
 
 import 'parent_communication_dashboard_page.dart';
 
+import 'parent_notification_center_page.dart';
+import 'parent_timeline_page.dart';
+
 class ParentPortalDashboardPage extends StatelessWidget {
   const ParentPortalDashboardPage({super.key});
 
@@ -44,7 +47,35 @@ class _ParentPortalDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Parent Portal')),
+      appBar: AppBar(
+        title: const Text('Parent Portal'),
+        actions: [
+          BlocBuilder<ParentPortalBloc, ParentPortalState>(
+            builder: (context, state) {
+              if (state is! ParentPortalLoaded ||
+                  state.selectedParent == null) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                tooltip: 'Notifications',
+                onPressed: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ParentNotificationCenterPage(
+                        parent: state.selectedParent!,
+                        studentId: state.linkedStudents.isEmpty
+                            ? null
+                            : state.linkedStudents.first.id,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.notifications_outlined),
+              );
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openParentForm(context),
         icon: const Icon(Icons.person_add_alt_1),
@@ -354,6 +385,7 @@ class _PortalModulesGrid extends StatelessWidget {
       ('Academic Calendar', Icons.event_outlined),
       ('Notices', Icons.campaign_outlined),
       ('Teacher Remarks', Icons.comment_outlined),
+      ('Timeline', Icons.timeline),
       ('Medical Alert', Icons.medical_information_outlined),
     ];
 
@@ -418,6 +450,17 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
+                  if (module.$1 == 'Timeline') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ParentTimelinePage(
+                          parent: parent,
+                          student: student,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(

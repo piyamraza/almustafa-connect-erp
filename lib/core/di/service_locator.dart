@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../features/academic_structure/data/datasources/academic_structure_remote_datasource.dart';
 import '../../features/academic_structure/data/repositories/academic_structure_repository_impl.dart';
@@ -233,6 +234,24 @@ import '../../features/parent_portal/data/services/parent_communication_service_
 import '../../features/parent_portal/domain/services/parent_communication_service.dart';
 import '../../features/parent_portal/presentation/bloc/parent_communication_bloc.dart';
 
+import '../../features/parent_portal/data/repositories/parent_notification_repository_impl.dart';
+import '../../features/parent_portal/domain/repositories/parent_notification_repository.dart';
+import '../../features/parent_portal/data/services/parent_timeline_service_impl.dart';
+import '../../features/parent_portal/domain/services/parent_timeline_service.dart';
+import '../../features/parent_portal/presentation/bloc/parent_notification_bloc.dart';
+
+import '../../features/access_control/data/repositories/app_role_repository_impl.dart';
+import '../../features/access_control/domain/repositories/app_role_repository.dart';
+import '../../features/access_control/presentation/bloc/app_role_bloc.dart';
+
+import '../../features/access_control/data/repositories/user_role_assignment_repository_impl.dart';
+import '../../features/access_control/domain/repositories/user_role_assignment_repository.dart';
+import '../../features/access_control/presentation/bloc/user_role_assignment_bloc.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../features/access_control/data/services/access_control_service_impl.dart';
+import '../../features/access_control/domain/services/access_control_service.dart';
+
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
@@ -241,10 +260,14 @@ Future<void> setupServiceLocator() async {
   // =========================================================
 
   sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
+  sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
   sl.registerLazySingleton<FirebaseFirestoreService>(
     FirebaseFirestoreService.new,
+  );
+  sl.registerLazySingleton<FirebaseFirestore>(
+    () => sl<FirebaseFirestoreService>().instance,
   );
 
   // =========================================================
@@ -462,6 +485,26 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<HomeworkAttachmentService>(
     () => HomeworkAttachmentServiceImpl(sl<FirebaseStorage>()),
+  );
+  sl.registerLazySingleton<AccessControlService>(
+    () => AccessControlServiceImpl(
+      sl<FirebaseAuth>(),
+      sl<UserRoleAssignmentRepository>(),
+      sl<AppRoleRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<UserRoleAssignmentRepository>(
+    () => UserRoleAssignmentRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<AppRoleRepository>(
+    () => AppRoleRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<ParentNotificationRepository>(
+    () => ParentNotificationRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+
+  sl.registerLazySingleton<ParentTimelineService>(
+    () => ParentTimelineServiceImpl(sl<FirebaseFirestore>()),
   );
   sl.registerLazySingleton<ParentCommunicationService>(
     () => ParentCommunicationServiceImpl(sl<FirebaseFirestore>()),
@@ -800,6 +843,13 @@ Future<void> setupServiceLocator() async {
   );
   // BLoCs
   // =========================================================
+  sl.registerFactory<UserRoleAssignmentBloc>(
+    () => UserRoleAssignmentBloc(sl<UserRoleAssignmentRepository>()),
+  );
+  sl.registerFactory<AppRoleBloc>(() => AppRoleBloc(sl<AppRoleRepository>()));
+  sl.registerFactory<ParentNotificationBloc>(
+    () => ParentNotificationBloc(sl<ParentNotificationRepository>()),
+  );
   sl.registerFactory<ParentCommunicationBloc>(
     () => ParentCommunicationBloc(sl<ParentCommunicationService>()),
   );

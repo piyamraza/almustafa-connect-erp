@@ -1,267 +1,385 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/di/service_locator.dart';
+import '../../../access_control/domain/entities/app_permission.dart';
+import '../../../access_control/domain/services/access_control_service.dart';
+import '../../../access_control/presentation/pages/roles_permissions_page.dart';
+import '../../../access_control/presentation/pages/unauthorized_access_page.dart';
+import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../exams/presentation/pages/exam_date_sheet_dashboard_page.dart';
-import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
 import '../../../exams/presentation/pages/examination_dashboard_page.dart';
+import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
+import '../../../homework/presentation/pages/homework_dashboard_page.dart';
+import '../../../notices/presentation/pages/notices_dashboard_page.dart';
+import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../staff/presentation/pages/add_staff_page.dart';
 import '../../../staff/presentation/pages/staff_attendance_page.dart';
-import '../../../staff/presentation/pages/staff_salary_page.dart';
-import '../../../staff/presentation/pages/staff_leave_page.dart';
 import '../../../staff/presentation/pages/staff_dashboard_page.dart';
+import '../../../staff/presentation/pages/staff_leave_page.dart';
 import '../../../staff/presentation/pages/staff_list_page.dart';
+import '../../../staff/presentation/pages/staff_salary_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
 import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
 
-import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
-
-import '../../../homework/presentation/pages/homework_dashboard_page.dart';
-
-import '../../../notices/presentation/pages/notices_dashboard_page.dart';
-
-import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
-
-class Sidebar extends StatelessWidget {
+class Sidebar extends StatefulWidget {
   const Sidebar({super.key});
+
+  @override
+  State<Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<Sidebar> {
+  late final AccessControlService _access;
+
+  @override
+  void initState() {
+    super.initState();
+    _access = sl<AccessControlService>();
+    _access.addListener(_refresh);
+    _access.loadCurrentAccess();
+  }
+
+  @override
+  void dispose() {
+    _access.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _open(
+    BuildContext context, {
+    required AppPermission permission,
+    required String moduleName,
+    required Widget page,
+  }) {
+    if (!_access.hasPermission(permission)) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => UnauthorizedAccessPage(moduleName: moduleName),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF263238),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Text(
-              'MAIN MENU',
-              style: TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-          _menuTile(
-            context,
-            icon: Icons.school,
-            title: 'Students',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const StudentsPage()),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.person,
-            title: 'Teachers',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const TeachersModulePage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.badge,
-            title: 'Staff',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (staffDashboardContext) {
-                    return StaffDashboardPage(
-                      onViewStaff: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const StaffListPage(),
-                          ),
-                        );
-                      },
-                      onAttendance: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const StaffAttendancePage(),
-                          ),
-                        );
-                      },
-                      onLeave: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const StaffLeavePage(),
-                          ),
-                        );
-                      },
-                      onSalary: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const StaffSalaryPage(),
-                          ),
-                        );
-                      },
-                      onAddStaff: () {
-                        Navigator.of(staffDashboardContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const AddStaffPage(),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.class_,
-            title: 'Classes',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ClassSectionManagementPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.fact_check,
-            title: 'Attendance',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const AttendancePage()),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.payments,
-            title: 'Fee Management',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const FeeManagementDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.quiz,
-            title: 'Examinations',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ExaminationDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.calendar_month_outlined,
-            title: 'Date Sheets',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ExamDateSheetDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.grade,
-            title: 'Results',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ResultsModulePage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.schedule,
-            title: 'Timetable',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const TimetableDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.menu_book_outlined,
-            title: 'Homework Management',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const HomeworkDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.calendar_today_outlined,
-            title: 'Academic Calendar',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AcademicCalendarPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.campaign_outlined,
-            title: 'Notices & Circulars',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const NoticesDashboardPage(),
-                ),
-              );
-            },
-          ),
-
-          _menuTile(
-            context,
-            icon: Icons.family_restroom,
-            title: 'Parents',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ParentPortalDashboardPage(),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            context,
-            icon: Icons.assessment,
-            title: 'Reports',
-            onTap: () {},
-          ),
-          _menuTile(
-            context,
-            icon: Icons.settings,
-            title: 'Settings',
-            onTap: () {},
-          ),
-        ],
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF14243A), Color(0xFF0B1728)],
+        ),
       ),
+      child: _access.isLoading || !_access.isLoaded
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : ListView(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Text(
+                    'MAIN MENU',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                if (_access.isBootstrapAccess)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: Text(
+                      'Bootstrap access: assign this user a role.',
+                      style: TextStyle(color: Colors.amberAccent, fontSize: 12),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.studentsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.school,
+                    title: 'Students',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.studentsView,
+                      moduleName: 'Students',
+                      page: const StudentsPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.teachersView))
+                  _menuTile(
+                    context,
+                    icon: Icons.person,
+                    title: 'Teachers',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.teachersView,
+                      moduleName: 'Teachers',
+                      page: const TeachersModulePage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.staffView))
+                  _menuTile(
+                    context,
+                    icon: Icons.badge,
+                    title: 'Staff',
+                    onTap: () {
+                      if (!_access.hasPermission(AppPermission.staffView)) {
+                        _open(
+                          context,
+                          permission: AppPermission.staffView,
+                          moduleName: 'Staff',
+                          page: const SizedBox.shrink(),
+                        );
+                        return;
+                      }
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (staffDashboardContext) {
+                            return StaffDashboardPage(
+                              onViewStaff: () {
+                                Navigator.of(staffDashboardContext).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const StaffListPage(),
+                                  ),
+                                );
+                              },
+                              onAttendance: () {
+                                Navigator.of(staffDashboardContext).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const StaffAttendancePage(),
+                                  ),
+                                );
+                              },
+                              onLeave: () {
+                                Navigator.of(staffDashboardContext).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const StaffLeavePage(),
+                                  ),
+                                );
+                              },
+                              onSalary: () {
+                                Navigator.of(staffDashboardContext).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const StaffSalaryPage(),
+                                  ),
+                                );
+                              },
+                              onAddStaff: () {
+                                if (!_access.hasPermission(
+                                  AppPermission.staffCreate,
+                                )) {
+                                  Navigator.of(staffDashboardContext).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          const UnauthorizedAccessPage(
+                                            moduleName: 'Create Staff',
+                                          ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                Navigator.of(staffDashboardContext).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const AddStaffPage(),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                if (_access.hasPermission(AppPermission.classesView))
+                  _menuTile(
+                    context,
+                    icon: Icons.class_,
+                    title: 'Classes',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.classesView,
+                      moduleName: 'Classes',
+                      page: const ClassSectionManagementPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.attendanceView))
+                  _menuTile(
+                    context,
+                    icon: Icons.fact_check,
+                    title: 'Attendance',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.attendanceView,
+                      moduleName: 'Attendance',
+                      page: const AttendancePage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.feesView))
+                  _menuTile(
+                    context,
+                    icon: Icons.payments,
+                    title: 'Fee Management',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.feesView,
+                      moduleName: 'Fee Management',
+                      page: const FeeManagementDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.examsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.quiz,
+                    title: 'Examinations',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.examsView,
+                      moduleName: 'Examinations',
+                      page: const ExaminationDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.dateSheetsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.calendar_month_outlined,
+                    title: 'Date Sheets',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.dateSheetsView,
+                      moduleName: 'Date Sheets',
+                      page: const ExamDateSheetDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.resultsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.grade,
+                    title: 'Results',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.resultsView,
+                      moduleName: 'Results',
+                      page: const ResultsModulePage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.timetableView))
+                  _menuTile(
+                    context,
+                    icon: Icons.schedule,
+                    title: 'Timetable',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.timetableView,
+                      moduleName: 'Timetable',
+                      page: const TimetableDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.homeworkView))
+                  _menuTile(
+                    context,
+                    icon: Icons.menu_book_outlined,
+                    title: 'Homework Management',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.homeworkView,
+                      moduleName: 'Homework Management',
+                      page: const HomeworkDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.calendarView))
+                  _menuTile(
+                    context,
+                    icon: Icons.calendar_today_outlined,
+                    title: 'Academic Calendar',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.calendarView,
+                      moduleName: 'Academic Calendar',
+                      page: const AcademicCalendarPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.noticesView))
+                  _menuTile(
+                    context,
+                    icon: Icons.campaign_outlined,
+                    title: 'Notices & Circulars',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.noticesView,
+                      moduleName: 'Notices & Circulars',
+                      page: const NoticesDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.parentsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.family_restroom,
+                    title: 'Parents',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.parentsView,
+                      moduleName: 'Parent Portal',
+                      page: const ParentPortalDashboardPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.reportsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.assessment,
+                    title: 'Reports',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Reports module will be connected next.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                if (_access.hasPermission(AppPermission.rolesManage))
+                  _menuTile(
+                    context,
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: 'Roles & Permissions',
+                    onTap: () => _open(
+                      context,
+                      permission: AppPermission.rolesManage,
+                      moduleName: 'Roles & Permissions',
+                      page: const RolesPermissionsPage(),
+                    ),
+                  ),
+                if (_access.hasPermission(AppPermission.settingsView))
+                  _menuTile(
+                    context,
+                    icon: Icons.settings,
+                    title: 'Settings',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Settings module is not connected yet.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
     );
   }
 
@@ -271,10 +389,51 @@ class Sidebar extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
   }) {
+    final color = _menuColor(title);
     return ListTile(
-      leading: Icon(icon, color: Colors.white),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .18),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: .28)),
+        ),
+        child: Icon(icon, color: color, size: 21),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFFEAF0F8),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      hoverColor: color.withValues(alpha: .10),
       onTap: onTap,
     );
+  }
+
+  Color _menuColor(String title) {
+    return switch (title) {
+      'Students' => const Color(0xFF61A5FA),
+      'Teachers' => const Color(0xFF4ADE80),
+      'Staff' => const Color(0xFFFBBF24),
+      'Classes' => const Color(0xFFC084FC),
+      'Attendance' => const Color(0xFF2DD4BF),
+      'Fee Management' => const Color(0xFF34D399),
+      'Examinations' => const Color(0xFFF472B6),
+      'Date Sheets' => const Color(0xFF38BDF8),
+      'Results' => const Color(0xFFFACC15),
+      'Timetable' => const Color(0xFFA78BFA),
+      'Homework Management' => const Color(0xFFFB923C),
+      'Academic Calendar' => const Color(0xFF22D3EE),
+      'Notices & Circulars' => const Color(0xFFFB7185),
+      'Parents' => const Color(0xFF818CF8),
+      'Reports' => const Color(0xFF60A5FA),
+      'Roles & Permissions' => const Color(0xFFE879F9),
+      _ => const Color(0xFF94A3B8),
+    };
   }
 }
