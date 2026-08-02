@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -22,7 +23,7 @@ class AttendanceDateListPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<AttendanceBloc>()..add(const LoadAttendanceEvent()),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Attendance Dates')),
+        appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Attendance Dates')),
         body: BlocBuilder<AttendanceBloc, AttendanceState>(
           builder: (context, state) {
             if (state is AttendanceLoading) {

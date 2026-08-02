@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -65,7 +66,7 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
     }
 
     final content = Scaffold(
-      appBar: AppBar(title: const Text('Student Attendance')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Student Attendance')),
       body: BlocBuilder<AttendanceBloc, AttendanceState>(
         builder: (context, state) {
           if (state is AttendanceLoading) {

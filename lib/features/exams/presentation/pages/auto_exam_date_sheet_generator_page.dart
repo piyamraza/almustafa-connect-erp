@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -200,7 +201,7 @@ class _AutoExamDateSheetGeneratorViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Auto Date Sheet Generator')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Auto Date Sheet Generator')),
       body: SafeArea(
         child: BlocConsumer<ExamDateSheetGeneratorBloc, ExamDateSheetGeneratorState>(
           listener: (context, state) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
@@ -81,7 +82,7 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F7FB),
-    appBar: AppBar(title: const Text('Additional Charges Management')),
+    appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Additional Charges Management')),
     body: BlocConsumer<AdditionalChargesBloc, AdditionalChargesState>(
       listener: (context, state) {
         if (state is AdditionalChargesLoaded && state.message != null) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../domain/entities/academic_class_entity.dart';
 import '../../domain/entities/academic_subject_entity.dart';
@@ -218,7 +219,7 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.academicClass.name} Subjects')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text('${widget.academicClass.name} Subjects')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _saveSubject(),
         icon: const Icon(Icons.add),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../domain/entities/staff_entity.dart';
 
@@ -19,7 +20,7 @@ class StaffDetailsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Staff Details'),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Edit Staff',
             onPressed: onEdit,

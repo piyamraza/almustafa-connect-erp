@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -128,7 +129,7 @@ class _AddStaffLeaveViewState
     return BlocListener<StaffLeaveBloc, StaffLeaveState>(
       listener: _handleState,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: AppBar(actions: const [DashboardNavigationButton()],
           title: const Text('Add Staff Leave'),
         ),
         body: SafeArea(

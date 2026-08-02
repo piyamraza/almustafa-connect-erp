@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -103,7 +104,7 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
         elevation: 0,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
-        actions: [
+        actions: [const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Process Schedule',
             onPressed: _processSchedule,

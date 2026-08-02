@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -107,7 +108,7 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Academic Assignments')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Academic Assignments')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

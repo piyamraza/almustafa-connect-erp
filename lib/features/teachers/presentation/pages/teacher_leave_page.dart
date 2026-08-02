@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class TeacherLeavePage extends StatefulWidget {
   const TeacherLeavePage({super.key});
@@ -44,7 +45,7 @@ class _TeacherLeavePageState extends State<TeacherLeavePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Leave Management')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Leave Management')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

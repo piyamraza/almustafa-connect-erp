@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -130,7 +131,7 @@ class _ExamFormPageState extends State<ExamFormPage> {
   Widget build(BuildContext context) {
     final title = _isEditing ? 'Edit Exam' : 'Add Exam';
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text(title)),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(

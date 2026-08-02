@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'auto_timetable_generator_page.dart';
 import 'class_timetable_page.dart';
@@ -150,7 +151,7 @@ class TimetableDashboardPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Timetable Management')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Timetable Management')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

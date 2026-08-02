@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../data/services/access_control_migration_service.dart';
@@ -82,7 +83,7 @@ class _AccessControlProductionReadinessPageState
     final issues = _issues;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Access Control Production Readiness')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Access Control Production Readiness')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

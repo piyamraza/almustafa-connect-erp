@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -440,7 +441,7 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: AppBar(title: const Text('Student Fee Assignment')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Student Fee Assignment')),
       body: SafeArea(
         child: BlocConsumer<StudentFeeAssignmentBloc, StudentFeeAssignmentState>(
           listener: (context, state) {

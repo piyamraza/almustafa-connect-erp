@@ -822,6 +822,20 @@ function Add-AfterAnchor {
     return $Content.Replace($Anchor, "$Anchor`r`n$Addition")
 }
 
+function Add-BeforeAnchor {
+    param(
+        [Parameter(Mandatory = $true)][string]$Content,
+        [Parameter(Mandatory = $true)][string]$Anchor,
+        [Parameter(Mandatory = $true)][string]$Addition,
+        [Parameter(Mandatory = $true)][string]$FileLabel
+    )
+    $matches = ([regex]::Matches($Content, [regex]::Escape($Anchor))).Count
+    if ($matches -ne 1) {
+        throw "Expected exactly one integration anchor in ${FileLabel}, found ${matches}: $Anchor"
+    }
+    return $Content.Replace($Anchor, "$Addition`r`n$Anchor")
+}
+
 # Preflight every anchor and prepare all modified content before any write.
 $pathsContent = Get-Content -LiteralPath $pathsPath -Raw
 if (-not $pathsContent.Contains("static const String additionalCharges = 'additional_charges';")) {
@@ -850,11 +864,6 @@ if (-not $locatorContent.Contains("domain/repositories/additional_charge_reposit
         -FileLabel $locatorRelative
 }
 
-$registrationAnchor = @'
-  sl.registerLazySingleton<MonthlyFeeDueRepository>(
-    () => MonthlyFeeDueRepositoryImpl(sl<FirebaseFirestoreService>()),
-  );
-'@
 $registrations = @'
   sl.registerLazySingleton<AdditionalChargeRepository>(
     () => AdditionalChargeRepositoryImpl(sl<FirebaseFirestoreService>()),
@@ -866,9 +875,8 @@ $registrations = @'
   );
 '@
 if (-not $locatorContent.Contains('registerLazySingleton<AdditionalChargeRepository>')) {
-    $normalizedAnchor = $registrationAnchor.TrimEnd("`r", "`n")
-    $locatorContent = Add-AfterAnchor -Content $locatorContent `
-        -Anchor $normalizedAnchor `
+    $locatorContent = Add-BeforeAnchor -Content $locatorContent `
+        -Anchor '  sl.registerLazySingleton<GenerateMonthlyFees>(' `
         -Addition $registrations.TrimEnd("`r", "`n") `
         -FileLabel $locatorRelative
 } elseif (-not $locatorContent.Contains('registerLazySingleton<StudentAdditionalChargeDueRepository>')) {
@@ -913,10 +921,8 @@ foreach ($entry in $generatedFiles.GetEnumerator()) {
     )
 }
 
-& $dartCommand.Source format `
-    $pathsRelative `
-    $locatorRelative `
-    @($generatedFiles.Keys)
+$formatTargets = @($pathsRelative, $locatorRelative) + @($generatedFiles.Keys)
+& $dartCommand.Source format $formatTargets
 if ($LASTEXITCODE -ne 0) {
     throw "dart format failed. Backups are available at: $backupRoot"
 }

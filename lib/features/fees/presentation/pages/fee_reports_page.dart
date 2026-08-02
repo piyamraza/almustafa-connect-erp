@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -84,7 +85,7 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Fee Reports')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Reports')),
       body: SafeArea(
         child: BlocConsumer<FeeReportsBloc, FeeReportsState>(
           listener: (context, state) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -157,7 +158,7 @@ class _TeacherTimetableViewState extends State<_TeacherTimetableView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Teacher Timetable')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teacher Timetable')),
       body: SafeArea(
         child: BlocConsumer<TeacherTimetableBloc, TeacherTimetableState>(
           listener: (context, state) {

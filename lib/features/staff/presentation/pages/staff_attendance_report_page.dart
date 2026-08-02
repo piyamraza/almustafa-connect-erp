@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
@@ -115,7 +116,7 @@ class _StaffAttendanceReportPageState extends State<StaffAttendanceReportPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Staff Attendance Report'),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Previous Month',
             onPressed: _showPreviousMonth,

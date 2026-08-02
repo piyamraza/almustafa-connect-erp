@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/student_entity.dart';
@@ -39,7 +40,7 @@ class StudentDetailsPage extends StatelessWidget {
     final bool desktop = MediaQuery.of(context).size.width >= 1000;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Details')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Student Details')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(

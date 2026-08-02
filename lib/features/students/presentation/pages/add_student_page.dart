@@ -13,6 +13,7 @@ import '../bloc/student_state.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class AddStudentPage extends StatefulWidget {
   final StudentEntity? student;
@@ -578,7 +579,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
+        appBar: AppBar(actions: const [DashboardNavigationButton()],
           title: Text(widget.isEdit ? 'Edit Student' : 'Add Student'),
         ),
         body: Form(

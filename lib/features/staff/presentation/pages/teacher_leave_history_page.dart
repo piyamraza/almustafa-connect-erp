@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -94,7 +95,7 @@ class _TeacherLeaveHistoryViewState extends State<_TeacherLeaveHistoryView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Teacher Leave History')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teacher Leave History')),
       body: SafeArea(
         child: FutureBuilder<List<TeacherEntity>>(
           future: _teachersFuture,

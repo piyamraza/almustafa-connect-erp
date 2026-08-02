@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -35,7 +36,7 @@ class StaffPayrollReportPage extends StatelessWidget {
           ),
         ),
       child: Scaffold(
-        appBar: AppBar(
+        appBar: AppBar(actions: const [DashboardNavigationButton()],
           title: const Text('Monthly Payroll Report'),
         ),
         body: BlocBuilder<

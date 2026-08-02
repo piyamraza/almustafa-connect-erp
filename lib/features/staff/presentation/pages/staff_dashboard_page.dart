@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class StaffDashboardPage extends StatelessWidget {
   const StaffDashboardPage({
@@ -19,7 +20,7 @@ class StaffDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Staff Management')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Staff Management')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -190,7 +191,7 @@ class _StaffLeaveViewState extends State<_StaffLeaveView> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Staff Leave Management'),
-          actions: [
+          actions: [const DashboardNavigationButton(),
             IconButton(
               tooltip: 'Leave Report',
               onPressed: _openLeaveReport,

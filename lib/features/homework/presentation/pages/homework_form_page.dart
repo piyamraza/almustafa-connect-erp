@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_calendar/domain/services/academic_calendar_policy_service.dart';
@@ -344,7 +345,7 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(actions: const [DashboardNavigationButton()],
         title: Text(
           widget.existing != null
               ? 'Edit Homework'

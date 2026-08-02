@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../domain/entities/attendance_entity.dart';
@@ -71,7 +72,7 @@ class _StudentAttendanceHistoryDetailPageState
     final records = _filteredRecords;
     final statistics = _StudentStatistics.fromRecords(records);
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Attendance History')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Student Attendance History')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

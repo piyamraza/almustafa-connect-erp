@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -249,7 +250,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
       ],
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(
+          appBar: AppBar(actions: const [DashboardNavigationButton()],
             title: Text(_isChoosingClass ? 'Mark Attendance' : _selectedClass!),
             leading: _isChoosingClass
                 ? null

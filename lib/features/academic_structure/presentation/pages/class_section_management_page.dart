@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/academic_class_entity.dart';
@@ -102,7 +103,7 @@ class _ClassSectionManagementPageState extends State<ClassSectionManagementPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Classes')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Classes')),
       floatingActionButton: FloatingActionButton.extended(onPressed: _saveClass, icon: const Icon(Icons.add), label: const Text('Add Class')),
       body: FutureBuilder<List<AcademicClassEntity>>(
         future: _classesFuture,
@@ -380,7 +381,7 @@ class _SectionsPageState extends State<_SectionsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.academicClass.name} Sections')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text('${widget.academicClass.name} Sections')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _save,
         icon: const Icon(Icons.add),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../students/domain/entities/student_entity.dart';
@@ -44,7 +45,7 @@ class _ParentTimelinePageState extends State<ParentTimelinePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.student.fullName} - Timeline'),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           IconButton(
             onPressed: () => setState(_load),
             icon: const Icon(Icons.refresh),

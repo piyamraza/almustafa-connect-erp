@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
@@ -332,25 +333,7 @@ class _StudentsViewState extends State<_StudentsView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 46,
-              height: 46,
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  foregroundColor: _brandBlue,
-                  side: const BorderSide(color: _borderColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Tooltip(
-                  message: 'Back to Dashboard',
-                  child: Icon(Icons.arrow_back),
-                ),
-              ),
-            ),
+            const DashboardNavigationButton(),
             const SizedBox(width: 14),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,

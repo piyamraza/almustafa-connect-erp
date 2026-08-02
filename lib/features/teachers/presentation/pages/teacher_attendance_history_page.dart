@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -34,7 +35,7 @@ class _TeacherAttendanceHistoryPageState extends State<TeacherAttendanceHistoryP
   }
 
   @override Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Teacher Attendance History')),
+    appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teacher Attendance History')),
     body: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
       FutureBuilder<List<TeacherEntity>>(future: _teachers, builder: (context, snapshot) => DropdownButtonFormField<TeacherEntity>(initialValue: _teacher, isExpanded: true, decoration: const InputDecoration(labelText: 'Select teacher', border: OutlineInputBorder()), items: (snapshot.data ?? []).map((teacher) => DropdownMenuItem(value: teacher, child: Text('${teacher.fullName} (${teacher.employeeId})'))).toList(), onChanged: (value) { setState(() => _teacher = value); _load(); })),
       const SizedBox(height: 12), Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: _pickRange, icon: const Icon(Icons.date_range), label: Text(_range == null ? 'Current month' : '${_range!.start.day}/${_range!.start.month}/${_range!.start.year} - ${_range!.end.day}/${_range!.end.month}/${_range!.end.year}'))),

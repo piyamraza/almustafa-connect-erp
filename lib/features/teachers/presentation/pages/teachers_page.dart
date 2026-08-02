@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -33,7 +34,7 @@ class _TeachersViewState extends State<_TeachersView> {
   @override Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Teachers'),
-      actions: [
+      actions: [const DashboardNavigationButton(),
         TextButton.icon(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const TeacherAssignmentsPage()),

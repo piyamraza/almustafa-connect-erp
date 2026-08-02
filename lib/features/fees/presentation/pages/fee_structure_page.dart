@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -140,7 +141,7 @@ class _FeeStructureViewState extends State<_FeeStructureView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Fee Structure')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Structure')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _loadingReferences ? null : () => _edit(null),
         icon: const Icon(Icons.add),

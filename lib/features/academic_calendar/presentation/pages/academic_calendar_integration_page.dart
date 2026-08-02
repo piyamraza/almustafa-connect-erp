@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/academic_year_config_entity.dart';
@@ -84,7 +85,7 @@ class _AcademicCalendarIntegrationPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ERP Calendar Integration')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('ERP Calendar Integration')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

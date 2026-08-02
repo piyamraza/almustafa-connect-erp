@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/homework_submission_entity.dart';
@@ -43,7 +44,7 @@ class _ParentHomeworkStatusPageState extends State<ParentHomeworkStatusPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Homework Status')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Homework Status')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

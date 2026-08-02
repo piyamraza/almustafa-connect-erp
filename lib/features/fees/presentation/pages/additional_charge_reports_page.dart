@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/additional_charge_entity.dart';
 import '../../domain/entities/student_additional_charge_due_entity.dart';
@@ -93,7 +94,7 @@ class _AdditionalChargeReportsPageState
     final pending = data.fold<double>(0, (s, d) => s + d.outstandingAmount);
     final waived = data.fold<double>(0, (s, d) => s + d.waivedAmount);
     return Scaffold(
-      appBar: AppBar(title: const Text('Additional Charges Reports')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Additional Charges Reports')),
       body: Stack(
         children: [
           SingleChildScrollView(

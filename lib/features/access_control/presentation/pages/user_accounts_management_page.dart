@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -340,7 +341,7 @@ class _UserAccountsManagementPageState
 
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: AppBar(title: const Text('User Accounts Management')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('User Accounts Management')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _loading ? null : _createAccount,
         icon: const Icon(Icons.person_add_alt_1),

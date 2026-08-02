@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -192,7 +193,7 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Marks Entry'),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () => context.read<ExamMarksBloc>().add(

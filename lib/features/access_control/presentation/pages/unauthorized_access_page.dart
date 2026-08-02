@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class UnauthorizedAccessPage extends StatelessWidget {
   const UnauthorizedAccessPage({super.key, this.moduleName});
@@ -8,7 +9,7 @@ class UnauthorizedAccessPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Access Denied')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Access Denied')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -237,7 +238,7 @@ class _StaffAttendanceViewState extends State<_StaffAttendanceView> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Staff Attendance'),
-          actions: [
+          actions: [const DashboardNavigationButton(),
             IconButton(
               tooltip: 'Attendance Report',
               onPressed: _openAttendanceReport,

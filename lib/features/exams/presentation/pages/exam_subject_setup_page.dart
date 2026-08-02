@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -90,7 +91,7 @@ class _SubjectSetupViewState extends State<_SubjectSetupView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exam Subject Setup')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Exam Subject Setup')),
       floatingActionButton: BlocBuilder<ExamSubjectSetupBloc, ExamSubjectSetupState>(
         builder: (context, state) {
           if (state is! ExamSubjectSetupLoaded) return const SizedBox.shrink();

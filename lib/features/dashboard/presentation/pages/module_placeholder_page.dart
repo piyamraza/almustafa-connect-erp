@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class ModulePlaceholderPage extends StatelessWidget {
   const ModulePlaceholderPage({
@@ -15,7 +16,7 @@ class ModulePlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text(title)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

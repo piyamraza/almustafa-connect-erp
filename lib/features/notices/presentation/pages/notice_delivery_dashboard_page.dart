@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -33,7 +34,7 @@ class _ViewState extends State<_View> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notice Delivery Report')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Notice Delivery Report')),
       body: BlocBuilder<NoticeReceiptBloc, NoticeReceiptState>(
         builder: (context, state) {
           final loading = state is NoticeReceiptLoading;

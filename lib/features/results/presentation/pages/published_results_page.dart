@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -43,7 +44,7 @@ class _PublishedResultsViewState extends State<_PublishedResultsView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_title(widget.type)),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           if (widget.type != ResultsViewType.studentResults)
             IconButton(
               tooltip: 'Open result sheet',

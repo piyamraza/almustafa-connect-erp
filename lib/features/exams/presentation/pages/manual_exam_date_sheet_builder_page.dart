@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
@@ -319,7 +320,7 @@ class _ManualExamDateSheetBuilderPageState
               ? 'Manual Date Sheet Builder'
               : 'Edit Manual Date Sheet',
         ),
-        actions: [
+        actions: [const DashboardNavigationButton(),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(

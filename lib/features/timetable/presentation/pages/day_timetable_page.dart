@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -135,7 +136,7 @@ class _DayTimetableViewState extends State<_DayTimetableView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Day-wise Timetable')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Day-wise Timetable')),
       body: SafeArea(
         child: BlocConsumer<DayTimetableBloc, DayTimetableState>(
           listener: (context, state) {

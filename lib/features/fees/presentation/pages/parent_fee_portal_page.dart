@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/fee_payment_entity.dart';
@@ -75,7 +76,7 @@ class _ParentFeePortalPageState extends State<ParentFeePortalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Fee Status')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Status')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

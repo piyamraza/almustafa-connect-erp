@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -468,7 +469,7 @@ class _ManualTimetableEditorViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Manual Timetable Editor')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Manual Timetable Editor')),
       body: SafeArea(
         child: BlocConsumer<ManualTimetableBloc, ManualTimetableState>(
           listener: (context, state) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -79,7 +80,7 @@ class _TeacherAttendanceViewState extends State<_TeacherAttendanceView> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Teacher Attendance'),
-      actions: [
+      actions: [const DashboardNavigationButton(),
         IconButton(
           icon: const Icon(Icons.history),
           tooltip: 'Attendance History',

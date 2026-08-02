@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -27,7 +28,7 @@ class _UpsertTeacherPageState extends State<UpsertTeacherPage> {
     return BlocListener<TeacherBloc, TeacherState>(
       listener: (context, state) { if (state is TeacherLoaded) Navigator.of(context).pop(); if (state is TeacherError) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message))); },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.isEdit ? 'Edit Teacher' : 'Add Teacher')),
+        appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text(widget.isEdit ? 'Edit Teacher' : 'Add Teacher')),
         body: Form(
           key: _formKey,
           child: SingleChildScrollView(

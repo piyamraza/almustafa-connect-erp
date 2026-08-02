@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
@@ -180,7 +181,7 @@ class _NoticeFormPageState extends State<NoticeFormPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(actions: const [DashboardNavigationButton()],
         title: Text(widget.existing == null ? 'Create Notice' : 'Edit Notice'),
       ),
       body: Form(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../results/presentation/pages/teacher_results_page.dart';
 import '../../../timetable/presentation/pages/teacher_workload_page.dart';
@@ -14,7 +15,7 @@ class TeachersModulePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Teachers')),
+    appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teachers')),
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

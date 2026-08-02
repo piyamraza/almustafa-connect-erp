@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'fee_challan_page.dart';
 import 'fee_collection_page.dart';
@@ -118,7 +119,7 @@ class FeeManagementDashboardPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: AppBar(
+      appBar: AppBar(actions: const [DashboardNavigationButton()],
         title: const Text('Fee Management'),
         elevation: 0,
         backgroundColor: Colors.white,

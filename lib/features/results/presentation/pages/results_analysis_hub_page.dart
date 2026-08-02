@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'results_analytics_page.dart';
 
@@ -53,7 +54,7 @@ class ResultsAnalysisHubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Results Analysis')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Results Analysis')),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(

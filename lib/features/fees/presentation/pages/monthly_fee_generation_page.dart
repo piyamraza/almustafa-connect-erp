@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -219,7 +220,7 @@ class _MonthlyFeeGenerationViewState extends State<_MonthlyFeeGenerationView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Monthly Fee Generation')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Monthly Fee Generation')),
       body: SafeArea(
         child:
             BlocConsumer<MonthlyFeeGenerationBloc, MonthlyFeeGenerationState>(

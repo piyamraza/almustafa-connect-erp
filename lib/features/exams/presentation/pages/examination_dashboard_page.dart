@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'exams_page.dart';
 import 'exam_subject_setup_page.dart';
@@ -38,7 +39,7 @@ class ExaminationDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Examination')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Examination')),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(

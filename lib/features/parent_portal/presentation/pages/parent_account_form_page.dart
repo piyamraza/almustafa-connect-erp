@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../students/domain/entities/student_entity.dart';
@@ -133,7 +134,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(actions: const [DashboardNavigationButton()],
         title: Text(
           widget.existing == null
               ? 'Create Parent Account'

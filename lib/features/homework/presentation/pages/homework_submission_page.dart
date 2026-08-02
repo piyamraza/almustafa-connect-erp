@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/homework_entity.dart';
@@ -98,7 +99,7 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Submit Homework')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Submit Homework')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

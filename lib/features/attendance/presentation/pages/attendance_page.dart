@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'mark_attendance_page.dart';
 import 'attendance_history_page.dart';
@@ -14,7 +15,7 @@ class AttendancePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(title: const Text('Attendance')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Attendance')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

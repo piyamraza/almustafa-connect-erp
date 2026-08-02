@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -54,7 +55,7 @@ class _View extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${student.fullName} - Fees & Communication')),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text('${student.fullName} - Fees & Communication')),
       body: BlocBuilder<ParentCommunicationBloc, ParentCommunicationState>(
         builder: (context, state) {
           return switch (state) {
