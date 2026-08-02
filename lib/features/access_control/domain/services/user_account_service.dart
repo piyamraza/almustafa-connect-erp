@@ -17,6 +17,8 @@ class CreatedUserAccount {
 }
 
 abstract class UserAccountService {
+  Future<void> bootstrapAdministration();
+
   Future<List<UserAccountEntity>> listAccounts();
 
   Future<CreatedUserAccount> createAccount({

@@ -12,6 +12,9 @@ class ResultStatusChip extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final (label, color) = switch (status) {
       ResultStatus.draft => ('Draft', colors.secondary),
+      ResultStatus.generated => ('Generated', const Color(0xFF0288D1)),
+      ResultStatus.verified => ('Verified', const Color(0xFF00897B)),
+      ResultStatus.approved => ('Approved', const Color(0xFF7B1FA2)),
       ResultStatus.published => ('Published', colors.primary),
       ResultStatus.locked => ('Locked', colors.error),
       ResultStatus.unpublished => ('Unpublished', colors.tertiary),

@@ -15,29 +15,46 @@ class AttendanceAcademicStructure {
   final List<AcademicClassEntity> classes;
   final List<SectionEntity> sections;
 
-  List<String> get classNames => classes
-      .where((item) => item.isActive)
-      .map((item) => item.name.trim())
-      .where((name) => name.isNotEmpty)
+  List<AcademicClassEntity> get activeClasses => classes
+      .where((item) => item.isActive && item.name.trim().isNotEmpty)
       .toList(growable: false);
 
+  List<String> get classNames => activeClasses
+      .map((item) => item.name.trim())
+      .toList(growable: false);
+
+  List<SectionEntity> sectionsForClass(String classId) {
+    final values = sections
+        .where((item) => item.isActive && item.classId == classId)
+        .toList();
+    values.sort((first, second) => first.name.compareTo(second.name));
+    return values;
+  }
+
   List<String> sectionNamesForClass(String className) {
-    AcademicClassEntity? selectedClass;
-    for (final item in classes) {
-      if (item.isActive && item.name == className) {
-        selectedClass = item;
-        break;
+    for (final item in activeClasses) {
+      if (item.name == className || item.id == className) {
+        return sectionsForClass(item.id)
+            .map((section) => section.name.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
       }
     }
-    if (selectedClass == null) return const [];
+    return const [];
+  }
 
-    final values = sections
-        .where((item) => item.isActive && item.classId == selectedClass!.id)
-        .map((item) => item.name.trim())
-        .where((name) => name.isNotEmpty)
-        .toList();
-    values.sort();
-    return values;
+  String className(String reference) {
+    for (final item in classes) {
+      if (item.id == reference || item.name == reference) return item.name;
+    }
+    return reference;
+  }
+
+  String sectionName(String reference) {
+    for (final item in sections) {
+      if (item.id == reference || item.name == reference) return item.name;
+    }
+    return reference;
   }
 
   static Future<AttendanceAcademicStructure> load(

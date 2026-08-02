@@ -45,18 +45,47 @@ class SelectResultSection extends ExamResultsEvent {
 }
 
 class GenerateSelectedExamResults extends ExamResultsEvent {
-  const GenerateSelectedExamResults();
+  const GenerateSelectedExamResults({
+    this.actorId = '',
+  });
+
+  final String actorId;
+
+  @override
+  List<Object?> get props => [actorId];
 }
 
 class ChangeFilteredResultsStatus extends ExamResultsEvent {
-  const ChangeFilteredResultsStatus(this.status);
+  const ChangeFilteredResultsStatus({
+    required this.status,
+    required this.actorId,
+    this.reason = '',
+  });
 
   final ResultStatus status;
+  final String actorId;
+  final String reason;
 
   @override
-  List<Object?> get props => [status];
+  List<Object?> get props => [
+        status,
+        actorId,
+        reason,
+      ];
 }
 
 class UnlockFilteredResults extends ExamResultsEvent {
-  const UnlockFilteredResults();
+  const UnlockFilteredResults({
+    required this.actorId,
+    required this.reason,
+  });
+
+  final String actorId;
+  final String reason;
+
+  @override
+  List<Object?> get props => [
+        actorId,
+        reason,
+      ];
 }

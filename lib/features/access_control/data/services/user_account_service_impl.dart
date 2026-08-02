@@ -10,6 +10,11 @@ class UserAccountServiceImpl implements UserAccountService {
   final FirebaseFunctions _functions;
 
   @override
+  Future<void> bootstrapAdministration() async {
+    await _functions.httpsCallable('bootstrapUserAccountAdministration').call();
+  }
+
+  @override
   Future<List<UserAccountEntity>> listAccounts() async {
     final callable = _functions.httpsCallable('listUserAccounts');
     final response = await callable.call<Map<String, dynamic>>({

@@ -1,28 +1,37 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/parent_academic_dashboard_entity.dart';
 import '../../domain/entities/parent_academic_item_entity.dart';
 import '../../domain/services/parent_academic_service.dart';
 
 class ParentAcademicServiceImpl implements ParentAcademicService {
-  const ParentAcademicServiceImpl(this._firestore);
+  ParentAcademicServiceImpl(this._firestore, this._academicStructure);
 
   final FirebaseFirestore _firestore;
+  final AcademicStructureRepository _academicStructure;
+  AcademicReferenceResolver? _academicResolver;
 
   @override
   Future<ParentAcademicDashboardEntity> loadDashboard({
     required StudentEntity student,
     required String academicSession,
   }) async {
+    _academicResolver = AcademicReferenceResolver(
+      classes: await _academicStructure.getClasses(),
+      sections: await _academicStructure.getSections(),
+    );
     final values = await Future.wait([
       _safeCollection('attendance'),
       _safeCollection('timetable_entries'),
       _safeCollection('homework'),
       _safeCollection('homework_submissions'),
       _safeCollection('exam_date_sheets'),
-      _safeCollection('results'),
-      _safeCollection('result_sheets'),
+      _safeResultsCollection('exam_results', student.id),
+      _safeResultsCollection('results', student.id),
+      _safeResultsCollection('result_sheets', student.id),
     ]);
 
     final attendanceDocs = values[0];
@@ -30,7 +39,7 @@ class ParentAcademicServiceImpl implements ParentAcademicService {
     final homeworkDocs = values[2];
     final submissionDocs = values[3];
     final dateSheetDocs = values[4];
-    final resultDocs = [...values[5], ...values[6]];
+    final resultDocs = [...values[5], ...values[6], ...values[7]];
 
     final attendanceItems = _attendanceItems(
       attendanceDocs,
@@ -116,6 +125,20 @@ class ParentAcademicServiceImpl implements ParentAcademicService {
   ) async {
     try {
       final snapshot = await _firestore.collection(name).get();
+      return snapshot.docs;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+  _safeResultsCollection(String name, String studentId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(name)
+          .where('studentId', isEqualTo: studentId)
+          .where('status', whereIn: const ['published', 'locked'])
+          .get();
       return snapshot.docs;
     } catch (_) {
       return const [];
@@ -339,10 +362,20 @@ class ParentAcademicServiceImpl implements ParentAcademicService {
       final map = doc.data();
       if (!_belongsToStudent(map, student)) continue;
       if (!_matchesSession(map, session)) continue;
+      final status = _string(map, ['status', 'resultStatus']).toLowerCase();
+      if (status != 'published' && status != 'locked') continue;
 
       final percentage = _number(map, ['percentage', 'overallPercentage']);
-      final obtained = _number(map, ['obtainedMarks', 'totalObtained']);
-      final total = _number(map, ['totalMarks', 'maximumMarks']);
+      final obtained = _number(map, [
+        'grandObtainedMarks',
+        'obtainedMarks',
+        'totalObtained',
+      ]);
+      final total = _number(map, [
+        'grandTotalMarks',
+        'totalMarks',
+        'maximumMarks',
+      ]);
 
       items.add(
         ParentAcademicItemEntity(
@@ -357,10 +390,7 @@ class ParentAcademicServiceImpl implements ParentAcademicService {
               ? 'Result Published'
               : '${percentage.toStringAsFixed(1)}%',
           date: _date(map, ['publishedAt', 'updatedAt', 'createdAt']),
-          status: _string(map, [
-            'status',
-            'resultStatus',
-          ], fallback: 'Published'),
+          status: status == 'locked' ? 'Locked' : 'Published',
           details: {
             'percentage': percentage?.toStringAsFixed(2) ?? '',
             'marks': obtained == null || total == null
@@ -392,8 +422,13 @@ class ParentAcademicServiceImpl implements ParentAcademicService {
     final classId = _string(map, ['classId', 'classID', 'className']);
     final sectionId = _string(map, ['sectionId', 'sectionID', 'sectionName']);
 
-    final classMatches = classId.isEmpty || classId == student.classId;
-    final sectionMatches = sectionId.isEmpty || sectionId == student.sectionId;
+    final resolver = _academicResolver;
+    final classMatches = classId.isEmpty ||
+        (resolver?.sameClass(classId, student.classId) ??
+            classId == student.classId);
+    final sectionMatches = sectionId.isEmpty ||
+        (resolver?.sameSection(sectionId, student.sectionId) ??
+            sectionId == student.sectionId);
 
     return classMatches && sectionMatches;
   }

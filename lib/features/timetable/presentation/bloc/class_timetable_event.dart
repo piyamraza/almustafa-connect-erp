@@ -35,6 +35,15 @@ class SaveClassTimetableEntryEvent extends ClassTimetableEvent {
   List<Object> get props => [entry];
 }
 
+class SaveClassTimetableEntriesEvent extends ClassTimetableEvent {
+  const SaveClassTimetableEntriesEvent(this.entries);
+
+  final List<ClassTimetableEntryEntity> entries;
+
+  @override
+  List<Object> get props => [entries];
+}
+
 class DeleteClassTimetableEntryEvent extends ClassTimetableEvent {
   const DeleteClassTimetableEntryEvent({
     required this.entryId,

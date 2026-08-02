@@ -20,22 +20,15 @@ import 'exam_subject_setup_state.dart';
 class ExamSubjectSetupBloc
     extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupState> {
   ExamSubjectSetupBloc({
-    required get_usecase.GetExamSubjectSetups getSetups,
+    required this._getSetups,
     required create_usecase.CreateExamSubjectSetups createSetups,
-    required update_usecase.UpdateExamSubjectSetup updateSetup,
-    required delete_usecase.DeleteExamSubjectSetup deleteSetup,
-    required ExamRepository examRepository,
-    required AcademicStructureRepository academicStructureRepository,
-    required ExamSubjectSetupRepository subjectSetupRepository,
-    required ExamMarkRepository markRepository,
-  }) : _getSetups = getSetups,
-       _createSetups = createSetups,
-       _updateSetup = updateSetup,
-       _deleteSetup = deleteSetup,
-       _examRepository = examRepository,
-       _academicStructureRepository = academicStructureRepository,
-       _subjectSetupRepository = subjectSetupRepository,
-       _markRepository = markRepository,
+    required this._updateSetup,
+    required this._deleteSetup,
+    required this._examRepository,
+    required this._academicStructureRepository,
+    required this._subjectSetupRepository,
+    required this._markRepository,
+  }) : _createSetups = createSetups,
        super(const ExamSubjectSetupInitial()) {
     on<LoadExamSubjectSetups>(_load);
     on<RefreshExamSubjectSetups>(_refresh);
@@ -85,8 +78,9 @@ class ExamSubjectSetupBloc
               mark.classId == setup.classId &&
               mark.sectionId == setup.sectionId &&
               mark.subjectId == setup.subjectId,
-        ))
+        )) {
           protected.add(setup.uniqueKey);
+        }
       }
       emit(
         ExamConfigurationLoaded(
@@ -143,10 +137,11 @@ class ExamSubjectSetupBloc
                 .toSet()
                 .toList()
               ..sort();
-        if (blocked.isNotEmpty)
+        if (blocked.isNotEmpty) {
           throw StateError(
             'Cannot deselect ${blocked.join(', ')} because marks already exist. Remove those marks explicitly first.',
           );
+        }
       }
       if (event.isEditing) {
         await _examRepository.updateExam(event.exam);

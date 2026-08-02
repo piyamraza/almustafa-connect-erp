@@ -18,7 +18,7 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     required this._getExamResults,
     required this._generateExamResults,
     required this._updateResultStatus,
-  })  : super(const ExamResultsInitial()) {
+  }) : super(const ExamResultsInitial()) {
     on<LoadResultSummary>(_onLoad);
     on<RefreshResultSummary>(_onRefresh);
     on<SelectResultExam>(_onSelectExam);
@@ -68,7 +68,9 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
           ),
         );
       } catch (error) {
-        emit(current.copyWith(errorMessage: _message(error), clearMessages: true));
+        emit(
+          current.copyWith(errorMessage: _message(error), clearMessages: true),
+        );
       }
       return;
     }
@@ -77,11 +79,13 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     try {
       emit(await _loadExamData(current, current.selectedExamId!));
     } catch (error) {
-      emit(current.copyWith(
-        isLoading: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isLoading: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -91,37 +95,40 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
   ) async {
     final current = state;
     if (current is! ExamResultsLoaded) return;
-    emit(current.copyWith(
-      selectedExamId: event.examId,
-      subjectSetups: const [],
-      results: const [],
-      clearClass: true,
-      clearSection: true,
-      isLoading: true,
-      clearMessages: true,
-    ));
+    emit(
+      current.copyWith(
+        selectedExamId: event.examId,
+        subjectSetups: const [],
+        results: const [],
+        clearClass: true,
+        clearSection: true,
+        isLoading: true,
+        clearMessages: true,
+      ),
+    );
     try {
       emit(await _loadExamData(current, event.examId, clearFilters: true));
     } catch (error) {
-      emit(current.copyWith(
-        isLoading: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isLoading: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
-  void _onSelectClass(
-    SelectResultClass event,
-    Emitter<ExamResultsState> emit,
-  ) {
+  void _onSelectClass(SelectResultClass event, Emitter<ExamResultsState> emit) {
     final current = state;
     if (current is! ExamResultsLoaded) return;
-    emit(current.copyWith(
-      selectedClassId: event.classId,
-      clearSection: true,
-      clearMessages: true,
-    ));
+    emit(
+      current.copyWith(
+        selectedClassId: event.classId,
+        clearSection: true,
+        clearMessages: true,
+      ),
+    );
   }
 
   void _onSelectSection(
@@ -130,10 +137,9 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
   ) {
     final current = state;
     if (current is! ExamResultsLoaded) return;
-    emit(current.copyWith(
-      selectedSectionId: event.sectionId,
-      clearMessages: true,
-    ));
+    emit(
+      current.copyWith(selectedSectionId: event.sectionId, clearMessages: true),
+    );
   }
 
   Future<void> _onGenerate(
@@ -144,28 +150,44 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     if (current is! ExamResultsLoaded) return;
     final examId = current.selectedExamId;
     if (examId == null) {
-      emit(current.copyWith(
-        errorMessage: 'Select an exam before generating results.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          errorMessage: 'Select an exam before generating results.',
+          clearMessages: true,
+        ),
+      );
+      return;
+    }
+    final actorId = event.actorId.trim();
+    if (actorId.isEmpty) {
+      emit(
+        current.copyWith(
+          errorMessage: 'Current authenticated user could not be identified.',
+          clearMessages: true,
+        ),
+      );
       return;
     }
     emit(current.copyWith(isProcessing: true, clearMessages: true));
     try {
-      await _generateExamResults(examId);
+      await _generateExamResults(examId, actorId: actorId);
       final results = await _getExamResults(examId);
-      emit(current.copyWith(
-        results: results,
-        isProcessing: false,
-        successMessage: 'Results calculated successfully.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          results: results,
+          isProcessing: false,
+          successMessage: 'Results calculated successfully.',
+          clearMessages: true,
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isProcessing: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isProcessing: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -176,7 +198,11 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     final current = state;
     if (current is! ExamResultsLoaded) return;
     final selected = current.filteredResults;
-    final validation = _validateStatusChange(selected, event.status);
+    final validation = _validateStatusChange(
+      selected,
+      event.status,
+      actorId: event.actorId,
+    );
     if (validation != null) {
       emit(current.copyWith(errorMessage: validation, clearMessages: true));
       return;
@@ -186,20 +212,26 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       await _updateResultStatus(
         resultIds: selected.map((result) => result.id).toList(growable: false),
         status: event.status,
+        actorId: event.actorId,
+        reason: event.reason,
       );
       final refreshed = await _getExamResults(current.selectedExamId!);
-      emit(current.copyWith(
-        results: refreshed,
-        isProcessing: false,
-        successMessage: _statusMessage(event.status),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          results: refreshed,
+          isProcessing: false,
+          successMessage: _statusMessage(event.status),
+          clearMessages: true,
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isProcessing: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isProcessing: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -210,18 +242,40 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     final current = state;
     if (current is! ExamResultsLoaded) return;
     final selected = current.filteredResults;
+    if (event.actorId.trim().isEmpty) {
+      emit(
+        current.copyWith(
+          errorMessage: 'Current authenticated user could not be identified.',
+          clearMessages: true,
+        ),
+      );
+      return;
+    }
+    if (event.reason.trim().isEmpty) {
+      emit(
+        current.copyWith(
+          errorMessage: 'Reason for unlocking is required.',
+          clearMessages: true,
+        ),
+      );
+      return;
+    }
     if (selected.isEmpty) {
-      emit(current.copyWith(
-        errorMessage: 'No calculated results match the current filters.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          errorMessage: 'No calculated results match the current filters.',
+          clearMessages: true,
+        ),
+      );
       return;
     }
     if (!selected.every((result) => result.status == ResultStatus.locked)) {
-      emit(current.copyWith(
-        errorMessage: 'Only locked results can be unlocked.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          errorMessage: 'Only locked results can be unlocked.',
+          clearMessages: true,
+        ),
+      );
       return;
     }
     emit(current.copyWith(isProcessing: true, clearMessages: true));
@@ -229,21 +283,27 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       await _updateResultStatus(
         resultIds: selected.map((result) => result.id).toList(growable: false),
         status: ResultStatus.published,
+        actorId: event.actorId,
+        reason: event.reason,
         setPublishedAt: false,
       );
       final refreshed = await _getExamResults(current.selectedExamId!);
-      emit(current.copyWith(
-        results: refreshed,
-        isProcessing: false,
-        successMessage: 'Results unlocked and restored to published status.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          results: refreshed,
+          isProcessing: false,
+          successMessage: 'Results unlocked and restored to published status.',
+          clearMessages: true,
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isProcessing: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isProcessing: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -258,12 +318,13 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       _getExamResults(examId),
     ]);
     final setups = responses[1] as List<ExamSubjectSetupEntity>;
-    final validClass = !clearFilters && setups.any(
-      (setup) => setup.classId == base.selectedClassId,
-    )
+    final validClass =
+        !clearFilters &&
+            setups.any((setup) => setup.classId == base.selectedClassId)
         ? base.selectedClassId
         : null;
-    final validSection = validClass != null &&
+    final validSection =
+        validClass != null &&
             setups.any(
               (setup) =>
                   setup.classId == validClass &&
@@ -286,40 +347,51 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
 
   String? _validateStatusChange(
     List<ExamResultEntity> results,
-    ResultStatus target,
-  ) {
-    if (results.isEmpty) return 'No calculated results match the current filters.';
-    if (results.any((result) => result.status == ResultStatus.locked)) {
+    ResultStatus target, {
+    required String actorId,
+  }) {
+    if (results.isEmpty) {
+      return 'No calculated results match the current filters.';
+    }
+    if (actorId.trim().isEmpty) {
+      return 'Current authenticated user could not be identified.';
+    }
+    final sourceStatuses = results.map((result) => result.status).toSet();
+    if (sourceStatuses.length != 1) {
+      return 'All filtered results must have the same status before this action.';
+    }
+    if (sourceStatuses.single == ResultStatus.locked) {
       return 'Locked results are read-only.';
     }
-    final statuses = results.map((result) => result.status).toSet();
-    final allowed = switch (target) {
-      ResultStatus.published =>
-        statuses.every(
-          (status) =>
-              status == ResultStatus.draft || status == ResultStatus.unpublished,
-        ),
-      ResultStatus.locked =>
-        statuses.every((status) => status == ResultStatus.published),
-      ResultStatus.unpublished =>
-        statuses.every((status) => status == ResultStatus.published),
-      ResultStatus.draft => false,
-    };
+    final allowed = results.every(
+      (result) =>
+          ExamResultEntity.canTransition(current: result.status, next: target),
+    );
     if (allowed) return null;
     return switch (target) {
-      ResultStatus.published => 'Only draft or unpublished results can be published.',
+      ResultStatus.generated =>
+        'Only draft or verified results can be generated.',
+      ResultStatus.verified =>
+        'Only generated or approved results can be verified.',
+      ResultStatus.approved =>
+        'Only verified or published results can be approved.',
+      ResultStatus.published =>
+        'Only approved or unpublished results can be published.',
       ResultStatus.locked => 'Only published results can be locked.',
       ResultStatus.unpublished => 'Only published results can be unpublished.',
-      ResultStatus.draft => 'Draft is assigned when results are generated.',
+      ResultStatus.draft => 'Only generated results can return to draft.',
     };
   }
 
   String _statusMessage(ResultStatus status) => switch (status) {
-        ResultStatus.published => 'Results published successfully.',
-        ResultStatus.locked => 'Published results are now locked and read-only.',
-        ResultStatus.unpublished => 'Results are now unpublished.',
-        ResultStatus.draft => 'Results saved as draft.',
-      };
+    ResultStatus.generated => 'Results generated successfully.',
+    ResultStatus.verified => 'Results verified successfully.',
+    ResultStatus.approved => 'Results approved successfully.',
+    ResultStatus.published => 'Results published successfully.',
+    ResultStatus.locked => 'Published results are now locked and read-only.',
+    ResultStatus.unpublished => 'Results are now unpublished.',
+    ResultStatus.draft => 'Results saved as draft.',
+  };
 
   String _message(Object error) => error
       .toString()

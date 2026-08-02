@@ -300,20 +300,20 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
               color: const Color(0xFF3F51B5),
             ),
             _SummaryCard(
-              label: 'Assigned Periods',
-              value: report.totalAssignedPeriods.toString(),
+              label: 'Academic Assignments',
+              value: report.totalAcademicAssignments.toString(),
               icon: Icons.menu_book_outlined,
               color: const Color(0xFF00897B),
             ),
             _SummaryCard(
-              label: 'Academic Assignments',
-              value: report.totalAcademicAssignments.toString(),
+              label: 'Scheduled Periods',
+              value: report.totalAssignedPeriods.toString(),
               icon: Icons.assignment_ind_outlined,
               color: const Color(0xFF00695C),
             ),
             _SummaryCard(
-              label: 'Average / Teacher',
-              value: report.averageAssignedPeriods.toStringAsFixed(1),
+              label: 'Avg Assignments / Teacher',
+              value: report.averageAcademicAssignments.toStringAsFixed(1),
               icon: Icons.analytics_outlined,
               color: const Color(0xFF7E57C2),
             ),
@@ -386,12 +386,11 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                     columns: const [
                       DataColumn(label: Text('Teacher')),
                       DataColumn(label: Text('Designation')),
-                      DataColumn(label: Text('Assigned'), numeric: true),
+                      DataColumn(label: Text('Assignments'), numeric: true),
                       DataColumn(label: Text('Subjects'), numeric: true),
-                      DataColumn(label: Text('Free'), numeric: true),
-                      DataColumn(label: Text('Days'), numeric: true),
                       DataColumn(label: Text('Classes'), numeric: true),
-                      DataColumn(label: Text('Utilization')),
+                      DataColumn(label: Text('Scheduled'), numeric: true),
+                      DataColumn(label: Text('Days'), numeric: true),
                       DataColumn(label: Text('Status')),
                     ],
                     rows: [
@@ -435,40 +434,15 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                                 ),
                               ),
                             ),
-                            DataCell(Text(workload.assignedPeriods.toString())),
                             DataCell(
                               Text(workload.academicAssignments.toString()),
                             ),
-                            DataCell(Text(workload.freePeriods.toString())),
-                            DataCell(Text(workload.teachingDays.toString())),
+                            DataCell(Text(workload.subjects.length.toString())),
                             DataCell(
                               Text(workload.classSections.length.toString()),
                             ),
-                            DataCell(
-                              SizedBox(
-                                width: 150,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: LinearProgressIndicator(
-                                        value: workload.utilization
-                                            .clamp(0.0, 1.0)
-                                            .toDouble(),
-                                        minHeight: 7,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${(workload.utilization * 100).round()}%',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            DataCell(Text(workload.assignedPeriods.toString())),
+                            DataCell(Text(workload.teachingDays.toString())),
                             DataCell(_WorkloadChip(level: workload.level)),
                           ],
                         ),
@@ -480,8 +454,8 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
           ),
         const SizedBox(height: 12),
         Text(
-          'Workload guide: Low below 45%, Balanced 45%â€“80%, '
-          'High above 80% of configured weekly teaching slots.',
+          'Assignment workload guide: Low 1-5, Balanced 6-12, '
+          'High above 12 academic assignments.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -524,16 +498,16 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                   runSpacing: 12,
                   children: [
                     _DetailValue(
-                      label: 'Assigned',
-                      value: workload.assignedPeriods.toString(),
+                      label: 'Assignments',
+                      value: workload.academicAssignments.toString(),
                     ),
                     _DetailValue(
                       label: 'Academic Assignments',
                       value: workload.academicAssignments.toString(),
                     ),
                     _DetailValue(
-                      label: 'Free',
-                      value: workload.freePeriods.toString(),
+                      label: 'Subjects',
+                      value: workload.subjects.length.toString(),
                     ),
                     _DetailValue(
                       label: 'Teaching Days',
@@ -682,8 +656,8 @@ class _TeacherWorkloadCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _CompactValue(
-                      label: 'Days',
-                      value: workload.teachingDays.toString(),
+                      label: 'Scheduled',
+                      value: workload.assignedPeriods.toString(),
                     ),
                   ),
                   Expanded(

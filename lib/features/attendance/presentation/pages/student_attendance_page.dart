@@ -3,6 +3,10 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/attendance_entity.dart';
@@ -31,6 +35,8 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
   final TextEditingController _searchController = TextEditingController();
   String _search = '';
   Map<String, StudentEntity> _studentDetails = const {};
+  AcademicReferenceResolver _academicResolver =
+      const AcademicReferenceResolver(classes: [], sections: []);
 
   @override
   void initState() {
@@ -40,10 +46,19 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
 
   Future<void> _loadStudentDetails() async {
     try {
-      final students = await sl<StudentRepository>().getStudents();
+      final values = await Future.wait<Object>([
+        sl<StudentRepository>().getStudents(),
+        sl<AcademicStructureRepository>().getClasses(),
+        sl<AcademicStructureRepository>().getSections(),
+      ]);
+      final students = values[0] as List<StudentEntity>;
       if (!mounted) return;
       setState(() {
         _studentDetails = {for (final student in students) student.id: student};
+        _academicResolver = AcademicReferenceResolver(
+          classes: values[1] as List<AcademicClassEntity>,
+          sections: values[2] as List<SectionEntity>,
+        );
       });
     } catch (_) {
       // Attendance remains available if profile details cannot be loaded.
@@ -125,7 +140,8 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                               title: Text(student.name),
                               subtitle: Text(
                                 'Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}\n'
-                                'Class: ${student.classId}-${student.sectionId}\n'
+                                'Class: ${_academicResolver.className(student.classId)}-'
+                                '${_academicResolver.sectionName(student.sectionId)}\n'
                                 'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
                               ),
                               isThreeLine: true,
@@ -140,8 +156,12 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                                         studentId: student.studentId,
                                         studentName: student.name,
                                         admissionNo: student.admissionNo,
-                                        classId: student.classId,
-                                        sectionId: student.sectionId,
+                                        classId: _academicResolver.className(
+                                          student.classId,
+                                        ),
+                                        sectionId: _academicResolver.sectionName(
+                                          student.sectionId,
+                                        ),
                                         records: student.records,
                                       ),
                                 ),
@@ -188,8 +208,13 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
       );
       final matchesSelection =
           (selectedDay == null || recordDay == selectedDay) &&
-          (widget.classId == null || record.classId == widget.classId) &&
-          (widget.sectionId == null || record.sectionId == widget.sectionId);
+          (widget.classId == null ||
+              _academicResolver.sameClass(record.classId, widget.classId!)) &&
+          (widget.sectionId == null ||
+              _academicResolver.sameSection(
+                record.sectionId,
+                widget.sectionId!,
+              ));
       if (matchesSelection) {
         grouped.putIfAbsent(record.studentId, () => []).add(record);
       }

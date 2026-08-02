@@ -205,9 +205,10 @@ class _AttendanceReportsViewState extends State<_AttendanceReportsView> {
                           else if (state is AttendanceReportError)
                             Center(child: Text(state.message))
                           else if (report != null)
-                            _ReportContent(
-                              report: report,
-                              onExport: (action) => _export(action, report),
+                             _ReportContent(
+                                report: report,
+                                academicStructure: structure,
+                                onExport: (action) => _export(action, report),
                             ),
                         ],
                       ),
@@ -418,9 +419,14 @@ class _StringFilter extends StatelessWidget {
 }
 
 class _ReportContent extends StatelessWidget {
-  const _ReportContent({required this.report, required this.onExport});
+  const _ReportContent({
+    required this.report,
+    required this.academicStructure,
+    required this.onExport,
+  });
 
   final AttendanceReport report;
+  final AttendanceAcademicStructure academicStructure;
   final ValueChanged<String> onExport;
 
   @override
@@ -495,7 +501,10 @@ class _ReportContent extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        _ReportSummaryTable(report: report),
+        _ReportSummaryTable(
+          report: report,
+          academicStructure: academicStructure,
+        ),
       ],
     );
   }
@@ -674,8 +683,12 @@ class _TrendRow extends StatelessWidget {
 }
 
 class _ReportSummaryTable extends StatelessWidget {
-  const _ReportSummaryTable({required this.report});
+  const _ReportSummaryTable({
+    required this.report,
+    required this.academicStructure,
+  });
   final AttendanceReport report;
+  final AttendanceAcademicStructure academicStructure;
 
   @override
   Widget build(BuildContext context) {
@@ -712,7 +725,7 @@ class _ReportSummaryTable extends StatelessWidget {
         cells: [
           DataCell(Text(student.admissionNo)),
           DataCell(Text(student.studentName)),
-          DataCell(Text(student.classId)),
+          DataCell(Text(academicStructure.className(student.classId))),
           DataCell(Text('${statistics.present}/${statistics.total}')),
           DataCell(Text('${statistics.percentage.toStringAsFixed(1)}%')),
         ],

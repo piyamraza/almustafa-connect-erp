@@ -9,11 +9,34 @@ class UpdateExamResultStatus {
   Future<void> call({
     required List<String> resultIds,
     required ResultStatus status,
+    String actorId = '',
+    String reason = '',
     bool setPublishedAt = true,
   }) {
+    final normalizedIds = resultIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+
+    if (normalizedIds.isEmpty) {
+      throw ArgumentError('Select at least one result before changing status.');
+    }
+
+    final normalizedActorId = actorId.trim();
+    final normalizedReason = reason.trim();
+
+    if (normalizedActorId.isEmpty) {
+      throw ArgumentError(
+        'Current authenticated user could not be identified.',
+      );
+    }
+
     return _repository.updateStatus(
-      resultIds: resultIds,
+      resultIds: normalizedIds,
       status: status,
+      actorId: normalizedActorId,
+      reason: normalizedReason,
       setPublishedAt: setPublishedAt,
     );
   }

@@ -47,39 +47,38 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
 
     final isParentCopy =
         request.type == ExamDateSheetReportType.parentClassCopy;
-    sheet.appendRow([
-      TextCellValue('Date'),
-      TextCellValue('Day'),
-      TextCellValue('Class'),
-      TextCellValue('Section'),
-      TextCellValue('Subject'),
-      if (!isParentCopy) TextCellValue('Teacher'),
-      TextCellValue('Time'),
-      TextCellValue('Total Marks'),
-      TextCellValue('Passing Marks'),
-      TextCellValue('Instructions'),
-    ]);
-
-    for (final paper in request.papers) {
+    if (!isParentCopy) {
+      _writeMatrixExcel(sheet, request);
+    } else {
       sheet.appendRow([
-        TextCellValue(_date(paper.examDate)),
-        TextCellValue(_day(paper.examDate.weekday)),
-        TextCellValue(paper.className),
-        TextCellValue(paper.sectionName),
-        TextCellValue(paper.subjectName),
-        if (!isParentCopy) TextCellValue(paper.teacherName),
-        TextCellValue(
-          '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
-        ),
-        DoubleCellValue(paper.totalMarks),
-        DoubleCellValue(paper.passingMarks),
-        TextCellValue(paper.instructions),
+        TextCellValue('Date'),
+        TextCellValue('Day'),
+        TextCellValue('Class'),
+        TextCellValue('Section'),
+        TextCellValue('Subject'),
+        TextCellValue('Time'),
+        TextCellValue('Total Marks'),
+        TextCellValue('Passing Marks'),
+        TextCellValue('Instructions'),
       ]);
-    }
-
-    final lastColumn = isParentCopy ? 8 : 9;
-    for (var index = 0; index <= lastColumn; index++) {
-      sheet.setColumnWidth(index, index == lastColumn ? 32 : 18);
+      for (final paper in request.papers) {
+        sheet.appendRow([
+          TextCellValue(_date(paper.examDate)),
+          TextCellValue(_day(paper.examDate.weekday)),
+          TextCellValue(paper.className),
+          TextCellValue(paper.sectionName),
+          TextCellValue(paper.subjectName),
+          TextCellValue(
+            '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
+          ),
+          DoubleCellValue(paper.totalMarks),
+          DoubleCellValue(paper.passingMarks),
+          TextCellValue(paper.instructions),
+        ]);
+      }
+      for (var index = 0; index <= 8; index++) {
+        sheet.setColumnWidth(index, index == 8 ? 32 : 18);
+      }
     }
 
     workbook.delete('Sheet1');
@@ -102,6 +101,63 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
       ],
       subject: request.title,
     );
+  }
+
+  void _writeMatrixExcel(Sheet sheet, ExamDateSheetReportRequest request) {
+    final teacherDuty = request.type == ExamDateSheetReportType.teacherDuty;
+    final columns = <String, String>{};
+    for (final paper in request.papers) {
+      final key = teacherDuty
+          ? paper.teacherId
+          : '${paper.classId}|${paper.sectionId}';
+      columns[key] = teacherDuty
+          ? paper.teacherName
+          : 'Class ${paper.className}-${paper.sectionName}';
+    }
+    final orderedColumns = columns.entries.toList()
+      ..sort((first, second) => first.value.compareTo(second.value));
+    final dates = request.papers.map((paper) => paper.examDate).toSet().toList()
+      ..sort();
+    sheet.appendRow([
+      TextCellValue('Date'),
+      ...orderedColumns.map((column) => TextCellValue(column.value)),
+    ]);
+    for (final date in dates) {
+      final cells = <CellValue>[
+        TextCellValue('${_date(date)}\n${_day(date.weekday)}'),
+      ];
+      for (final column in orderedColumns) {
+        final papers = request.papers.where((paper) {
+          final sameDate =
+              paper.examDate.year == date.year &&
+              paper.examDate.month == date.month &&
+              paper.examDate.day == date.day;
+          final sameColumn = teacherDuty
+              ? paper.teacherId == column.key
+              : '${paper.classId}|${paper.sectionId}' == column.key;
+          return sameDate && sameColumn;
+        });
+        cells.add(
+          TextCellValue(
+            papers.isEmpty
+                ? '-'
+                : papers
+                      .map(
+                        (paper) => teacherDuty
+                            ? '${paper.className}-${paper.sectionName} '
+                                  '${paper.subjectName}\n'
+                                  '${_time(paper.startMinutes)}-${_time(paper.endMinutes)}'
+                            : paper.subjectName,
+                      )
+                      .join('\n'),
+          ),
+        );
+      }
+      sheet.appendRow(cells);
+    }
+    for (var index = 0; index <= orderedColumns.length; index++) {
+      sheet.setColumnWidth(index, index == 0 ? 18 : 24);
+    }
   }
 
   Future<Uint8List> _buildPdf(ExamDateSheetReportRequest request) async {
@@ -315,43 +371,49 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
 
   pw.Widget _reportTable(ExamDateSheetReportRequest request) {
     final teacherDuty = request.type == ExamDateSheetReportType.teacherDuty;
-
-    final headers = teacherDuty
-        ? const ['Date', 'Day', 'Class', 'Section', 'Subject', 'Time']
-        : const [
-            'Date',
-            'Day',
-            'Class',
-            'Section',
-            'Subject',
-            'Teacher',
-            'Time',
-            'Marks',
-          ];
-
-    final rows = request.papers
-        .map(
-          (paper) => teacherDuty
-              ? [
-                  _date(paper.examDate),
-                  _day(paper.examDate.weekday),
-                  paper.className,
-                  paper.sectionName,
-                  paper.subjectName,
-                  '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
-                ]
-              : [
-                  _date(paper.examDate),
-                  _day(paper.examDate.weekday),
-                  paper.className,
-                  paper.sectionName,
-                  paper.subjectName,
-                  paper.teacherName,
-                  '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
-                  '${paper.totalMarks.toStringAsFixed(0)} / ${paper.passingMarks.toStringAsFixed(0)}',
-                ],
-        )
-        .toList(growable: false);
+    final columns = <String, String>{};
+    for (final paper in request.papers) {
+      final key = teacherDuty
+          ? paper.teacherId
+          : '${paper.classId}|${paper.sectionId}';
+      columns[key] = teacherDuty
+          ? paper.teacherName
+          : 'Class ${paper.className}-${paper.sectionName}';
+    }
+    final orderedColumns = columns.entries.toList()
+      ..sort((first, second) => first.value.compareTo(second.value));
+    final dates = request.papers.map((paper) => paper.examDate).toSet().toList()
+      ..sort();
+    final headers = ['Date', ...orderedColumns.map((column) => column.value)];
+    final rows = dates.map((date) {
+      final row = <String>['${_date(date)}\n${_day(date.weekday)}'];
+      for (final column in orderedColumns) {
+        final papers = request.papers.where((paper) {
+          final sameDate =
+              paper.examDate.year == date.year &&
+              paper.examDate.month == date.month &&
+              paper.examDate.day == date.day;
+          final sameColumn = teacherDuty
+              ? paper.teacherId == column.key
+              : '${paper.classId}|${paper.sectionId}' == column.key;
+          return sameDate && sameColumn;
+        });
+        row.add(
+          papers.isEmpty
+              ? '-'
+              : papers
+                    .map(
+                      (paper) => teacherDuty
+                          ? '${paper.className}-${paper.sectionName} '
+                                '${paper.subjectName}\n'
+                                '${_time(paper.startMinutes)}-${_time(paper.endMinutes)}'
+                          : paper.subjectName,
+                    )
+                    .join('\n'),
+        );
+      }
+      return row;
+    }).toList();
 
     return pw.TableHelper.fromTextArray(
       headers: headers,

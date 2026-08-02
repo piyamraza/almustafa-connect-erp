@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -227,9 +228,16 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                         CheckboxListTile(
                           value: _selectedStudentIds.contains(student.id),
                           title: Text(student.fullName),
-                          subtitle: Text(
-                            '${student.admissionNo} • '
-                            '${student.classId} / ${student.sectionId}',
+                          subtitle: Row(
+                            children: [
+                              Text('${student.admissionNo} • '),
+                              Expanded(
+                                child: AcademicReferenceLabel(
+                                  classReference: student.classId,
+                                  sectionReference: student.sectionId,
+                                ),
+                              ),
+                            ],
                           ),
                           onChanged: (selected) {
                             setState(() {

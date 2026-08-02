@@ -3,6 +3,7 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../authentication/domain/usecases/get_current_user_usecase.dart';
 import '../../domain/entities/exam_result_entity.dart';
 import '../bloc/exam_results_bloc.dart';
 import '../bloc/exam_results_event.dart';
@@ -30,18 +31,20 @@ class _ResultSummaryView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Result Review'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ExamResultsBloc>()
-                .add(const RefreshResultSummary()),
+            onPressed: () => context.read<ExamResultsBloc>().add(
+              const RefreshResultSummary(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: BlocConsumer<ExamResultsBloc, ExamResultsState>(
-        listenWhen: (previous, current) => current is ExamResultsLoaded &&
+        listenWhen: (previous, current) =>
+            current is ExamResultsLoaded &&
             (current.successMessage != null || current.errorMessage != null),
         listener: (context, state) {
           if (state is! ExamResultsLoaded) return;
@@ -60,14 +63,15 @@ class _ResultSummaryView extends StatelessWidget {
         },
         builder: (context, state) {
           return switch (state) {
-            ExamResultsInitial() || ExamResultsLoading() =>
-              const Center(child: CircularProgressIndicator()),
+            ExamResultsInitial() || ExamResultsLoading() => const Center(
+              child: CircularProgressIndicator(),
+            ),
             ExamResultsFailure(:final message) => _FailureView(
-                message: message,
-                onRetry: () => context
-                    .read<ExamResultsBloc>()
-                    .add(const LoadResultSummary()),
+              message: message,
+              onRetry: () => context.read<ExamResultsBloc>().add(
+                const LoadResultSummary(),
               ),
+            ),
             ExamResultsLoaded() => _LoadedResultSummary(data: state),
           };
         },
@@ -84,6 +88,7 @@ class _LoadedResultSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<ExamResultsBloc>();
+    final actorId = sl<GetCurrentUserUseCase>()()?.uid ?? '';
     return SafeArea(
       top: false,
       child: Padding(
@@ -104,41 +109,73 @@ class _LoadedResultSummary extends StatelessWidget {
             const SizedBox(height: 14),
             _ResultActions(
               data: data,
-              onGenerate: () => _confirmAndDispatch(
+              onGenerate: () => _confirmAuthenticatedAndDispatch(
                 context,
+                actorId: actorId,
                 title: 'Generate results?',
                 message:
                     'This recalculates all unlocked results for the selected exam from saved marks.',
-                event: const GenerateSelectedExamResults(),
+                event: GenerateSelectedExamResults(actorId: actorId),
               ),
-              onPublish: () => _confirmAndDispatch(
+              onVerify: () => _confirmAuthenticatedAndDispatch(
                 context,
+                actorId: actorId,
+                title: 'Verify results?',
+                message:
+                    'The selected generated results will be marked as verified.',
+                event: ChangeFilteredResultsStatus(
+                  status: ResultStatus.verified,
+                  actorId: actorId,
+                  reason: 'Verified from result review.',
+                ),
+              ),
+              onApprove: () => _confirmAuthenticatedAndDispatch(
+                context,
+                actorId: actorId,
+                title: 'Approve results?',
+                message: 'The selected verified results will be approved.',
+                event: ChangeFilteredResultsStatus(
+                  status: ResultStatus.approved,
+                  actorId: actorId,
+                  reason: 'Approved from result review.',
+                ),
+              ),
+              onPublish: () => _confirmAuthenticatedAndDispatch(
+                context,
+                actorId: actorId,
                 title: 'Publish results?',
                 message:
-                    'The results matching the active filters will be published.',
-                event: const ChangeFilteredResultsStatus(ResultStatus.published),
+                    'Approved results will become visible in the Parent Portal.',
+                event: ChangeFilteredResultsStatus(
+                  status: ResultStatus.published,
+                  actorId: actorId,
+                  reason: 'Published from result review.',
+                ),
               ),
-              onUnpublish: () => _confirmAndDispatch(
+              onUnpublish: () => _confirmAuthenticatedAndDispatch(
                 context,
+                actorId: actorId,
                 title: 'Unpublish results?',
                 message:
-                    'The results matching the active filters will no longer be published.',
-                event: const ChangeFilteredResultsStatus(ResultStatus.unpublished),
+                    'Published results will be hidden from the Parent Portal.',
+                event: ChangeFilteredResultsStatus(
+                  status: ResultStatus.unpublished,
+                  actorId: actorId,
+                  reason: 'Unpublished from result review.',
+                ),
               ),
-              onLock: () => _confirmAndDispatch(
+              onLock: () => _confirmAuthenticatedAndDispatch(
                 context,
+                actorId: actorId,
                 title: 'Lock published results?',
-                message:
-                    'Locked results become read-only and cannot be regenerated in this module.',
-                event: const ChangeFilteredResultsStatus(ResultStatus.locked),
+                message: 'Published results will become read-only.',
+                event: ChangeFilteredResultsStatus(
+                  status: ResultStatus.locked,
+                  actorId: actorId,
+                  reason: 'Locked from result review.',
+                ),
               ),
-              onUnlock: () => _confirmAndDispatch(
-                context,
-                title: 'Unlock results?',
-                message:
-                    'The matching locked results will become published and editable again.',
-                event: const UnlockFilteredResults(),
-              ),
+              onUnlock: () => _showUnlockDialog(context, actorId),
             ),
             const SizedBox(height: 14),
             _ResultStatistics(data: data),
@@ -181,6 +218,95 @@ class _LoadedResultSummary extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       context.read<ExamResultsBloc>().add(event);
     }
+  }
+
+  Future<void> _confirmAuthenticatedAndDispatch(
+    BuildContext context, {
+    required String actorId,
+    required String title,
+    required String message,
+    required ExamResultsEvent event,
+  }) async {
+    if (actorId.trim().isEmpty) {
+      _showMessage(
+        context,
+        'Current authenticated user could not be identified.',
+      );
+      return;
+    }
+    await _confirmAndDispatch(
+      context,
+      title: title,
+      message: message,
+      event: event,
+    );
+  }
+
+  Future<void> _showUnlockDialog(BuildContext context, String actorId) async {
+    if (actorId.trim().isEmpty) {
+      _showMessage(
+        context,
+        'Current authenticated user could not be identified.',
+      );
+      return;
+    }
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Unlock results?'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Locked results will return to Published status.'),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller,
+                autofocus: true,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Reason for unlocking',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Reason for unlocking is required.'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              }
+            },
+            child: const Text('Unlock'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (reason == null || reason.isEmpty || !context.mounted) return;
+    context.read<ExamResultsBloc>().add(
+      UnlockFilteredResults(actorId: actorId, reason: reason),
+    );
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -233,7 +359,9 @@ class _ResultFilters extends StatelessWidget {
               enabled: enabled && data.selectedClassId != null,
               allowAll: true,
               items: data.availableSections
-                  .map((setup) => _SelectItem(setup.sectionId, setup.sectionName))
+                  .map(
+                    (setup) => _SelectItem(setup.sectionId, setup.sectionName),
+                  )
                   .toList(growable: false),
               onChanged: onSectionChanged,
             ),
@@ -248,6 +376,8 @@ class _ResultActions extends StatelessWidget {
   const _ResultActions({
     required this.data,
     required this.onGenerate,
+    required this.onVerify,
+    required this.onApprove,
     required this.onPublish,
     required this.onUnpublish,
     required this.onLock,
@@ -256,6 +386,8 @@ class _ResultActions extends StatelessWidget {
 
   final ExamResultsLoaded data;
   final VoidCallback onGenerate;
+  final VoidCallback onVerify;
+  final VoidCallback onApprove;
   final VoidCallback onPublish;
   final VoidCallback onUnpublish;
   final VoidCallback onLock;
@@ -266,18 +398,32 @@ class _ResultActions extends StatelessWidget {
     final isBusy = data.isLoading || data.isProcessing;
     final results = data.filteredResults;
     final statuses = results.map((result) => result.status).toSet();
-    final canGenerate = data.selectedExamId != null && !isBusy;
-    final canPublish = !isBusy &&
+    final canGenerate =
+        data.selectedExamId != null &&
+        !isBusy &&
+        results.every((result) => result.canRegenerate);
+    final canVerify =
+        !isBusy &&
         results.isNotEmpty &&
-        statuses.every(
-          (status) =>
-              status == ResultStatus.draft || status == ResultStatus.unpublished,
-        );
-    final canUnpublish = !isBusy &&
+        statuses.length == 1 &&
+        statuses.single == ResultStatus.generated;
+    final canApprove =
+        !isBusy &&
+        results.isNotEmpty &&
+        statuses.length == 1 &&
+        statuses.single == ResultStatus.verified;
+    final canPublish =
+        !isBusy &&
+        results.isNotEmpty &&
+        statuses.length == 1 &&
+        statuses.single == ResultStatus.approved;
+    final canUnpublish =
+        !isBusy &&
         results.isNotEmpty &&
         statuses.every((status) => status == ResultStatus.published);
     final canLock = canUnpublish;
-    final canUnlock = !isBusy &&
+    final canUnlock =
+        !isBusy &&
         results.isNotEmpty &&
         statuses.every((status) => status == ResultStatus.locked);
     return Align(
@@ -289,7 +435,19 @@ class _ResultActions extends StatelessWidget {
           FilledButton.icon(
             onPressed: canGenerate ? onGenerate : null,
             icon: const Icon(Icons.calculate_outlined),
-            label: Text(data.isProcessing ? 'Processing...' : 'Generate Results'),
+            label: Text(
+              data.isProcessing ? 'Processing...' : 'Generate Results',
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: canVerify ? onVerify : null,
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('Verify'),
+          ),
+          OutlinedButton.icon(
+            onPressed: canApprove ? onApprove : null,
+            icon: const Icon(Icons.approval_outlined),
+            label: const Text('Approve'),
           ),
           OutlinedButton.icon(
             onPressed: canPublish ? onPublish : null,
@@ -327,18 +485,59 @@ class _ResultStatistics extends StatelessWidget {
     final statistics = data.statistics;
     final colors = Theme.of(context).colorScheme;
     final cards = [
-      ResultStatisticCard(label: 'Total Students', value: '${statistics.totalStudents}', icon: Icons.groups_outlined, color: colors.primary),
-      ResultStatisticCard(label: 'Passed', value: '${statistics.passedStudents}', icon: Icons.check_circle_outline, color: Colors.green),
-      ResultStatisticCard(label: 'Failed', value: '${statistics.failedStudents}', icon: Icons.cancel_outlined, color: colors.error),
-      ResultStatisticCard(label: 'Pass Percentage', value: _percentage(statistics.passPercentage), icon: Icons.percent_outlined, color: colors.tertiary),
-      ResultStatisticCard(label: 'Highest Percentage', value: _percentage(statistics.highestPercentage), icon: Icons.north_outlined, color: Colors.teal),
-      ResultStatisticCard(label: 'Lowest Percentage', value: _percentage(statistics.lowestPercentage), icon: Icons.south_outlined, color: Colors.deepOrange),
-      ResultStatisticCard(label: 'Average Percentage', value: _percentage(statistics.averagePercentage), icon: Icons.analytics_outlined, color: Colors.indigo),
+      ResultStatisticCard(
+        label: 'Total Students',
+        value: '${statistics.totalStudents}',
+        icon: Icons.groups_outlined,
+        color: colors.primary,
+      ),
+      ResultStatisticCard(
+        label: 'Passed',
+        value: '${statistics.passedStudents}',
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+      ),
+      ResultStatisticCard(
+        label: 'Failed',
+        value: '${statistics.failedStudents}',
+        icon: Icons.cancel_outlined,
+        color: colors.error,
+      ),
+      ResultStatisticCard(
+        label: 'Pass Percentage',
+        value: _percentage(statistics.passPercentage),
+        icon: Icons.percent_outlined,
+        color: colors.tertiary,
+      ),
+      ResultStatisticCard(
+        label: 'Highest Percentage',
+        value: _percentage(statistics.highestPercentage),
+        icon: Icons.north_outlined,
+        color: Colors.teal,
+      ),
+      ResultStatisticCard(
+        label: 'Lowest Percentage',
+        value: _percentage(statistics.lowestPercentage),
+        icon: Icons.south_outlined,
+        color: Colors.deepOrange,
+      ),
+      ResultStatisticCard(
+        label: 'Average Percentage',
+        value: _percentage(statistics.averagePercentage),
+        icon: Icons.analytics_outlined,
+        color: Colors.indigo,
+      ),
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = width >= 1350 ? 4 : width >= 940 ? 3 : width >= 620 ? 2 : 1;
+        final columns = width >= 1350
+            ? 4
+            : width >= 940
+            ? 3
+            : width >= 620
+            ? 2
+            : 1;
         final cardWidth = (width - ((columns - 1) * 12)) / columns;
         return Wrap(
           spacing: 12,
@@ -381,7 +580,8 @@ class _ResultsTable extends StatelessWidget {
             itemCount: results.length,
             padding: const EdgeInsets.only(bottom: 4),
             separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) => _MobileResultCard(result: results[index]),
+            itemBuilder: (context, index) =>
+                _MobileResultCard(result: results[index]),
           );
         }
         return _DesktopResultsTable(results: results);
@@ -404,8 +604,16 @@ class _DesktopResultsTable extends StatelessWidget {
     const gradeWidth = 70.0;
     const resultWidth = 80.0;
     const rankWidth = 70.0;
-    const statusWidth = 118.0;
-    const fixedWidth = rollWidth + totalWidth + obtainedWidth + percentageWidth + gradeWidth + resultWidth + rankWidth * 3 + statusWidth;
+    const statusWidth = 154.0;
+    const fixedWidth =
+        rollWidth +
+        totalWidth +
+        obtainedWidth +
+        percentageWidth +
+        gradeWidth +
+        resultWidth +
+        rankWidth * 3 +
+        statusWidth;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -417,20 +625,56 @@ class _DesktopResultsTable extends StatelessWidget {
             children: [
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 11,
+                ),
                 child: Row(
                   children: [
-                    const SizedBox(width: rollWidth, child: _HeaderText('Roll')),
-                    SizedBox(width: studentWidth, child: const _HeaderText('Student')),
-                    const SizedBox(width: totalWidth, child: _HeaderText('Total')),
-                    const SizedBox(width: obtainedWidth, child: _HeaderText('Obtained')),
-                    const SizedBox(width: percentageWidth, child: _HeaderText('%')),
-                    const SizedBox(width: gradeWidth, child: _HeaderText('Grade')),
-                    const SizedBox(width: resultWidth, child: _HeaderText('Result')),
-                    const SizedBox(width: rankWidth, child: _HeaderText('Section')),
-                    const SizedBox(width: rankWidth, child: _HeaderText('Class')),
-                    const SizedBox(width: rankWidth, child: _HeaderText('Overall')),
-                    const SizedBox(width: statusWidth, child: _HeaderText('Status')),
+                    const SizedBox(
+                      width: rollWidth,
+                      child: _HeaderText('Roll'),
+                    ),
+                    SizedBox(
+                      width: studentWidth,
+                      child: const _HeaderText('Student'),
+                    ),
+                    const SizedBox(
+                      width: totalWidth,
+                      child: _HeaderText('Total'),
+                    ),
+                    const SizedBox(
+                      width: obtainedWidth,
+                      child: _HeaderText('Obtained'),
+                    ),
+                    const SizedBox(
+                      width: percentageWidth,
+                      child: _HeaderText('%'),
+                    ),
+                    const SizedBox(
+                      width: gradeWidth,
+                      child: _HeaderText('Grade'),
+                    ),
+                    const SizedBox(
+                      width: resultWidth,
+                      child: _HeaderText('Result'),
+                    ),
+                    const SizedBox(
+                      width: rankWidth,
+                      child: _HeaderText('Section'),
+                    ),
+                    const SizedBox(
+                      width: rankWidth,
+                      child: _HeaderText('Class'),
+                    ),
+                    const SizedBox(
+                      width: rankWidth,
+                      child: _HeaderText('Overall'),
+                    ),
+                    const SizedBox(
+                      width: statusWidth,
+                      child: _HeaderText('Status'),
+                    ),
                   ],
                 ),
               ),
@@ -441,20 +685,56 @@ class _DesktopResultsTable extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final result = results[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
-                          SizedBox(width: rollWidth, child: Text(_value(result.rollNumber))),
-                          SizedBox(width: studentWidth, child: _StudentCell(result: result)),
-                          SizedBox(width: totalWidth, child: Text(_number(result.grandTotalMarks))),
-                          SizedBox(width: obtainedWidth, child: Text(_number(result.grandObtainedMarks))),
-                          SizedBox(width: percentageWidth, child: Text(_percentage(result.percentage))),
-                          SizedBox(width: gradeWidth, child: Text(result.grade)),
-                          SizedBox(width: resultWidth, child: _PassFailLabel(isPassed: result.isPassed)),
-                          SizedBox(width: rankWidth, child: Text('${result.sectionPosition}')),
-                          SizedBox(width: rankWidth, child: Text('${result.classPosition}')),
-                          SizedBox(width: rankWidth, child: Text('${result.overallRank}')),
-                          SizedBox(width: statusWidth, child: ResultStatusChip(status: result.status)),
+                          SizedBox(
+                            width: rollWidth,
+                            child: Text(_value(result.rollNumber)),
+                          ),
+                          SizedBox(
+                            width: studentWidth,
+                            child: _StudentCell(result: result),
+                          ),
+                          SizedBox(
+                            width: totalWidth,
+                            child: Text(_number(result.grandTotalMarks)),
+                          ),
+                          SizedBox(
+                            width: obtainedWidth,
+                            child: Text(_number(result.grandObtainedMarks)),
+                          ),
+                          SizedBox(
+                            width: percentageWidth,
+                            child: Text(_percentage(result.percentage)),
+                          ),
+                          SizedBox(
+                            width: gradeWidth,
+                            child: Text(result.grade),
+                          ),
+                          SizedBox(
+                            width: resultWidth,
+                            child: _PassFailLabel(isPassed: result.isPassed),
+                          ),
+                          SizedBox(
+                            width: rankWidth,
+                            child: Text('${result.sectionPosition}'),
+                          ),
+                          SizedBox(
+                            width: rankWidth,
+                            child: Text('${result.classPosition}'),
+                          ),
+                          SizedBox(
+                            width: rankWidth,
+                            child: Text('${result.overallRank}'),
+                          ),
+                          SizedBox(
+                            width: statusWidth,
+                            child: _ResultStatusWithDetails(result: result),
+                          ),
                         ],
                       ),
                     );
@@ -485,7 +765,7 @@ class _MobileResultCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: _StudentCell(result: result)),
-                ResultStatusChip(status: result.status),
+                _ResultStatusWithDetails(result: result),
               ],
             ),
             const SizedBox(height: 12),
@@ -493,14 +773,35 @@ class _MobileResultCard extends StatelessWidget {
               spacing: 18,
               runSpacing: 10,
               children: [
-                _ResultDetail(label: 'Total', value: _number(result.grandTotalMarks)),
-                _ResultDetail(label: 'Obtained', value: _number(result.grandObtainedMarks)),
-                _ResultDetail(label: 'Percentage', value: _percentage(result.percentage)),
+                _ResultDetail(
+                  label: 'Total',
+                  value: _number(result.grandTotalMarks),
+                ),
+                _ResultDetail(
+                  label: 'Obtained',
+                  value: _number(result.grandObtainedMarks),
+                ),
+                _ResultDetail(
+                  label: 'Percentage',
+                  value: _percentage(result.percentage),
+                ),
                 _ResultDetail(label: 'Grade', value: result.grade),
-                _ResultDetail(label: 'Result', value: result.isPassed ? 'Pass' : 'Fail'),
-                _ResultDetail(label: 'Section Rank', value: '${result.sectionPosition}'),
-                _ResultDetail(label: 'Class Rank', value: '${result.classPosition}'),
-                _ResultDetail(label: 'Overall Rank', value: '${result.overallRank}'),
+                _ResultDetail(
+                  label: 'Result',
+                  value: result.isPassed ? 'Pass' : 'Fail',
+                ),
+                _ResultDetail(
+                  label: 'Section Rank',
+                  value: '${result.sectionPosition}',
+                ),
+                _ResultDetail(
+                  label: 'Class Rank',
+                  value: '${result.classPosition}',
+                ),
+                _ResultDetail(
+                  label: 'Overall Rank',
+                  value: '${result.overallRank}',
+                ),
               ],
             ),
           ],
@@ -544,8 +845,87 @@ class _PassFailLabel extends StatelessWidget {
     return Text(
       isPassed ? 'Pass' : 'Fail',
       style: TextStyle(
-        color: isPassed ? Colors.green.shade700 : Theme.of(context).colorScheme.error,
+        color: isPassed
+            ? Colors.green.shade700
+            : Theme.of(context).colorScheme.error,
         fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+class _ResultStatusWithDetails extends StatelessWidget {
+  const _ResultStatusWithDetails({required this.result});
+
+  final ExamResultEntity result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: ResultStatusChip(status: result.status)),
+        IconButton(
+          tooltip: 'Workflow details',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => _showDetails(context),
+          icon: const Icon(Icons.info_outline, size: 19),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showDetails(BuildContext context) {
+    final entries = <(String, String, DateTime?)>[
+      ('Generated', result.generatedBy, result.generatedAt),
+      ('Verified', result.verifiedBy, result.verifiedAt),
+      ('Approved', result.approvedBy, result.approvedAt),
+      ('Published', result.publishedBy, result.publishedAt),
+      ('Locked', result.lockedBy, result.lockedAt),
+      ('Last unlocked', result.unlockedBy, result.unlockedAt),
+    ];
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${result.studentName} — Workflow'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('Current status: '),
+                  ResultStatusChip(status: result.status),
+                ],
+              ),
+              const SizedBox(height: 16),
+              for (final entry in entries)
+                if (entry.$2.trim().isNotEmpty || entry.$3 != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      '${entry.$1}: ${_workflowActor(entry.$2)}'
+                      '${entry.$3 == null ? '' : ' • ${_workflowDate(entry.$3!)}'}',
+                    ),
+                  ),
+              if (result.unlockReason.trim().isNotEmpty) ...[
+                const Divider(),
+                Text(
+                  'Last unlock reason: ${result.unlockReason}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
@@ -594,7 +974,10 @@ class _ResultSelect extends StatelessWidget {
       child: DropdownButtonFormField<String>(
         initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
         items: [
           if (allowAll)
             const DropdownMenuItem<String>(value: null, child: Text('All')),
@@ -634,7 +1017,11 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 44, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 44,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
         ],
@@ -678,7 +1065,20 @@ class _SelectItem {
 
 String _percentage(double value) => '${value.toStringAsFixed(1)}%';
 
-String _number(double value) =>
-    value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
+String _number(double value) => value == value.roundToDouble()
+    ? value.toInt().toString()
+    : value.toStringAsFixed(1);
 
 String _value(String value) => value.trim().isEmpty ? '-' : value;
+
+String _workflowActor(String value) =>
+    value.trim().isEmpty ? 'Unknown user' : value.trim();
+
+String _workflowDate(DateTime value) {
+  final local = value.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$day/$month/${local.year} $hour:$minute';
+}

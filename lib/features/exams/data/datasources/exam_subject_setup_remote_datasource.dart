@@ -55,14 +55,16 @@ class ExamSubjectSetupRemoteDataSourceImpl
     if (setups.isEmpty) return;
     final keys = <String>{};
     for (final setup in setups) {
-      if (!keys.add(setup.uniqueKey))
+      if (!keys.add(setup.uniqueKey)) {
         throw StateError('Duplicate subject setup selected.');
+      }
       final existing = await _collection
           .where('uniqueKey', isEqualTo: setup.uniqueKey)
           .limit(1)
           .get();
-      if (existing.docs.isNotEmpty)
+      if (existing.docs.isNotEmpty) {
         throw StateError('A setup already exists for ${setup.subjectName}.');
+      }
     }
     final batch = _service.instance.batch();
     for (final setup in setups) {
@@ -77,8 +79,9 @@ class ExamSubjectSetupRemoteDataSourceImpl
         .where('uniqueKey', isEqualTo: setup.uniqueKey)
         .limit(1)
         .get();
-    if (existing.docs.any((doc) => doc.id != setup.id))
+    if (existing.docs.any((doc) => doc.id != setup.id)) {
       throw StateError('A setup already exists for ${setup.subjectName}.');
+    }
     await _collection.doc(_id(setup.id)).update(setup.toMap());
   }
 
@@ -90,16 +93,19 @@ class ExamSubjectSetupRemoteDataSourceImpl
     required List<ExamSubjectSetupModel> selectedSetups,
   }) async {
     final normalizedExamId = examId.trim();
-    if (normalizedExamId.isEmpty)
+    if (normalizedExamId.isEmpty) {
       throw ArgumentError.value(examId, 'examId', 'Exam ID cannot be empty.');
+    }
     final selectedByKey = <String, ExamSubjectSetupModel>{};
     for (final setup in selectedSetups) {
-      if (setup.examId != normalizedExamId)
+      if (setup.examId != normalizedExamId) {
         throw StateError(
           'Every subject setup must belong to the selected exam.',
         );
-      if (selectedByKey.containsKey(setup.uniqueKey))
+      }
+      if (selectedByKey.containsKey(setup.uniqueKey)) {
         throw StateError('Duplicate subject setup selected.');
+      }
       selectedByKey[setup.uniqueKey] = setup;
     }
     final snapshot = await _collection
@@ -139,8 +145,9 @@ class ExamSubjectSetupRemoteDataSourceImpl
     }
     for (final entry in existingByKey.entries) {
       if (selectedByKey.containsKey(entry.key) ||
-          retainedDocumentIds.contains(entry.value.id))
+          retainedDocumentIds.contains(entry.value.id)) {
         continue;
+      }
       batch.update(entry.value.reference, {
         'isActive': false,
         'updatedAt': DateTime.now().toIso8601String(),
@@ -153,8 +160,9 @@ class ExamSubjectSetupRemoteDataSourceImpl
   String generateId() => _collection.doc().id;
   String _id(String value) {
     final id = value.trim();
-    if (id.isEmpty)
+    if (id.isEmpty) {
       throw ArgumentError.value(value, 'id', 'Setup ID cannot be empty.');
+    }
     return id;
   }
 }

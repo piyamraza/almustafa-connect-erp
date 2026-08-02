@@ -8,6 +8,25 @@ import '../../features/academic_structure/domain/repositories/subject_component_
 import '../../features/academic_structure/domain/services/subject_component_exam_service.dart';
 import '../../features/academic_structure/presentation/bloc/subject_component_bloc.dart';
 import '../../features/academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../features/accounts/data/datasources/accounts_remote_datasource.dart';
+import '../../features/accounts/data/repositories/accounts_repository_impl.dart';
+import '../../features/accounts/domain/repositories/accounts_repository.dart';
+import '../../features/accounts/domain/usecases/get_accounts_overview.dart';
+import '../../features/accounts/presentation/bloc/accounts_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_expenses.dart';
+import '../../features/accounts/presentation/bloc/expense_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_payroll.dart';
+import '../../features/accounts/presentation/bloc/payroll_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_income.dart';
+import '../../features/accounts/presentation/bloc/income_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_profit_loss.dart';
+import '../../features/accounts/presentation/bloc/profit_loss_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_cashbook.dart';
+import '../../features/accounts/presentation/bloc/cashbook_bloc.dart';
+import '../../features/accounts/data/services/accounts_report_service_impl.dart';
+import '../../features/accounts/domain/services/accounts_report_service.dart';
+import '../../features/accounts/domain/usecases/get_accounts_report_data.dart';
+import '../../features/accounts/presentation/bloc/accounts_reports_bloc.dart';
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
@@ -487,6 +506,7 @@ Future<void> setupServiceLocator() async {
       sl<StudentRepository>(),
       sl<AdditionalChargeRepository>(),
       sl<StudentAdditionalChargeDueRepository>(),
+      sl<AcademicStructureRepository>(),
     ),
   );
 
@@ -547,10 +567,16 @@ Future<void> setupServiceLocator() async {
     () => ParentTimelineServiceImpl(sl<FirebaseFirestore>()),
   );
   sl.registerLazySingleton<ParentCommunicationService>(
-    () => ParentCommunicationServiceImpl(sl<FirebaseFirestore>()),
+    () => ParentCommunicationServiceImpl(
+      sl<FirebaseFirestore>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<ParentAcademicService>(
-    () => ParentAcademicServiceImpl(sl<FirebaseFirestore>()),
+    () => ParentAcademicServiceImpl(
+      sl<FirebaseFirestore>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<ParentPortalRepository>(
     () => ParentPortalRepositoryImpl(
@@ -604,6 +630,13 @@ Future<void> setupServiceLocator() async {
     () => AcademicCalendarRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
 
+  sl.registerLazySingleton<AccountsRemoteDataSource>(
+    () => AccountsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<AccountsRepository>(
+    () => AccountsRepositoryImpl(sl<AccountsRemoteDataSource>()),
+  );
+
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
       source: sl<AcademicStructureRemoteDataSource>(),
@@ -624,6 +657,82 @@ Future<void> setupServiceLocator() async {
   // =========================================================
   // Use Cases
   // =========================================================
+
+  sl.registerLazySingleton<AccountsReportService>(
+    AccountsReportServiceImpl.new,
+  );
+  sl.registerLazySingleton<GetAccountsReportData>(
+    () => GetAccountsReportData(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetCashbookEntries>(
+    () => GetCashbookEntries(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SyncCashbook>(
+    () => SyncCashbook(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetProfitLossSnapshots>(
+    () => GetProfitLossSnapshots(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<GenerateMonthlyProfitLoss>(
+    () => GenerateMonthlyProfitLoss(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetIncomeEntries>(
+    () => GetIncomeEntries(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveIncomeEntry>(
+    () => SaveIncomeEntry(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<ReverseIncomeEntry>(
+    () => ReverseIncomeEntry(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SyncFeePaymentsToIncome>(
+    () => SyncFeePaymentsToIncome(
+      sl<AccountsRepository>(),
+      sl<FeePaymentRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetPayrollManagementData>(
+    () => GetPayrollManagementData(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SavePayrollProfile>(
+    () => SavePayrollProfile(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SetPayrollProfileActive>(
+    () => SetPayrollProfileActive(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<GenerateMonthlyPayroll>(
+    () => GenerateMonthlyPayroll(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SavePayrollRecord>(
+    () => SavePayrollRecord(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<UpdatePayrollStatus>(
+    () => UpdatePayrollStatus(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetExpenseManagementData>(
+    () => GetExpenseManagementData(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveExpenseCategory>(
+    () => SaveExpenseCategory(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SetExpenseCategoryActive>(
+    () => SetExpenseCategoryActive(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveExpense>(
+    () => SaveExpense(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<UpdateExpenseStatus>(
+    () => UpdateExpenseStatus(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetAccountsOverview>(
+    () => GetAccountsOverview(sl<AccountsRepository>()),
+  );
 
   sl.registerLazySingleton<LoginUseCase>(
     () => LoginUseCase(sl<AuthenticationRepository>()),
@@ -927,6 +1036,60 @@ Future<void> setupServiceLocator() async {
     () => AcademicCalendarBloc(sl<AcademicCalendarRepository>()),
   );
 
+  sl.registerFactory<AccountsReportsBloc>(
+    () => AccountsReportsBloc(
+      getReportData: sl<GetAccountsReportData>(),
+      reportService: sl<AccountsReportService>(),
+    ),
+  );
+
+  sl.registerFactory<CashbookBloc>(
+    () => CashbookBloc(
+      getEntries: sl<GetCashbookEntries>(),
+      syncCashbook: sl<SyncCashbook>(),
+    ),
+  );
+
+  sl.registerFactory<ProfitLossBloc>(
+    () => ProfitLossBloc(
+      getSnapshots: sl<GetProfitLossSnapshots>(),
+      generateMonthly: sl<GenerateMonthlyProfitLoss>(),
+    ),
+  );
+
+  sl.registerFactory<IncomeBloc>(
+    () => IncomeBloc(
+      getIncomeEntries: sl<GetIncomeEntries>(),
+      saveIncomeEntry: sl<SaveIncomeEntry>(),
+      reverseIncomeEntry: sl<ReverseIncomeEntry>(),
+      syncFeePayments: sl<SyncFeePaymentsToIncome>(),
+    ),
+  );
+
+  sl.registerFactory<PayrollBloc>(
+    () => PayrollBloc(
+      getData: sl<GetPayrollManagementData>(),
+      saveProfile: sl<SavePayrollProfile>(),
+      generatePayroll: sl<GenerateMonthlyPayroll>(),
+      saveRecord: sl<SavePayrollRecord>(),
+      updateStatus: sl<UpdatePayrollStatus>(),
+    ),
+  );
+
+  sl.registerFactory<ExpenseBloc>(
+    () => ExpenseBloc(
+      getData: sl<GetExpenseManagementData>(),
+      saveCategory: sl<SaveExpenseCategory>(),
+      setCategoryActive: sl<SetExpenseCategoryActive>(),
+      saveExpense: sl<SaveExpense>(),
+      updateStatus: sl<UpdateExpenseStatus>(),
+    ),
+  );
+
+  sl.registerFactory<AccountsBloc>(
+    () => AccountsBloc(sl<GetAccountsOverview>()),
+  );
+
   sl.registerFactory<AuthenticationBloc>(
     () => AuthenticationBloc(
       loginUseCase: sl<LoginUseCase>(),
@@ -943,7 +1106,10 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<GenerateAttendanceReport>(
-    () => GenerateAttendanceReport(sl<AttendanceRepository>()),
+    () => GenerateAttendanceReport(
+      sl<AttendanceRepository>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
 
   sl.registerFactory<AttendanceReportBloc>(
@@ -1078,6 +1244,7 @@ Future<void> setupServiceLocator() async {
       getSubjectSetupsForExam: sl<GetExamSubjectSetupsForExam>(),
       getStudentsByClassAndSection: sl<GetStudentsByClassAndSection>(),
       getExamMarks: sl<GetExamMarks>(),
+      getExamResults: sl<GetExamResults>(),
       saveExamMarks: sl<SaveExamMarks>(),
       deleteExamMark: sl<DeleteExamMark>(),
       componentService: sl<SubjectComponentExamService>(),

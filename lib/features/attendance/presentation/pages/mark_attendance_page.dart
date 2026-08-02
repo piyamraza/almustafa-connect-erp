@@ -4,6 +4,8 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/presentation/bloc/student_bloc.dart';
@@ -14,6 +16,11 @@ import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
 import '../widgets/attendance_academic_structure.dart';
+
+String _displayClassName(String name) {
+  final value = name.trim();
+  return RegExp(r'^\d+$').hasMatch(value) ? 'Class $value' : value;
+}
 
 class MarkAttendancePage extends StatefulWidget {
   const MarkAttendancePage({
@@ -47,6 +54,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
   bool _hasRequestedInheritedAttendance = false;
   bool _hasRequestedInheritedStudents = false;
   late Future<AttendanceAcademicStructure> _academicStructureFuture;
+  AttendanceAcademicStructure? _academicStructure;
 
   bool get _isChoosingClass => _selectedClass == null;
 
@@ -143,28 +151,28 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
 
   Future<void> _selectClass(
     BuildContext context,
-    String className,
-    List<String> sections,
+    AcademicClassEntity academicClass,
+    List<SectionEntity> sections,
   ) async {
-    String? section;
+    SectionEntity? section;
     if (sections.length > 1) {
-      section = await _showSectionPicker(context, className, sections);
+      section = await _showSectionPicker(context, academicClass.name, sections);
       if (section == null || !mounted) return;
     } else if (sections.length == 1) {
       section = sections.single;
     }
     _searchController.clear();
     setState(() {
-      _selectedClass = className;
-      _selectedSection = section;
+      _selectedClass = academicClass.id;
+      _selectedSection = section?.id;
     });
   }
 
-  Future<String?> _showSectionPicker(
+  Future<SectionEntity?> _showSectionPicker(
     BuildContext context,
     String className,
-    List<String> sections,
-  ) => showDialog<String>(
+    List<SectionEntity> sections,
+  ) => showDialog<SectionEntity>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text('Select $className section'),
@@ -174,7 +182,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
             .map(
               (section) => ListTile(
                 leading: const Icon(Icons.class_outlined),
-                title: Text('Section $section'),
+                title: Text('Section ${section.name}'),
                 onTap: () => Navigator.pop(dialogContext, section),
               ),
             )
@@ -191,9 +199,19 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
 
   List<StudentEntity> _filteredStudents(List<StudentEntity> students) {
     final query = _searchController.text.trim().toLowerCase();
+    final structure = _academicStructure;
     final filtered = students.where((student) {
-      return student.classId == _selectedClass &&
-          (_selectedSection == null || student.sectionId == _selectedSection) &&
+      final classMatches = student.classId == _selectedClass ||
+          (structure != null &&
+              structure.className(student.classId) ==
+                  structure.className(_selectedClass!));
+      final sectionMatches = _selectedSection == null ||
+          student.sectionId == _selectedSection ||
+          (structure != null &&
+              structure.sectionName(student.sectionId) ==
+                  structure.sectionName(_selectedSection!));
+      return classMatches &&
+          sectionMatches &&
           (query.isEmpty ||
               student.fullName.toLowerCase().contains(query) ||
               student.fatherName.toLowerCase().contains(query) ||
@@ -252,7 +270,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
       child: Builder(
         builder: (context) => Scaffold(
           appBar: AppBar(actions: const [DashboardNavigationButton()],
-            title: Text(_isChoosingClass ? 'Mark Attendance' : _selectedClass!),
+            title: const Text('Mark Attendance'),
             leading: _isChoosingClass
                 ? null
                 : IconButton(
@@ -300,6 +318,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                   );
                 }
                 final structure = structureSnapshot.data!;
+                _academicStructure = structure;
                 return BlocBuilder<StudentBloc, StudentState>(
                   builder: (context, state) {
                     if (state is StudentLoading) {
@@ -311,13 +330,13 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                     if (state is! StudentLoaded) return const SizedBox();
                     return _isChoosingClass
                         ? _ClassGrid(
-                            classes: structure.classNames,
+                            classes: structure.activeClasses,
                             students: state.students,
                             searchController: _searchController,
-                            onClassSelected: (className) => _selectClass(
+                            onClassSelected: (academicClass) => _selectClass(
                               context,
-                              className,
-                              structure.sectionNamesForClass(className),
+                              academicClass,
+                              structure.sectionsForClass(academicClass.id),
                             ),
                             onStudentSelected: (student) {
                               _searchController.clear();
@@ -328,10 +347,14 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                                     : student.sectionId;
                               });
                             },
+                            classLabel: structure.className,
+                            sectionLabel: structure.sectionName,
                           )
                         : _AttendanceList(
-                            className: _selectedClass!,
-                            section: _selectedSection,
+                            className: structure.className(_selectedClass!),
+                            section: _selectedSection == null
+                                ? null
+                                : structure.sectionName(_selectedSection!),
                             selectedDate: _selectedDate,
                             searchController: _searchController,
                             students: _filteredStudents(state.students),
@@ -406,12 +429,16 @@ class _ClassGrid extends StatelessWidget {
     required this.searchController,
     required this.onClassSelected,
     required this.onStudentSelected,
+    required this.classLabel,
+    required this.sectionLabel,
   });
-  final List<String> classes;
+  final List<AcademicClassEntity> classes;
   final List<StudentEntity> students;
   final TextEditingController searchController;
-  final ValueChanged<String> onClassSelected;
+  final ValueChanged<AcademicClassEntity> onClassSelected;
   final ValueChanged<StudentEntity> onStudentSelected;
+  final String Function(String) classLabel;
+  final String Function(String) sectionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -472,8 +499,10 @@ class _ClassGrid extends StatelessWidget {
               Expanded(
                 child: query.isNotEmpty
                     ? _StudentSearchResults(
-                        students: found,
-                        onStudentSelected: onStudentSelected,
+                      students: found,
+                      onStudentSelected: onStudentSelected,
+                      classLabel: classLabel,
+                      sectionLabel: sectionLabel,
                       )
                     : GridView.builder(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -484,13 +513,17 @@ class _ClassGrid extends StatelessWidget {
                         ),
                         itemCount: classes.length,
                         itemBuilder: (context, index) {
-                          final className = classes[index];
+                          final academicClass = classes[index];
                           final count = students
-                              .where((student) => student.classId == className)
+                              .where(
+                                (student) =>
+                                    student.classId == academicClass.id ||
+                                    student.classId == academicClass.name,
+                              )
                               .length;
                           return Card(
                             child: InkWell(
-                              onTap: () => onClassSelected(className),
+                              onTap: () => onClassSelected(academicClass),
                               child: Center(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -498,7 +531,7 @@ class _ClassGrid extends StatelessWidget {
                                     const Icon(Icons.groups_outlined, size: 20),
                                     const SizedBox(height: 6),
                                     Text(
-                                      className,
+                                      _displayClassName(academicClass.name),
                                       style: Theme.of(
                                         context,
                                       ).textTheme.titleSmall,
@@ -557,9 +590,13 @@ class _StudentSearchResults extends StatelessWidget {
   const _StudentSearchResults({
     required this.students,
     required this.onStudentSelected,
+    required this.classLabel,
+    required this.sectionLabel,
   });
   final List<StudentEntity> students;
   final ValueChanged<StudentEntity> onStudentSelected;
+  final String Function(String) classLabel;
+  final String Function(String) sectionLabel;
   @override
   Widget build(BuildContext context) {
     if (students.isEmpty) {
@@ -572,7 +609,7 @@ class _StudentSearchResults extends StatelessWidget {
         final student = students[index];
         final section = student.sectionId.isEmpty
             ? ''
-            : ' • Section ${student.sectionId}';
+            : ' • Section ${sectionLabel(student.sectionId)}';
         return Card(
           child: ListTile(
             leading: CircleAvatar(
@@ -580,7 +617,8 @@ class _StudentSearchResults extends StatelessWidget {
             ),
             title: Text(student.fullName),
             subtitle: Text(
-              '${student.admissionNo} • ${student.classId}$section',
+              '${student.admissionNo} • '
+              '${_displayClassName(classLabel(student.classId))}$section',
             ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => onStudentSelected(student),
@@ -615,7 +653,10 @@ class _AttendanceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = section == null ? className : '$className • Section $section';
+    final displayedClass = _displayClassName(className);
+    final title = section == null
+        ? displayedClass
+        : '$displayedClass • Section $section';
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(

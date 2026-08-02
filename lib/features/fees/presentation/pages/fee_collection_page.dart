@@ -119,6 +119,13 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
           _selectedClassId = null;
           _selectedSectionId = null;
           _selectedStudent = null;
+        } else if (_selectedClassId != null) {
+          final classSections = sections
+              .where((section) => section.classId == _selectedClassId)
+              .toList();
+          if (classSections.length == 1) {
+            _selectedSectionId = classSections.first.id;
+          }
         }
       });
     } catch (error) {
@@ -126,6 +133,32 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
       setState(() => _loadingStudents = false);
       _show(error.toString());
     }
+  }
+
+  void _selectClass(String? classId) {
+    final sections = _sections
+        .where((section) => section.classId == classId)
+        .toList(growable: false);
+    setState(() {
+      _selectedClassId = classId;
+      _selectedSectionId = sections.length == 1 ? sections.first.id : null;
+      _selectedStudent = null;
+      _selectedDueIds.clear();
+      _selectedAdditionalDueIds.clear();
+      _searchController.clear();
+      _query = '';
+    });
+  }
+
+  void _selectSection(String? sectionId) {
+    setState(() {
+      _selectedSectionId = sectionId;
+      _selectedStudent = null;
+      _selectedDueIds.clear();
+      _selectedAdditionalDueIds.clear();
+      _searchController.clear();
+      _query = '';
+    });
   }
 
   void _selectStudent(StudentEntity student) {
@@ -321,7 +354,10 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Collection')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Fee Collection'),
+      ),
       body: SafeArea(
         child: BlocConsumer<FeeCollectionBloc, FeeCollectionState>(
           listener: (context, state) {
@@ -399,19 +435,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                           ),
                                         )
                                         .toList(),
-                                    onChanged: busy
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              _selectedClassId = value;
-                                              _selectedSectionId = null;
-                                              _selectedStudent = null;
-                                              _selectedDueIds.clear();
-                                              _selectedAdditionalDueIds.clear();
-                                              _searchController.clear();
-                                              _query = '';
-                                            });
-                                          },
+                                    onChanged: busy ? null : _selectClass,
                                   ),
                                   const SizedBox(height: 12),
                                   DropdownButtonFormField<String>(
@@ -423,12 +447,17 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                         ? _selectedSectionId
                                         : null,
                                     isExpanded: true,
-                                    decoration: const InputDecoration(
-                                      labelText: '2. Select Section',
-                                      prefixIcon: Icon(
+                                    decoration: InputDecoration(
+                                      labelText: _availableSections.length == 1
+                                          ? '2. Section'
+                                          : '2. Select Section',
+                                      helperText: _availableSections.length == 1
+                                          ? 'Automatically selected'
+                                          : null,
+                                      prefixIcon: const Icon(
                                         Icons.view_list_outlined,
                                       ),
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
                                     ),
                                     items: _availableSections
                                         .map(
@@ -438,18 +467,12 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                           ),
                                         )
                                         .toList(),
-                                    onChanged: busy || _selectedClassId == null
+                                    onChanged:
+                                        busy ||
+                                            _selectedClassId == null ||
+                                            _availableSections.length <= 1
                                         ? null
-                                        : (value) {
-                                            setState(() {
-                                              _selectedSectionId = value;
-                                              _selectedStudent = null;
-                                              _selectedDueIds.clear();
-                                              _selectedAdditionalDueIds.clear();
-                                              _searchController.clear();
-                                              _query = '';
-                                            });
-                                          },
+                                        : _selectSection,
                                   ),
                                   const SizedBox(height: 12),
                                   TextFormField(

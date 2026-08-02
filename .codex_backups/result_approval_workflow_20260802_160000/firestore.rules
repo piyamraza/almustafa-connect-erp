@@ -1,0 +1,429 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function assignmentPath() {
+      return /databases/$(database)/documents/user_roles/$(request.auth.uid);
+    }
+
+    function hasAssignment() {
+      return signedIn() && exists(assignmentPath());
+    }
+
+    function assignment() {
+      return get(assignmentPath()).data;
+    }
+
+    function activeAssignment() {
+      return hasAssignment() && assignment().isActive == true;
+    }
+
+    function rolePath() {
+      return /databases/$(database)/documents/app_roles/$(assignment().roleId);
+    }
+
+    function hasActiveRole() {
+      return activeAssignment()
+          && exists(rolePath())
+          && get(rolePath()).data.isActive == true;
+    }
+
+    function permissions() {
+      return hasActiveRole()
+          ? get(rolePath()).data.permissions
+          : [];
+    }
+
+    function hasPermission(permission) {
+      return hasActiveRole() && permission in permissions();
+    }
+
+    function hasAnyPermission(a, b) {
+      return hasPermission(a) || hasPermission(b);
+    }
+
+    function isSuperAdmin() {
+      return hasActiveRole()
+          && (
+            assignment().roleId == 'super_admin'
+            || hasPermission('rolesManage')
+          );
+    }
+
+    function ownsParentAccount(parentId) {
+      return signedIn()
+          && exists(
+            /databases/$(database)/documents/parent_accounts/$(parentId)
+          )
+          && request.auth.uid ==
+              get(
+                /databases/$(database)/documents/parent_accounts/$(parentId)
+              ).data.authUserId;
+    }
+
+    function isLinkedParentStudent(studentId) {
+      return activeAssignment()
+          && assignment().roleId == 'parent'
+          && studentId in assignment().studentIds;
+    }
+
+    function resourceStudentId() {
+      return resource.data.studentId;
+    }
+
+    function requestStudentId() {
+      return request.resource.data.studentId;
+    }
+
+    // -----------------------------------------------------------------
+    // RBAC administration
+    // -----------------------------------------------------------------
+
+    match /app_roles/{roleId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    match /user_roles/{userId} {
+      allow read: if signedIn()
+          && (request.auth.uid == userId || isSuperAdmin());
+
+      allow create, update, delete: if isSuperAdmin();
+
+      // Canonical identity requirement.
+      allow create, update: if isSuperAdmin()
+          && request.resource.data.userId == userId;
+    }
+
+    // -----------------------------------------------------------------
+    // Core academic directories
+    // -----------------------------------------------------------------
+
+    match /students/{studentId} {
+      allow read: if hasPermission('studentsView')
+          || isLinkedParentStudent(studentId);
+      allow create: if hasPermission('studentsCreate');
+      allow update: if hasPermission('studentsEdit');
+      allow delete: if hasPermission('studentsDelete');
+    }
+
+    match /teachers/{document=**} {
+      allow read: if hasPermission('teachersView');
+      allow create: if hasPermission('teachersCreate');
+      allow update: if hasPermission('teachersEdit');
+      allow delete: if hasPermission('teachersDelete');
+    }
+
+    match /staff/{document=**} {
+      allow read: if hasPermission('staffView');
+      allow create: if hasPermission('staffCreate');
+      allow update: if hasPermission('staffEdit');
+      allow delete: if hasPermission('staffDelete');
+    }
+
+    match /classes/{document=**} {
+      allow read: if hasPermission('classesView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    match /sections/{document=**} {
+      allow read: if hasPermission('classesView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    match /subjects/{document=**} {
+      allow read: if hasAnyPermission('classesView', 'timetableView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    match /academic_subjects/{document=**} {
+      allow read: if hasPermission('classesView')
+          || hasPermission('timetableView')
+          || hasPermission('examsView')
+          || hasPermission('resultsView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    match /subject_components/{document=**} {
+      allow read: if hasPermission('classesView')
+          || hasPermission('examsView')
+          || hasPermission('resultsView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    // -----------------------------------------------------------------
+    // Attendance
+    // -----------------------------------------------------------------
+
+    match /attendance/{document=**} {
+      allow read: if hasPermission('attendanceView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create: if hasPermission('attendanceMark');
+      allow update, delete: if hasPermission('attendanceEdit');
+    }
+
+    match /teacher_attendance/{document=**} {
+      allow read: if hasAnyPermission('teachersView', 'attendanceView');
+      allow write: if hasPermission('attendanceEdit');
+    }
+
+    match /staff_attendance/{document=**} {
+      allow read: if hasAnyPermission('staffView', 'attendanceView');
+      allow write: if hasPermission('attendanceEdit');
+    }
+
+    // -----------------------------------------------------------------
+    // Fees
+    // -----------------------------------------------------------------
+
+    match /fee_structures/{document=**} {
+      allow read: if hasPermission('feesView');
+      allow write: if hasPermission('feesManage');
+    }
+
+    match /student_fee_assignments/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow write: if hasPermission('feesManage');
+    }
+
+    match /monthly_fees/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create, update: if hasAnyPermission('feesManage', 'feesCollect');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /student_fees/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create, update: if hasAnyPermission('feesManage', 'feesCollect');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /fee_payments/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create, update: if hasPermission('feesCollect');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /additional_charges/{document=**} {
+      allow read: if hasPermission('feesView');
+      allow create, update: if hasPermission('feesManage');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /student_additional_charge_dues/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create: if hasPermission('feesManage');
+      allow update: if hasAnyPermission('feesManage', 'feesCollect');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /fee_challans/{document=**} {
+      allow read: if hasPermission('feesView');
+      allow write: if hasAnyPermission('feesManage', 'feesCollect');
+    }
+
+    match /fee_receipts/{document=**} {
+      allow read: if hasPermission('feesView');
+      allow write: if hasAnyPermission('feesManage', 'feesCollect');
+    }
+
+    // -----------------------------------------------------------------
+    // Exams, date sheets and results
+    // -----------------------------------------------------------------
+
+    match /exams/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /exam_subject_setups/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /exam_marks/{document=**} {
+      allow read: if hasAnyPermission('examsView', 'resultsView');
+      allow create, update: if hasPermission('resultsEnter');
+      allow delete: if hasPermission('examsManage');
+    }
+
+    match /exam_date_sheets/{document=**} {
+      allow read: if hasPermission('dateSheetsView');
+      allow write: if hasPermission('dateSheetsManage');
+    }
+
+    match /results/{document=**} {
+      allow read: if hasPermission('resultsView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create, update: if hasPermission('resultsEnter');
+      allow delete: if hasPermission('resultsPublish');
+    }
+
+    match /result_sheets/{document=**} {
+      allow read: if hasPermission('resultsView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create, update: if hasPermission('resultsEnter');
+      allow delete: if hasPermission('resultsPublish');
+    }
+
+    // -----------------------------------------------------------------
+    // Timetable and homework
+    // -----------------------------------------------------------------
+
+    match /timetable_entries/{document=**} {
+      allow read: if hasPermission('timetableView');
+      allow write: if hasPermission('timetableManage');
+    }
+
+    match /timetable_configurations/{document=**} {
+      allow read: if hasPermission('timetableView');
+      allow write: if hasPermission('timetableManage');
+    }
+
+    match /teacher_availability/{document=**} {
+      allow read: if hasPermission('timetableView');
+      allow write: if hasPermission('timetableManage');
+    }
+
+    match /homework/{document=**} {
+      allow read: if hasPermission('homeworkView');
+      allow create, update: if hasPermission('homeworkCreate');
+      allow delete: if hasPermission('homeworkReview');
+    }
+
+    match /homework_submissions/{document=**} {
+      allow read: if hasPermission('homeworkView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create: if signedIn()
+          && (
+            request.auth.uid == request.resource.data.submittedByUserId
+            || hasPermission('homeworkCreate')
+          );
+      allow update: if hasPermission('homeworkReview')
+          || (
+            signedIn()
+            && request.auth.uid == resource.data.submittedByUserId
+          );
+      allow delete: if hasPermission('homeworkReview');
+    }
+
+    // -----------------------------------------------------------------
+    // Notices and calendar
+    // -----------------------------------------------------------------
+
+    match /notices/{document=**} {
+      allow read: if hasPermission('noticesView');
+      allow write: if hasPermission('noticesManage');
+    }
+
+    match /notice_receipts/{receiptId} {
+      allow read: if hasPermission('noticesManage')
+          || (
+            signedIn()
+            && resource.data.recipientId == request.auth.uid
+          );
+      allow create, update: if signedIn()
+          && request.resource.data.recipientId == request.auth.uid;
+      allow delete: if hasPermission('noticesManage');
+    }
+
+    match /academic_calendar_events/{document=**} {
+      allow read: if hasPermission('calendarView');
+      allow write: if hasPermission('calendarManage');
+    }
+
+    // -----------------------------------------------------------------
+    // Parent portal
+    // -----------------------------------------------------------------
+
+    match /parent_accounts/{parentId} {
+      allow read: if hasPermission('parentsView')
+          || ownsParentAccount(parentId);
+      allow create, update, delete: if hasPermission('parentsManage');
+    }
+
+    match /parent_notifications/{notificationId} {
+      allow read: if hasPermission('parentsManage')
+          || (
+            signedIn()
+            && resource.data.parentAuthUserId == request.auth.uid
+          );
+      allow create: if hasPermission('parentsManage');
+      allow update, delete: if hasPermission('parentsManage')
+          || (
+            signedIn()
+            && resource.data.parentAuthUserId == request.auth.uid
+          );
+    }
+
+    // -----------------------------------------------------------------
+    // Configuration, reporting and audit
+    // -----------------------------------------------------------------
+
+    match /academic_year_config/{document=**} {
+      allow read: if signedIn();
+      allow write: if hasPermission('settingsManage');
+    }
+
+    match /audit_logs/{document=**} {
+      allow read: if hasPermission('auditLogsView');
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    // Known supporting collections not yet mapped to a dedicated
+    // permission use authenticated access during this staged release.
+    match /{document=**} {
+      allow read, write: if signedIn()
+          && (
+            isSuperAdmin()
+            || hasPermission('settingsManage')
+          );
+    }
+  }
+}

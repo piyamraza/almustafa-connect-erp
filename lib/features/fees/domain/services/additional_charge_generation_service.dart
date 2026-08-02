@@ -1,3 +1,7 @@
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../entities/additional_charge_entity.dart';
@@ -22,10 +26,12 @@ class AdditionalChargeGenerationService {
     this._students,
     this._charges,
     this._dues,
+    this._academicStructure,
   );
   final StudentRepository _students;
   final AdditionalChargeRepository _charges;
   final StudentAdditionalChargeDueRepository _dues;
+  final AcademicStructureRepository _academicStructure;
 
   Future<ChargeGenerationResult> estimate(AdditionalChargeEntity charge) =>
       _run(charge, persist: false);
@@ -42,16 +48,25 @@ class AdditionalChargeGenerationService {
     if (charge.amount <= 0) {
       throw StateError('Charge amount must be greater than zero.');
     }
-    final all = (await _students.getStudents())
+    final values = await Future.wait<Object>([
+      _students.getStudents(),
+      _academicStructure.getClasses(),
+      _academicStructure.getSections(),
+    ]);
+    final all = (values[0] as List<StudentEntity>)
         .where((s) => s.isActive)
         .toList();
+    final resolver = AcademicReferenceResolver(
+      classes: values[1] as List<AcademicClassEntity>,
+      sections: values[2] as List<SectionEntity>,
+    );
     bool matches(StudentEntity student) {
       final classMatch =
-          _same(student.classId, charge.classId) ||
-          _same(student.classId, charge.className);
+          resolver.sameClass(student.classId, charge.classId) ||
+          resolver.sameClass(student.classId, charge.className);
       final sectionMatch =
-          _same(student.sectionId, charge.sectionId) ||
-          _same(student.sectionId, charge.sectionName);
+          resolver.sameSection(student.sectionId, charge.sectionId) ||
+          resolver.sameSection(student.sectionId, charge.sectionName);
       return switch (charge.scope) {
         AdditionalChargeScope.entireSchool => true,
         AdditionalChargeScope.classWise => classMatch,
@@ -120,6 +135,4 @@ class AdditionalChargeGenerationService {
     );
   }
 
-  static bool _same(String a, String b) =>
-      a.trim().toLowerCase() == b.trim().toLowerCase() && a.trim().isNotEmpty;
 }

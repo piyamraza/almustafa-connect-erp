@@ -7,6 +7,7 @@ import '../../domain/entities/exam_mark_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
 import '../../domain/usecases/delete_exam_mark.dart';
 import '../../domain/usecases/get_exam_marks.dart';
+import '../../domain/usecases/get_exam_results.dart';
 import '../../domain/usecases/get_exam_subject_setups_for_exam.dart';
 import '../../domain/usecases/get_exams.dart';
 import '../../domain/usecases/save_exam_marks.dart';
@@ -19,10 +20,11 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     required this._getSubjectSetupsForExam,
     required this._getStudentsByClassAndSection,
     required this._getExamMarks,
+    required this._getExamResults,
     required this._saveExamMarks,
     required this._deleteExamMark,
     required this.componentService,
-  })  : super(const ExamMarksInitial()) {
+  }) : super(const ExamMarksInitial()) {
     on<LoadMarksEntry>(_onLoad);
     on<RefreshMarksEntry>(_onRefresh);
     on<SelectMarksExam>(_onSelectExam);
@@ -38,6 +40,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   final GetExamSubjectSetupsForExam _getSubjectSetupsForExam;
   final GetStudentsByClassAndSection _getStudentsByClassAndSection;
   final GetExamMarks _getExamMarks;
+  final GetExamResults _getExamResults;
   final SaveExamMarks _saveExamMarks;
   final DeleteExamMark _deleteExamMark;
   final SubjectComponentExamService componentService;
@@ -68,11 +71,15 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     emit(current.copyWith(isLoading: true, clearMessages: true));
     try {
       final exams = await _getExams();
-      final setups = await componentService.expandSetups(await _getSubjectSetupsForExam(current.selectedExamId!));
-      final classId = setups.any((setup) => setup.classId == current.selectedClassId)
+      final setups = await componentService.expandSetups(
+        await _getSubjectSetupsForExam(current.selectedExamId!),
+      );
+      final classId =
+          setups.any((setup) => setup.classId == current.selectedClassId)
           ? current.selectedClassId
           : null;
-      final sectionId = classId != null &&
+      final sectionId =
+          classId != null &&
               setups.any(
                 (setup) =>
                     setup.classId == classId &&
@@ -80,7 +87,8 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
               )
           ? current.selectedSectionId
           : null;
-      final subjectSetupId = sectionId != null &&
+      final subjectSetupId =
+          sectionId != null &&
               setups.any((setup) => setup.id == current.selectedSubjectSetupId)
           ? current.selectedSubjectSetupId
           : null;
@@ -101,7 +109,13 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
       refreshed = await _loadRows(refreshed);
       emit(refreshed);
     } catch (error) {
-      emit(current.copyWith(isLoading: false, errorMessage: _message(error), clearMessages: true));
+      emit(
+        current.copyWith(
+          isLoading: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -112,53 +126,60 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     final current = state;
     if (current is! ExamMarksLoaded) return;
 
-    emit(current.copyWith(
-      selectedExamId: event.examId,
-      subjectSetups: const [],
-      students: const [],
-      marks: const [],
-      clearClass: true,
-      clearSection: true,
-      clearSubject: true,
-      isLoading: true,
-      clearMessages: true,
-    ));
-    try {
-      final setups = await componentService.expandSetups(await _getSubjectSetupsForExam(event.examId));
-      emit(current.copyWith(
+    emit(
+      current.copyWith(
         selectedExamId: event.examId,
-        subjectSetups: setups,
+        subjectSetups: const [],
         students: const [],
         marks: const [],
         clearClass: true,
         clearSection: true,
         clearSubject: true,
-        isLoading: false,
+        isLoading: true,
         clearMessages: true,
-      ));
+      ),
+    );
+    try {
+      final setups = await componentService.expandSetups(
+        await _getSubjectSetupsForExam(event.examId),
+      );
+      emit(
+        current.copyWith(
+          selectedExamId: event.examId,
+          subjectSetups: setups,
+          students: const [],
+          marks: const [],
+          clearClass: true,
+          clearSection: true,
+          clearSubject: true,
+          isLoading: false,
+          clearMessages: true,
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isLoading: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isLoading: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
-  void _onSelectClass(
-    SelectMarksClass event,
-    Emitter<ExamMarksState> emit,
-  ) {
+  void _onSelectClass(SelectMarksClass event, Emitter<ExamMarksState> emit) {
     final current = state;
     if (current is! ExamMarksLoaded) return;
-    emit(current.copyWith(
-      selectedClassId: event.classId,
-      students: const [],
-      marks: const [],
-      clearSection: true,
-      clearSubject: true,
-      clearMessages: true,
-    ));
+    emit(
+      current.copyWith(
+        selectedClassId: event.classId,
+        students: const [],
+        marks: const [],
+        clearSection: true,
+        clearSubject: true,
+        clearMessages: true,
+      ),
+    );
   }
 
   void _onSelectSection(
@@ -167,13 +188,15 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   ) {
     final current = state;
     if (current is! ExamMarksLoaded) return;
-    emit(current.copyWith(
-      selectedSectionId: event.sectionId,
-      students: const [],
-      marks: const [],
-      clearSubject: true,
-      clearMessages: true,
-    ));
+    emit(
+      current.copyWith(
+        selectedSectionId: event.sectionId,
+        students: const [],
+        marks: const [],
+        clearSubject: true,
+        clearMessages: true,
+      ),
+    );
   }
 
   Future<void> _onSelectSubject(
@@ -190,10 +213,12 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
       }
     }
     if (selected == null) {
-      emit(current.copyWith(
-        errorMessage: 'Select a configured subject first.',
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          errorMessage: 'Select a configured subject first.',
+          clearMessages: true,
+        ),
+      );
       return;
     }
 
@@ -208,17 +233,13 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     try {
       emit(await _loadRows(loading));
     } catch (error) {
-      emit(current.copyWith(
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(errorMessage: _message(error), clearMessages: true),
+      );
     }
   }
 
-  void _onSearch(
-    SearchMarksStudents event,
-    Emitter<ExamMarksState> emit,
-  ) {
+  void _onSearch(SearchMarksStudents event, Emitter<ExamMarksState> emit) {
     final current = state;
     if (current is! ExamMarksLoaded) return;
     emit(current.copyWith(searchQuery: event.query, clearMessages: true));
@@ -232,26 +253,34 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     if (current is! ExamMarksLoaded) return;
     final validationMessage = _validateMarks(current, event.marks);
     if (validationMessage != null) {
-      emit(current.copyWith(
-        errorMessage: validationMessage,
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(errorMessage: validationMessage, clearMessages: true),
+      );
+      return;
+    }
+    final lockedMessage = await _lockedResultsMessage(current);
+    if (lockedMessage != null) {
+      emit(current.copyWith(errorMessage: lockedMessage, clearMessages: true));
       return;
     }
 
     emit(current.copyWith(isSaving: true, clearMessages: true));
     try {
       await _saveExamMarks(event.marks);
-      emit(await _loadRows(
-        current.copyWith(isSaving: true, clearMessages: true),
-        successMessage: 'Marks saved successfully.',
-      ));
+      emit(
+        await _loadRows(
+          current.copyWith(isSaving: true, clearMessages: true),
+          successMessage: 'Marks saved successfully.',
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isSaving: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isSaving: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -261,19 +290,28 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   ) async {
     final current = state;
     if (current is! ExamMarksLoaded) return;
+    final lockedMessage = await _lockedResultsMessage(current);
+    if (lockedMessage != null) {
+      emit(current.copyWith(errorMessage: lockedMessage, clearMessages: true));
+      return;
+    }
     emit(current.copyWith(isSaving: true, clearMessages: true));
     try {
       await _deleteExamMark(event.id);
-      emit(await _loadRows(
-        current.copyWith(isSaving: true, clearMessages: true),
-        successMessage: 'Marks record deleted.',
-      ));
+      emit(
+        await _loadRows(
+          current.copyWith(isSaving: true, clearMessages: true),
+          successMessage: 'Marks record deleted.',
+        ),
+      );
     } catch (error) {
-      emit(current.copyWith(
-        isSaving: false,
-        errorMessage: _message(error),
-        clearMessages: true,
-      ));
+      emit(
+        current.copyWith(
+          isSaving: false,
+          errorMessage: _message(error),
+          clearMessages: true,
+        ),
+      );
     }
   }
 
@@ -284,7 +322,9 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     final setup = state.selectedSubjectSetup;
     final exam = state.selectedExam;
     if (setup == null || exam == null) {
-      throw StateError('Complete the exam, class, section and subject selection.');
+      throw StateError(
+        'Complete the exam, class, section and subject selection.',
+      );
     }
     final entryKey = ExamMarkEntity.entryKeyFor(
       examId: exam.id,
@@ -314,10 +354,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     );
   }
 
-  String? _validateMarks(
-    ExamMarksLoaded state,
-    List<ExamMarkEntity> marks,
-  ) {
+  String? _validateMarks(ExamMarksLoaded state, List<ExamMarkEntity> marks) {
     final setup = state.selectedSubjectSetup;
     final exam = state.selectedExam;
     if (setup == null || exam == null) {
@@ -350,6 +387,26 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     return null;
   }
 
+  Future<String?> _lockedResultsMessage(ExamMarksLoaded state) async {
+    final exam = state.selectedExam;
+    final setup = state.selectedSubjectSetup;
+    if (exam == null || setup == null) return null;
+    try {
+      final results = await _getExamResults(exam.id);
+      final hasLockedResult = results.any(
+        (result) =>
+            result.classId == setup.classId &&
+            result.sectionId == setup.sectionId &&
+            result.isLocked,
+      );
+      return hasLockedResult
+          ? 'Marks are read-only because results for this class and section are locked.'
+          : null;
+    } catch (error) {
+      return 'Marks could not be changed because the result lock status could not be verified: ${_message(error)}';
+    }
+  }
+
   int _compareStudents(StudentEntity first, StudentEntity second) {
     final firstRoll = int.tryParse(first.rollNumber.trim());
     final secondRoll = int.tryParse(second.rollNumber.trim());
@@ -362,6 +419,9 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   }
 
   String _message(Object error) {
-    return error.toString().replaceFirst('Exception: ', '').replaceFirst('StateError: ', '');
+    return error
+        .toString()
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('StateError: ', '');
   }
 }

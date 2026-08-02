@@ -1,4 +1,29 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "exam_results",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "studentId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "results",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "studentId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "result_sheets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "studentId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"}
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

@@ -4,6 +4,9 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/fee_structure_entity.dart';
@@ -44,6 +47,8 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
 
   List<StudentEntity> _students = const [];
   List<FeeStructureEntity> _structures = const [];
+  List<AcademicClassEntity> _academicClasses = const [];
+  List<SectionEntity> _academicSections = const [];
 
   bool _loadingReferences = true;
   bool _bulkSaving = false;
@@ -67,13 +72,33 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
 
   String _normal(String value) => value.trim().toLowerCase();
 
+  String _className(String reference) {
+    for (final academicClass in _academicClasses) {
+      if (_normal(academicClass.id) == _normal(reference) ||
+          _normal(academicClass.name) == _normal(reference)) {
+        return academicClass.name.trim();
+      }
+    }
+    return reference.trim();
+  }
+
+  String _sectionName(String reference) {
+    for (final section in _academicSections) {
+      if (_normal(section.id) == _normal(reference) ||
+          _normal(section.name) == _normal(reference)) {
+        return section.name.trim();
+      }
+    }
+    return reference.trim();
+  }
+
   String _classKey(FeeStructureEntity structure) =>
       '${_normal(structure.classId)}|${_normal(structure.className)}';
 
   bool _sameClass(StudentEntity student, FeeStructureEntity structure) {
-    final studentClass = _normal(student.classId);
-    return studentClass == _normal(structure.classId) ||
-        studentClass == _normal(structure.className);
+    final studentClass = _normal(_className(student.classId));
+    return studentClass == _normal(_className(structure.classId)) ||
+        studentClass == _normal(_className(structure.className));
   }
 
   bool _sectionApplies(StudentEntity student, FeeStructureEntity structure) {
@@ -90,8 +115,9 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
 
     if (isAllSections) return true;
 
-    final studentSection = _normal(student.sectionId);
-    return studentSection == structureId || studentSection == structureName;
+    final studentSection = _normal(_sectionName(student.sectionId));
+    return studentSection == _normal(_sectionName(structure.sectionId)) ||
+        studentSection == _normal(_sectionName(structure.sectionName));
   }
 
   Future<void> _loadReferences() async {
@@ -109,6 +135,8 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
           academicSession: session,
           isActive: true,
         ),
+        sl<AcademicStructureRepository>().getClasses(),
+        sl<AcademicStructureRepository>().getSections(),
       ]);
 
       if (!mounted) return;
@@ -128,10 +156,14 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
           if (classCompare != 0) return classCompare;
           return a.sectionName.compareTo(b.sectionName);
         });
+      final academicClasses = values[2] as List<AcademicClassEntity>;
+      final academicSections = values[3] as List<SectionEntity>;
 
       setState(() {
         _students = students;
         _structures = structures;
+        _academicClasses = academicClasses;
+        _academicSections = academicSections;
         _loadingReferences = false;
 
         if (_selectedClassKey != null &&
@@ -247,7 +279,8 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
     if (matching.isEmpty) {
       _show(
         'No fee structure applies to ${student.fullName} '
-        '(${student.classId} - ${student.sectionId}). '
+        '(${_className(student.classId)} - '
+        '${_sectionName(student.sectionId)}). '
         'Create an All Sections structure or a matching section structure.',
       );
       return;
@@ -270,6 +303,8 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
         structures: matching,
         preferredStructureId: preferredId,
         existing: existing,
+        classLabel: _className(student.classId),
+        sectionLabel: _sectionName(student.sectionId),
       ),
     );
 
@@ -507,6 +542,8 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
                               assignments: byStudent,
                               selectedStructure: _selectedStructure,
                               sectionApplies: _sectionApplies,
+                              classLabel: _className,
+                              sectionLabel: _sectionName,
                               onEdit: _edit,
                               onDelete: (assignment) {
                                 context.read<StudentFeeAssignmentBloc>().add(
@@ -773,6 +810,8 @@ class _StudentAssignmentList extends StatelessWidget {
     required this.assignments,
     required this.selectedStructure,
     required this.sectionApplies,
+    required this.classLabel,
+    required this.sectionLabel,
     required this.onEdit,
     required this.onDelete,
     required this.busy,
@@ -782,6 +821,8 @@ class _StudentAssignmentList extends StatelessWidget {
   final Map<String, StudentFeeAssignmentEntity> assignments;
   final FeeStructureEntity? selectedStructure;
   final bool Function(StudentEntity, FeeStructureEntity) sectionApplies;
+  final String Function(String) classLabel;
+  final String Function(String) sectionLabel;
   final Future<void> Function({
     required StudentEntity student,
     StudentFeeAssignmentEntity? existing,
@@ -838,7 +879,8 @@ class _StudentAssignmentList extends StatelessWidget {
             subtitle: Text(
               '${student.admissionNo} • Roll '
               '${student.rollNumber.isEmpty ? '-' : student.rollNumber} '
-              '• ${student.classId} - ${student.sectionId}',
+              '• ${classLabel(student.classId)} - '
+              '${sectionLabel(student.sectionId)}',
             ),
             trailing: Wrap(
               spacing: 8,
@@ -890,6 +932,8 @@ class _AssignmentDialog extends StatefulWidget {
     required this.academicSession,
     required this.structures,
     required this.preferredStructureId,
+    required this.classLabel,
+    required this.sectionLabel,
     this.existing,
   });
 
@@ -897,6 +941,8 @@ class _AssignmentDialog extends StatefulWidget {
   final String academicSession;
   final List<FeeStructureEntity> structures;
   final String? preferredStructureId;
+  final String classLabel;
+  final String sectionLabel;
   final StudentFeeAssignmentEntity? existing;
 
   @override
@@ -1021,8 +1067,7 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
                   ),
                   child: Text(
                     '${widget.student.admissionNo} • '
-                    '${widget.student.classId} - '
-                    '${widget.student.sectionId}',
+                    '${widget.classLabel} - ${widget.sectionLabel}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),

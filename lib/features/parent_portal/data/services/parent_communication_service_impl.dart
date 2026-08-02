@@ -1,14 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/parent_account_entity.dart';
 import '../../domain/entities/parent_communication_dashboard_entity.dart';
 import '../../domain/services/parent_communication_service.dart';
 
 class ParentCommunicationServiceImpl implements ParentCommunicationService {
-  const ParentCommunicationServiceImpl(this._firestore);
+  ParentCommunicationServiceImpl(this._firestore, this._academicStructure);
 
   final FirebaseFirestore _firestore;
+  final AcademicStructureRepository _academicStructure;
+  AcademicReferenceResolver? _academicResolver;
 
   @override
   Future<ParentCommunicationDashboardEntity> loadDashboard({
@@ -16,6 +20,10 @@ class ParentCommunicationServiceImpl implements ParentCommunicationService {
     required StudentEntity student,
     required String academicSession,
   }) async {
+    _academicResolver = AcademicReferenceResolver(
+      classes: await _academicStructure.getClasses(),
+      sections: await _academicStructure.getSections(),
+    );
     final values = await Future.wait([
       _safeCollection('student_fees'),
       _safeCollection('monthly_fees'),
@@ -325,10 +333,18 @@ class ParentCommunicationServiceImpl implements ParentCommunicationService {
         .toList();
 
     if (audience == 'selectedClasses') {
-      return classIds.contains(student.classId);
+      return classIds.any(
+        (value) =>
+            _academicResolver?.sameClass(value, student.classId) ??
+            value == student.classId,
+      );
     }
     if (audience == 'selectedSections') {
-      return sectionIds.contains(student.sectionId);
+      return sectionIds.any(
+        (value) =>
+            _academicResolver?.sameSection(value, student.sectionId) ??
+            value == student.sectionId,
+      );
     }
 
     return false;
@@ -341,8 +357,12 @@ class ParentCommunicationServiceImpl implements ParentCommunicationService {
     final classId = _string(map, ['classId']);
     final sectionId = _string(map, ['sectionId']);
 
-    return (classId.isEmpty || classId == student.classId) &&
-        (sectionId.isEmpty || sectionId == student.sectionId);
+    return (classId.isEmpty ||
+            (_academicResolver?.sameClass(classId, student.classId) ??
+                classId == student.classId)) &&
+        (sectionId.isEmpty ||
+            (_academicResolver?.sameSection(sectionId, student.sectionId) ??
+                sectionId == student.sectionId));
   }
 
   bool _belongsToStudent(Map<String, dynamic> map, StudentEntity student) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -352,9 +353,16 @@ class _StudentHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${student.admissionNo} • '
-                    '${student.classId} / ${student.sectionId}',
+                  Row(
+                    children: [
+                      Text('${student.admissionNo} • '),
+                      Expanded(
+                        child: AcademicReferenceLabel(
+                          classReference: student.classId,
+                          sectionReference: student.sectionId,
+                        ),
+                      ),
+                    ],
                   ),
                   Text('Father: ${student.fatherName}'),
                 ],

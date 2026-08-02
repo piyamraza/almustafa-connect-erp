@@ -3,8 +3,9 @@ import '../entities/exam_result_entity.dart';
 abstract class ExamResultRepository {
   Future<List<ExamResultEntity>> getResultsForExam(String examId);
 
-  /// Returns records that are visible outside the Examination module.
-  /// A locked record remains published but is immutable.
+  /// Returns only records visible outside the Examination module.
+  ///
+  /// Published and locked results remain visible to the Parent Portal.
   Future<List<ExamResultEntity>> getPublishedResults({
     String? examId,
     String? classId,
@@ -17,6 +18,8 @@ abstract class ExamResultRepository {
   Future<void> updateStatus({
     required List<String> resultIds,
     required ResultStatus status,
+    String actorId = '',
+    String reason = '',
     bool setPublishedAt = true,
   });
 }

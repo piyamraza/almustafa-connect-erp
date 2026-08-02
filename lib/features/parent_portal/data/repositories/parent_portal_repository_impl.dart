@@ -67,14 +67,19 @@ class ParentPortalRepositoryImpl implements ParentPortalRepository {
     required String mobileNumber,
     required String email,
   }) async {
-    final phone = mobileNumber.trim();
+    final phone = _normalizePhone(mobileNumber);
     final normalizedEmail = email.trim().toLowerCase();
     final allStudents = await _studentRepository.getStudents();
 
     return allStudents
         .where((student) {
           final matchesPhone =
-              phone.isNotEmpty && student.guardianPhone.trim() == phone;
+              phone.isNotEmpty &&
+              <String>{
+                student.fatherPhone,
+                student.motherPhone,
+                student.guardianPhone,
+              }.any((value) => _normalizePhone(value) == phone);
           final matchesEmail =
               normalizedEmail.isNotEmpty &&
               student.guardianEmail.trim().toLowerCase() == normalizedEmail;
@@ -82,6 +87,19 @@ class ParentPortalRepositoryImpl implements ParentPortalRepository {
           return student.isActive && (matchesPhone || matchesEmail);
         })
         .toList(growable: false);
+  }
+
+  /// Converts common Pakistani phone-number formats to one comparable value.
+  /// For example 03366328402, +923366328402 and 00923366328402 all match.
+  String _normalizePhone(String value) {
+    var digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('0092')) {
+      digits = digits.substring(4);
+    } else if (digits.startsWith('92')) {
+      digits = digits.substring(2);
+    }
+    if (digits.startsWith('0')) digits = digits.substring(1);
+    return digits;
   }
 
   @override

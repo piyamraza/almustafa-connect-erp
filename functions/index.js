@@ -2,11 +2,13 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
+const {defineString} = require("firebase-functions/params");
 
 initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
+const bootstrapAdminEmail = defineString("BOOTSTRAP_ADMIN_EMAIL");
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -79,6 +81,84 @@ async function requireUserManagementPermission(request) {
   };
 }
 
+exports.bootstrapUserAccountAdministration = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Please sign in first.");
+  }
+
+  const callerEmail = clean(request.auth.token.email).toLowerCase();
+  const allowedEmail = clean(bootstrapAdminEmail.value()).toLowerCase();
+  if (!allowedEmail || callerEmail !== allowedEmail) {
+    throw new HttpsError(
+        "permission-denied",
+        "This account is not authorised for Super Admin bootstrap.",
+    );
+  }
+
+  const existingSuperAdmins = await db
+      .collection("user_roles")
+      .where("roleId", "==", "super_admin")
+      .get();
+  const hasActiveSuperAdmin = existingSuperAdmins.docs.some(
+      (doc) => doc.data().isActive === true,
+  );
+
+  if (hasActiveSuperAdmin) {
+    throw new HttpsError(
+        "permission-denied",
+        "A Super Admin already exists. Ask that administrator to grant access.",
+    );
+  }
+
+  const caller = await auth.getUser(request.auth.uid);
+  const now = FieldValue.serverTimestamp();
+  const permissions = [
+    "studentsView", "studentsCreate", "studentsEdit", "studentsDelete",
+    "teachersView", "teachersCreate", "teachersEdit", "teachersDelete",
+    "staffView", "staffCreate", "staffEdit", "staffDelete",
+    "classesView", "classesManage", "attendanceView", "attendanceMark",
+    "attendanceEdit", "feesView", "feesCollect", "feesManage",
+    "feesReports", "examsView", "examsManage", "dateSheetsView",
+    "dateSheetsManage", "resultsView", "resultsEnter", "resultsPublish",
+    "timetableView", "timetableManage", "homeworkView", "homeworkCreate",
+    "homeworkReview", "noticesView", "noticesManage", "calendarView",
+    "calendarManage", "parentsView", "parentsManage", "reportsView",
+    "reportsExport", "settingsView", "settingsManage", "usersManage",
+    "rolesManage", "auditLogsView",
+  ];
+
+  const batch = db.batch();
+  batch.set(db.collection("app_roles").doc("super_admin"), {
+    name: "Super Admin",
+    description: "Complete access to all ERP modules and actions.",
+    permissions,
+    isSystemRole: true,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  }, {merge: true});
+  batch.set(db.collection("user_roles").doc(request.auth.uid), {
+    userId: request.auth.uid,
+    userName: caller.displayName || caller.email || "Super Admin",
+    email: caller.email || "",
+    username: caller.email ? caller.email.split("@")[0] : "",
+    roleId: "super_admin",
+    roleName: "Super Admin",
+    branchId: "main",
+    linkedEntityType: "",
+    linkedEntityId: "",
+    isActive: true,
+    mustChangePassword: false,
+    assignedBy: "secure-bootstrap",
+    assignedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  }, {merge: true});
+  await batch.commit();
+
+  return {bootstrapped: true, uid: request.auth.uid};
+});
+
 exports.createUserAccount = onCall(async (request) => {
   const caller = await requireUserManagementPermission(request);
   const data = request.data || {};
@@ -90,7 +170,6 @@ exports.createUserAccount = onCall(async (request) => {
     clean(data.username).toLowerCase();
   const password = clean(data.password);
   const roleId = clean(data.roleId);
-  const roleName = clean(data.roleName);
   const branchId = clean(data.branchId) || "main";
   const linkedEntityType = clean(data.linkedEntityType);
   const linkedEntityId = clean(data.linkedEntityId);
@@ -148,7 +227,7 @@ exports.createUserAccount = onCall(async (request) => {
       email: loginEmail,
       username,
       roleId,
-      roleName: roleName || roleSnapshot.data().name || roleId,
+      roleName: roleSnapshot.data().name || roleId,
       branchId,
       linkedEntityType,
       linkedEntityId,
@@ -173,7 +252,7 @@ exports.createUserAccount = onCall(async (request) => {
     username,
     displayName,
     roleId,
-    roleName: roleName || roleSnapshot.data().name || roleId,
+    roleName: roleSnapshot.data().name || roleId,
     disabled: false,
   };
 });
@@ -256,7 +335,6 @@ exports.updateUserAccountRole = onCall(async (request) => {
 
   const uid = clean(request.data?.uid);
   const roleId = clean(request.data?.roleId);
-  const roleName = clean(request.data?.roleName);
   const branchId = clean(request.data?.branchId) || "main";
 
   if (!uid || !roleId) {
@@ -278,7 +356,7 @@ exports.updateUserAccountRole = onCall(async (request) => {
     userName: user.displayName || "",
     email: user.email || "",
     roleId,
-    roleName: roleName || roleSnapshot.data().name || roleId,
+    roleName: roleSnapshot.data().name || roleId,
     branchId,
     isActive: !user.disabled,
     updatedAt: FieldValue.serverTimestamp(),
@@ -287,7 +365,7 @@ exports.updateUserAccountRole = onCall(async (request) => {
   return {
     uid,
     roleId,
-    roleName: roleName || roleSnapshot.data().name || roleId,
+    roleName: roleSnapshot.data().name || roleId,
   };
 });
 

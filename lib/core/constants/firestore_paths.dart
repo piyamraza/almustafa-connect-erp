@@ -32,6 +32,13 @@ class FirestorePaths {
   static const String studentFeeAssignments = 'student_fee_assignments';
   static const String monthlyFeeDues = 'monthly_fee_dues';
   static const String feePayments = 'fee_payments';
+  static const String expenseCategories = 'expense_categories';
+  static const String expenses = 'expenses';
+  static const String incomeEntries = 'income_entries';
+  static const String payrollProfiles = 'payroll_profiles';
+  static const String payrollRecords = 'payroll_records';
+  static const String monthlyProfitLoss = 'monthly_profit_loss';
+  static const String cashbookEntries = 'cashbook_entries';
   static const String additionalCharges = 'additional_charges';
   static const String studentAdditionalChargeDues =
       'student_additional_charge_dues';

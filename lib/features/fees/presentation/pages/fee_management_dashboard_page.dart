@@ -119,7 +119,8 @@ class FeeManagementDashboardPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: AppBar(actions: const [DashboardNavigationButton()],
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
         title: const Text('Fee Management'),
         elevation: 0,
         backgroundColor: Colors.white,
@@ -140,16 +141,19 @@ class FeeManagementDashboardPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          final columns = constraints.maxWidth >= 1080
+                          final columns = constraints.maxWidth >= 1180
+                              ? 4
+                              : constraints.maxWidth >= 900
                               ? 3
                               : constraints.maxWidth >= 700
                               ? 2
                               : 1;
 
                           final aspectRatio = switch (columns) {
-                            3 => 2.05,
-                            2 => 1.9,
-                            _ => 2.4,
+                            4 => 1.95,
+                            3 => 2.15,
+                            2 => 2.05,
+                            _ => 2.8,
                           };
 
                           return GridView.builder(
@@ -159,8 +163,8 @@ class FeeManagementDashboardPage extends StatelessWidget {
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: columns,
-                                  crossAxisSpacing: 14,
-                                  mainAxisSpacing: 14,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
                                   childAspectRatio: aspectRatio,
                                 ),
                             itemBuilder: (context, index) =>
@@ -328,23 +332,23 @@ class _FeatureCardState extends State<_FeatureCard> {
             onTap: feature.onTap,
             borderRadius: BorderRadius.circular(17),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(13),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: feature.color.withValues(alpha: .13),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: feature.color.withValues(alpha: .22),
                       ),
                     ),
-                    child: Icon(feature.icon, color: feature.color, size: 23),
+                    child: Icon(feature.icon, color: feature.color, size: 19),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,28 +359,28 @@ class _FeatureCardState extends State<_FeatureCard> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: _textPrimary,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Expanded(
                           child: Text(
                             feature.description,
-                            maxLines: 3,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: _textSecondary,
-                              fontSize: 13,
-                              height: 1.35,
+                              fontSize: 12,
+                              height: 1.25,
                             ),
                           ),
                         ),
                         Align(
                           alignment: Alignment.bottomRight,
                           child: Container(
-                            width: 29,
-                            height: 29,
+                            width: 24,
+                            height: 24,
                             decoration: BoxDecoration(
                               color: feature.color.withValues(alpha: .11),
                               shape: BoxShape.circle,
@@ -384,7 +388,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                             child: Icon(
                               Icons.arrow_forward_rounded,
                               color: feature.color,
-                              size: 17,
+                              size: 15,
                             ),
                           ),
                         ),

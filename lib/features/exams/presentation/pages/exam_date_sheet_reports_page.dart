@@ -105,9 +105,8 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
 
   void _syncFilters() {
     final classes = _classSections;
-    final teachers = _teachers;
     _classSectionKey = classes.isEmpty ? null : classes.first.key;
-    _teacherId = teachers.isEmpty ? null : teachers.first.id;
+    _teacherId = '';
   }
 
   ExamDateSheetReportRequest? _request() {
@@ -125,10 +124,6 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
         classOption == null) {
       return null;
     }
-    if (_type == ExamDateSheetReportType.teacherDuty && teacher == null) {
-      return null;
-    }
-
     return ExamDateSheetReportRequest(
       dateSheet: dateSheet,
       type: _type,
@@ -136,8 +131,8 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
       className: classOption?.className,
       sectionId: classOption?.sectionId,
       sectionName: classOption?.sectionName,
-      teacherId: teacher?.id,
-      teacherName: teacher?.name,
+      teacherId: _teacherId?.isEmpty ?? true ? null : teacher?.id,
+      teacherName: _teacherId?.isEmpty ?? true ? 'All Teachers' : teacher?.name,
     );
   }
 
@@ -328,6 +323,12 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
                           child: Text(item.name),
                         ),
                       )
+                      .followedBy(const [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text('All Teachers'),
+                        ),
+                      ])
                       .toList(),
                   onChanged: busy
                       ? null
@@ -388,6 +389,10 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
 
     final papers = request.papers;
     final showTeacher = request.type != ExamDateSheetReportType.parentClassCopy;
+    if (request.type == ExamDateSheetReportType.completeSchool ||
+        request.type == ExamDateSheetReportType.teacherDuty) {
+      return _matrixPreview(request);
+    }
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -442,6 +447,111 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _matrixPreview(ExamDateSheetReportRequest request) {
+    final teacherDuty = request.type == ExamDateSheetReportType.teacherDuty;
+    final columns = <String, String>{};
+    for (final paper in request.papers) {
+      final key = teacherDuty
+          ? paper.teacherId
+          : '${paper.classId}|${paper.sectionId}';
+      columns[key] = teacherDuty
+          ? paper.teacherName
+          : 'Class ${paper.className} - ${paper.sectionName}';
+    }
+    final orderedColumns = columns.entries.toList()
+      ..sort((first, second) => first.value.compareTo(second.value));
+    final dates = request.papers.map((paper) => paper.examDate).toSet().toList()
+      ..sort();
+
+    String cellText(DateTime date, String key) {
+      final values = request.papers.where((paper) {
+        final sameDate =
+            paper.examDate.year == date.year &&
+            paper.examDate.month == date.month &&
+            paper.examDate.day == date.day;
+        final sameColumn = teacherDuty
+            ? paper.teacherId == key
+            : '${paper.classId}|${paper.sectionId}' == key;
+        return sameDate && sameColumn;
+      });
+      if (values.isEmpty) return '-';
+      return values
+          .map(
+            (paper) => teacherDuty
+                ? '${paper.className}-${paper.sectionName} • ${paper.subjectName}\n'
+                      '${_time(paper.startMinutes)}-${_time(paper.endMinutes)}'
+                : paper.subjectName,
+          )
+          .join('\n');
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Text(
+              '${request.title} — ${request.subject}',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const Divider(height: 1),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 16,
+              headingRowHeight: 44,
+              dataRowMinHeight: 48,
+              dataRowMaxHeight: teacherDuty ? 76 : 58,
+              border: TableBorder.all(color: Theme.of(context).dividerColor),
+              headingRowColor: WidgetStatePropertyAll(
+                Theme.of(context).colorScheme.primaryContainer,
+              ),
+              columns: [
+                const DataColumn(label: Text('Date')),
+                for (final column in orderedColumns)
+                  DataColumn(
+                    label: SizedBox(
+                      width: 130,
+                      child: Text(column.value, textAlign: TextAlign.center),
+                    ),
+                  ),
+              ],
+              rows: [
+                for (final date in dates)
+                  DataRow(
+                    cells: [
+                      DataCell(
+                        Text(
+                          '${_date(date)}\n${_day(date.weekday)}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      for (final column in orderedColumns)
+                        DataCell(
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              cellText(date, column.key),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

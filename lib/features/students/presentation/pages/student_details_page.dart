@@ -2,14 +2,95 @@ import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import 'add_student_page.dart';
 
-class StudentDetailsPage extends StatelessWidget {
+class StudentDetailsPage extends StatefulWidget {
   final StudentEntity student;
 
   const StudentDetailsPage({super.key, required this.student});
+
+  @override
+  State<StudentDetailsPage> createState() => _StudentDetailsPageState();
+}
+
+class _StudentDetailsPageState extends State<StudentDetailsPage> {
+  StudentEntity get student => widget.student;
+  String? _className;
+  String? _sectionName;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveAcademicNames();
+  }
+
+  Future<void> _resolveAcademicNames() async {
+    try {
+      final repository = sl<AcademicStructureRepository>();
+      final values = await Future.wait<Object>([
+        repository.getClasses(),
+        repository.getSections(),
+      ]);
+      final classes = values[0] as List<AcademicClassEntity>;
+      final sections = values[1] as List<SectionEntity>;
+
+      AcademicClassEntity? matchingClass;
+      for (final value in classes) {
+        if (value.id == student.classId || value.name == student.classId) {
+          matchingClass = value;
+          break;
+        }
+      }
+
+      SectionEntity? matchingSection;
+      // A stored section document ID is globally unique and must take
+      // precedence. Older records may have a stale/missing classId link.
+      for (final value in sections) {
+        if (value.id == student.sectionId) {
+          matchingSection = value;
+          break;
+        }
+      }
+      // Legacy student records sometimes store the section name instead.
+      matchingSection ??= _findSectionByName(
+        sections,
+        student.sectionId,
+        matchingClass?.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _className = matchingClass?.name ?? student.classId;
+        _sectionName = matchingSection?.name ?? student.sectionId;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _className = student.classId;
+        _sectionName = student.sectionId;
+      });
+    }
+  }
+
+  SectionEntity? _findSectionByName(
+    List<SectionEntity> sections,
+    String storedValue,
+    String? classId,
+  ) {
+    final normalized = storedValue.trim().toLowerCase();
+    for (final value in sections) {
+      if (value.name.trim().toLowerCase() == normalized &&
+          (classId == null || value.classId == classId)) {
+        return value;
+      }
+    }
+    return null;
+  }
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -40,7 +121,10 @@ class StudentDetailsPage extends StatelessWidget {
     final bool desktop = MediaQuery.of(context).size.width >= 1000;
 
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Student Details')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Student Details'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
@@ -95,11 +179,11 @@ class StudentDetailsPage extends StatelessWidget {
                                 ),
                                 _InfoTile(
                                   label: 'Class',
-                                  value: student.classId,
+                                  value: _className ?? 'Loading...',
                                 ),
                                 _InfoTile(
                                   label: 'Section',
-                                  value: student.sectionId,
+                                  value: _sectionName ?? 'Loading...',
                                 ),
                               ],
                             ),
@@ -115,8 +199,36 @@ class StudentDetailsPage extends StatelessWidget {
                                   value: student.fatherName,
                                 ),
                                 _InfoTile(
+                                  label: 'Father CNIC',
+                                  value: student.fatherCnic,
+                                ),
+                                _InfoTile(
+                                  label: 'Father Phone',
+                                  value: student.fatherPhone,
+                                ),
+                                _InfoTile(
                                   label: 'Mother Name',
                                   value: student.motherName,
+                                ),
+                                _InfoTile(
+                                  label: 'Mother CNIC',
+                                  value: student.motherCnic,
+                                ),
+                                _InfoTile(
+                                  label: 'Mother Phone',
+                                  value: student.motherPhone,
+                                ),
+                                _InfoTile(
+                                  label: 'Guardian Name',
+                                  value: student.guardianName,
+                                ),
+                                _InfoTile(
+                                  label: 'Guardian CNIC',
+                                  value: student.guardianCnic,
+                                ),
+                                _InfoTile(
+                                  label: 'Guardian Phone',
+                                  value: student.guardianPhone,
                                 ),
                               ],
                             ),
@@ -134,16 +246,30 @@ class StudentDetailsPage extends StatelessWidget {
                               icon: Icons.contact_mail,
                               children: [
                                 _InfoTile(
-                                  label: 'Mobile Number',
-                                  value: student.guardianPhone,
-                                ),
-                                _InfoTile(
-                                  label: 'Email',
+                                  label: 'Guardian Email',
                                   value: student.guardianEmail,
                                 ),
                                 _InfoTile(
                                   label: 'Address',
                                   value: student.address,
+                                  multiline: true,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            _InfoSection(
+                              title: 'Medical Information',
+                              icon: Icons.medical_information,
+                              children: [
+                                _InfoTile(
+                                  label: 'Blood Group',
+                                  value: student.bloodGroup,
+                                ),
+                                _InfoTile(
+                                  label: 'Medical Allergies',
+                                  value: student.medicalAllergies,
                                   multiline: true,
                                 ),
                               ],
@@ -207,8 +333,14 @@ class StudentDetailsPage extends StatelessWidget {
                             label: 'Roll Number',
                             value: student.rollNumber,
                           ),
-                          _InfoTile(label: 'Class', value: student.classId),
-                          _InfoTile(label: 'Section', value: student.sectionId),
+                          _InfoTile(
+                            label: 'Class',
+                            value: _className ?? 'Loading...',
+                          ),
+                          _InfoTile(
+                            label: 'Section',
+                            value: _sectionName ?? 'Loading...',
+                          ),
                         ],
                       ),
 
@@ -223,8 +355,36 @@ class StudentDetailsPage extends StatelessWidget {
                             value: student.fatherName,
                           ),
                           _InfoTile(
+                            label: 'Father CNIC',
+                            value: student.fatherCnic,
+                          ),
+                          _InfoTile(
+                            label: 'Father Phone',
+                            value: student.fatherPhone,
+                          ),
+                          _InfoTile(
                             label: 'Mother Name',
                             value: student.motherName,
+                          ),
+                          _InfoTile(
+                            label: 'Mother CNIC',
+                            value: student.motherCnic,
+                          ),
+                          _InfoTile(
+                            label: 'Mother Phone',
+                            value: student.motherPhone,
+                          ),
+                          _InfoTile(
+                            label: 'Guardian Name',
+                            value: student.guardianName,
+                          ),
+                          _InfoTile(
+                            label: 'Guardian CNIC',
+                            value: student.guardianCnic,
+                          ),
+                          _InfoTile(
+                            label: 'Guardian Phone',
+                            value: student.guardianPhone,
                           ),
                         ],
                       ),
@@ -236,16 +396,30 @@ class StudentDetailsPage extends StatelessWidget {
                         icon: Icons.contact_mail,
                         children: [
                           _InfoTile(
-                            label: 'Mobile Number',
-                            value: student.guardianPhone,
-                          ),
-                          _InfoTile(
-                            label: 'Email',
+                            label: 'Guardian Email',
                             value: student.guardianEmail,
                           ),
                           _InfoTile(
                             label: 'Address',
                             value: student.address,
+                            multiline: true,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _InfoSection(
+                        title: 'Medical Information',
+                        icon: Icons.medical_information,
+                        children: [
+                          _InfoTile(
+                            label: 'Blood Group',
+                            value: student.bloodGroup,
+                          ),
+                          _InfoTile(
+                            label: 'Medical Allergies',
+                            value: student.medicalAllergies,
                             multiline: true,
                           ),
                         ],

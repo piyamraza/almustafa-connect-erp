@@ -46,13 +46,13 @@ class TeacherWorkloadEntity extends Equatable {
   }
 
   TeacherWorkloadLevel get level {
-    if (assignedPeriods == 0 && academicAssignments == 0) {
+    if (academicAssignments == 0) {
       return TeacherWorkloadLevel.unassigned;
     }
-    if (utilization < 0.45) {
+    if (academicAssignments <= 5) {
       return TeacherWorkloadLevel.low;
     }
-    if (utilization <= 0.80) {
+    if (academicAssignments <= 12) {
       return TeacherWorkloadLevel.balanced;
     }
     return TeacherWorkloadLevel.high;
@@ -112,6 +112,11 @@ class TeacherWorkloadReportEntity extends Equatable {
       return 0;
     }
     return totalAssignedPeriods / workloads.length;
+  }
+
+  double get averageAcademicAssignments {
+    if (workloads.isEmpty) return 0;
+    return totalAcademicAssignments / workloads.length;
   }
 
   @override

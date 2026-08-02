@@ -3,7 +3,7 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 
 import '../../../results/presentation/pages/teacher_results_page.dart';
 import '../../../timetable/presentation/pages/teacher_workload_page.dart';
-import 'teacher_attendance_page.dart';
+import 'teacher_attendance_report_page.dart';
 import 'teacher_assignments_page.dart';
 
 class TeacherReportsPage extends StatelessWidget {
@@ -18,6 +18,7 @@ class TeacherReportsPage extends StatelessWidget {
             'Review assigned periods, free capacity, utilization and '
             'weekly teaching distribution.',
         icon: Icons.schedule_outlined,
+        color: const Color(0xFF1565C0),
         page: const TeacherWorkloadPage(),
       ),
       _TeacherReportItem(
@@ -26,6 +27,7 @@ class TeacherReportsPage extends StatelessWidget {
             'Review subject-wise student performance, pass percentage '
             'and result distribution by teacher.',
         icon: Icons.school_outlined,
+        color: const Color(0xFF7B1FA2),
         page: const TeacherResultsPage(),
       ),
       _TeacherReportItem(
@@ -34,7 +36,8 @@ class TeacherReportsPage extends StatelessWidget {
             'Review daily attendance, presence, absence and attendance '
             'history for teachers.',
         icon: Icons.fact_check_outlined,
-        page: const TeacherAttendancePage(),
+        color: const Color(0xFF00897B),
+        page: const TeacherAttendanceReportPage(),
       ),
       _TeacherReportItem(
         title: 'Academic Assignment Report',
@@ -42,12 +45,16 @@ class TeacherReportsPage extends StatelessWidget {
             'Review class, section and subject assignments allocated '
             'to each teacher.',
         icon: Icons.assignment_ind_outlined,
+        color: const Color(0xFFF57C00),
         page: const TeacherAssignmentsPage(),
       ),
     ];
 
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teacher Reports')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Teacher Reports'),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -85,7 +92,7 @@ class TeacherReportsPage extends StatelessWidget {
                           crossAxisCount: columns,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: columns == 1 ? 2.4 : 1.35,
+                          childAspectRatio: columns == 1 ? 3.2 : 1.7,
                         ),
                         itemBuilder: (context, index) =>
                             _TeacherReportCard(item: reports[index]),
@@ -107,12 +114,14 @@ class _TeacherReportItem {
     required this.title,
     required this.description,
     required this.icon,
+    required this.color,
     required this.page,
   });
 
   final String title;
   final String description;
   final IconData icon;
+  final Color color;
   final Widget page;
 }
 
@@ -123,8 +132,6 @@ class _TeacherReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -134,22 +141,23 @@ class _TeacherReportCard extends StatelessWidget {
           ).push<void>(MaterialPageRoute<void>(builder: (_) => item.page));
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundColor: colors.primaryContainer,
-                child: Icon(item.icon, color: colors.onPrimaryContainer),
+                radius: 18,
+                backgroundColor: item.color.withAlpha(28),
+                child: Icon(item.icon, size: 19, color: item.color),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Text(
                 item.title,
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Expanded(
                 child: Text(
                   item.description,
@@ -157,7 +165,7 @@ class _TeacherReportCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.tonalIcon(
@@ -168,6 +176,9 @@ class _TeacherReportCard extends StatelessWidget {
                   },
                   icon: const Icon(Icons.open_in_new),
                   label: const Text('Open Report'),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               ),
             ],

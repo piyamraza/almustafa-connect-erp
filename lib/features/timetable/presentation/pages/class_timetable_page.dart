@@ -339,6 +339,37 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
       return;
     }
 
+    final duplicate = _findExistingSubjectEntry(
+      subject: subject,
+      excludingEntryId: existing?.id,
+    );
+    if (duplicate != null) {
+      final choice = await _confirmDuplicateSubject(duplicate);
+      if (!mounted || choice == null || choice == _DuplicateChoice.cancel) {
+        return;
+      }
+      if (choice == _DuplicateChoice.editExisting) {
+        TimetablePeriodEntity? duplicatePeriod;
+        for (final configuredPeriod in
+            _configuration?.orderedPeriods ?? const <TimetablePeriodEntity>[]) {
+          if (configuredPeriod.id == duplicate.periodId) {
+            duplicatePeriod = configuredPeriod;
+            break;
+          }
+        }
+        if (duplicatePeriod == null) {
+          _showMessage('The existing timetable period could not be opened.');
+          return;
+        }
+        await _openEntryEditor(
+          weekday: duplicate.weekday,
+          period: duplicatePeriod,
+          existing: duplicate,
+        );
+        return;
+      }
+    }
+
     final now = DateTime.now();
     final entry = ClassTimetableEntryEntity(
       id:
@@ -363,6 +394,128 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     );
 
     context.read<ClassTimetableBloc>().add(SaveClassTimetableEntryEvent(entry));
+  }
+
+  ClassTimetableEntryEntity? _findExistingSubjectEntry({
+    required AcademicSubjectEntity subject,
+    String? excludingEntryId,
+  }) {
+    final selectedClass = _selectedClass;
+    final selectedSection = _selectedSection;
+    if (selectedClass == null || selectedSection == null) return null;
+    for (final entry in _cachedEntries) {
+      if (entry.id != excludingEntryId &&
+          entry.classId == selectedClass.id &&
+          entry.sectionId == selectedSection.id &&
+          _normalise(entry.subjectName) == _normalise(subject.name)) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  Future<_DuplicateChoice?> _confirmDuplicateSubject(
+    ClassTimetableEntryEntity existing,
+  ) {
+    return showDialog<_DuplicateChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Subject already added'),
+        content: Text(
+          '${existing.subjectName} is already assigned in '
+          '${_weekdayName(existing.weekday)}, ${existing.periodLabel}.\n\n'
+          'Do you want to add another period or edit the existing one?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DuplicateChoice.cancel),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DuplicateChoice.editExisting),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Edit Existing'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DuplicateChoice.proceed),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _weekdayName(int weekday) => switch (weekday) {
+    DateTime.monday => 'Monday',
+    DateTime.tuesday => 'Tuesday',
+    DateTime.wednesday => 'Wednesday',
+    DateTime.thursday => 'Thursday',
+    DateTime.friday => 'Friday',
+    DateTime.saturday => 'Saturday',
+    DateTime.sunday => 'Sunday',
+    _ => 'Selected day',
+  };
+
+  Future<void> _copyMondayToDay(int targetWeekday) async {
+    final mondayEntries = _cachedEntries
+        .where((entry) => entry.weekday == DateTime.monday)
+        .toList(growable: false);
+    if (mondayEntries.isEmpty) {
+      _showMessage('Add Monday periods first.');
+      return;
+    }
+
+    final targetEntries = {
+      for (final entry in _cachedEntries.where(
+        (entry) => entry.weekday == targetWeekday,
+      ))
+        entry.periodId: entry,
+    };
+    if (targetEntries.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Copy Monday to ${_weekdayName(targetWeekday)}?'),
+          content: Text(
+            '${_weekdayName(targetWeekday)} already has '
+            '${targetEntries.length} assigned period(s). Matching periods '
+            'will be replaced with Monday subjects and teachers.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.copy_all_outlined),
+              label: const Text('Copy & Replace'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    final now = DateTime.now();
+    final copiedEntries = mondayEntries.map((mondayEntry) {
+      final targetEntry = targetEntries[mondayEntry.periodId];
+      return mondayEntry.copyWith(
+        id:
+            targetEntry?.id ??
+            sl<TimetableRepository>().generateClassTimetableEntryId(),
+        weekday: targetWeekday,
+        createdAt: targetEntry?.createdAt ?? now,
+        updatedAt: now,
+      );
+    }).toList(growable: false);
+
+    context.read<ClassTimetableBloc>().add(
+      SaveClassTimetableEntriesEvent(copiedEntries),
+    );
   }
 
   Future<bool> _confirmDelete() async {
@@ -698,7 +851,7 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                const dayColumnWidth = 112.0;
+                const dayColumnWidth = 156.0;
                 const minimumPeriodWidth = 126.0;
                 const maximumPeriodWidth = 180.0;
                 const headerHeight = 52.0;
@@ -827,12 +980,37 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     return Container(
       height: height,
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Text(
-        _dayName(weekday),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              _dayName(weekday),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+          if (weekday != DateTime.monday)
+            Tooltip(
+              message: 'Same as Monday',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => _copyMondayToDay(weekday),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.copy_all_outlined, size: 15),
+                      SizedBox(width: 3),
+                      Text('Same', style: TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -957,6 +1135,8 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
   static String _normalise(String value) =>
       value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 }
+
+enum _DuplicateChoice { cancel, proceed, editExisting }
 
 class _EntryEditorDialog extends StatefulWidget {
   const _EntryEditorDialog({

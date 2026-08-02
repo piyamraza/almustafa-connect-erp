@@ -79,6 +79,71 @@ service cloud.firestore {
       return request.resource.data.studentId;
     }
 
+    function isPublishedResultStatus(status) {
+      return status == 'published' || status == 'locked';
+    }
+
+    function validResultWorkflowTransition(before, after) {
+      return before == after
+          || (before == 'draft' && after == 'generated')
+          || (before == 'generated'
+              && (after == 'verified' || after == 'draft'))
+          || (before == 'verified'
+              && (after == 'approved' || after == 'generated'))
+          || (before == 'approved'
+              && (after == 'published' || after == 'verified'))
+          || (before == 'published'
+              && (after == 'locked'
+                  || after == 'approved'
+                  || after == 'unpublished'))
+          || (before == 'locked' && after == 'published')
+          || (before == 'unpublished'
+              && (after == 'approved' || after == 'published'));
+    }
+
+    function resultWorkflowFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'status',
+        'updatedAt',
+        'schemaVersion',
+        'generatedAt',
+        'generatedBy',
+        'verifiedAt',
+        'verifiedBy',
+        'approvedAt',
+        'approvedBy',
+        'publishedAt',
+        'publishedBy',
+        'lockedAt',
+        'lockedBy',
+        'unlockedAt',
+        'unlockedBy',
+        'unlockReason'
+      ]);
+    }
+
+    function resultWorkflowActorMatches() {
+      return (request.resource.data.status == 'generated'
+              && request.resource.data.generatedBy == request.auth.uid)
+          || (request.resource.data.status == 'verified'
+              && request.resource.data.verifiedBy == request.auth.uid)
+          || (request.resource.data.status == 'approved'
+              && request.resource.data.approvedBy == request.auth.uid)
+          || (request.resource.data.status == 'published'
+              && (
+                (resource.data.status == 'locked'
+                  && request.resource.data.unlockedBy == request.auth.uid
+                  && request.resource.data.unlockReason is string
+                  && request.resource.data.unlockReason.size() > 0)
+                || (resource.data.status != 'locked'
+                  && request.resource.data.publishedBy == request.auth.uid)
+              ))
+          || (request.resource.data.status == 'locked'
+              && request.resource.data.lockedBy == request.auth.uid)
+          || request.resource.data.status == 'unpublished'
+          || request.resource.data.status == 'draft';
+    }
+
     // -----------------------------------------------------------------
     // RBAC administration
     // -----------------------------------------------------------------
@@ -285,25 +350,86 @@ service cloud.firestore {
       allow write: if hasPermission('dateSheetsManage');
     }
 
+    match /exam_results/{resultId} {
+      allow read: if hasPermission('resultsView')
+          || (
+            isLinkedParentStudent(resource.data.studentId)
+            && isPublishedResultStatus(resource.data.status)
+          );
+
+      allow create: if hasAnyPermission('resultsEnter', 'resultsPublish')
+          && request.resource.data.status in ['draft', 'generated']
+          && (
+            request.resource.data.status != 'generated'
+            || request.resource.data.generatedBy == request.auth.uid
+          );
+
+      allow update: if (
+            hasAnyPermission('resultsEnter', 'resultsPublish')
+            && resource.data.status in ['draft', 'generated', 'verified', 'unpublished']
+            && request.resource.data.status == 'generated'
+            && request.resource.data.generatedBy == request.auth.uid
+          )
+          || (
+            hasPermission('resultsPublish')
+            && resultWorkflowFieldsOnly()
+            && validResultWorkflowTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && resultWorkflowActorMatches()
+          );
+
+      allow delete: if hasPermission('resultsPublish');
+    }
+
     match /results/{document=**} {
       allow read: if hasPermission('resultsView')
           || (
-            activeAssignment()
-            && assignment().roleId == 'parent'
-            && resourceStudentId() in assignment().studentIds
+            isLinkedParentStudent(resourceStudentId())
+            && isPublishedResultStatus(resource.data.status)
           );
-      allow create, update: if hasPermission('resultsEnter');
+      allow create: if hasPermission('resultsEnter')
+          && request.resource.data.status in ['draft', 'generated'];
+      allow update: if (
+            hasPermission('resultsEnter')
+            && resource.data.status in ['draft', 'generated', 'verified', 'unpublished']
+            && request.resource.data.status == resource.data.status
+          )
+          || (
+            hasPermission('resultsPublish')
+            && resultWorkflowFieldsOnly()
+            && validResultWorkflowTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && resultWorkflowActorMatches()
+          );
       allow delete: if hasPermission('resultsPublish');
     }
 
     match /result_sheets/{document=**} {
       allow read: if hasPermission('resultsView')
           || (
-            activeAssignment()
-            && assignment().roleId == 'parent'
-            && resourceStudentId() in assignment().studentIds
+            isLinkedParentStudent(resourceStudentId())
+            && isPublishedResultStatus(resource.data.status)
           );
-      allow create, update: if hasPermission('resultsEnter');
+      allow create: if hasPermission('resultsEnter')
+          && request.resource.data.status in ['draft', 'generated'];
+      allow update: if (
+            hasPermission('resultsEnter')
+            && resource.data.status in ['draft', 'generated', 'verified', 'unpublished']
+            && request.resource.data.status == resource.data.status
+          )
+          || (
+            hasPermission('resultsPublish')
+            && resultWorkflowFieldsOnly()
+            && validResultWorkflowTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && resultWorkflowActorMatches()
+          );
       allow delete: if hasPermission('resultsPublish');
     }
 

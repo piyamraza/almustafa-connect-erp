@@ -338,16 +338,25 @@ class _AddStudentPageState extends State<AddStudentPage> {
     for (final academicClass in _academicClasses) {
       if (academicClass.id == selectedClass ||
           academicClass.name == selectedClass) {
-        return academicClass.id;
+        return academicClass.name;
       }
     }
     return selectedClass ?? '';
   }
 
   String _selectedSectionIdForSave() {
+    String? selectedClassId;
+    for (final academicClass in _academicClasses) {
+      if (academicClass.id == selectedClass ||
+          academicClass.name == selectedClass) {
+        selectedClassId = academicClass.id;
+        break;
+      }
+    }
     for (final section in _academicSections) {
-      if (section.id == selectedSection || section.name == selectedSection) {
-        return section.id;
+      if ((section.id == selectedSection || section.name == selectedSection) &&
+          (selectedClassId == null || section.classId == selectedClassId)) {
+        return section.name;
       }
     }
     return selectedSection ?? '';
@@ -508,6 +517,26 @@ class _AddStudentPageState extends State<AddStudentPage> {
             break;
           }
         }
+        // Recover records created before section selection was scoped by class:
+        // use the old section's name, then resolve that name inside this class.
+        if (matchingSection == null && matchingClass != null) {
+          String? legacySectionName;
+          for (final section in _academicSections) {
+            if (section.id == storedSection) {
+              legacySectionName = section.name;
+              break;
+            }
+          }
+          if (legacySectionName != null) {
+            for (final section in _academicSections) {
+              if (section.classId == matchingClass.id &&
+                  section.name == legacySectionName) {
+                matchingSection = section;
+                break;
+              }
+            }
+          }
+        }
         selectedSection = matchingSection?.name;
       });
     } catch (_) {
@@ -580,7 +609,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(actions: const [DashboardNavigationButton()],
+        appBar: AppBar(
+          actions: const [DashboardNavigationButton()],
           title: Text(widget.isEdit ? 'Edit Student' : 'Add Student'),
         ),
         body: Form(

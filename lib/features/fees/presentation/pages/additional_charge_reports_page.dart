@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import '../../../../core/di/service_locator.dart';
@@ -203,7 +204,13 @@ class _AdditionalChargeReportsPageState
                                 DataCell(Text(d.chargeTitle)),
                                 DataCell(Text(d.studentName)),
                                 DataCell(Text(d.admissionNo)),
-                                DataCell(Text(d.classId)),
+                                DataCell(
+                                  AcademicReferenceLabel(
+                                    classReference: d.classId,
+                                    sectionReference: d.sectionId,
+                                    separator: ' - ',
+                                  ),
+                                ),
                                 DataCell(Text(d.sectionId)),
                                 DataCell(Text(_date(d.dueDate))),
                                 DataCell(Text(d.netPayable.toStringAsFixed(0))),

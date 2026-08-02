@@ -31,7 +31,9 @@ class ExamResultRepositoryImpl implements ExamResultRepository {
   @override
   Future<void> saveResults(List<ExamResultEntity> results) {
     return _source.saveResults(
-      results.map(ExamResultModel.fromEntity).toList(growable: false),
+      results
+          .map(ExamResultModel.fromEntity)
+          .toList(growable: false),
     );
   }
 
@@ -39,11 +41,15 @@ class ExamResultRepositoryImpl implements ExamResultRepository {
   Future<void> updateStatus({
     required List<String> resultIds,
     required ResultStatus status,
+    String actorId = '',
+    String reason = '',
     bool setPublishedAt = true,
   }) {
     return _source.updateStatus(
       resultIds: resultIds,
       status: status,
+      actorId: actorId,
+      reason: reason,
       setPublishedAt: setPublishedAt,
     );
   }

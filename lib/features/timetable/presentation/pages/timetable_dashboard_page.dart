@@ -151,18 +151,25 @@ class TimetableDashboardPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Timetable Management')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Timetable Management'),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1200
+            final columns = constraints.maxWidth >= 1350
+                ? 5
+                : constraints.maxWidth >= 1050
                 ? 4
-                : constraints.maxWidth >= 700
+                : constraints.maxWidth >= 780
+                ? 3
+                : constraints.maxWidth >= 560
                 ? 2
                 : 1;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1450),
@@ -181,16 +188,22 @@ class TimetableDashboardPage extends StatelessWidget {
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: features.length,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
-                          crossAxisSpacing: 18,
-                          mainAxisSpacing: 18,
-                          childAspectRatio: columns == 1 ? 2.15 : 1.25,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: switch (columns) {
+                            5 => 1.55,
+                            4 => 1.8,
+                            3 => 2.0,
+                            2 => 2.2,
+                            _ => 3.0,
+                          },
                         ),
                         itemBuilder: (context, index) =>
                             _TimetableFeatureCard(feature: features[index]),
@@ -238,20 +251,20 @@ class _TimetableFeatureCard extends StatelessWidget {
       child: InkWell(
         onTap: feature.onTap,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: feature.color.withAlpha(31),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(9),
                     ),
-                    child: Icon(feature.icon, color: feature.color),
+                    child: Icon(feature.icon, size: 19, color: feature.color),
                   ),
                   const Spacer(),
                   if (!isAvailable)
@@ -278,19 +291,19 @@ class _TimetableFeatureCard extends StatelessWidget {
                 feature.title,
                 style: Theme.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               Text(
                 feature.description,
-                maxLines: 3,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               if (isAvailable) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -304,7 +317,7 @@ class _TimetableFeatureCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Icon(
                       Icons.arrow_forward_rounded,
-                      size: 18,
+                      size: 16,
                       color: feature.color,
                     ),
                   ],

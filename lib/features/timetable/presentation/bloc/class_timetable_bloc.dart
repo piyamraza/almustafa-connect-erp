@@ -15,6 +15,7 @@ class ClassTimetableBloc
   ) : super(const ClassTimetableInitial()) {
     on<LoadClassTimetableEvent>(_onLoad);
     on<SaveClassTimetableEntryEvent>(_onSave);
+    on<SaveClassTimetableEntriesEvent>(_onSaveMany);
     on<DeleteClassTimetableEntryEvent>(_onDelete);
   }
 
@@ -51,6 +52,32 @@ class ClassTimetableBloc
         sectionId: event.entry.sectionId,
         emit: emit,
         successMessage: 'Timetable period saved successfully.',
+      );
+    } catch (error) {
+      emit(ClassTimetableError(_message(error)));
+    }
+  }
+
+  Future<void> _onSaveMany(
+    SaveClassTimetableEntriesEvent event,
+    Emitter<ClassTimetableState> emit,
+  ) async {
+    if (event.entries.isEmpty) return;
+    emit(const ClassTimetableLoading());
+
+    try {
+      for (final entry in event.entries) {
+        await _saveClassTimetableEntry(entry);
+      }
+      final first = event.entries.first;
+      await _load(
+        branchId: first.branchId,
+        academicSession: first.academicSession,
+        classId: first.classId,
+        sectionId: first.sectionId,
+        emit: emit,
+        successMessage:
+            '${event.entries.length} Monday period(s) copied successfully.',
       );
     } catch (error) {
       emit(ClassTimetableError(_message(error)));

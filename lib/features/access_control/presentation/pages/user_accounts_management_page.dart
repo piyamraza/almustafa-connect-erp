@@ -30,6 +30,7 @@ class _UserAccountsManagementPageState
   List<AppRoleEntity> _roles = const [];
   bool _loading = true;
   String _query = '';
+  String? _loadError;
 
   @override
   void initState() {
@@ -48,30 +49,46 @@ class _UserAccountsManagementPageState
     final repository = sl<AppRoleRepository>();
     var roles = await repository.getRoles();
     if (!roles.any((role) => role.isActive)) {
-      await repository.seedDefaultRoles();
+      try {
+        await repository.seedDefaultRoles();
+      } catch (_) {
+        await _service.bootstrapAdministration();
+        await repository.seedDefaultRoles();
+      }
       roles = await repository.getRoles();
     }
     return roles.where((role) => role.isActive).toList(growable: false);
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
 
     try {
-      final values = await Future.wait<Object>([
-        _service.listAccounts(),
-        _loadActiveRoles(),
-      ]);
+      var roles = await _loadActiveRoles();
+      List<UserAccountEntity> accounts;
+      try {
+        accounts = await _service.listAccounts();
+      } on FirebaseFunctionsException catch (error) {
+        if (error.code != 'permission-denied') rethrow;
+        await _service.bootstrapAdministration();
+        roles = await _loadActiveRoles();
+        accounts = await _service.listAccounts();
+      }
 
       if (!mounted) return;
 
       setState(() {
-        _accounts = values[0] as List<UserAccountEntity>;
-        _roles = values[1] as List<AppRoleEntity>;
+        _accounts = accounts;
+        _roles = roles;
       });
     } catch (error) {
       if (!mounted) return;
-      _show(_message(error));
+      final message = _message(error);
+      setState(() => _loadError = message);
+      _show(message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -93,7 +110,10 @@ class _UserAccountsManagementPageState
 
   Future<void> _createAccount() async {
     if (_roles.isEmpty) {
-      _show('Create active roles before creating user accounts.');
+      _show(
+        _loadError ??
+            'Active roles could not be loaded. Refresh this page and try again.',
+      );
       return;
     }
 
@@ -328,6 +348,14 @@ class _UserAccountsManagementPageState
 
   String _message(Object error) {
     if (error is FirebaseFunctionsException) {
+      if (error.code == 'not-found' || error.code == 'unimplemented') {
+        return 'User-account Cloud Functions are not deployed. Deploy the '
+            'functions backend and refresh this page.';
+      }
+      if (error.code == 'internal') {
+        return 'User-account backend is unavailable or not configured for '
+            'this Firebase project. Deploy the Functions backend, then retry.';
+      }
       return error.message ?? error.code;
     }
 
@@ -351,7 +379,7 @@ class _UserAccountsManagementPageState
       backgroundColor: _pageBackground,
       appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('User Accounts Management')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _loading ? null : _createAccount,
+        onPressed: _loading || _roles.isEmpty ? null : _createAccount,
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text('Create User'),
       ),
@@ -360,6 +388,29 @@ class _UserAccountsManagementPageState
           ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
             children: [
+              if (_loadError != null)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(_loadError!)),
+                      TextButton(
+                        onPressed: _loading ? null : _load,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               _buildHeader(),
               const SizedBox(height: 14),
               Card(

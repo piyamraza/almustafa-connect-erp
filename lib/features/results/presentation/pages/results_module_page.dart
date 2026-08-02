@@ -76,29 +76,29 @@ class ResultsModulePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Results')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Results'),
+      ),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final columns = _columnCount(constraints.maxWidth);
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1500),
+                  constraints: const BoxConstraints(maxWidth: 1700),
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _items.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: _cardAspectRatio(
-                        constraints.maxWidth,
-                        columns,
-                      ),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: columns == 1 ? 200 : 210,
                     ),
                     itemBuilder: (context, index) {
                       final item = _items[index];
@@ -121,12 +121,6 @@ class ResultsModulePage extends StatelessWidget {
     if (width >= 1200) return 4;
     if (width >= 700) return 2;
     return 1;
-  }
-
-  double _cardAspectRatio(double width, int columns) {
-    if (columns == 1) return 1.15;
-    if (columns == 2) return 1.35;
-    return width >= 1200 ? 1.18 : 1.25;
   }
 
   void _openItem(BuildContext context, int index) {
@@ -176,28 +170,32 @@ class _ResultsModuleCard extends StatelessWidget {
       child: InkWell(
         onTap: onOpen,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(item.icon, color: colors.onPrimaryContainer),
+                child: Icon(
+                  item.icon,
+                  size: 20,
+                  color: colors.onPrimaryContainer,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Text(
                 item.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 item.description,
                 maxLines: 2,
@@ -211,6 +209,11 @@ class _ResultsModuleCard extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onOpen,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(34),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: const Text('Open'),
                 ),
               ),
