@@ -11,6 +11,11 @@ class AcademicSubjectModel extends AcademicSubjectEntity {
     required super.isActive,
     required super.createdAt,
     required super.updatedAt,
+    super.useComponentsInTimetable = false,
+    super.useComponentsInAttendance = false,
+    super.useComponentsInHomework = false,
+    super.useComponentsInExamination = true,
+    super.useComponentsInReportCard = true,
   });
 
   factory AcademicSubjectModel.fromEntity(AcademicSubjectEntity value) {
@@ -22,6 +27,11 @@ class AcademicSubjectModel extends AcademicSubjectEntity {
       isActive: value.isActive,
       createdAt: value.createdAt,
       updatedAt: value.updatedAt,
+      useComponentsInTimetable: value.useComponentsInTimetable,
+      useComponentsInAttendance: value.useComponentsInAttendance,
+      useComponentsInHomework: value.useComponentsInHomework,
+      useComponentsInExamination: value.useComponentsInExamination,
+      useComponentsInReportCard: value.useComponentsInReportCard,
     );
   }
 
@@ -35,6 +45,11 @@ class AcademicSubjectModel extends AcademicSubjectEntity {
       isActive: map['isActive'] as bool? ?? true,
       createdAt: _date(map['createdAt']) ?? now,
       updatedAt: _date(map['updatedAt']) ?? now,
+      useComponentsInTimetable: map['useComponentsInTimetable'] as bool? ?? false,
+      useComponentsInAttendance: map['useComponentsInAttendance'] as bool? ?? false,
+      useComponentsInHomework: map['useComponentsInHomework'] as bool? ?? false,
+      useComponentsInExamination: map['useComponentsInExamination'] as bool? ?? true,
+      useComponentsInReportCard: map['useComponentsInReportCard'] as bool? ?? true,
     );
   }
 
@@ -49,6 +64,11 @@ class AcademicSubjectModel extends AcademicSubjectEntity {
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'useComponentsInTimetable': useComponentsInTimetable,
+      'useComponentsInAttendance': useComponentsInAttendance,
+      'useComponentsInHomework': useComponentsInHomework,
+      'useComponentsInExamination': useComponentsInExamination,
+      'useComponentsInReportCard': useComponentsInReportCard,
     };
   }
 

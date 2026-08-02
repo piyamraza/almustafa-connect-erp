@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -52,6 +53,6 @@ class _UpsertTeacherPageState extends State<UpsertTeacherPage> {
   }
   Widget _field(TextEditingController c, String label, IconData icon, {bool required = false, TextInputType type = TextInputType.text, int maxLines = 1}) => TextFormField(controller: c, keyboardType: type, maxLines: maxLines, validator: required ? (value) => value == null || value.trim().isEmpty ? '$label is required' : null : null, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: const OutlineInputBorder()));
   Widget _genderField() => DropdownButtonFormField<String>(initialValue: _gender, decoration: const InputDecoration(labelText: 'Gender', prefixIcon: Icon(Icons.person_outline), border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Male', child: Text('Male')), DropdownMenuItem(value: 'Female', child: Text('Female'))], onChanged: (value) => setState(() => _gender = value ?? _gender));
-  Widget _dateOfBirthField() => OutlinedButton.icon(onPressed: () async { final date = await showDatePicker(context: context, initialDate: _dateOfBirth, firstDate: DateTime(1950), lastDate: DateTime.now()); if (date != null) setState(() => _dateOfBirth = date); }, icon: const Icon(Icons.cake_outlined), label: Text('Date of birth: ${_dateOfBirth.day}/${_dateOfBirth.month}/${_dateOfBirth.year}'));
-  Widget _joiningField() => OutlinedButton.icon(onPressed: () async { final date = await showDatePicker(context: context, initialDate: _joiningDate, firstDate: DateTime(1990), lastDate: DateTime.now()); if (date != null) setState(() => _joiningDate = date); }, icon: const Icon(Icons.calendar_month), label: Text('Joining date: ${_joiningDate.day}/${_joiningDate.month}/${_joiningDate.year}'));
+  Widget _dateOfBirthField() => OutlinedButton.icon(onPressed: () async { final date = await showManualDatePicker(context: context, initialDate: _dateOfBirth, firstDate: DateTime(1950), lastDate: DateTime.now()); if (date != null) setState(() => _dateOfBirth = date); }, icon: const Icon(Icons.cake_outlined), label: Text('Date of birth: ${_dateOfBirth.day}/${_dateOfBirth.month}/${_dateOfBirth.year}'));
+  Widget _joiningField() => OutlinedButton.icon(onPressed: () async { final date = await showManualDatePicker(context: context, initialDate: _joiningDate, firstDate: DateTime(1990), lastDate: DateTime.now()); if (date != null) setState(() => _joiningDate = date); }, icon: const Icon(Icons.calendar_month), label: Text('Joining date: ${_joiningDate.day}/${_joiningDate.month}/${_joiningDate.year}'));
 }

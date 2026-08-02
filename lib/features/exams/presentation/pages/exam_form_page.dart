@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -23,10 +23,11 @@ class _ExamFormPageState extends State<ExamFormPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _sessionController;
   late final TextEditingController _descriptionController;
+  late ExamType _type;
+  late ExamWorkflowStatus _status;
   DateTime? _startDate;
   DateTime? _endDate;
   DateTime? _resultDate;
-  bool _isActive = true;
   bool _isSaving = false;
 
   bool get _isEditing => widget.exam != null;
@@ -36,12 +37,17 @@ class _ExamFormPageState extends State<ExamFormPage> {
     super.initState();
     final exam = widget.exam;
     _nameController = TextEditingController(text: exam?.name ?? '');
-    _sessionController = TextEditingController(text: exam?.academicSession ?? '');
-    _descriptionController = TextEditingController(text: exam?.description ?? '');
-    _startDate = exam?.startDate ?? exam?.examDate;
-    _endDate = exam?.endDate ?? exam?.examDate;
-    _resultDate = exam?.resultDate ?? exam?.examDate;
-    _isActive = exam?.isActive ?? true;
+    _sessionController = TextEditingController(
+      text: exam?.academicSession ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: exam?.description ?? '',
+    );
+    _type = exam?.type ?? ExamType.monthly;
+    _status = exam?.status ?? ExamWorkflowStatus.draft;
+    _startDate = exam?.startDate;
+    _endDate = exam?.endDate;
+    _resultDate = exam?.resultDate;
   }
 
   @override
@@ -56,7 +62,7 @@ class _ExamFormPageState extends State<ExamFormPage> {
     required DateTime? currentDate,
     required ValueChanged<DateTime> onSelected,
   }) async {
-    final selected = await showDatePicker(
+    final selected = await showManualDatePicker(
       context: context,
       initialDate: currentDate ?? DateTime.now(),
       firstDate: DateTime(2020),
@@ -68,9 +74,8 @@ class _ExamFormPageState extends State<ExamFormPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
     if (_startDate == null || _endDate == null || _resultDate == null) {
       _showMessage('Select start, end, and result dates.');
       return;
@@ -86,23 +91,22 @@ class _ExamFormPageState extends State<ExamFormPage> {
 
     setState(() => _isSaving = true);
     final existing = widget.exam;
+    final now = DateTime.now();
+
     final exam = ExamEntity(
       id: existing?.id ?? sl<GenerateExamId>()(),
       name: _nameController.text.trim(),
-      type: existing?.type ?? ExamType.monthly,
+      type: _type,
       academicSession: _sessionController.text.trim(),
-      classId: existing?.classId ?? '',
-      sectionId: existing?.sectionId ?? '',
-      subject: existing?.subject ?? '',
-      examDate: _startDate!,
-      totalMarks: existing?.totalMarks ?? 0,
-      passingMarks: existing?.passingMarks ?? 0,
-      createdAt: existing?.createdAt ?? DateTime.now(),
+      academicYearId: existing?.academicYearId ?? '',
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
       startDate: _startDate,
       endDate: _endDate,
       resultDate: _resultDate,
       description: _descriptionController.text.trim(),
-      isActive: _isActive,
+      status: _status,
+      createdBy: existing?.createdBy ?? '',
     );
 
     final bloc = context.read<ExamBloc>();
@@ -112,10 +116,9 @@ class _ExamFormPageState extends State<ExamFormPage> {
     bloc.add(_isEditing ? UpdateExam(exam) : CreateExam(exam));
     final state = await completion;
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() => _isSaving = false);
+
     if (state is ExamError) {
       _showMessage(state.message);
       return;
@@ -124,14 +127,17 @@ class _ExamFormPageState extends State<ExamFormPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final title = _isEditing ? 'Edit Exam' : 'Add Exam';
+
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text(title)),
+      appBar: AppBar(title: Text(title)),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
@@ -150,9 +156,14 @@ class _ExamFormPageState extends State<ExamFormPage> {
                         children: [
                           Text(
                             _isEditing
-                                ? 'Update examination information'
-                                : 'Create a new examination schedule',
+                                ? 'Update examination master information'
+                                : 'Create examination master record',
                             style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Class, section, subjects, marks and paper dates are configured separately.',
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 24),
                           _ResponsiveFields(
@@ -166,8 +177,8 @@ class _ExamFormPageState extends State<ExamFormPage> {
                                   prefixIcon: Icon(Icons.assignment_outlined),
                                   border: OutlineInputBorder(),
                                 ),
-                                validator: (value) => value == null ||
-                                        value.trim().isEmpty
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
                                     ? 'Exam name is required.'
                                     : null,
                               ),
@@ -176,13 +187,57 @@ class _ExamFormPageState extends State<ExamFormPage> {
                                 decoration: const InputDecoration(
                                   labelText: 'Academic Session',
                                   hintText: 'e.g. 2026-2027',
-                                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                                  prefixIcon: Icon(
+                                    Icons.calendar_today_outlined,
+                                  ),
                                   border: OutlineInputBorder(),
                                 ),
-                                validator: (value) => value == null ||
-                                        value.trim().isEmpty
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
                                     ? 'Academic session is required.'
                                     : null,
+                              ),
+                              DropdownButtonFormField<ExamType>(
+                                initialValue: _type,
+                                decoration: const InputDecoration(
+                                  labelText: 'Exam Type',
+                                  prefixIcon: Icon(Icons.category_outlined),
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: ExamType.values
+                                    .map(
+                                      (type) => DropdownMenuItem(
+                                        value: type,
+                                        child: Text(_examTypeLabel(type)),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _type = value);
+                                  }
+                                },
+                              ),
+                              DropdownButtonFormField<ExamWorkflowStatus>(
+                                initialValue: _status,
+                                decoration: const InputDecoration(
+                                  labelText: 'Workflow Status',
+                                  prefixIcon: Icon(Icons.account_tree_outlined),
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: ExamWorkflowStatus.values
+                                    .map(
+                                      (status) => DropdownMenuItem(
+                                        value: status,
+                                        child: Text(_examStatusLabel(status)),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _status = value);
+                                  }
+                                },
                               ),
                             ],
                           ),
@@ -228,14 +283,6 @@ class _ExamFormPageState extends State<ExamFormPage> {
                               border: OutlineInputBorder(),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Exam Status'),
-                            subtitle: Text(_isActive ? 'Active' : 'Inactive'),
-                            value: _isActive,
-                            onChanged: (value) => setState(() => _isActive = value),
-                          ),
                           const SizedBox(height: 24),
                           Align(
                             alignment: Alignment.centerRight,
@@ -260,11 +307,13 @@ class _ExamFormPageState extends State<ExamFormPage> {
                                           ),
                                         )
                                       : const Icon(Icons.save_outlined),
-                                  label: Text(_isSaving
-                                      ? 'Saving...'
-                                      : _isEditing
-                                          ? 'Save Changes'
-                                          : 'Create Exam'),
+                                  label: Text(
+                                    _isSaving
+                                        ? 'Saving...'
+                                        : _isEditing
+                                        ? 'Save Changes'
+                                        : 'Create Exam',
+                                  ),
                                 ),
                               ],
                             ),
@@ -301,6 +350,7 @@ class _ResponsiveFields extends StatelessWidget {
         ],
       );
     }
+
     return Wrap(
       spacing: 16,
       runSpacing: 16,
@@ -327,6 +377,7 @@ class _DateSelector extends StatelessWidget {
     final dateText = date == null
         ? 'Select date'
         : MaterialLocalizations.of(context).formatMediumDate(date!);
+
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: const Icon(Icons.calendar_month_outlined),
@@ -340,4 +391,22 @@ class _DateSelector extends StatelessWidget {
       ),
     );
   }
+}
+
+String _examTypeLabel(ExamType type) {
+  return switch (type) {
+    ExamType.monthly => 'Monthly Test',
+    ExamType.quarterly => 'Quarterly Test',
+    ExamType.midTerm => 'Mid Term',
+    ExamType.finalExam => 'Final Term',
+  };
+}
+
+String _examStatusLabel(ExamWorkflowStatus status) {
+  return switch (status) {
+    ExamWorkflowStatus.draft => 'Draft',
+    ExamWorkflowStatus.active => 'Active',
+    ExamWorkflowStatus.completed => 'Completed',
+    ExamWorkflowStatus.archived => 'Archived',
+  };
 }

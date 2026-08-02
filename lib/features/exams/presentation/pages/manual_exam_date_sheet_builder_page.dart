@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -788,7 +789,7 @@ class _PaperEditorDialogState extends State<_PaperEditorDialog> {
   Future<void> _pickDate() async {
     final start = widget.exam.startDate ?? widget.exam.examDate;
     final end = widget.exam.endDate ?? widget.exam.examDate;
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: _date,
       firstDate: start,

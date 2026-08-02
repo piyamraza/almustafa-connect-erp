@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -163,7 +164,7 @@ class _StaffSalaryDetailsViewState
   }
 
   Future<void> _pickPaymentDate() async {
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _paymentDate ?? DateTime.now(),
       firstDate: _salary.salaryMonth,

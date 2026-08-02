@@ -13,6 +13,7 @@ import '../bloc/student_state.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class AddStudentPage extends StatefulWidget {
@@ -116,7 +117,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
   ];
 
   Future<void> _pickDate() async {
-    final DateTime? pickedDate = await showDatePicker(
+    final DateTime? pickedDate = await showManualDatePicker(
       context: context,
       initialDate: DateTime(2015),
       firstDate: DateTime(1990),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
@@ -711,7 +712,7 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
               ),
               OutlinedButton.icon(
                 onPressed: () async {
-                  final d = await showDatePicker(
+                  final d = await showManualDatePicker(
                     context: context,
                     initialDate: _dueDate,
                     firstDate: DateTime(2020),

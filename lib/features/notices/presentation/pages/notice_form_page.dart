@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -81,7 +82,7 @@ class _NoticeFormPageState extends State<NoticeFormPage> {
   }
 
   Future<void> _pickDate(bool publish) async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: publish
           ? _publishAt ?? DateTime.now()

@@ -1,5 +1,6 @@
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
+import '../../../academic_structure/domain/services/subject_component_exam_service.dart';
 import '../entities/exam_entity.dart';
 import '../entities/exam_mark_entity.dart';
 import '../entities/exam_result_entity.dart';
@@ -19,6 +20,7 @@ class GenerateExamResults {
     required this._studentRepository,
     required this._gradingRuleRepository,
     required this._resultRepository,
+    required this.componentService,
   });
 
   final ExamRepository _examRepository;
@@ -27,6 +29,7 @@ class GenerateExamResults {
   final StudentRepository _studentRepository;
   final GradingRuleRepository _gradingRuleRepository;
   final ExamResultRepository _resultRepository;
+  final SubjectComponentExamService componentService;
 
   Future<List<ExamResultEntity>> call(String examId) async {
     if (examId.trim().isEmpty) {
@@ -41,9 +44,11 @@ class GenerateExamResults {
       _resultRepository.getResultsForExam(examId),
     ]);
     final exam = responses[0] as ExamEntity?;
-    final setups = (responses[1] as List<ExamSubjectSetupEntity>)
-        .where((setup) => setup.isActive)
-        .toList(growable: false);
+    final setups = await componentService.expandSetups(
+      (responses[1] as List<ExamSubjectSetupEntity>)
+          .where((setup) => setup.isActive)
+          .toList(growable: false),
+    );
     final marks = responses[2] as List<ExamMarkEntity>;
     final rules = (responses[3] as List<GradeRuleEntity>)
         .where((rule) => rule.isActive)

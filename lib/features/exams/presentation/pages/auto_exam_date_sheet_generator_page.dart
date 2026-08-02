@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -95,7 +96,7 @@ class _AutoExamDateSheetGeneratorViewState
     if (exam == null) return;
     final first = exam.startDate ?? exam.examDate;
     final last = exam.endDate ?? exam.examDate;
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: _startDate ?? first,
       firstDate: first,
@@ -109,7 +110,7 @@ class _AutoExamDateSheetGeneratorViewState
     if (exam == null) return;
     final first = exam.startDate ?? exam.examDate;
     final last = exam.endDate ?? exam.examDate;
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: _endDate ?? last,
       firstDate: first,
@@ -122,7 +123,7 @@ class _AutoExamDateSheetGeneratorViewState
     final start = _startDate;
     final end = _endDate;
     if (start == null || end == null) return;
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: start,
       firstDate: start,

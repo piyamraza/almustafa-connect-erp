@@ -127,9 +127,10 @@ class _ExamsViewState extends State<_ExamsView> {
                   label: 'Result Date',
                   value: _formatDate(dialogContext, exam.resultDate),
                 ),
+                _DetailRow(label: 'Type', value: _examTypeLabel(exam.type)),
                 _DetailRow(
                   label: 'Status',
-                  value: exam.isActive ? 'Active' : 'Inactive',
+                  value: _examStatusLabel(exam.status),
                 ),
                 if (exam.description.trim().isNotEmpty)
                   _DetailRow(label: 'Description', value: exam.description),
@@ -152,7 +153,8 @@ class _ExamsViewState extends State<_ExamsView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Exam Management'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Date Sheets',
             onPressed: () {
@@ -335,7 +337,7 @@ class _ExamListCard extends StatelessWidget {
       spacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _ExamStatusChip(isActive: exam.isActive),
+        _ExamStatusChip(status: exam.status),
         Switch(value: exam.isActive, onChanged: onStatusChanged),
         IconButton(
           tooltip: 'Edit exam',
@@ -387,15 +389,17 @@ class _ExamListCard extends StatelessWidget {
 }
 
 class _ExamStatusChip extends StatelessWidget {
-  const _ExamStatusChip({required this.isActive});
+  const _ExamStatusChip({required this.status});
 
-  final bool isActive;
+  final ExamWorkflowStatus status;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isActive = status == ExamWorkflowStatus.active;
+
     return Chip(
-      label: Text(isActive ? 'Active' : 'Inactive'),
+      label: Text(_examStatusLabel(status)),
       visualDensity: VisualDensity.compact,
       side: BorderSide.none,
       backgroundColor: isActive
@@ -459,6 +463,24 @@ class _DetailRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _examTypeLabel(ExamType type) {
+  return switch (type) {
+    ExamType.monthly => 'Monthly Test',
+    ExamType.quarterly => 'Quarterly Test',
+    ExamType.midTerm => 'Mid Term',
+    ExamType.finalExam => 'Final Term',
+  };
+}
+
+String _examStatusLabel(ExamWorkflowStatus status) {
+  return switch (status) {
+    ExamWorkflowStatus.draft => 'Draft',
+    ExamWorkflowStatus.active => 'Active',
+    ExamWorkflowStatus.completed => 'Completed',
+    ExamWorkflowStatus.archived => 'Archived',
+  };
 }
 
 String _formatDate(BuildContext context, DateTime? value) {

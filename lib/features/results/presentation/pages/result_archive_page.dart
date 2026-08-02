@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -214,7 +215,7 @@ class _ArchiveFilters extends StatelessWidget {
     DateTimeRange? current,
   ) async {
     final today = DateTime.now();
-    final range = await showDateRangePicker(
+    final range = await showManualDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(today.year + 2),

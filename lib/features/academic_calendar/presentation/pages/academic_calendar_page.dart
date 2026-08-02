@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -622,7 +623,7 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
   }
 
   Future<void> _pickDate(bool start) async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: start ? _startDate : _endDate,
       firstDate: DateTime(2020),

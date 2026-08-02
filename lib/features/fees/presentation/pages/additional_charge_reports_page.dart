@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/additional_charge_entity.dart';
@@ -272,7 +273,7 @@ class _AdditionalChargeReportsPageState
     ),
   );
   Future<void> _pick(bool from) async {
-    final d = await showDatePicker(
+    final d = await showManualDatePicker(
       context: context,
       initialDate: from ? _from : _to,
       firstDate: DateTime(2020),

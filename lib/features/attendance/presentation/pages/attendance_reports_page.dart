@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -93,7 +94,7 @@ class _AttendanceReportsViewState extends State<_AttendanceReportsView> {
 
   Future<void> _selectDate({required bool isFromDate}) async {
     final initialDate = isFromDate ? _filter.fromDate : _filter.toDate;
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2020),

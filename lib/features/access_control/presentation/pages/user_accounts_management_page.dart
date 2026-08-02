@@ -44,22 +44,30 @@ class _UserAccountsManagementPageState
     super.dispose();
   }
 
+  Future<List<AppRoleEntity>> _loadActiveRoles() async {
+    final repository = sl<AppRoleRepository>();
+    var roles = await repository.getRoles();
+    if (!roles.any((role) => role.isActive)) {
+      await repository.seedDefaultRoles();
+      roles = await repository.getRoles();
+    }
+    return roles.where((role) => role.isActive).toList(growable: false);
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
 
     try {
       final values = await Future.wait<Object>([
         _service.listAccounts(),
-        sl<AppRoleRepository>().getRoles(),
+        _loadActiveRoles(),
       ]);
 
       if (!mounted) return;
 
       setState(() {
         _accounts = values[0] as List<UserAccountEntity>;
-        _roles = (values[1] as List<AppRoleEntity>)
-            .where((role) => role.isActive)
-            .toList(growable: false);
+        _roles = values[1] as List<AppRoleEntity>;
       });
     } catch (error) {
       if (!mounted) return;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 class TeacherLeavePage extends StatefulWidget {
@@ -20,7 +21,7 @@ class _TeacherLeavePageState extends State<TeacherLeavePage> {
   }
 
   Future<void> _selectRange() async {
-    final range = await showDateRangePicker(
+    final range = await showManualDateRangePicker(
       context: context,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),

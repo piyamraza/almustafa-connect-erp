@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -228,7 +229,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
       .fold<double>(0, (sum, item) => sum + item.outstandingAmount);
 
   Future<void> _pickPaymentDate() async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: _paymentDate,
       firstDate: DateTime(2020),

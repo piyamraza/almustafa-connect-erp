@@ -14,6 +14,7 @@ class FirestorePaths {
   static const String classes = 'classes';
   static const String sections = 'sections';
   static const String academicSubjects = 'academic_subjects';
+  static const String subjectComponents = 'subject_components';
   static const String employees = 'employees';
   static const String attendance = 'attendance';
   static const String exams = 'exams';

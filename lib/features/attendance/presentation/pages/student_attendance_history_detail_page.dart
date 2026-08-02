@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -58,7 +59,7 @@ class _StudentAttendanceHistoryDetailPageState
   }
 
   Future<void> _selectDateRange() async {
-    final result = await showDateRangePicker(
+    final result = await showManualDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),

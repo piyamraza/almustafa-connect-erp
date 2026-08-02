@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../features/academic_structure/data/datasources/academic_structure_remote_datasource.dart';
 import '../../features/academic_structure/data/repositories/academic_structure_repository_impl.dart';
+import '../../features/academic_structure/data/repositories/subject_component_repository_impl.dart';
+import '../../features/academic_structure/domain/repositories/subject_component_repository.dart';
+import '../../features/academic_structure/domain/services/subject_component_exam_service.dart';
+import '../../features/academic_structure/presentation/bloc/subject_component_bloc.dart';
 import '../../features/academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
@@ -431,6 +435,21 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  sl.registerLazySingleton<SubjectComponentRepository>(
+    () => SubjectComponentRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<SubjectComponentExamService>(
+    () => SubjectComponentExamService(
+      sl<AcademicStructureRepository>(),
+      sl<SubjectComponentRepository>(),
+    ),
+  );
+  sl.registerFactory<SubjectComponentBloc>(
+    () => SubjectComponentBloc(
+      sl<SubjectComponentRepository>(),
+      sl<AcademicStructureRepository>(),
+    ),
+  );
   sl.registerLazySingleton<ValidateExamDateSheet>(ValidateExamDateSheet.new);
 
   sl.registerLazySingleton<GenerateExamDateSheetOptions>(
@@ -698,6 +717,7 @@ Future<void> setupServiceLocator() async {
       studentRepository: sl<StudentRepository>(),
       gradingRuleRepository: sl<GradingRuleRepository>(),
       resultRepository: sl<ExamResultRepository>(),
+      componentService: sl<SubjectComponentExamService>(),
     ),
   );
 
@@ -1054,6 +1074,7 @@ Future<void> setupServiceLocator() async {
       getExamMarks: sl<GetExamMarks>(),
       saveExamMarks: sl<SaveExamMarks>(),
       deleteExamMark: sl<DeleteExamMark>(),
+      componentService: sl<SubjectComponentExamService>(),
     ),
   );
 

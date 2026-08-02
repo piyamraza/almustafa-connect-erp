@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -87,7 +88,7 @@ class _StaffLeaveHistoryViewState
   }
 
   Future<void> _pickStartDate() async {
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _startDate,
       firstDate: DateTime(2020),
@@ -111,7 +112,7 @@ class _StaffLeaveHistoryViewState
   }
 
   Future<void> _pickEndDate() async {
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _endDate,
       firstDate: _startDate,

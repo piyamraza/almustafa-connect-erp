@@ -140,6 +140,21 @@ service cloud.firestore {
       allow write: if hasPermission('classesManage');
     }
 
+    match /academic_subjects/{document=**} {
+      allow read: if hasPermission('classesView')
+          || hasPermission('timetableView')
+          || hasPermission('examsView')
+          || hasPermission('resultsView');
+      allow write: if hasPermission('classesManage');
+    }
+
+    match /subject_components/{document=**} {
+      allow read: if hasPermission('classesView')
+          || hasPermission('examsView')
+          || hasPermission('resultsView');
+      allow write: if hasPermission('classesManage');
+    }
+
     // -----------------------------------------------------------------
     // Attendance
     // -----------------------------------------------------------------

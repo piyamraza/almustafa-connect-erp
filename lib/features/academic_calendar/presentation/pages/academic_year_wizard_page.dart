@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -113,7 +114,7 @@ class _AcademicYearWizardViewState extends State<_AcademicYearWizardView> {
   }
 
   Future<void> _pickSessionDate(bool start) async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: start ? _startDate : _endDate,
       firstDate: DateTime(2020),
@@ -596,7 +597,7 @@ class _DateRangeDialogState extends State<_DateRangeDialog> {
   }
 
   Future<void> _pick(bool start) async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: start ? _startDate : _endDate,
       firstDate: widget.sessionStart,

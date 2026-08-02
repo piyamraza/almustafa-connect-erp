@@ -9,6 +9,11 @@ class AcademicSubjectEntity extends Equatable {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.useComponentsInTimetable = false,
+    this.useComponentsInAttendance = false,
+    this.useComponentsInHomework = false,
+    this.useComponentsInExamination = true,
+    this.useComponentsInReportCard = true,
   });
 
   final String id;
@@ -19,6 +24,11 @@ class AcademicSubjectEntity extends Equatable {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool useComponentsInTimetable;
+  final bool useComponentsInAttendance;
+  final bool useComponentsInHomework;
+  final bool useComponentsInExamination;
+  final bool useComponentsInReportCard;
 
   String get classSubjectKey =>
       '${classId}_${sectionId ?? 'class'}_${name.trim().toLowerCase()}';
@@ -31,6 +41,11 @@ class AcademicSubjectEntity extends Equatable {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? useComponentsInTimetable,
+    bool? useComponentsInAttendance,
+    bool? useComponentsInHomework,
+    bool? useComponentsInExamination,
+    bool? useComponentsInReportCard,
   }) {
     return AcademicSubjectEntity(
       id: id ?? this.id,
@@ -40,6 +55,11 @@ class AcademicSubjectEntity extends Equatable {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      useComponentsInTimetable: useComponentsInTimetable ?? this.useComponentsInTimetable,
+      useComponentsInAttendance: useComponentsInAttendance ?? this.useComponentsInAttendance,
+      useComponentsInHomework: useComponentsInHomework ?? this.useComponentsInHomework,
+      useComponentsInExamination: useComponentsInExamination ?? this.useComponentsInExamination,
+      useComponentsInReportCard: useComponentsInReportCard ?? this.useComponentsInReportCard,
     );
   }
 
@@ -52,5 +72,10 @@ class AcademicSubjectEntity extends Equatable {
         isActive,
         createdAt,
         updatedAt,
+        useComponentsInTimetable,
+        useComponentsInAttendance,
+        useComponentsInHomework,
+        useComponentsInExamination,
+        useComponentsInReportCard,
       ];
 }

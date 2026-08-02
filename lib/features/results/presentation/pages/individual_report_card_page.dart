@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../../academic_structure/domain/services/subject_component_exam_service.dart';
 import '../../../exams/presentation/widgets/result_status_chip.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/result_export_request.dart';
@@ -132,7 +133,7 @@ class _ReportCardContent extends StatelessWidget {
                         _Remarks(result: result),
                         const SizedBox(height: 20),
                         const _InformationBanner(
-                          message: 'Published result — read-only record.',
+                          message: 'Published result â€” read-only record.',
                         ),
                       ],
                     ),
@@ -296,8 +297,7 @@ class _SubjectMarksTable extends StatelessWidget {
               DataColumn(label: Text('Status')),
               DataColumn(label: Text('Teacher Remarks')),
             ],
-            rows: subjects
-                .map(
+            rows: _componentRows(subjects).map(
                   (subject) => DataRow(
                     cells: [
                       DataCell(Text(subject.subjectName)),
@@ -450,6 +450,14 @@ class _InformationBanner extends StatelessWidget {
   }
 }
 
+List<SubjectResultEntity> _componentRows(List<SubjectResultEntity> subjects) {
+  final output=<SubjectResultEntity>[];
+  final grouped=<String,List<SubjectResultEntity>>{};
+  for(final subject in subjects){final parent=SubjectComponentExamService.parentId(subject.subjectId);if(parent==null){output.add(subject);}else{(grouped[parent]??=[]).add(subject);}}
+  for(final entry in grouped.entries){final items=entry.value;if(SubjectComponentExamService.useInReportCard(items.first.subjectId))output.addAll(items);final total=items.fold<double>(0,(sum,item)=>sum+item.totalMarks);final obtained=items.fold<double>(0,(sum,item)=>sum+item.obtainedMarks);final parentName=SubjectComponentExamService.parentName(items.first.subjectId)??'Subject';final percentage=total==0?0.0:obtained*100/total;output.add(SubjectResultEntity(subjectId:'${entry.key}::total',subjectName:'$parentName Total (${percentage.toStringAsFixed(1)}% - ${_componentGrade(percentage)})',totalMarks:total,obtainedMarks:obtained,isAbsent:items.every((item)=>item.isAbsent),isPassed:items.every((item)=>item.isPassed),remarks:''));}
+  return output;
+}
+String _componentGrade(double value){if(value>=80)return'A+';if(value>=70)return'A';if(value>=60)return'B';if(value>=50)return'C';if(value>=40)return'D';return'F';}
 String _value(String? value) =>
     value == null || value.trim().isEmpty ? 'Not available' : value;
 

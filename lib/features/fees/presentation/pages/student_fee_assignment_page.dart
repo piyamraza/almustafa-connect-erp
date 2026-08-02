@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -983,7 +984,7 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
   }
 
   Future<void> _pickDate() async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: _effectiveFrom,
       firstDate: DateTime(2020),

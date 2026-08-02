@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/usecases/get_students_by_class_and_section.dart';
+import '../../../academic_structure/domain/services/subject_component_exam_service.dart';
 import '../../domain/entities/exam_mark_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
 import '../../domain/usecases/delete_exam_mark.dart';
@@ -20,6 +21,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     required this._getExamMarks,
     required this._saveExamMarks,
     required this._deleteExamMark,
+    required this.componentService,
   })  : super(const ExamMarksInitial()) {
     on<LoadMarksEntry>(_onLoad);
     on<RefreshMarksEntry>(_onRefresh);
@@ -38,6 +40,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   final GetExamMarks _getExamMarks;
   final SaveExamMarks _saveExamMarks;
   final DeleteExamMark _deleteExamMark;
+  final SubjectComponentExamService componentService;
 
   Future<void> _onLoad(
     LoadMarksEntry event,
@@ -65,7 +68,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     emit(current.copyWith(isLoading: true, clearMessages: true));
     try {
       final exams = await _getExams();
-      final setups = await _getSubjectSetupsForExam(current.selectedExamId!);
+      final setups = await componentService.expandSetups(await _getSubjectSetupsForExam(current.selectedExamId!));
       final classId = setups.any((setup) => setup.classId == current.selectedClassId)
           ? current.selectedClassId
           : null;
@@ -121,7 +124,7 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
       clearMessages: true,
     ));
     try {
-      final setups = await _getSubjectSetupsForExam(event.examId);
+      final setups = await componentService.expandSetups(await _getSubjectSetupsForExam(event.examId));
       emit(current.copyWith(
         selectedExamId: event.examId,
         subjectSetups: setups,

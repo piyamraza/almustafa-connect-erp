@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -28,7 +29,7 @@ class _TeacherAttendanceHistoryPageState extends State<TeacherAttendanceHistoryP
   }
 
   Future<void> _pickRange() async {
-    final range = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime.now(), initialDateRange: _range);
+    final range = await showManualDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime.now(), initialDateRange: _range);
     if (range == null) return;
     setState(() => _range = range);
     _load();

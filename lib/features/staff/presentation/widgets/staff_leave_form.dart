@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 
 import '../../domain/entities/staff_entity.dart';
 import '../../domain/entities/staff_leave_entity.dart';
@@ -111,7 +112,7 @@ class _StaffLeaveFormState extends State<StaffLeaveForm> {
   Future<void> _pickStartDate() async {
     final now = DateTime.now();
 
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _startDate ?? now,
       firstDate: DateTime(now.year - 2),
@@ -156,7 +157,7 @@ class _StaffLeaveFormState extends State<StaffLeaveForm> {
       return;
     }
 
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _endDate ?? startDate,
       firstDate: startDate,

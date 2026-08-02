@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:flutter/services.dart';
 
 class StaffFormData {
@@ -131,7 +132,7 @@ class _StaffFormState extends State<StaffForm> {
   Future<void> _pickJoiningDate() async {
     final now = DateTime.now();
 
-    final selectedDate = await showDatePicker(
+    final selectedDate = await showManualDatePicker(
       context: context,
       initialDate: _joiningDate ?? now,
       firstDate: DateTime(1980),

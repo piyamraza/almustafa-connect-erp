@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -145,7 +146,7 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
   }
 
   Future<void> _pickDate(bool assigned) async {
-    final value = await showDatePicker(
+    final value = await showManualDatePicker(
       context: context,
       initialDate: assigned ? _assigned : _due,
       firstDate: DateTime(2020),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -127,7 +128,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await showManualDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2024),

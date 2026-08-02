@@ -31,11 +31,12 @@ class ExamEntity extends Equatable {
     DateTime? examDate,
     this.totalMarks = 0,
     this.passingMarks = 0,
-  })  : status = status ??
-            ((isActive ?? true)
-                ? ExamWorkflowStatus.active
-                : ExamWorkflowStatus.draft),
-        examDate = examDate ?? startDate ?? createdAt;
+  }) : status =
+           status ??
+           ((isActive ?? true)
+               ? ExamWorkflowStatus.active
+               : ExamWorkflowStatus.draft),
+       examDate = examDate ?? startDate ?? createdAt;
 
   final String id;
   final String name;
@@ -70,8 +71,7 @@ class ExamEntity extends Equatable {
   bool get isActive => status == ExamWorkflowStatus.active;
 
   bool get isEditable =>
-      status == ExamWorkflowStatus.draft ||
-      status == ExamWorkflowStatus.active;
+      status == ExamWorkflowStatus.draft || status == ExamWorkflowStatus.active;
 
   ExamEntity copyWith({
     String? id,
@@ -95,12 +95,13 @@ class ExamEntity extends Equatable {
     double? totalMarks,
     double? passingMarks,
   }) {
-    final resolvedStatus = status ??
+    final resolvedStatus =
+        status ??
         (isActive == null
             ? this.status
             : isActive
-                ? ExamWorkflowStatus.active
-                : ExamWorkflowStatus.draft);
+            ? ExamWorkflowStatus.active
+            : ExamWorkflowStatus.draft);
 
     return ExamEntity(
       id: id ?? this.id,
@@ -127,24 +128,24 @@ class ExamEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        type,
-        academicSession,
-        academicYearId,
-        createdAt,
-        updatedAt,
-        startDate,
-        endDate,
-        resultDate,
-        description,
-        status,
-        createdBy,
-        classId,
-        sectionId,
-        subject,
-        examDate,
-        totalMarks,
-        passingMarks,
-      ];
+    id,
+    name,
+    type,
+    academicSession,
+    academicYearId,
+    createdAt,
+    updatedAt,
+    startDate,
+    endDate,
+    resultDate,
+    description,
+    status,
+    createdBy,
+    classId,
+    sectionId,
+    subject,
+    examDate,
+    totalMarks,
+    passingMarks,
+  ];
 }

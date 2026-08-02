@@ -5,6 +5,7 @@ import '../../domain/entities/academic_class_entity.dart';
 import '../../domain/entities/academic_subject_entity.dart';
 import '../../domain/entities/section_entity.dart';
 import '../../domain/repositories/academic_structure_repository.dart';
+import 'subject_components_page.dart';
 
 class ClassSubjectsPage extends StatefulWidget {
   const ClassSubjectsPage({
@@ -424,6 +425,15 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
                                         subject.isActive ? 'Active' : 'Inactive',
                                       ),
                                       visualDensity: VisualDensity.compact,
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => SubjectComponentsPage(subject: subject),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.account_tree_outlined),
+                                      label: const Text('Manage Components'),
                                     ),
                                     IconButton(
                                       tooltip: 'Edit subject',
