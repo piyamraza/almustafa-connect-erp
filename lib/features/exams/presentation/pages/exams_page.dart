@@ -49,7 +49,7 @@ class _ExamsViewState extends State<_ExamsView> {
   }
 
   Future<void> _openAddPage() async {
-    await Navigator.of(context).push<bool>(
+    final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => BlocProvider.value(
           value: context.read<ExamBloc>(),
@@ -57,10 +57,13 @@ class _ExamsViewState extends State<_ExamsView> {
         ),
       ),
     );
+    if (changed == true && mounted) {
+      context.read<ExamBloc>().add(const RefreshExams());
+    }
   }
 
   Future<void> _openEditPage(ExamEntity exam) async {
-    await Navigator.of(context).push<bool>(
+    final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => BlocProvider.value(
           value: context.read<ExamBloc>(),
@@ -68,6 +71,9 @@ class _ExamsViewState extends State<_ExamsView> {
         ),
       ),
     );
+    if (changed == true && mounted) {
+      context.read<ExamBloc>().add(const RefreshExams());
+    }
   }
 
   Future<void> _deleteExam(ExamEntity exam) async {

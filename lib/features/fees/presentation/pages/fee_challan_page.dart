@@ -117,7 +117,10 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Challans')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Fee Challans'),
+      ),
       body: SafeArea(
         child: BlocConsumer<FeeDocumentBloc, FeeDocumentState>(
           listener: (context, state) {
@@ -263,6 +266,45 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
                         ),
                       ),
                     ),
+                    if (_dues.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: Row(
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed:
+                                  busy || _selectedDueIds.length == _dues.length
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _selectedDueIds
+                                          ..clear()
+                                          ..addAll(
+                                            _dues.map((item) => item.id),
+                                          );
+                                      });
+                                    },
+                              icon: const Icon(Icons.check_box_outlined),
+                              label: const Text('Mark All'),
+                            ),
+                            const SizedBox(width: 10),
+                            OutlinedButton.icon(
+                              onPressed: busy || _selectedDueIds.isEmpty
+                                  ? null
+                                  : () {
+                                      setState(_selectedDueIds.clear);
+                                    },
+                              icon: const Icon(Icons.check_box_outline_blank),
+                              label: const Text('Unmark All'),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${_selectedDueIds.length} of ${_dues.length} selected',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
                     Expanded(
                       child: _error != null
                           ? Center(child: Text(_error!))

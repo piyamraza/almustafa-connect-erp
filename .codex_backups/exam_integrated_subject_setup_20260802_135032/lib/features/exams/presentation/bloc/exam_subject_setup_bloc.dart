@@ -7,44 +7,28 @@ import '../../../academic_structure/domain/repositories/academic_structure_repos
 import '../../domain/entities/exam_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
 import '../../domain/repositories/exam_repository.dart';
-import '../../domain/repositories/exam_mark_repository.dart';
-import '../../domain/repositories/exam_subject_setup_repository.dart';
-import '../../domain/usecases/create_exam_subject_setups.dart'
-    as create_usecase;
+import '../../domain/usecases/create_exam_subject_setups.dart' as create_usecase;
 import '../../domain/usecases/delete_exam_subject_setup.dart' as delete_usecase;
 import '../../domain/usecases/get_exam_subject_setups.dart' as get_usecase;
 import '../../domain/usecases/update_exam_subject_setup.dart' as update_usecase;
 import 'exam_subject_setup_event.dart';
 import 'exam_subject_setup_state.dart';
 
-class ExamSubjectSetupBloc
-    extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupState> {
+class ExamSubjectSetupBloc extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupState> {
   ExamSubjectSetupBloc({
-    required get_usecase.GetExamSubjectSetups getSetups,
-    required create_usecase.CreateExamSubjectSetups createSetups,
-    required update_usecase.UpdateExamSubjectSetup updateSetup,
-    required delete_usecase.DeleteExamSubjectSetup deleteSetup,
-    required ExamRepository examRepository,
-    required AcademicStructureRepository academicStructureRepository,
-    required ExamSubjectSetupRepository subjectSetupRepository,
-    required ExamMarkRepository markRepository,
-  }) : _getSetups = getSetups,
-       _createSetups = createSetups,
-       _updateSetup = updateSetup,
-       _deleteSetup = deleteSetup,
-       _examRepository = examRepository,
-       _academicStructureRepository = academicStructureRepository,
-       _subjectSetupRepository = subjectSetupRepository,
-       _markRepository = markRepository,
-       super(const ExamSubjectSetupInitial()) {
+    required this._getSetups,
+    required this._createSetups,
+    required this._updateSetup,
+    required this._deleteSetup,
+    required this._examRepository,
+    required this._academicStructureRepository,
+  })  : super(const ExamSubjectSetupInitial()) {
     on<LoadExamSubjectSetups>(_load);
     on<RefreshExamSubjectSetups>(_refresh);
     on<CreateExamSubjectSetups>(_create);
     on<UpdateExamSubjectSetupEvent>(_update);
     on<DeleteExamSubjectSetupEvent>(_delete);
     on<FilterExamSubjectSetups>(_filter);
-    on<LoadExamConfiguration>(_loadConfiguration);
-    on<SaveExamConfiguration>(_saveConfiguration);
   }
 
   final get_usecase.GetExamSubjectSetups _getSetups;
@@ -53,115 +37,6 @@ class ExamSubjectSetupBloc
   final delete_usecase.DeleteExamSubjectSetup _deleteSetup;
   final ExamRepository _examRepository;
   final AcademicStructureRepository _academicStructureRepository;
-  final ExamSubjectSetupRepository _subjectSetupRepository;
-  final ExamMarkRepository _markRepository;
-
-  Future<void> _loadConfiguration(
-    LoadExamConfiguration event,
-    Emitter<ExamSubjectSetupState> emit,
-  ) async {
-    emit(const ExamConfigurationLoading());
-    try {
-      final examId = event.exam?.id;
-      final responses = await Future.wait<Object>([
-        _academicStructureRepository.getClasses(),
-        _academicStructureRepository.getSections(),
-        _academicStructureRepository.getSubjects(),
-        if (examId != null)
-          _subjectSetupRepository.getSetupsForExam(examId)
-        else
-          Future<List<ExamSubjectSetupEntity>>.value(const []),
-        if (examId != null)
-          _markRepository.getMarksForExam(examId)
-        else
-          Future.value(const []),
-      ]);
-      final setups = responses[3] as List<ExamSubjectSetupEntity>;
-      final marks = responses[4] as List<dynamic>;
-      final protected = <String>{};
-      for (final setup in setups) {
-        if (marks.any(
-          (mark) =>
-              mark.classId == setup.classId &&
-              mark.sectionId == setup.sectionId &&
-              mark.subjectId == setup.subjectId,
-        ))
-          protected.add(setup.uniqueKey);
-      }
-      emit(
-        ExamConfigurationLoaded(
-          classes: (responses[0] as List<AcademicClassEntity>)
-              .where((item) => item.isActive)
-              .toList(growable: false),
-          sections: (responses[1] as List<SectionEntity>)
-              .where((item) => item.isActive)
-              .toList(growable: false),
-          subjects: (responses[2] as List<AcademicSubjectEntity>)
-              .where((item) => item.isActive)
-              .toList(growable: false),
-          existingSetups: setups,
-          protectedSetupKeys: protected,
-        ),
-      );
-    } catch (error) {
-      emit(ExamSubjectSetupError(_message(error)));
-    }
-  }
-
-  Future<void> _saveConfiguration(
-    SaveExamConfiguration event,
-    Emitter<ExamSubjectSetupState> emit,
-  ) async {
-    if (event.setups.isEmpty) {
-      emit(const ExamSubjectSetupError('Select at least one subject.'));
-      return;
-    }
-    emit(const ExamConfigurationLoading());
-    try {
-      final existing = await _subjectSetupRepository.getSetupsForExam(
-        event.exam.id,
-      );
-      final selectedKeys = event.setups.map((item) => item.uniqueKey).toSet();
-      final removed = existing
-          .where(
-            (item) => item.isActive && !selectedKeys.contains(item.uniqueKey),
-          )
-          .toList(growable: false);
-      if (removed.isNotEmpty) {
-        final marks = await _markRepository.getMarksForExam(event.exam.id);
-        final blocked =
-            removed
-                .where(
-                  (setup) => marks.any(
-                    (mark) =>
-                        mark.classId == setup.classId &&
-                        mark.sectionId == setup.sectionId &&
-                        mark.subjectId == setup.subjectId,
-                  ),
-                )
-                .map((item) => item.subjectName)
-                .toSet()
-                .toList()
-              ..sort();
-        if (blocked.isNotEmpty)
-          throw StateError(
-            'Cannot deselect ${blocked.join(', ')} because marks already exist. Remove those marks explicitly first.',
-          );
-      }
-      if (event.isEditing) {
-        await _examRepository.updateExam(event.exam);
-      } else {
-        await _examRepository.createExam(event.exam);
-      }
-      await _subjectSetupRepository.synchronizeExamSetups(
-        examId: event.exam.id,
-        selectedSetups: event.setups,
-      );
-      emit(const ExamConfigurationSaved());
-    } catch (error) {
-      emit(ExamSubjectSetupError(_message(error)));
-    }
-  }
 
   Future<void> _load(
     LoadExamSubjectSetups event,
@@ -401,9 +276,7 @@ class ExamSubjectSetupBloc
             .putIfAbsent(subject.classId, () => [])
             .add(subject.name);
       } else {
-        subjectsBySection
-            .putIfAbsent(subject.sectionId!, () => [])
-            .add(subject.name);
+        subjectsBySection.putIfAbsent(subject.sectionId!, () => []).add(subject.name);
       }
     }
     for (final values in defaultSubjectsByClass.values) {

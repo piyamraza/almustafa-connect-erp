@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'exams_page.dart';
+import 'exam_subject_setup_page.dart';
 import 'marks_entry_page.dart';
 import 'result_summary_page.dart';
 
@@ -13,6 +14,12 @@ class ExaminationDashboardPage extends StatelessWidget {
       title: 'Exams',
       description: 'Create and manage examination schedules.',
       icon: Icons.assignment_outlined,
+      isAvailable: true,
+    ),
+    _ExaminationModule(
+      title: 'Subject Setup',
+      description: 'Configure subjects and marks criteria.',
+      icon: Icons.menu_book_outlined,
       isAvailable: true,
     ),
     _ExaminationModule(
@@ -32,10 +39,7 @@ class ExaminationDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        actions: const [DashboardNavigationButton()],
-        title: const Text('Examination'),
-      ),
+      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Examination')),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
@@ -65,18 +69,21 @@ class ExaminationDashboardPage extends StatelessWidget {
                         module: module,
                         onOpen: module.isAvailable
                             ? () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) {
-                                    if (module.title == 'Exams') {
-                                      return const ExamsPage();
-                                    }
-                                    if (module.title == 'Marks Entry') {
-                                      return const MarksEntryPage();
-                                    }
-                                    return const ResultSummaryPage();
-                                  },
-                                ),
-                              )
+                                  MaterialPageRoute<void>(
+                                    builder: (_) {
+                                      if (module.title == 'Exams') {
+                                        return const ExamsPage();
+                                      }
+                                      if (module.title == 'Subject Setup') {
+                                        return const ExamSubjectSetupPage();
+                                      }
+                                      if (module.title == 'Marks Entry') {
+                                        return const MarksEntryPage();
+                                      }
+                                      return const ResultSummaryPage();
+                                    },
+                                  ),
+                                )
                             : null,
                       );
                     },

@@ -83,7 +83,10 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F7FB),
-    appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Additional Charges Management')),
+    appBar: AppBar(
+      actions: const [DashboardNavigationButton()],
+      title: const Text('Additional Charges Management'),
+    ),
     body: BlocConsumer<AdditionalChargesBloc, AdditionalChargesState>(
       listener: (context, state) {
         if (state is AdditionalChargesLoaded && state.message != null) {
@@ -234,6 +237,7 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
             width: 170,
             child: DropdownButtonFormField<String>(
               initialValue: _status,
+              isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Status',
                 border: OutlineInputBorder(),
@@ -262,6 +266,7 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
     width: 190,
     child: DropdownButtonFormField<T>(
       initialValue: value,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
@@ -269,7 +274,10 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
       items: [
         DropdownMenuItem<T>(value: null, child: const Text('All')),
         ...items.map(
-          (e) => DropdownMenuItem(value: e, child: Text(_label(e.name))),
+          (e) => DropdownMenuItem(
+            value: e,
+            child: Text(_label(e.name), overflow: TextOverflow.ellipsis),
+          ),
         ),
       ],
       onChanged: onChanged,

@@ -44,7 +44,8 @@ class _PublishedResultsViewState extends State<_PublishedResultsView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_title(widget.type)),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           if (widget.type != ResultsViewType.studentResults)
             IconButton(
               tooltip: 'Open result sheet',
@@ -61,9 +62,9 @@ class _PublishedResultsViewState extends State<_PublishedResultsView> {
             ),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context
-                .read<ResultsBloc>()
-                .add(const RefreshPublishedResults()),
+            onPressed: () => context.read<ResultsBloc>().add(
+              const RefreshPublishedResults(),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -71,15 +72,16 @@ class _PublishedResultsViewState extends State<_PublishedResultsView> {
       body: BlocBuilder<ResultsBloc, ResultsState>(
         builder: (context, state) {
           return switch (state) {
-            ResultsInitial() || ResultsLoading() =>
-              const Center(child: CircularProgressIndicator()),
+            ResultsInitial() || ResultsLoading() => const Center(
+              child: CircularProgressIndicator(),
+            ),
             ResultsFailure(:final message) => _FailureView(message: message),
             PublishedResultsLoaded() => _ResultsContent(
-                type: widget.type,
-                data: state,
-                sort: _sort,
-                onSortChanged: (value) => setState(() => _sort = value),
-              ),
+              type: widget.type,
+              data: state,
+              sort: _sort,
+              onSortChanged: (value) => setState(() => _sort = value),
+            ),
           };
         },
       ),
@@ -203,7 +205,9 @@ class _PublishedResultsFiltersState extends State<_PublishedResultsFilters> {
               label: 'Class',
               value: data.selectedClassId,
               items: data.availableClasses
-                  .map((result) => _SelectItem(result.classId, result.className))
+                  .map(
+                    (result) => _SelectItem(result.classId, result.className),
+                  )
                   .toList(growable: false),
               onChanged: (value) => bloc.add(FilterResultsByClass(value)),
             ),
@@ -212,7 +216,10 @@ class _PublishedResultsFiltersState extends State<_PublishedResultsFilters> {
               value: data.selectedSectionId,
               enabled: data.selectedClassId != null,
               items: data.availableSections
-                  .map((result) => _SelectItem(result.sectionId, result.sectionName))
+                  .map(
+                    (result) =>
+                        _SelectItem(result.sectionId, result.sectionName),
+                  )
                   .toList(growable: false),
               onChanged: (value) => bloc.add(FilterResultsBySection(value)),
             ),
@@ -283,9 +290,9 @@ class _ResultListToolbar extends StatelessWidget {
         Expanded(
           child: Text(
             '$count published result${count == 1 ? '' : 's'}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         SizedBox(
@@ -298,10 +305,22 @@ class _ResultListToolbar extends StatelessWidget {
               isDense: true,
             ),
             items: const [
-              DropdownMenuItem(value: ResultSort.rank, child: Text('Overall Rank')),
-              DropdownMenuItem(value: ResultSort.name, child: Text('Student Name')),
-              DropdownMenuItem(value: ResultSort.percentage, child: Text('Percentage')),
-              DropdownMenuItem(value: ResultSort.rollNumber, child: Text('Roll Number')),
+              DropdownMenuItem(
+                value: ResultSort.rank,
+                child: Text('Overall Rank'),
+              ),
+              DropdownMenuItem(
+                value: ResultSort.name,
+                child: Text('Student Name'),
+              ),
+              DropdownMenuItem(
+                value: ResultSort.percentage,
+                child: Text('Percentage'),
+              ),
+              DropdownMenuItem(
+                value: ResultSort.rollNumber,
+                child: Text('Roll Number'),
+              ),
             ],
             onChanged: (value) {
               if (value != null) onSortChanged(value);
@@ -355,7 +374,10 @@ class _DesktopResultsTable extends StatelessWidget {
     const rankWidth = 72.0;
     const statusWidth = 118.0;
     const actionWidth = 66.0;
-    const fixedWidth = rollWidth +
+    const horizontalPadding = 32.0;
+    const fixedWidth =
+        horizontalPadding +
+        rollWidth +
         marksWidth * 2 +
         percentageWidth +
         gradeWidth +
@@ -373,18 +395,29 @@ class _DesktopResultsTable extends StatelessWidget {
             children: [
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 11,
+                ),
                 child: Row(
                   children: [
                     const SizedBox(width: rollWidth, child: _Header('Roll')),
-                    SizedBox(width: studentWidth, child: const _Header('Student')),
+                    SizedBox(
+                      width: studentWidth,
+                      child: const _Header('Student'),
+                    ),
                     const SizedBox(width: marksWidth, child: _Header('Total')),
-                    const SizedBox(width: marksWidth, child: _Header('Obtained')),
+                    const SizedBox(
+                      width: marksWidth,
+                      child: _Header('Obtained'),
+                    ),
                     const SizedBox(width: percentageWidth, child: _Header('%')),
                     const SizedBox(width: gradeWidth, child: _Header('Grade')),
                     const SizedBox(width: rankWidth, child: _Header('Rank')),
-                    const SizedBox(width: statusWidth, child: _Header('Status')),
+                    const SizedBox(
+                      width: statusWidth,
+                      child: _Header('Status'),
+                    ),
                     const SizedBox(width: actionWidth),
                   ],
                 ),
@@ -402,17 +435,38 @@ class _DesktopResultsTable extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          SizedBox(width: rollWidth, child: Text(_roll(result))),
+                          SizedBox(
+                            width: rollWidth,
+                            child: Text(_roll(result)),
+                          ),
                           SizedBox(
                             width: studentWidth,
                             child: _StudentCell(result: result),
                           ),
-                          SizedBox(width: marksWidth, child: Text(_number(result.grandTotalMarks))),
-                          SizedBox(width: marksWidth, child: Text(_number(result.grandObtainedMarks))),
-                          SizedBox(width: percentageWidth, child: Text(_percentage(result.percentage))),
-                          SizedBox(width: gradeWidth, child: Text(result.grade)),
-                          SizedBox(width: rankWidth, child: Text('${result.overallRank}')),
-                          SizedBox(width: statusWidth, child: ResultStatusChip(status: result.status)),
+                          SizedBox(
+                            width: marksWidth,
+                            child: Text(_number(result.grandTotalMarks)),
+                          ),
+                          SizedBox(
+                            width: marksWidth,
+                            child: Text(_number(result.grandObtainedMarks)),
+                          ),
+                          SizedBox(
+                            width: percentageWidth,
+                            child: Text(_percentage(result.percentage)),
+                          ),
+                          SizedBox(
+                            width: gradeWidth,
+                            child: Text(result.grade),
+                          ),
+                          SizedBox(
+                            width: rankWidth,
+                            child: Text('${result.overallRank}'),
+                          ),
+                          SizedBox(
+                            width: statusWidth,
+                            child: ResultStatusChip(status: result.status),
+                          ),
                           SizedBox(
                             width: actionWidth,
                             child: IconButton(
@@ -461,12 +515,24 @@ class _MobileResultCard extends StatelessWidget {
                 spacing: 18,
                 runSpacing: 8,
                 children: [
-                  _Detail(label: 'Total', value: _number(result.grandTotalMarks)),
-                  _Detail(label: 'Obtained', value: _number(result.grandObtainedMarks)),
-                  _Detail(label: 'Percentage', value: _percentage(result.percentage)),
+                  _Detail(
+                    label: 'Total',
+                    value: _number(result.grandTotalMarks),
+                  ),
+                  _Detail(
+                    label: 'Obtained',
+                    value: _number(result.grandObtainedMarks),
+                  ),
+                  _Detail(
+                    label: 'Percentage',
+                    value: _percentage(result.percentage),
+                  ),
                   _Detail(label: 'Grade', value: result.grade),
                   _Detail(label: 'Rank', value: '${result.overallRank}'),
-                  _Detail(label: 'Result', value: result.isPassed ? 'Pass' : 'Fail'),
+                  _Detail(
+                    label: 'Result',
+                    value: result.isPassed ? 'Pass' : 'Fail',
+                  ),
                 ],
               ),
             ],
@@ -647,9 +713,8 @@ class _FailureView extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: () => context
-                  .read<ResultsBloc>()
-                  .add(const LoadPublishedResults()),
+              onPressed: () =>
+                  context.read<ResultsBloc>().add(const LoadPublishedResults()),
               child: const Text('Try Again'),
             ),
           ],
@@ -704,10 +769,10 @@ void _openDetails(BuildContext context, ExamResultEntity result) {
 }
 
 String _title(ResultsViewType type) => switch (type) {
-      ResultsViewType.studentResults => 'Student Results',
-      ResultsViewType.classResults => 'Class Results',
-      ResultsViewType.sectionResults => 'Section Results',
-    };
+  ResultsViewType.studentResults => 'Student Results',
+  ResultsViewType.classResults => 'Class Results',
+  ResultsViewType.sectionResults => 'Section Results',
+};
 
 bool _requiredFiltersAreSelected(
   ResultsViewType type,

@@ -1063,8 +1063,6 @@ Future<void> setupServiceLocator() async {
       deleteSetup: sl<DeleteExamSubjectSetup>(),
       examRepository: sl<ExamRepository>(),
       academicStructureRepository: sl<AcademicStructureRepository>(),
-      subjectSetupRepository: sl<ExamSubjectSetupRepository>(),
-      markRepository: sl<ExamMarkRepository>(),
     ),
   );
 
