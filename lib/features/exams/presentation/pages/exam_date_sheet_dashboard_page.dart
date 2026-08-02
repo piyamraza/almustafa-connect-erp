@@ -28,7 +28,10 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Exam Date Sheets')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Exam Date Sheets'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -169,28 +172,23 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = values[index];
+                      Future<void> openDateSheet() async {
+                        final saved = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute<bool>(
+                            builder: (_) =>
+                                ManualExamDateSheetBuilderPage(existing: item),
+                          ),
+                        );
+                        if (saved == true && context.mounted) {
+                          context.read<ExamDateSheetBloc>().add(
+                            const LoadExamDateSheets(),
+                          );
+                        }
+                      }
+
                       return Card(
                         child: ListTile(
-                          onTap:
-                              item.creationMode ==
-                                  ExamDateSheetCreationMode.manual
-                              ? () async {
-                                  final saved = await Navigator.of(context)
-                                      .push<bool>(
-                                        MaterialPageRoute<bool>(
-                                          builder: (_) =>
-                                              ManualExamDateSheetBuilderPage(
-                                                existing: item,
-                                              ),
-                                        ),
-                                      );
-                                  if (saved == true && context.mounted) {
-                                    context.read<ExamDateSheetBloc>().add(
-                                      const LoadExamDateSheets(),
-                                    );
-                                  }
-                                }
-                              : null,
+                          onTap: openDateSheet,
                           leading: const CircleAvatar(
                             child: Icon(Icons.calendar_month_outlined),
                           ),
@@ -203,6 +201,18 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Chip(label: Text(item.status.name.toUpperCase())),
+                              IconButton(
+                                tooltip:
+                                    item.status == ExamDateSheetStatus.draft
+                                    ? 'Open and edit'
+                                    : 'Open date sheet',
+                                onPressed: openDateSheet,
+                                icon: Icon(
+                                  item.status == ExamDateSheetStatus.draft
+                                      ? Icons.edit_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                              ),
                               IconButton(
                                 tooltip: 'Delete',
                                 onPressed: () => context

@@ -3,6 +3,8 @@ import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_calendar/domain/entities/academic_calendar_event_entity.dart';
+import '../../../academic_calendar/domain/repositories/academic_calendar_repository.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
@@ -29,12 +31,18 @@ class ManualExamDateSheetBuilderPage extends StatefulWidget {
 class _ManualExamDateSheetBuilderPageState
     extends State<ManualExamDateSheetBuilderPage> {
   final _titleController = TextEditingController();
+  final _tableHeaderController = ScrollController();
+  final _tableBodyController = ScrollController();
+  bool _syncingTableScroll = false;
   List<ExamEntity> _exams = const [];
   List<AcademicClassEntity> _classes = const [];
   List<SectionEntity> _sections = const [];
   List<AcademicSubjectEntity> _subjects = const [];
   List<TeacherAssignmentEntity> _assignments = const [];
   List<ExamDateSheetPaperEntity> _papers = const [];
+  List<DateTime> _calendarHolidays = const [];
+  TimeOfDay _defaultStartTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _defaultEndTime = const TimeOfDay(hour: 11, minute: 0);
 
   String? _examId;
   bool _loading = true;
@@ -45,11 +53,17 @@ class _ManualExamDateSheetBuilderPageState
   @override
   void initState() {
     super.initState();
+    _tableHeaderController.addListener(_syncHeaderToBody);
+    _tableBodyController.addListener(_syncBodyToHeader);
     final existing = widget.existing;
     if (existing != null) {
       _titleController.text = existing.title;
       _examId = existing.examId;
       _papers = List<ExamDateSheetPaperEntity>.of(existing.papers);
+      if (_papers.isNotEmpty) {
+        _defaultStartTime = _toTime(_papers.first.startMinutes);
+        _defaultEndTime = _toTime(_papers.first.endMinutes);
+      }
     }
     _loadReferences();
   }
@@ -57,7 +71,22 @@ class _ManualExamDateSheetBuilderPageState
   @override
   void dispose() {
     _titleController.dispose();
+    _tableHeaderController.dispose();
+    _tableBodyController.dispose();
     super.dispose();
+  }
+
+  void _syncHeaderToBody() =>
+      _syncHorizontalScroll(_tableHeaderController, _tableBodyController);
+
+  void _syncBodyToHeader() =>
+      _syncHorizontalScroll(_tableBodyController, _tableHeaderController);
+
+  void _syncHorizontalScroll(ScrollController source, ScrollController target) {
+    if (_syncingTableScroll || !source.hasClients || !target.hasClients) return;
+    _syncingTableScroll = true;
+    target.jumpTo(source.offset.clamp(0, target.position.maxScrollExtent));
+    _syncingTableScroll = false;
   }
 
   Future<void> _loadReferences() async {
@@ -90,17 +119,97 @@ class _ManualExamDateSheetBuilderPageState
               .where((item) => item.isActive)
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
+      _examId ??= exams.isEmpty ? null : exams.first.id;
+      final selectedExam = exams
+          .where((exam) => exam.id == _examId)
+          .firstOrNull;
+      final calendarHolidays = selectedExam == null
+          ? const <DateTime>[]
+          : await _loadCalendarHolidays(selectedExam);
 
+      if (!mounted) return;
       setState(() {
         _exams = exams;
         _classes = classes;
         _sections = sections;
         _subjects = subjects;
         _assignments = values[4] as List<TeacherAssignmentEntity>;
-        _examId ??= exams.isEmpty ? null : exams.first.id;
+        _calendarHolidays = calendarHolidays;
+        if (!_isReadOnly) {
+          _papers = _papers
+              .where(
+                (paper) => !calendarHolidays.any(
+                  (holiday) => _sameDate(holiday, paper.examDate),
+                ),
+              )
+              .toList();
+        }
         if (_titleController.text.trim().isEmpty && _selectedExam != null) {
           _titleController.text = '${_selectedExam!.name} Date Sheet';
         }
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = _message(error);
+      });
+    }
+  }
+
+  Future<List<DateTime>> _loadCalendarHolidays(ExamEntity exam) async {
+    final first = exam.startDate ?? exam.examDate;
+    final last = exam.endDate ?? exam.examDate;
+    final events = await sl<AcademicCalendarRepository>().getEvents(
+      academicSession: exam.academicSession,
+      startDate: first,
+      endDate: last,
+      isActive: true,
+    );
+    final dates = <DateTime>[];
+    for (final event in events) {
+      final blocksStudents =
+          event.audience == AcademicCalendarAudience.wholeSchool ||
+          event.audience == AcademicCalendarAudience.students ||
+          event.audience == AcademicCalendarAudience.selectedClasses;
+      final isHoliday =
+          event.type == AcademicCalendarEventType.holiday ||
+          event.type == AcademicCalendarEventType.vacation;
+      if (!blocksStudents || !isHoliday) continue;
+      var date = DateTime(
+        event.startDate.year,
+        event.startDate.month,
+        event.startDate.day,
+      );
+      final end = DateTime(
+        event.endDate.year,
+        event.endDate.month,
+        event.endDate.day,
+      );
+      while (!date.isAfter(end)) {
+        if (!date.isBefore(first) && !date.isAfter(last)) dates.add(date);
+        date = date.add(const Duration(days: 1));
+      }
+    }
+    dates.sort();
+    return dates;
+  }
+
+  Future<void> _changeExam(String? examId) async {
+    if (examId == null) return;
+    final exam = _exams.where((item) => item.id == examId).firstOrNull;
+    if (exam == null) return;
+    setState(() => _loading = true);
+    try {
+      final holidays = await _loadCalendarHolidays(exam);
+      if (!mounted) return;
+      setState(() {
+        _examId = examId;
+        _papers = const [];
+        _calendarHolidays = holidays;
+        _titleController.text = '${exam.name} Date Sheet';
+        _validationResult = null;
         _loading = false;
       });
     } catch (error) {
@@ -122,49 +231,274 @@ class _ManualExamDateSheetBuilderPageState
     return null;
   }
 
-  Future<void> _addPaper([ExamDateSheetPaperEntity? existing]) async {
+  List<_ManualPaperRow> get _paperRows {
     final exam = _selectedExam;
-    if (exam == null) {
-      _show('Select an exam first.');
-      return;
+    if (exam == null) return const [];
+    final rows = <_ManualPaperRow>[];
+    for (final academicClass in _classes) {
+      final classSections = _sections
+          .where((section) => section.classId == academicClass.id)
+          .toList();
+      for (final section in classSections) {
+        final byName = <String, AcademicSubjectEntity>{};
+        for (final subject in _subjects) {
+          if (subject.classId == academicClass.id &&
+              subject.sectionId == null) {
+            byName[_normalise(subject.name)] = subject;
+          }
+        }
+        for (final subject in _subjects) {
+          if (subject.classId == academicClass.id &&
+              subject.sectionId == section.id) {
+            byName[_normalise(subject.name)] = subject;
+          }
+        }
+        for (final subject in byName.values) {
+          final assignment = _findAssignment(
+            exam: exam,
+            academicClass: academicClass,
+            section: section,
+            subject: subject,
+          );
+          if (assignment != null) {
+            rows.add(
+              _ManualPaperRow(
+                academicClass: academicClass,
+                section: section,
+                subject: subject,
+                assignment: assignment,
+              ),
+            );
+          }
+        }
+      }
     }
-
-    final result = await showDialog<ExamDateSheetPaperEntity>(
-      context: context,
-      builder: (_) => _PaperEditorDialog(
-        exam: exam,
-        classes: _classes,
-        sections: _sections,
-        subjects: _subjects,
-        assignments: _assignments,
-        existing: existing,
-      ),
-    );
-
-    if (!mounted || result == null) return;
-
-    final candidate = _papers.where((item) => item.id != existing?.id).toList()
-      ..add(result);
-
-    final conflict = _validatePapers(candidate, exam);
-    if (conflict != null) {
-      _show(conflict);
-      return;
-    }
-
-    candidate.sort((a, b) {
-      final date = a.examDate.compareTo(b.examDate);
-      if (date != 0) return date;
-      final time = a.startMinutes.compareTo(b.startMinutes);
-      if (time != 0) return time;
-      return a.className.compareTo(b.className);
+    rows.sort((first, second) {
+      final classResult = first.academicClass.name.compareTo(
+        second.academicClass.name,
+      );
+      if (classResult != 0) return classResult;
+      final sectionResult = first.section.name.compareTo(second.section.name);
+      if (sectionResult != 0) return sectionResult;
+      return first.subject.name.compareTo(second.subject.name);
     });
+    return rows;
+  }
 
+  TeacherAssignmentEntity? _findAssignment({
+    required ExamEntity exam,
+    required AcademicClassEntity academicClass,
+    required SectionEntity section,
+    required AcademicSubjectEntity subject,
+  }) {
+    for (final assignment in _assignments) {
+      final classMatches =
+          assignment.classId == academicClass.id ||
+          _normalise(assignment.classId) == _normalise(academicClass.name);
+      final sectionMatches =
+          assignment.sectionId == section.id ||
+          _normalise(assignment.sectionId) == _normalise(section.name);
+      if (classMatches &&
+          sectionMatches &&
+          _normalise(assignment.subject) == _normalise(subject.name) &&
+          _normalise(assignment.academicSession) ==
+              _normalise(exam.academicSession)) {
+        return assignment;
+      }
+    }
+    return null;
+  }
+
+  List<_ManualDateSheetColumn> get _matrixColumns {
+    final values = <String, _ManualDateSheetColumn>{};
+    for (final row in _paperRows) {
+      final key = '${row.academicClass.id}|${row.section.id}';
+      values[key] = _ManualDateSheetColumn(
+        key: key,
+        academicClass: row.academicClass,
+        section: row.section,
+      );
+    }
+    final columns = values.values.toList()
+      ..sort((first, second) {
+        final classResult = first.academicClass.name.compareTo(
+          second.academicClass.name,
+        );
+        return classResult != 0
+            ? classResult
+            : first.section.name.compareTo(second.section.name);
+      });
+    return columns;
+  }
+
+  List<DateTime> get _matrixDates {
+    final exam = _selectedExam;
+    if (exam == null) return const [];
+    final first = exam.startDate ?? exam.examDate;
+    final last = exam.endDate ?? exam.examDate;
+    final dates = <DateTime>[];
+    var date = DateTime(first.year, first.month, first.day);
+    final end = DateTime(last.year, last.month, last.day);
+    while (!date.isAfter(end)) {
+      if (!_calendarHolidays.any((holiday) => _sameDate(holiday, date))) {
+        dates.add(date);
+      }
+      date = date.add(const Duration(days: 1));
+    }
+    return dates;
+  }
+
+  List<_ManualPaperRow> _subjectsForColumn(_ManualDateSheetColumn column) =>
+      _paperRows
+          .where(
+            (row) =>
+                row.academicClass.id == column.academicClass.id &&
+                row.section.id == column.section.id,
+          )
+          .toList();
+
+  ExamDateSheetPaperEntity? _paperAt(
+    DateTime date,
+    _ManualDateSheetColumn column,
+  ) {
+    for (final paper in _papers) {
+      if (paper.classId == column.academicClass.id &&
+          paper.sectionId == column.section.id &&
+          _sameDate(paper.examDate, date)) {
+        return paper;
+      }
+    }
+    return null;
+  }
+
+  Set<String> _selectedSubjectIds(_ManualDateSheetColumn column) => _papers
+      .where(
+        (paper) =>
+            paper.classId == column.academicClass.id &&
+            paper.sectionId == column.section.id,
+      )
+      .map((paper) => paper.subjectId)
+      .toSet();
+
+  void _selectSubjectForCell(
+    DateTime date,
+    _ManualDateSheetColumn column,
+    String subjectId,
+  ) {
+    if (_isReadOnly) return;
+    final existing = _paperAt(date, column);
+    if (subjectId.isEmpty) {
+      if (existing == null) return;
+      setState(() {
+        _papers = _papers.where((paper) => paper.id != existing.id).toList();
+        _validationResult = null;
+      });
+      return;
+    }
+
+    final row = _subjectsForColumn(
+      column,
+    ).where((item) => item.subject.id == subjectId).firstOrNull;
+    final exam = _selectedExam;
+    if (row == null || exam == null) return;
+    final paper = ExamDateSheetPaperEntity(
+      id: existing?.id ?? sl<ExamDateSheetRepository>().generatePaperId(),
+      classId: row.academicClass.id,
+      className: row.academicClass.name,
+      sectionId: row.section.id,
+      sectionName: row.section.name,
+      subjectId: row.subject.id,
+      subjectName: row.subject.name,
+      teacherId: row.assignment.teacherId,
+      teacherName: row.assignment.teacherName,
+      examDate: date,
+      startMinutes: existing?.startMinutes ?? _minutes(_defaultStartTime),
+      endMinutes: existing?.endMinutes ?? _minutes(_defaultEndTime),
+      totalMarks: existing?.totalMarks ?? exam.totalMarks,
+      passingMarks: existing?.passingMarks ?? exam.passingMarks,
+      instructions: existing?.instructions ?? '',
+    );
     setState(() {
-      _papers = candidate;
+      _papers = [..._papers.where((item) => item.id != existing?.id), paper];
       _validationResult = null;
     });
   }
+
+  Future<void> _pickDefaultTime(bool start) async {
+    final value = await showTimePicker(
+      context: context,
+      initialTime: start ? _defaultStartTime : _defaultEndTime,
+    );
+    if (value == null || !mounted) return;
+    final newStart = start ? value : _defaultStartTime;
+    final newEnd = start ? _defaultEndTime : value;
+    if (_minutes(newEnd) <= _minutes(newStart)) {
+      _show('End time must be after start time.');
+      return;
+    }
+    setState(() {
+      _defaultStartTime = newStart;
+      _defaultEndTime = newEnd;
+      _papers = _papers
+          .map(
+            (paper) => _copyPaper(
+              paper,
+              startMinutes: _minutes(newStart),
+              endMinutes: _minutes(newEnd),
+            ),
+          )
+          .toList();
+      _validationResult = null;
+    });
+  }
+
+  Future<void> _editPaperTime(ExamDateSheetPaperEntity paper) async {
+    final result = await showDialog<(TimeOfDay, TimeOfDay)>(
+      context: context,
+      builder: (_) => _PaperTimeDialog(
+        start: _toTime(paper.startMinutes),
+        end: _toTime(paper.endMinutes),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _papers = _papers
+          .map(
+            (item) => item.id == paper.id
+                ? _copyPaper(
+                    item,
+                    startMinutes: _minutes(result.$1),
+                    endMinutes: _minutes(result.$2),
+                  )
+                : item,
+          )
+          .toList();
+      _validationResult = null;
+    });
+  }
+
+  ExamDateSheetPaperEntity _copyPaper(
+    ExamDateSheetPaperEntity paper, {
+    DateTime? examDate,
+    int? startMinutes,
+    int? endMinutes,
+  }) => ExamDateSheetPaperEntity(
+    id: paper.id,
+    classId: paper.classId,
+    className: paper.className,
+    sectionId: paper.sectionId,
+    sectionName: paper.sectionName,
+    subjectId: paper.subjectId,
+    subjectName: paper.subjectName,
+    teacherId: paper.teacherId,
+    teacherName: paper.teacherName,
+    examDate: examDate ?? paper.examDate,
+    startMinutes: startMinutes ?? paper.startMinutes,
+    endMinutes: endMinutes ?? paper.endMinutes,
+    totalMarks: paper.totalMarks,
+    passingMarks: paper.passingMarks,
+    instructions: paper.instructions,
+  );
 
   String? _validatePapers(
     List<ExamDateSheetPaperEntity> papers,
@@ -287,7 +621,8 @@ class _ManualExamDateSheetBuilderPageState
           examName: exam.name,
           academicSession: exam.academicSession,
           title: _titleController.text.trim(),
-          creationMode: ExamDateSheetCreationMode.manual,
+          creationMode:
+              existing?.creationMode ?? ExamDateSheetCreationMode.manual,
           status: existing?.status ?? ExamDateSheetStatus.draft,
           papers: _papers,
           createdAt: existing?.createdAt ?? now,
@@ -306,6 +641,77 @@ class _ManualExamDateSheetBuilderPageState
     }
   }
 
+  Future<void> _showOutputPreview() async {
+    final dates = _papers.map((paper) => paper.examDate).toSet().toList()
+      ..sort();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          _titleController.text.trim().isEmpty
+              ? 'Date Sheet Preview'
+              : _titleController.text.trim(),
+        ),
+        content: SizedBox(
+          width: 1150,
+          height: 570,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              child: DataTable(
+                columnSpacing: 18,
+                headingRowHeight: 42,
+                dataRowMinHeight: 46,
+                dataRowMaxHeight: 58,
+                border: TableBorder.all(color: Theme.of(context).dividerColor),
+                headingRowColor: WidgetStatePropertyAll(
+                  Theme.of(context).colorScheme.primaryContainer,
+                ),
+                columns: [
+                  const DataColumn(label: Text('Date')),
+                  for (final column in _matrixColumns)
+                    DataColumn(
+                      label: SizedBox(
+                        width: 125,
+                        child: Text(
+                          'Class ${column.academicClass.name} - ${column.section.name}',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+                rows: [
+                  for (final date in dates)
+                    DataRow(
+                      cells: [
+                        DataCell(Text('${_date(date)}\n${_day(date)}')),
+                        for (final column in _matrixColumns)
+                          DataCell(
+                            SizedBox(
+                              width: 125,
+                              child: Text(
+                                _paperAt(date, column)?.subjectName ?? '-',
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _show(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -321,7 +727,18 @@ class _ManualExamDateSheetBuilderPageState
               ? 'Manual Date Sheet Builder'
               : 'Edit Manual Date Sheet',
         ),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: OutlinedButton.icon(
+              onPressed: _loading || _papers.isEmpty
+                  ? null
+                  : _showOutputPreview,
+              icon: const Icon(Icons.preview_outlined),
+              label: const Text('Preview'),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
@@ -331,13 +748,6 @@ class _ManualExamDateSheetBuilderPageState
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _loading || _saving || _isReadOnly
-            ? null
-            : () => _addPaper(),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Paper'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -395,17 +805,7 @@ class _ManualExamDateSheetBuilderPageState
                                   .toList(),
                               onChanged: widget.existing != null
                                   ? null
-                                  : (value) {
-                                      setState(() {
-                                        _examId = value;
-                                        _papers = const [];
-                                        final exam = _selectedExam;
-                                        if (exam != null) {
-                                          _titleController.text =
-                                              '${exam.name} Date Sheet';
-                                        }
-                                      });
-                                    },
+                                  : _changeExam,
                             ),
                           ),
                           SizedBox(
@@ -430,6 +830,34 @@ class _ManualExamDateSheetBuilderPageState
                                 '${_date(_selectedExam!.endDate ?? _selectedExam!.examDate)}',
                               ),
                             ),
+                          if (_calendarHolidays.isNotEmpty)
+                            Chip(
+                              avatar: const Icon(
+                                Icons.event_busy_outlined,
+                                size: 18,
+                              ),
+                              label: Text(
+                                '${_calendarHolidays.length} calendar holiday date(s) excluded',
+                              ),
+                            ),
+                          OutlinedButton.icon(
+                            onPressed: _isReadOnly
+                                ? null
+                                : () => _pickDefaultTime(true),
+                            icon: const Icon(Icons.schedule_outlined),
+                            label: Text(
+                              'Default Start: ${_defaultStartTime.format(context)}',
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isReadOnly
+                                ? null
+                                : () => _pickDefaultTime(false),
+                            icon: const Icon(Icons.schedule_outlined),
+                            label: Text(
+                              'Default End: ${_defaultEndTime.format(context)}',
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -443,83 +871,41 @@ class _ManualExamDateSheetBuilderPageState
                   ),
                   const SizedBox(height: 14),
                   Expanded(
-                    child: _papers.isEmpty
+                    child: _matrixColumns.isEmpty
                         ? const Center(
-                            child: Text('No papers added. Click "Add Paper".'),
+                            child: Text(
+                              'No assigned subjects found for this exam session.',
+                            ),
                           )
                         : Card(
                             clipBehavior: Clip.antiAlias,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: SingleChildScrollView(
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('Date')),
-                                    DataColumn(label: Text('Day')),
-                                    DataColumn(label: Text('Class')),
-                                    DataColumn(label: Text('Section')),
-                                    DataColumn(label: Text('Subject')),
-                                    DataColumn(label: Text('Teacher')),
-                                    DataColumn(label: Text('Time')),
-                                    DataColumn(label: Text('Marks')),
-                                    DataColumn(label: Text('Actions')),
-                                  ],
-                                  rows: [
-                                    for (final paper in _papers)
-                                      DataRow(
-                                        cells: [
-                                          DataCell(Text(_date(paper.examDate))),
-                                          DataCell(Text(_day(paper.examDate))),
-                                          DataCell(Text(paper.className)),
-                                          DataCell(Text(paper.sectionName)),
-                                          DataCell(Text(paper.subjectName)),
-                                          DataCell(Text(paper.teacherName)),
-                                          DataCell(
-                                            Text(
-                                              '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              '${paper.totalMarks.toStringAsFixed(0)} / ${paper.passingMarks.toStringAsFixed(0)}',
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  tooltip: 'Edit',
-                                                  onPressed: () =>
-                                                      _addPaper(paper),
-                                                  icon: const Icon(
-                                                    Icons.edit_outlined,
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'Delete',
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _papers = _papers
-                                                          .where(
-                                                            (item) =>
-                                                                item.id !=
-                                                                paper.id,
-                                                          )
-                                                          .toList();
-                                                    });
-                                                  },
-                                                  icon: const Icon(
-                                                    Icons.delete_outline,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 46,
+                                  child: SingleChildScrollView(
+                                    controller: _tableHeaderController,
+                                    scrollDirection: Axis.horizontal,
+                                    child: _buildMatrixHeader(),
+                                  ),
                                 ),
-                              ),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    controller: _tableBodyController,
+                                    scrollDirection: Axis.horizontal,
+                                    child: SizedBox(
+                                      width: _matrixTableWidth,
+                                      child: ListView.builder(
+                                        itemCount: _matrixDates.length,
+                                        itemBuilder: (context, index) =>
+                                            _buildMatrixBodyRow(
+                                              _matrixDates[index],
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                   ),
@@ -529,10 +915,157 @@ class _ManualExamDateSheetBuilderPageState
     );
   }
 
+  static const double _dateColumnWidth = 120;
+  static const double _classColumnWidth = 168;
+  double get _matrixTableWidth =>
+      _dateColumnWidth + _matrixColumns.length * _classColumnWidth;
+
+  Widget _buildMatrixHeader() => Container(
+    height: 46,
+    width: _matrixTableWidth,
+    color: Theme.of(context).colorScheme.primaryContainer,
+    child: Row(
+      children: [
+        _matrixBox(
+          width: _dateColumnWidth,
+          child: const Text(
+            'Date',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        for (final column in _matrixColumns)
+          _matrixBox(
+            width: _classColumnWidth,
+            child: Text(
+              'Class ${column.academicClass.name} - ${column.section.name}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  Widget _buildMatrixBodyRow(DateTime date) => SizedBox(
+    height: 62,
+    child: Row(
+      children: [
+        _matrixBox(
+          width: _dateColumnWidth,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _date(date),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(_day(date), style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+        for (final column in _matrixColumns)
+          _matrixBox(
+            width: _classColumnWidth,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _buildMatrixCell(date, column),
+          ),
+      ],
+    ),
+  );
+
+  Widget _matrixBox({
+    required double width,
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(horizontal: 12),
+  }) => Container(
+    width: width,
+    height: double.infinity,
+    padding: padding,
+    alignment: Alignment.centerLeft,
+    decoration: BoxDecoration(
+      border: Border(
+        right: BorderSide(color: Theme.of(context).dividerColor),
+        bottom: BorderSide(color: Theme.of(context).dividerColor),
+      ),
+    ),
+    child: child,
+  );
+
+  Widget _buildMatrixCell(DateTime date, _ManualDateSheetColumn column) {
+    final paper = _paperAt(date, column);
+    final selectedIds = _selectedSubjectIds(column);
+    final options = _subjectsForColumn(column)
+        .where(
+          (row) =>
+              row.subject.id == paper?.subjectId ||
+              !selectedIds.contains(row.subject.id),
+        )
+        .toList();
+    return SizedBox(
+      width: _classColumnWidth - 16,
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: paper?.subjectId ?? '',
+                isExpanded: true,
+                itemHeight: 54,
+                items: [
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('Select Subject'),
+                  ),
+                  for (final row in options)
+                    DropdownMenuItem(
+                      value: row.subject.id,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row.subject.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            row.assignment.teacherName,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+                onChanged: _isReadOnly
+                    ? null
+                    : (value) =>
+                          _selectSubjectForCell(date, column, value ?? ''),
+              ),
+            ),
+          ),
+          if (paper != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip:
+                  '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}\nChange paper time',
+              onPressed: _isReadOnly ? null : () => _editPaperTime(paper),
+              icon: const Icon(Icons.schedule_outlined, size: 19),
+            ),
+        ],
+      ),
+    );
+  }
+
   static String _date(DateTime value) =>
       '${value.day.toString().padLeft(2, '0')}/'
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
+
+  static bool _sameDate(DateTime first, DateTime second) =>
+      first.year == second.year &&
+      first.month == second.month &&
+      first.day == second.day;
 
   static String _day(DateTime value) => switch (value.weekday) {
     DateTime.monday => 'Monday',
@@ -553,10 +1086,110 @@ class _ManualExamDateSheetBuilderPageState
     return '$display:${minute.toString().padLeft(2, '0')} $suffix';
   }
 
+  static int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
+
+  static TimeOfDay _toTime(int minutes) =>
+      TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+
+  static String _normalise(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
   String _message(Object error) => error
       .toString()
       .replaceFirst('StateError: ', '')
       .replaceFirst('Invalid argument(s): ', '');
+}
+
+class _ManualPaperRow {
+  const _ManualPaperRow({
+    required this.academicClass,
+    required this.section,
+    required this.subject,
+    required this.assignment,
+  });
+
+  final AcademicClassEntity academicClass;
+  final SectionEntity section;
+  final AcademicSubjectEntity subject;
+  final TeacherAssignmentEntity assignment;
+}
+
+class _ManualDateSheetColumn {
+  const _ManualDateSheetColumn({
+    required this.key,
+    required this.academicClass,
+    required this.section,
+  });
+
+  final String key;
+  final AcademicClassEntity academicClass;
+  final SectionEntity section;
+}
+
+class _PaperTimeDialog extends StatefulWidget {
+  const _PaperTimeDialog({required this.start, required this.end});
+
+  final TimeOfDay start;
+  final TimeOfDay end;
+
+  @override
+  State<_PaperTimeDialog> createState() => _PaperTimeDialogState();
+}
+
+class _PaperTimeDialogState extends State<_PaperTimeDialog> {
+  late TimeOfDay _start = widget.start;
+  late TimeOfDay _end = widget.end;
+
+  Future<void> _pick(bool start) async {
+    final value = await showTimePicker(
+      context: context,
+      initialTime: start ? _start : _end,
+    );
+    if (value == null) return;
+    setState(() => start ? _start = value : _end = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final valid =
+        (_end.hour * 60 + _end.minute) > (_start.hour * 60 + _start.minute);
+    return AlertDialog(
+      title: const Text('Change Paper Time'),
+      content: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => _pick(true),
+            icon: const Icon(Icons.schedule_outlined),
+            label: Text('Start: ${_start.format(context)}'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => _pick(false),
+            icon: const Icon(Icons.schedule_outlined),
+            label: Text('End: ${_end.format(context)}'),
+          ),
+          if (!valid)
+            Text(
+              'End time must be after start time.',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: valid
+              ? () => Navigator.pop(context, (_start, _end))
+              : null,
+          child: const Text('Apply'),
+        ),
+      ],
+    );
+  }
 }
 
 class _ValidationPanel extends StatelessWidget {
@@ -665,7 +1298,7 @@ class _PaperEditorDialog extends StatefulWidget {
     required this.sections,
     required this.subjects,
     required this.assignments,
-    this.existing,
+    required this.existing,
   });
 
   final ExamEntity exam;

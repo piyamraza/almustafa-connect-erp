@@ -185,7 +185,9 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -193,12 +195,12 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Marks Entry'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => context.read<ExamMarksBloc>().add(
-                  const RefreshMarksEntry(),
-                ),
+            onPressed: () =>
+                context.read<ExamMarksBloc>().add(const RefreshMarksEntry()),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -216,9 +218,8 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
           if (state is ExamMarksFailure) {
             return _FailureView(
               message: state.message,
-              onRetry: () => context.read<ExamMarksBloc>().add(
-                    const LoadMarksEntry(),
-                  ),
+              onRetry: () =>
+                  context.read<ExamMarksBloc>().add(const LoadMarksEntry()),
             );
           }
 
@@ -235,15 +236,16 @@ class _MarksEntryViewState extends State<_MarksEntryView> {
                   _SearchField(
                     controller: _searchController,
                     enabled: data.selectedSubjectSetup != null,
-                    onChanged: (query) => context
-                        .read<ExamMarksBloc>()
-                        .add(SearchMarksStudents(query)),
+                    onChanged: (query) => context.read<ExamMarksBloc>().add(
+                      SearchMarksStudents(query),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Expanded(child: _buildContent(data)),
                   const SizedBox(height: 12),
                   _SaveBar(
-                    enabled: data.selectedSubjectSetup != null &&
+                    enabled:
+                        data.selectedSubjectSetup != null &&
                         data.students.isNotEmpty &&
                         !data.isLoading &&
                         !data.isSaving,
@@ -306,7 +308,10 @@ class _SelectionPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Select Marks Entry', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Select Marks Entry',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 12,
@@ -316,16 +321,20 @@ class _SelectionPanel extends StatelessWidget {
                   label: 'Exam',
                   value: data.selectedExamId,
                   items: data.availableExams
-                      .map((exam) => _SelectItem(
-                            id: exam.id,
-                            label: '${exam.name} (${exam.academicSession})',
-                          ))
+                      .map(
+                        (exam) => _SelectItem(
+                          id: exam.id,
+                          label: '${exam.name} (${exam.academicSession})',
+                        ),
+                      )
                       .toList(growable: false),
                   onChanged: data.isLoading
                       ? null
                       : (value) {
                           if (value != null) {
-                            context.read<ExamMarksBloc>().add(SelectMarksExam(value));
+                            context.read<ExamMarksBloc>().add(
+                              SelectMarksExam(value),
+                            );
                           }
                         },
                 ),
@@ -333,16 +342,20 @@ class _SelectionPanel extends StatelessWidget {
                   label: 'Class',
                   value: data.selectedClassId,
                   items: data.availableClasses
-                      .map((setup) => _SelectItem(
-                            id: setup.classId,
-                            label: setup.className,
-                          ))
+                      .map(
+                        (setup) => _SelectItem(
+                          id: setup.classId,
+                          label: setup.className,
+                        ),
+                      )
                       .toList(growable: false),
                   onChanged: data.selectedExamId == null || data.isLoading
                       ? null
                       : (value) {
                           if (value != null) {
-                            context.read<ExamMarksBloc>().add(SelectMarksClass(value));
+                            context.read<ExamMarksBloc>().add(
+                              SelectMarksClass(value),
+                            );
                           }
                         },
                 ),
@@ -350,16 +363,20 @@ class _SelectionPanel extends StatelessWidget {
                   label: 'Section',
                   value: data.selectedSectionId,
                   items: data.availableSections
-                      .map((setup) => _SelectItem(
-                            id: setup.sectionId,
-                            label: setup.sectionName,
-                          ))
+                      .map(
+                        (setup) => _SelectItem(
+                          id: setup.sectionId,
+                          label: setup.sectionName,
+                        ),
+                      )
                       .toList(growable: false),
                   onChanged: data.selectedClassId == null || data.isLoading
                       ? null
                       : (value) {
                           if (value != null) {
-                            context.read<ExamMarksBloc>().add(SelectMarksSection(value));
+                            context.read<ExamMarksBloc>().add(
+                              SelectMarksSection(value),
+                            );
                           }
                         },
                 ),
@@ -367,16 +384,21 @@ class _SelectionPanel extends StatelessWidget {
                   label: 'Subject',
                   value: data.selectedSubjectSetupId,
                   items: data.availableSubjects
-                      .map((setup) => _SelectItem(
-                            id: setup.id,
-                            label: '${setup.subjectName} (Total ${_formatNumber(setup.totalMarks)})',
-                          ))
+                      .map(
+                        (setup) => _SelectItem(
+                          id: setup.id,
+                          label:
+                              '${setup.subjectName} (Total ${_formatNumber(setup.totalMarks)})',
+                        ),
+                      )
                       .toList(growable: false),
                   onChanged: data.selectedSectionId == null || data.isLoading
                       ? null
                       : (value) {
                           if (value != null) {
-                            context.read<ExamMarksBloc>().add(SelectMarksSubject(value));
+                            context.read<ExamMarksBloc>().add(
+                              SelectMarksSubject(value),
+                            );
                           }
                         },
                 ),
@@ -389,8 +411,14 @@ class _SelectionPanel extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   Chip(label: Text('Subject: ${setup.subjectName}')),
-                  Chip(label: Text('Total: ${_formatNumber(setup.totalMarks)}')),
-                  Chip(label: Text('Passing: ${_formatNumber(setup.passingMarks)}')),
+                  Chip(
+                    label: Text('Total: ${_formatNumber(setup.totalMarks)}'),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Passing: ${_formatNumber(setup.passingMarks)}',
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -470,12 +498,18 @@ class _DesktopMarksTable extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           const rollWidth = 80.0;
-          const admissionWidth = 150.0;
+          const fatherWidth = 220.0;
           const marksWidth = 135.0;
           const absentWidth = 88.0;
           const remarksWidth = 230.0;
           const deleteWidth = 48.0;
-          const fixedWidth = rollWidth + admissionWidth + marksWidth + absentWidth + remarksWidth + deleteWidth;
+          const fixedWidth =
+              rollWidth +
+              fatherWidth +
+              marksWidth +
+              absentWidth +
+              remarksWidth +
+              deleteWidth;
           final nameWidth = (constraints.maxWidth - fixedWidth - 32)
               .clamp(180.0, double.infinity)
               .toDouble();
@@ -483,12 +517,33 @@ class _DesktopMarksTable extends StatelessWidget {
             children: [
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
-                    const SizedBox(width: rollWidth, child: Text('Roll No', style: TextStyle(fontWeight: FontWeight.w700))),
-                    const SizedBox(width: admissionWidth, child: Text('Admission No', style: TextStyle(fontWeight: FontWeight.w700))),
-                    SizedBox(width: nameWidth, child: const Text('Student Name', style: TextStyle(fontWeight: FontWeight.w700))),
+                    const SizedBox(
+                      width: rollWidth,
+                      child: Text(
+                        'Roll No',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    SizedBox(
+                      width: nameWidth,
+                      child: const Text(
+                        'Student Name',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: fatherWidth,
+                      child: Text(
+                        'Father Name',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                     SizedBox(
                       width: marksWidth,
                       child: Text(
@@ -496,8 +551,20 @@ class _DesktopMarksTable extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const SizedBox(width: absentWidth, child: Text('Absent', style: TextStyle(fontWeight: FontWeight.w700))),
-                    const SizedBox(width: remarksWidth, child: Text('Remarks', style: TextStyle(fontWeight: FontWeight.w700))),
+                    const SizedBox(
+                      width: absentWidth,
+                      child: Text(
+                        'Absent',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: remarksWidth,
+                      child: Text(
+                        'Remarks',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                     const SizedBox(width: deleteWidth),
                   ],
                 ),
@@ -511,12 +578,36 @@ class _DesktopMarksTable extends StatelessWidget {
                     final mark = data.markForStudent(student.id);
                     final isAbsent = absentStudentIds.contains(student.id);
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       child: Row(
                         children: [
-                          SizedBox(width: rollWidth, child: Text(student.rollNumber.isEmpty ? '-' : student.rollNumber)),
-                          SizedBox(width: admissionWidth, child: Text(student.admissionNo)),
-                          SizedBox(width: nameWidth, child: Text(student.fullName, overflow: TextOverflow.ellipsis)),
+                          SizedBox(
+                            width: rollWidth,
+                            child: Text(
+                              student.rollNumber.isEmpty
+                                  ? '-'
+                                  : student.rollNumber,
+                            ),
+                          ),
+                          SizedBox(
+                            width: nameWidth,
+                            child: Text(
+                              student.fullName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(
+                            width: fatherWidth,
+                            child: Text(
+                              student.fatherName.isEmpty
+                                  ? '-'
+                                  : student.fatherName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                           SizedBox(
                             width: marksWidth,
                             child: _MarksInput(
@@ -529,7 +620,8 @@ class _DesktopMarksTable extends StatelessWidget {
                             width: absentWidth,
                             child: Checkbox(
                               value: isAbsent,
-                              onChanged: (value) => onAbsentChanged(student.id, value ?? false),
+                              onChanged: (value) =>
+                                  onAbsentChanged(student.id, value ?? false),
                             ),
                           ),
                           SizedBox(
@@ -605,7 +697,10 @@ class _MobileMarksList extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(student.fullName, style: Theme.of(context).textTheme.titleSmall),
+                      child: Text(
+                        student.fullName,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
                     ),
                     if (mark != null)
                       IconButton(
@@ -615,7 +710,9 @@ class _MobileMarksList extends StatelessWidget {
                       ),
                   ],
                 ),
-                Text('Roll: ${student.rollNumber.isEmpty ? '-' : student.rollNumber} • ${student.admissionNo}'),
+                Text(
+                  'Roll: ${student.rollNumber.isEmpty ? '-' : student.rollNumber} • Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}',
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -631,7 +728,8 @@ class _MobileMarksList extends StatelessWidget {
                       children: [
                         Checkbox(
                           value: isAbsent,
-                          onChanged: (value) => onAbsentChanged(student.id, value ?? false),
+                          onChanged: (value) =>
+                              onAbsentChanged(student.id, value ?? false),
                         ),
                         const Text('Absent'),
                       ],
@@ -744,7 +842,7 @@ class _SearchField extends StatelessWidget {
       enabled: enabled,
       onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Search by roll no, admission no or student name...',
+        hintText: 'Search by roll no, student name or father name...',
         prefixIcon: const Icon(Icons.search),
         border: const OutlineInputBorder(),
         suffixIcon: controller.text.isEmpty
@@ -804,7 +902,11 @@ class _EmptyMarksView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 42, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 42,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
         ],
@@ -847,5 +949,7 @@ class _SelectItem {
 }
 
 String _formatNumber(double value) {
-  return value == value.roundToDouble() ? value.toInt().toString() : value.toString();
+  return value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
 }

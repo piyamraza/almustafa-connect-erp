@@ -66,37 +66,63 @@ class ExamMarksLoaded extends ExamMarksState {
   }
 
   List<ExamSubjectSetupEntity> get availableClasses {
-    final byId = <String, ExamSubjectSetupEntity>{};
+    final byName = <String, ExamSubjectSetupEntity>{};
     for (final setup in subjectSetups.where((value) => value.isActive)) {
-      byId.putIfAbsent(setup.classId, () => setup);
+      byName.putIfAbsent(_normalise(setup.className), () => setup);
     }
-    final values = byId.values.toList(growable: false);
-    return values..sort((first, second) => first.className.compareTo(second.className));
+    final values = byName.values.toList(growable: false);
+    return values
+      ..sort((first, second) => first.className.compareTo(second.className));
   }
 
   List<ExamSubjectSetupEntity> get availableSections {
     if (selectedClassId == null) return const [];
-    final byId = <String, ExamSubjectSetupEntity>{};
+    final selectedClass = availableClasses
+        .where((setup) => setup.classId == selectedClassId)
+        .firstOrNull;
+    if (selectedClass == null) return const [];
+    final byName = <String, ExamSubjectSetupEntity>{};
     for (final setup in subjectSetups.where(
-      (value) => value.isActive && value.classId == selectedClassId,
+      (value) =>
+          value.isActive &&
+          (value.classId == selectedClassId ||
+              _normalise(value.className) ==
+                  _normalise(selectedClass.className)),
     )) {
-      byId.putIfAbsent(setup.sectionId, () => setup);
+      byName.putIfAbsent(_normalise(setup.sectionName), () => setup);
     }
-    final values = byId.values.toList(growable: false);
-    return values..sort((first, second) => first.sectionName.compareTo(second.sectionName));
+    final values = byName.values.toList(growable: false);
+    return values..sort(
+      (first, second) => first.sectionName.compareTo(second.sectionName),
+    );
   }
 
   List<ExamSubjectSetupEntity> get availableSubjects {
     if (selectedClassId == null || selectedSectionId == null) return const [];
-    final values = subjectSetups
-        .where(
-          (setup) =>
-              setup.isActive &&
-              setup.classId == selectedClassId &&
-              setup.sectionId == selectedSectionId,
-        )
-        .toList(growable: false);
-    return values..sort((first, second) => first.subjectName.compareTo(second.subjectName));
+    final selectedClass = availableClasses
+        .where((setup) => setup.classId == selectedClassId)
+        .firstOrNull;
+    final selectedSection = availableSections
+        .where((setup) => setup.sectionId == selectedSectionId)
+        .firstOrNull;
+    if (selectedClass == null || selectedSection == null) return const [];
+    final byName = <String, ExamSubjectSetupEntity>{};
+    for (final setup in subjectSetups.where(
+      (setup) =>
+          setup.isActive &&
+          (setup.classId == selectedClassId ||
+              _normalise(setup.className) ==
+                  _normalise(selectedClass.className)) &&
+          (setup.sectionId == selectedSectionId ||
+              _normalise(setup.sectionName) ==
+                  _normalise(selectedSection.sectionName)),
+    )) {
+      byName.putIfAbsent(_normalise(setup.subjectName), () => setup);
+    }
+    final values = byName.values.toList(growable: false);
+    return values..sort(
+      (first, second) => first.subjectName.compareTo(second.subjectName),
+    );
   }
 
   ExamSubjectSetupEntity? get selectedSubjectSetup {
@@ -127,12 +153,15 @@ class ExamMarksLoaded extends ExamMarksState {
         .where(
           (student) => [
             student.rollNumber,
-            student.admissionNo,
             student.fullName,
+            student.fatherName,
           ].join(' ').toLowerCase().contains(query),
         )
         .toList(growable: false);
   }
+
+  static String _normalise(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   ExamMarksLoaded copyWith({
     List<ExamEntity>? exams,
@@ -159,33 +188,38 @@ class ExamMarksLoaded extends ExamMarksState {
       students: students ?? this.students,
       marks: marks ?? this.marks,
       selectedExamId: selectedExamId ?? this.selectedExamId,
-      selectedClassId: clearClass ? null : selectedClassId ?? this.selectedClassId,
-      selectedSectionId: clearSection ? null : selectedSectionId ?? this.selectedSectionId,
+      selectedClassId: clearClass
+          ? null
+          : selectedClassId ?? this.selectedClassId,
+      selectedSectionId: clearSection
+          ? null
+          : selectedSectionId ?? this.selectedSectionId,
       selectedSubjectSetupId: clearSubject
           ? null
           : selectedSubjectSetupId ?? this.selectedSubjectSetupId,
       searchQuery: searchQuery ?? this.searchQuery,
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
-      successMessage: successMessage ?? (clearMessages ? null : this.successMessage),
+      successMessage:
+          successMessage ?? (clearMessages ? null : this.successMessage),
       errorMessage: errorMessage ?? (clearMessages ? null : this.errorMessage),
     );
   }
 
   @override
   List<Object?> get props => [
-        exams,
-        subjectSetups,
-        students,
-        marks,
-        selectedExamId,
-        selectedClassId,
-        selectedSectionId,
-        selectedSubjectSetupId,
-        searchQuery,
-        isLoading,
-        isSaving,
-        successMessage,
-        errorMessage,
-      ];
+    exams,
+    subjectSetups,
+    students,
+    marks,
+    selectedExamId,
+    selectedClassId,
+    selectedSectionId,
+    selectedSubjectSetupId,
+    searchQuery,
+    isLoading,
+    isSaving,
+    successMessage,
+    errorMessage,
+  ];
 }

@@ -51,9 +51,11 @@ class ExamDateSheetReportRequest extends Equatable {
             )
             .toList(growable: false),
       ExamDateSheetReportType.teacherDuty =>
-        dateSheet.papers
-            .where((paper) => paper.teacherId == teacherId)
-            .toList(growable: false),
+        teacherId == null || teacherId!.isEmpty
+            ? dateSheet.papers
+            : dateSheet.papers
+                  .where((paper) => paper.teacherId == teacherId)
+                  .toList(growable: false),
     };
 
     return List<ExamDateSheetPaperEntity>.of(values)..sort((first, second) {

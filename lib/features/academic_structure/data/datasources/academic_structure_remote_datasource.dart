@@ -3,6 +3,7 @@ import '../../../../core/services/firebase_firestore_service.dart';
 import '../models/academic_class_model.dart';
 import '../models/academic_subject_model.dart';
 import '../models/section_model.dart';
+import '../models/subject_component_model.dart';
 
 abstract class AcademicStructureRemoteDataSource {
   Future<List<AcademicClassModel>> getClasses();
@@ -19,6 +20,10 @@ abstract class AcademicStructureRemoteDataSource {
   Future<void> deleteClass(String id);
   Future<void> deleteSection(String id);
   Future<void> deleteSubject(String id);
+  Future<int> deleteSubjectsForScope({
+    required String classId,
+    String? sectionId,
+  });
   Future<int> copySubjects({
     required String sourceClassId,
     required String targetClassId,
@@ -67,14 +72,18 @@ class AcademicStructureRemoteDataSourceImpl
         .orderBy('name')
         .get();
     return data.docs
-        .map((doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}))
+        .map(
+          (doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}),
+        )
         .toList(growable: false);
   }
 
   @override
   Future<List<AcademicSubjectModel>> getSubjectsForClass(String classId) async {
     final subjects = await _subjectsForClass(classId);
-    return subjects.where((value) => value.sectionId == null).toList(growable: false);
+    return subjects
+        .where((value) => value.sectionId == null)
+        .toList(growable: false);
   }
 
   @override
@@ -94,7 +103,9 @@ class AcademicStructureRemoteDataSourceImpl
         .where('classId', isEqualTo: classId)
         .get();
     final subjects = data.docs
-        .map((doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}))
+        .map(
+          (doc) => AcademicSubjectModel.fromMap({...doc.data(), 'id': doc.id}),
+        )
         .toList();
     subjects.sort((first, second) => first.name.compareTo(second.name));
     return subjects;
@@ -110,7 +121,10 @@ class AcademicStructureRemoteDataSourceImpl
     if (existing.docs.any((doc) => doc.id != value.id)) {
       throw StateError('A class with this name already exists.');
     }
-    await _service.collection(FirestorePaths.classes).doc(value.id).set(value.toMap());
+    await _service
+        .collection(FirestorePaths.classes)
+        .doc(value.id)
+        .set(value.toMap());
   }
 
   @override
@@ -123,7 +137,10 @@ class AcademicStructureRemoteDataSourceImpl
     if (existing.docs.any((doc) => doc.id != value.id)) {
       throw StateError('This section already exists for the selected class.');
     }
-    await _service.collection(FirestorePaths.sections).doc(value.id).set(value.toMap());
+    await _service
+        .collection(FirestorePaths.sections)
+        .doc(value.id)
+        .set(value.toMap());
   }
 
   @override
@@ -194,6 +211,54 @@ class AcademicStructureRemoteDataSourceImpl
   }
 
   @override
+  Future<int> deleteSubjectsForScope({
+    required String classId,
+    String? sectionId,
+  }) async {
+    final subjects = sectionId == null
+        ? await getSubjectsForClass(classId)
+        : await getSubjectsForClassSection(classId, sectionId);
+    if (subjects.isEmpty) return 0;
+
+    final subjectIds = subjects.map((item) => item.id).toSet();
+    final componentCollection = _service.collection(
+      FirestorePaths.subjectComponents,
+    );
+    final componentSnapshot = await componentCollection.get();
+    final componentIds = componentSnapshot.docs
+        .where(
+          (document) => subjectIds.contains(
+            document.data()['parentSubjectId'] as String?,
+          ),
+        )
+        .map((document) => document.id)
+        .toList(growable: false);
+
+    final subjectCollection = _service.collection(
+      FirestorePaths.academicSubjects,
+    );
+    final deletions = <({String id, bool component})>[
+      for (final id in componentIds) (id: id, component: true),
+      for (final id in subjectIds) (id: id, component: false),
+    ];
+    for (var start = 0; start < deletions.length; start += 500) {
+      final end = start + 500 > deletions.length
+          ? deletions.length
+          : start + 500;
+      final batch = _service.instance.batch();
+      for (final deletion in deletions.sublist(start, end)) {
+        batch.delete(
+          deletion.component
+              ? componentCollection.doc(deletion.id)
+              : subjectCollection.doc(deletion.id),
+        );
+      }
+      await batch.commit();
+    }
+    return subjects.length;
+  }
+
+  @override
   Future<int> copySubjects({
     required String sourceClassId,
     required String targetClassId,
@@ -210,44 +275,116 @@ class AcademicStructureRemoteDataSourceImpl
     final target = targetSectionId == null
         ? await getSubjectsForClass(targetClassId)
         : await getSubjectsForClassSection(targetClassId, targetSectionId);
-    final existingNames = target
-        .map((value) => value.name.trim().toLowerCase())
-        .toSet();
+    final targetByName = {
+      for (final value in target) value.name.trim().toLowerCase(): value,
+    };
     final now = DateTime.now();
-    final copies = source
-        .where((value) => existingNames.add(value.name.trim().toLowerCase()))
-        .map(
-          (value) => AcademicSubjectModel(
-            id: generateSubjectId(),
-            classId: targetClassId,
-            sectionId: targetSectionId,
-            name: value.name,
-            isActive: value.isActive,
+    final subjectCopies = <AcademicSubjectModel>[];
+    final targetForSource = <String, AcademicSubjectModel>{};
+    for (final value in source) {
+      final nameKey = value.name.trim().toLowerCase();
+      final existing = targetByName[nameKey];
+      if (existing != null) {
+        targetForSource[value.id] = existing;
+        continue;
+      }
+      final copy = AcademicSubjectModel(
+        id: generateSubjectId(),
+        classId: targetClassId,
+        sectionId: targetSectionId,
+        name: value.name,
+        isActive: value.isActive,
+        createdAt: now,
+        updatedAt: now,
+        useComponentsInTimetable: value.useComponentsInTimetable,
+        useComponentsInAttendance: value.useComponentsInAttendance,
+        useComponentsInHomework: value.useComponentsInHomework,
+        useComponentsInExamination: value.useComponentsInExamination,
+        useComponentsInReportCard: value.useComponentsInReportCard,
+      );
+      subjectCopies.add(copy);
+      targetByName[nameKey] = copy;
+      targetForSource[value.id] = copy;
+    }
+
+    final componentCollection = _service.collection(
+      FirestorePaths.subjectComponents,
+    );
+    final componentSnapshot = await componentCollection.get();
+    final allComponents = componentSnapshot.docs
+        .map(SubjectComponentModel.fromFirestore)
+        .toList(growable: false);
+    final componentsByParent = <String, List<SubjectComponentModel>>{};
+    for (final component in allComponents) {
+      componentsByParent
+          .putIfAbsent(component.parentSubjectId, () => [])
+          .add(component);
+    }
+
+    final componentCopies = <SubjectComponentModel>[];
+    for (final sourceSubject in source) {
+      final targetSubject = targetForSource[sourceSubject.id]!;
+      final existingComponentNames =
+          (componentsByParent[targetSubject.id] ??
+                  const <SubjectComponentModel>[])
+              .map((item) => item.componentName.trim().toLowerCase())
+              .toSet();
+      for (final component
+          in componentsByParent[sourceSubject.id] ??
+              const <SubjectComponentModel>[]) {
+        if (!existingComponentNames.add(
+          component.componentName.trim().toLowerCase(),
+        )) {
+          continue;
+        }
+        componentCopies.add(
+          SubjectComponentModel(
+            id: componentCollection.doc().id,
+            parentSubjectId: targetSubject.id,
+            parentSubjectName: targetSubject.name,
+            componentName: component.componentName,
+            displayOrder: component.displayOrder,
+            isActive: component.isActive,
             createdAt: now,
             updatedAt: now,
           ),
-        )
-        .toList(growable: false);
-
-    for (var start = 0; start < copies.length; start += 500) {
-      final end = start + 500 > copies.length ? copies.length : start + 500;
-      final batch = _service.instance.batch();
-      for (final value in copies.sublist(start, end)) {
-        batch.set(
-          _service.collection(FirestorePaths.academicSubjects).doc(value.id),
-          value.toMap(),
         );
       }
-      await batch.commit();
     }
-    return copies.length;
+
+    var batch = _service.instance.batch();
+    var writeCount = 0;
+    Future<void> flush() async {
+      if (writeCount == 0) return;
+      await batch.commit();
+      batch = _service.instance.batch();
+      writeCount = 0;
+    }
+
+    for (final value in subjectCopies) {
+      batch.set(
+        _service.collection(FirestorePaths.academicSubjects).doc(value.id),
+        value.toMap(),
+      );
+      writeCount++;
+      if (writeCount == 500) await flush();
+    }
+    for (final component in componentCopies) {
+      batch.set(componentCollection.doc(component.id), component.toFirestore());
+      writeCount++;
+      if (writeCount == 500) await flush();
+    }
+    await flush();
+    return subjectCopies.length;
   }
 
   @override
-  String generateClassId() => _service.collection(FirestorePaths.classes).doc().id;
+  String generateClassId() =>
+      _service.collection(FirestorePaths.classes).doc().id;
 
   @override
-  String generateSectionId() => _service.collection(FirestorePaths.sections).doc().id;
+  String generateSectionId() =>
+      _service.collection(FirestorePaths.sections).doc().id;
 
   @override
   String generateSubjectId() =>

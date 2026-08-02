@@ -4,6 +4,8 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_calendar/domain/entities/academic_calendar_event_entity.dart';
+import '../../../academic_calendar/domain/repositories/academic_calendar_repository.dart';
 import '../../domain/entities/exam_date_sheet_generation_entity.dart';
 import '../../domain/entities/exam_entity.dart';
 import '../../domain/repositories/exam_repository.dart';
@@ -45,9 +47,11 @@ class _AutoExamDateSheetGeneratorViewState
     DateTime.saturday,
   };
   final List<DateTime> _holidays = [];
+  List<DateTime> _calendarHolidays = const [];
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   final _durationController = TextEditingController(text: '120');
   bool _loadingReferences = true;
+  bool _loadingCalendarHolidays = false;
   String? _referenceError;
 
   @override
@@ -142,7 +146,7 @@ class _AutoExamDateSheetGeneratorViewState
     if (value != null) setState(() => _startTime = value);
   }
 
-  void _generate() {
+  Future<void> _generate() async {
     final exam = _selectedExam;
     final start = _startDate;
     final end = _endDate;
@@ -165,6 +169,35 @@ class _AutoExamDateSheetGeneratorViewState
       return;
     }
 
+    setState(() => _loadingCalendarHolidays = true);
+    List<DateTime> calendarHolidays;
+    try {
+      calendarHolidays = await _loadCalendarHolidays(
+        academicSession: exam.academicSession,
+        startDate: start,
+        endDate: end,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingCalendarHolidays = false);
+      _show(
+        'Academic Calendar holidays could not be loaded: ${_message(error)}',
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _calendarHolidays = calendarHolidays;
+      _loadingCalendarHolidays = false;
+    });
+
+    final excludedDates = <DateTime>[];
+    for (final date in [..._holidays, ...calendarHolidays]) {
+      if (!excludedDates.any((existing) => _sameDate(existing, date))) {
+        excludedDates.add(date);
+      }
+    }
+
     context.read<ExamDateSheetGeneratorBloc>().add(
       GenerateExamDateSheetOptionsEvent(
         exam: exam,
@@ -175,13 +208,56 @@ class _AutoExamDateSheetGeneratorViewState
           startDate: start,
           endDate: end,
           allowedWeekdays: _allowedWeekdays.toList()..sort(),
-          holidays: _holidays,
+          holidays: excludedDates,
           startMinutes: _startTime.hour * 60 + _startTime.minute,
           paperDurationMinutes: duration,
           includeAllActiveClasses: true,
         ),
       ),
     );
+  }
+
+  Future<List<DateTime>> _loadCalendarHolidays({
+    required String academicSession,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final events = await sl<AcademicCalendarRepository>().getEvents(
+      academicSession: academicSession,
+      startDate: startDate,
+      endDate: endDate,
+      isActive: true,
+    );
+    final dates = <DateTime>[];
+    for (final event in events) {
+      final blocksStudents =
+          event.audience == AcademicCalendarAudience.wholeSchool ||
+          event.audience == AcademicCalendarAudience.students ||
+          event.audience == AcademicCalendarAudience.selectedClasses;
+      final isHoliday =
+          event.type == AcademicCalendarEventType.holiday ||
+          event.type == AcademicCalendarEventType.vacation;
+      if (!blocksStudents || !isHoliday) continue;
+
+      var date = DateTime(
+        event.startDate.year,
+        event.startDate.month,
+        event.startDate.day,
+      );
+      final eventEnd = DateTime(
+        event.endDate.year,
+        event.endDate.month,
+        event.endDate.day,
+      );
+      while (!date.isAfter(eventEnd)) {
+        if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+          dates.add(date);
+        }
+        date = date.add(const Duration(days: 1));
+      }
+    }
+    dates.sort();
+    return dates;
   }
 
   Future<void> _openSavedForEditing(ExamDateSheetGeneratorSaved state) async {
@@ -202,7 +278,10 @@ class _AutoExamDateSheetGeneratorViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Auto Date Sheet Generator')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Auto Date Sheet Generator'),
+      ),
       body: SafeArea(
         child: BlocConsumer<ExamDateSheetGeneratorBloc, ExamDateSheetGeneratorState>(
           listener: (context, state) {
@@ -215,7 +294,9 @@ class _AutoExamDateSheetGeneratorViewState
           },
           builder: (context, state) {
             final busy =
-                _loadingReferences || state is ExamDateSheetGeneratorLoading;
+                _loadingReferences ||
+                _loadingCalendarHolidays ||
+                state is ExamDateSheetGeneratorLoading;
 
             return Stack(
               children: [
@@ -308,6 +389,7 @@ class _AutoExamDateSheetGeneratorViewState
                               _startDate = exam?.startDate ?? exam?.examDate;
                               _endDate = exam?.endDate ?? exam?.examDate;
                               _holidays.clear();
+                              _calendarHolidays = const [];
                             });
                           },
                   ),
@@ -395,6 +477,11 @@ class _AutoExamDateSheetGeneratorViewState
                         ? null
                         : () => setState(() => _holidays.remove(holiday)),
                   ),
+                for (final holiday in _calendarHolidays)
+                  Chip(
+                    avatar: const Icon(Icons.event_busy_outlined, size: 18),
+                    label: Text('Calendar: ${_date(holiday)}'),
+                  ),
               ],
             ),
           ],
@@ -456,36 +543,15 @@ class _AutoExamDateSheetGeneratorViewState
   }
 
   Future<void> _showPreview(ExamDateSheetGeneratedOption option) async {
+    final matrix = _buildDateSheetMatrix(option);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(option.label),
         content: SizedBox(
-          width: 950,
+          width: 1200,
           height: 580,
-          child: SingleChildScrollView(
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Date')),
-                DataColumn(label: Text('Class')),
-                DataColumn(label: Text('Section')),
-                DataColumn(label: Text('Subject')),
-                DataColumn(label: Text('Teacher')),
-              ],
-              rows: [
-                for (final paper in option.papers)
-                  DataRow(
-                    cells: [
-                      DataCell(Text(_date(paper.examDate))),
-                      DataCell(Text(paper.className)),
-                      DataCell(Text(paper.sectionName)),
-                      DataCell(Text(paper.subjectName)),
-                      DataCell(Text(paper.teacherName)),
-                    ],
-                  ),
-              ],
-            ),
-          ),
+          child: _AutoDateSheetPreviewTable(matrix: matrix),
         ),
         actions: [
           FilledButton(
@@ -496,6 +562,51 @@ class _AutoExamDateSheetGeneratorViewState
       ),
     );
   }
+
+  _DateSheetMatrix _buildDateSheetMatrix(ExamDateSheetGeneratedOption option) {
+    final columnsByKey = <String, _DateSheetColumn>{};
+    final sectionsPerClass = <String, Set<String>>{};
+    final subjects = <String, List<String>>{};
+    final datesByKey = <String, DateTime>{};
+
+    for (final paper in option.papers) {
+      final columnKey = '${paper.classId}|${paper.sectionId}';
+      final dateKey = _dateKey(paper.examDate);
+      columnsByKey[columnKey] = _DateSheetColumn(
+        key: columnKey,
+        classId: paper.classId,
+        className: paper.className,
+        sectionName: paper.sectionName,
+      );
+      sectionsPerClass
+          .putIfAbsent(paper.classId, () => <String>{})
+          .add(paper.sectionId);
+      datesByKey[dateKey] = paper.examDate;
+      subjects
+          .putIfAbsent('$dateKey|$columnKey', () => <String>[])
+          .add('${paper.subjectName}\n${paper.teacherName}');
+    }
+
+    final columns = columnsByKey.values.toList()
+      ..sort((first, second) {
+        final classComparison = first.className.toLowerCase().compareTo(
+          second.className.toLowerCase(),
+        );
+        return classComparison != 0
+            ? classComparison
+            : first.sectionName.toLowerCase().compareTo(
+                second.sectionName.toLowerCase(),
+              );
+      });
+    for (final column in columns) {
+      column.showSection = (sectionsPerClass[column.classId]?.length ?? 0) > 1;
+    }
+    final dates = datesByKey.values.toList()..sort();
+    return _DateSheetMatrix(columns: columns, dates: dates, subjects: subjects);
+  }
+
+  static String _dateKey(DateTime value) =>
+      '${value.year}-${value.month}-${value.day}';
 
   static bool _sameDate(DateTime first, DateTime second) =>
       first.year == second.year &&
@@ -516,6 +627,17 @@ class _AutoExamDateSheetGeneratorViewState
     DateTime.saturday => 'Sat',
     DateTime.sunday => 'Sun',
     _ => 'Day',
+  };
+
+  static String _fullDayName(int day) => switch (day) {
+    DateTime.monday => 'Monday',
+    DateTime.tuesday => 'Tuesday',
+    DateTime.wednesday => 'Wednesday',
+    DateTime.thursday => 'Thursday',
+    DateTime.friday => 'Friday',
+    DateTime.saturday => 'Saturday',
+    DateTime.sunday => 'Sunday',
+    _ => '',
   };
 
   String _message(Object error) =>
@@ -631,4 +753,145 @@ class _MessageCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DateSheetColumn {
+  _DateSheetColumn({
+    required this.key,
+    required this.classId,
+    required this.className,
+    required this.sectionName,
+  });
+
+  final String key;
+  final String classId;
+  final String className;
+  final String sectionName;
+  bool showSection = false;
+
+  String get label => showSection && sectionName.trim().isNotEmpty
+      ? 'Class $className - $sectionName'
+      : 'Class $className';
+}
+
+class _DateSheetMatrix {
+  const _DateSheetMatrix({
+    required this.columns,
+    required this.dates,
+    required this.subjects,
+  });
+
+  final List<_DateSheetColumn> columns;
+  final List<DateTime> dates;
+  final Map<String, List<String>> subjects;
+
+  String subjectsFor(DateTime date, _DateSheetColumn column) {
+    final dateKey = '${date.year}-${date.month}-${date.day}';
+    final values = subjects['$dateKey|${column.key}'];
+    return values == null || values.isEmpty ? '-' : values.join('\n');
+  }
+}
+
+class _AutoDateSheetPreviewTable extends StatelessWidget {
+  const _AutoDateSheetPreviewTable({required this.matrix});
+
+  final _DateSheetMatrix matrix;
+  static const double _dateWidth = 112;
+  static const double _classWidth = 112;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = _dateWidth + matrix.columns.length * _classWidth;
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: width,
+          height: constraints.maxHeight,
+          child: Column(
+            children: [
+              Container(
+                height: 44,
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Row(
+                  children: [
+                    _box(
+                      context,
+                      width: _dateWidth,
+                      child: const Text(
+                        'Date',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    for (final column in matrix.columns)
+                      _box(
+                        context,
+                        width: _classWidth,
+                        child: Text(
+                          column.label,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: matrix.dates.length,
+                  itemBuilder: (context, index) {
+                    final date = matrix.dates[index];
+                    return SizedBox(
+                      height: 56,
+                      child: Row(
+                        children: [
+                          _box(
+                            context,
+                            width: _dateWidth,
+                            child: Text(
+                              '${_AutoExamDateSheetGeneratorViewState._date(date)}\n'
+                              '${_AutoExamDateSheetGeneratorViewState._fullDayName(date.weekday)}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          for (final column in matrix.columns)
+                            _box(
+                              context,
+                              width: _classWidth,
+                              child: Text(
+                                matrix.subjectsFor(date, column),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _box(
+    BuildContext context, {
+    required double width,
+    required Widget child,
+  }) => Container(
+    width: width,
+    height: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      border: Border(
+        right: BorderSide(color: Theme.of(context).dividerColor),
+        bottom: BorderSide(color: Theme.of(context).dividerColor),
+      ),
+    ),
+    child: child,
+  );
 }

@@ -13,6 +13,7 @@ class TeacherWorkloadEntity extends Equatable {
     required this.assignedPeriods,
     required this.maxWeeklyPeriods,
     required this.teachingDays,
+    required this.academicAssignments,
     required List<String> classSections,
     required List<String> subjects,
     required Map<int, int> assignedPeriodsByDay,
@@ -27,6 +28,7 @@ class TeacherWorkloadEntity extends Equatable {
   final int assignedPeriods;
   final int maxWeeklyPeriods;
   final int teachingDays;
+  final int academicAssignments;
   final List<String> classSections;
   final List<String> subjects;
   final Map<int, int> assignedPeriodsByDay;
@@ -44,7 +46,7 @@ class TeacherWorkloadEntity extends Equatable {
   }
 
   TeacherWorkloadLevel get level {
-    if (assignedPeriods == 0) {
+    if (assignedPeriods == 0 && academicAssignments == 0) {
       return TeacherWorkloadLevel.unassigned;
     }
     if (utilization < 0.45) {
@@ -65,6 +67,7 @@ class TeacherWorkloadEntity extends Equatable {
     assignedPeriods,
     maxWeeklyPeriods,
     teachingDays,
+    academicAssignments,
     classSections,
     subjects,
     assignedPeriodsByDay,
@@ -89,6 +92,11 @@ class TeacherWorkloadReportEntity extends Equatable {
   int get totalAssignedPeriods => workloads.fold<int>(
     0,
     (total, workload) => total + workload.assignedPeriods,
+  );
+
+  int get totalAcademicAssignments => workloads.fold<int>(
+    0,
+    (total, workload) => total + workload.academicAssignments,
   );
 
   int get highWorkloadCount => workloads

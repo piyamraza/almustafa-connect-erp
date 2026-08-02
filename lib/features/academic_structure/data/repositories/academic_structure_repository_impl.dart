@@ -8,9 +8,7 @@ import '../models/academic_subject_model.dart';
 import '../models/section_model.dart';
 
 class AcademicStructureRepositoryImpl implements AcademicStructureRepository {
-  AcademicStructureRepositoryImpl({
-    required this._source,
-  });
+  AcademicStructureRepositoryImpl({required this._source});
 
   final AcademicStructureRemoteDataSource _source;
 
@@ -31,8 +29,7 @@ class AcademicStructureRepositoryImpl implements AcademicStructureRepository {
   Future<List<AcademicSubjectEntity>> getSubjectsForClassSection(
     String classId,
     String sectionId,
-  ) =>
-      _source.getSubjectsForClassSection(classId, sectionId);
+  ) => _source.getSubjectsForClassSection(classId, sectionId);
 
   @override
   Future<void> saveClass(AcademicClassEntity value) =>
@@ -56,18 +53,23 @@ class AcademicStructureRepositoryImpl implements AcademicStructureRepository {
   Future<void> deleteSubject(String id) => _source.deleteSubject(id);
 
   @override
+  Future<int> deleteSubjectsForScope({
+    required String classId,
+    String? sectionId,
+  }) => _source.deleteSubjectsForScope(classId: classId, sectionId: sectionId);
+
+  @override
   Future<int> copySubjects({
     required String sourceClassId,
     required String targetClassId,
     String? sourceSectionId,
     String? targetSectionId,
-  }) =>
-      _source.copySubjects(
-        sourceClassId: sourceClassId,
-        targetClassId: targetClassId,
-        sourceSectionId: sourceSectionId,
-        targetSectionId: targetSectionId,
-      );
+  }) => _source.copySubjects(
+    sourceClassId: sourceClassId,
+    targetClassId: targetClassId,
+    sourceSectionId: sourceSectionId,
+    targetSectionId: targetSectionId,
+  );
 
   @override
   String generateClassId() => _source.generateClassId();

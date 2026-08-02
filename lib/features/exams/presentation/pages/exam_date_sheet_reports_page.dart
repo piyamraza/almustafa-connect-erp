@@ -162,7 +162,10 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Date Sheet Reports')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Date Sheet Reports'),
+      ),
       body: SafeArea(
         child: BlocConsumer<ExamDateSheetReportBloc, ExamDateSheetReportState>(
           listener: (context, state) {
@@ -384,6 +387,7 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
     }
 
     final papers = request.papers;
+    final showTeacher = request.type != ExamDateSheetReportType.parentClassCopy;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -408,14 +412,14 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('Day')),
-                  DataColumn(label: Text('Class')),
-                  DataColumn(label: Text('Section')),
-                  DataColumn(label: Text('Subject')),
-                  DataColumn(label: Text('Teacher')),
-                  DataColumn(label: Text('Time')),
+                columns: [
+                  const DataColumn(label: Text('Date')),
+                  const DataColumn(label: Text('Day')),
+                  const DataColumn(label: Text('Class')),
+                  const DataColumn(label: Text('Section')),
+                  const DataColumn(label: Text('Subject')),
+                  if (showTeacher) const DataColumn(label: Text('Teacher')),
+                  const DataColumn(label: Text('Time')),
                 ],
                 rows: [
                   for (final paper in papers)
@@ -426,7 +430,7 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
                         DataCell(Text(paper.className)),
                         DataCell(Text(paper.sectionName)),
                         DataCell(Text(paper.subjectName)),
-                        DataCell(Text(paper.teacherName)),
+                        if (showTeacher) DataCell(Text(paper.teacherName)),
                         DataCell(
                           Text(
                             '${_time(paper.startMinutes)} - '

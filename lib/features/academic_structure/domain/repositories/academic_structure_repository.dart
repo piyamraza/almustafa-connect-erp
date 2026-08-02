@@ -1,6 +1,7 @@
 import '../entities/academic_class_entity.dart';
 import '../entities/academic_subject_entity.dart';
 import '../entities/section_entity.dart';
+
 abstract class AcademicStructureRepository {
   Future<List<AcademicClassEntity>> getClasses();
   Future<List<SectionEntity>> getSections();
@@ -16,6 +17,10 @@ abstract class AcademicStructureRepository {
   Future<void> deleteClass(String id);
   Future<void> deleteSection(String id);
   Future<void> deleteSubject(String id);
+  Future<int> deleteSubjectsForScope({
+    required String classId,
+    String? sectionId,
+  });
   Future<int> copySubjects({
     required String sourceClassId,
     required String targetClassId,

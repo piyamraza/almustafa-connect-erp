@@ -87,7 +87,10 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teacher Workload')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Teacher Workload'),
+      ),
       body: SafeArea(
         child: BlocConsumer<TeacherWorkloadBloc, TeacherWorkloadState>(
           listener: (context, state) {
@@ -303,6 +306,12 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
               color: const Color(0xFF00897B),
             ),
             _SummaryCard(
+              label: 'Academic Assignments',
+              value: report.totalAcademicAssignments.toString(),
+              icon: Icons.assignment_ind_outlined,
+              color: const Color(0xFF00695C),
+            ),
+            _SummaryCard(
               label: 'Average / Teacher',
               value: report.averageAssignedPeriods.toStringAsFixed(1),
               icon: Icons.analytics_outlined,
@@ -378,6 +387,7 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                       DataColumn(label: Text('Teacher')),
                       DataColumn(label: Text('Designation')),
                       DataColumn(label: Text('Assigned'), numeric: true),
+                      DataColumn(label: Text('Subjects'), numeric: true),
                       DataColumn(label: Text('Free'), numeric: true),
                       DataColumn(label: Text('Days'), numeric: true),
                       DataColumn(label: Text('Classes'), numeric: true),
@@ -426,6 +436,9 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                               ),
                             ),
                             DataCell(Text(workload.assignedPeriods.toString())),
+                            DataCell(
+                              Text(workload.academicAssignments.toString()),
+                            ),
                             DataCell(Text(workload.freePeriods.toString())),
                             DataCell(Text(workload.teachingDays.toString())),
                             DataCell(
@@ -513,6 +526,10 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                     _DetailValue(
                       label: 'Assigned',
                       value: workload.assignedPeriods.toString(),
+                    ),
+                    _DetailValue(
+                      label: 'Academic Assignments',
+                      value: workload.academicAssignments.toString(),
                     ),
                     _DetailValue(
                       label: 'Free',

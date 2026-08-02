@@ -29,6 +29,7 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
   String? _sourceClassId;
   String? _sourceSectionId;
   bool _copying = false;
+  bool _deletingAll = false;
 
   @override
   void initState() {
@@ -51,18 +52,21 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
               _selectedSectionId!,
             ),
     ]);
-    final classes = (values[0] as List<AcademicClassEntity>)
-        .where((academicClass) => academicClass.isActive)
-        .toList()
-      ..sort((first, second) => first.name.compareTo(second.name));
+    final classes =
+        (values[0] as List<AcademicClassEntity>)
+            .where((academicClass) => academicClass.isActive)
+            .toList()
+          ..sort((first, second) => first.name.compareTo(second.name));
     final allSections = values[1] as List<SectionEntity>;
-    final sections = allSections
-        .where(
-          (section) =>
-              section.classId == widget.academicClass.id && section.isActive,
-        )
-        .toList()
-      ..sort((first, second) => first.name.compareTo(second.name));
+    final sections =
+        allSections
+            .where(
+              (section) =>
+                  section.classId == widget.academicClass.id &&
+                  section.isActive,
+            )
+            .toList()
+          ..sort((first, second) => first.name.compareTo(second.name));
     final subjects = values[2] as List<AcademicSubjectEntity>;
     return _SubjectPageData(
       classes: classes,
@@ -72,9 +76,8 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
     );
   }
 
-  String get _scopeLabel => _selectedSectionId == null
-      ? 'Class Defaults'
-      : 'Selected Section';
+  String get _scopeLabel =>
+      _selectedSectionId == null ? 'Class Defaults' : 'Selected Section';
 
   Future<void> _saveSubject({AcademicSubjectEntity? existing}) async {
     final controller = TextEditingController(text: existing?.name ?? '');
@@ -110,7 +113,8 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, controller.text.trim()),
               child: const Text('Save'),
             ),
           ],
@@ -159,8 +163,8 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
       setState(_reload);
       _showMessage(
         copied == 0
-            ? 'All subjects from the selected list already exist here.'
-            : '$copied subject${copied == 1 ? '' : 's'} copied successfully.',
+            ? 'Subjects already existed. Any missing components were copied.'
+            : '$copied subject${copied == 1 ? '' : 's'} and their components copied successfully.',
       );
     } catch (error) {
       if (mounted) _showMessage(_errorMessage(error));
@@ -200,6 +204,62 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
     }
   }
 
+  Future<void> _deleteAllSubjects(List<AcademicSubjectEntity> subjects) async {
+    if (subjects.isEmpty) {
+      _showMessage('There are no subjects to delete in this list.');
+      return;
+    }
+    final scope = _selectedSectionId == null
+        ? 'class-default'
+        : 'selected-section';
+    final approved =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            title: const Text('Delete All Subjects?'),
+            content: Text(
+              'Delete all ${subjects.length} $scope subjects and their '
+              'components? This cannot be undone. Existing exam and marks '
+              'records will not be deleted.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                  foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+                ),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.delete_sweep_outlined),
+                label: const Text('Delete All'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!approved || !mounted) return;
+    setState(() => _deletingAll = true);
+    try {
+      final deleted = await widget.repository.deleteSubjectsForScope(
+        classId: widget.academicClass.id,
+        sectionId: _selectedSectionId,
+      );
+      if (!mounted) return;
+      setState(_reload);
+      _showMessage(
+        '$deleted subject${deleted == 1 ? '' : 's'} and their components deleted.',
+      );
+    } catch (error) {
+      if (mounted) _showMessage(_errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _deletingAll = false);
+    }
+  }
+
   void _selectScope(String value) {
     setState(() {
       _selectedSectionId = value == _classDefaultScope ? null : value;
@@ -209,7 +269,9 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
 
   void _showMessage(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -220,12 +282,17 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: Text('${widget.academicClass.name} Subjects')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: Text('${widget.academicClass.name} Subjects'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _saveSubject(),
         icon: const Icon(Icons.add),
         label: Text(
-          _selectedSectionId == null ? 'Add Default Subject' : 'Add Section Subject',
+          _selectedSectionId == null
+              ? 'Add Default Subject'
+              : 'Add Section Subject',
         ),
       ),
       body: FutureBuilder<_SubjectPageData>(
@@ -238,7 +305,8 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
             return Center(child: Text(_errorMessage(snapshot.error!)));
           }
           final data = snapshot.data!;
-          final selectedScopeStillExists = _selectedSectionId == null ||
+          final selectedScopeStillExists =
+              _selectedSectionId == null ||
               data.sections.any((section) => section.id == _selectedSectionId);
           final selectedScope = selectedScopeStillExists
               ? _selectedSectionId ?? _classDefaultScope
@@ -246,10 +314,13 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
           final matchingSections = data.sections
               .where((section) => section.id == _selectedSectionId)
               .toList(growable: false);
-          final sectionName =
-              matchingSections.isEmpty ? null : matchingSections.first.name;
-          final sourceClassId = data.classes
-                  .any((academicClass) => academicClass.id == _sourceClassId)
+          final sectionName = matchingSections.isEmpty
+              ? null
+              : matchingSections.first.name;
+          final sourceClassId =
+              data.classes.any(
+                (academicClass) => academicClass.id == _sourceClassId,
+              )
               ? _sourceClassId
               : null;
           final sourceSections = <SectionEntity>[
@@ -259,8 +330,8 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
                     section.isActive && section.classId == sourceClassId,
               ),
           ]..sort((first, second) => first.name.compareTo(second.name));
-          final sourceScope = sourceSections
-                  .any((section) => section.id == _sourceSectionId)
+          final sourceScope =
+              sourceSections.any((section) => section.id == _sourceSectionId)
               ? _sourceSectionId ?? _classDefaultScope
               : _classDefaultScope;
 
@@ -356,22 +427,27 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
                               onChanged: sourceClassId == null
                                   ? null
                                   : (value) => setState(
-                                        () => _sourceSectionId =
-                                            value == _classDefaultScope
-                                                ? null
-                                                : value,
-                                      ),
+                                      () => _sourceSectionId =
+                                          value == _classDefaultScope
+                                          ? null
+                                          : value,
+                                    ),
                             ),
                           ),
                           OutlinedButton.icon(
-                            onPressed: _copying || sourceClassId == null
+                            onPressed:
+                                _copying ||
+                                    _deletingAll ||
+                                    sourceClassId == null
                                 ? null
                                 : _copySubjects,
                             icon: _copying
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Icon(Icons.copy_outlined),
                             label: Text(
@@ -380,6 +456,31 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
                                   : _selectedSectionId == null
                                   ? 'Copy to Class Defaults'
                                   : 'Copy to Selected Section',
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.error,
+                            ),
+                            onPressed:
+                                _copying ||
+                                    _deletingAll ||
+                                    data.subjects.isEmpty
+                                ? null
+                                : () => _deleteAllSubjects(data.subjects),
+                            icon: _deletingAll
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.delete_sweep_outlined),
+                            label: Text(
+                              _deletingAll ? 'Deleting...' : 'Delete All',
                             ),
                           ),
                         ],
@@ -422,22 +523,31 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
                                   children: [
                                     Chip(
                                       label: Text(
-                                        subject.isActive ? 'Active' : 'Inactive',
+                                        subject.isActive
+                                            ? 'Active'
+                                            : 'Inactive',
                                       ),
                                       visualDensity: VisualDensity.compact,
                                     ),
                                     OutlinedButton.icon(
-                                      onPressed: () => Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => SubjectComponentsPage(subject: subject),
-                                        ),
+                                      onPressed: () =>
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  SubjectComponentsPage(
+                                                    subject: subject,
+                                                  ),
+                                            ),
+                                          ),
+                                      icon: const Icon(
+                                        Icons.account_tree_outlined,
                                       ),
-                                      icon: const Icon(Icons.account_tree_outlined),
                                       label: const Text('Manage Components'),
                                     ),
                                     IconButton(
                                       tooltip: 'Edit subject',
-                                      onPressed: () => _saveSubject(existing: subject),
+                                      onPressed: () =>
+                                          _saveSubject(existing: subject),
                                       icon: const Icon(Icons.edit_outlined),
                                     ),
                                     IconButton(

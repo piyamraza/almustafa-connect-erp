@@ -866,8 +866,12 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<GetTeacherWorkloads>(
-    () =>
-        GetTeacherWorkloads(sl<TimetableRepository>(), sl<TeacherRepository>()),
+    () => GetTeacherWorkloads(
+      sl<TimetableRepository>(),
+      sl<TeacherRepository>(),
+      sl<TeacherAssignmentRepository>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<GetTeacherTimetable>(
     () => GetTeacherTimetable(sl<TimetableRepository>()),

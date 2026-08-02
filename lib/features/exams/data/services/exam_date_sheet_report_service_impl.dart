@@ -45,13 +45,15 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
     }
     sheet.appendRow([]);
 
+    final isParentCopy =
+        request.type == ExamDateSheetReportType.parentClassCopy;
     sheet.appendRow([
       TextCellValue('Date'),
       TextCellValue('Day'),
       TextCellValue('Class'),
       TextCellValue('Section'),
       TextCellValue('Subject'),
-      TextCellValue('Teacher'),
+      if (!isParentCopy) TextCellValue('Teacher'),
       TextCellValue('Time'),
       TextCellValue('Total Marks'),
       TextCellValue('Passing Marks'),
@@ -65,7 +67,7 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
         TextCellValue(paper.className),
         TextCellValue(paper.sectionName),
         TextCellValue(paper.subjectName),
-        TextCellValue(paper.teacherName),
+        if (!isParentCopy) TextCellValue(paper.teacherName),
         TextCellValue(
           '${_time(paper.startMinutes)} - ${_time(paper.endMinutes)}',
         ),
@@ -75,8 +77,9 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
       ]);
     }
 
-    for (var index = 0; index <= 9; index++) {
-      sheet.setColumnWidth(index, index == 9 ? 32 : 18);
+    final lastColumn = isParentCopy ? 8 : 9;
+    for (var index = 0; index <= lastColumn; index++) {
+      sheet.setColumnWidth(index, index == lastColumn ? 32 : 18);
     }
 
     workbook.delete('Sheet1');

@@ -1,15 +1,27 @@
 import '../../../teachers/domain/entities/teacher_entity.dart';
 import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
+import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../entities/class_timetable_entry_entity.dart';
 import '../entities/teacher_workload_entity.dart';
 import '../entities/timetable_configuration_entity.dart';
 import '../repositories/timetable_repository.dart';
 
 class GetTeacherWorkloads {
-  const GetTeacherWorkloads(this._timetableRepository, this._teacherRepository);
+  const GetTeacherWorkloads(
+    this._timetableRepository,
+    this._teacherRepository,
+    this._assignmentRepository,
+    this._academicStructureRepository,
+  );
 
   final TimetableRepository _timetableRepository;
   final TeacherRepository _teacherRepository;
+  final TeacherAssignmentRepository _assignmentRepository;
+  final AcademicStructureRepository _academicStructureRepository;
 
   Future<TeacherWorkloadReportEntity> call({
     required String branchId,
@@ -35,6 +47,9 @@ class GetTeacherWorkloads {
         branchId: cleanBranchId,
         academicSession: cleanAcademicSession,
       ),
+      _assignmentRepository.getAssignments(),
+      _academicStructureRepository.getClasses(),
+      _academicStructureRepository.getSections(),
     ]);
 
     final teachers =
@@ -49,6 +64,23 @@ class GetTeacherWorkloads {
 
     final configuration = values[1] as TimetableConfigurationEntity?;
     final entries = values[2] as List<ClassTimetableEntryEntity>;
+    final assignments = (values[3] as List<TeacherAssignmentEntity>)
+        .where(
+          (assignment) =>
+              _normalise(assignment.academicSession) ==
+              _normalise(cleanAcademicSession),
+        )
+        .toList(growable: false);
+    final classes = values[4] as List<AcademicClassEntity>;
+    final sections = values[5] as List<SectionEntity>;
+    final classNames = {for (final value in classes) value.id: value.name};
+    final sectionNames = {for (final value in sections) value.id: value.name};
+    final assignmentsByTeacher = <String, List<TeacherAssignmentEntity>>{};
+    for (final assignment in assignments) {
+      assignmentsByTeacher
+          .putIfAbsent(assignment.teacherId, () => [])
+          .add(assignment);
+    }
 
     if (configuration == null) {
       return TeacherWorkloadReportEntity(
@@ -65,8 +97,16 @@ class GetTeacherWorkloads {
               assignedPeriods: 0,
               maxWeeklyPeriods: 0,
               teachingDays: 0,
-              classSections: const [],
-              subjects: const [],
+              academicAssignments:
+                  assignmentsByTeacher[teacher.id]?.length ?? 0,
+              classSections: _assignmentClasses(
+                assignmentsByTeacher[teacher.id] ?? const [],
+                classNames,
+                sectionNames,
+              ),
+              subjects: _assignmentSubjects(
+                assignmentsByTeacher[teacher.id] ?? const [],
+              ),
               assignedPeriodsByDay: const {},
             ),
         ],
@@ -100,6 +140,8 @@ class GetTeacherWorkloads {
     for (final teacher in teachers) {
       final teacherEntries =
           entriesByTeacher[teacher.id] ?? const <ClassTimetableEntryEntity>[];
+      final teacherAssignments =
+          assignmentsByTeacher[teacher.id] ?? const <TeacherAssignmentEntity>[];
 
       final uniqueSlots = <String, ClassTimetableEntryEntity>{};
       for (final entry in teacherEntries) {
@@ -120,6 +162,11 @@ class GetTeacherWorkloads {
       };
       final classSections = <String>{};
       final subjects = <String>{};
+
+      classSections.addAll(
+        _assignmentClasses(teacherAssignments, classNames, sectionNames),
+      );
+      subjects.addAll(_assignmentSubjects(teacherAssignments));
 
       for (final entry in uniqueEntries) {
         assignedPeriodsByDay[entry.weekday] =
@@ -144,6 +191,7 @@ class GetTeacherWorkloads {
           teachingDays: assignedPeriodsByDay.values
               .where((count) => count > 0)
               .length,
+          academicAssignments: teacherAssignments.length,
           classSections: sortedClassSections,
           subjects: sortedSubjects,
           assignedPeriodsByDay: assignedPeriodsByDay,
@@ -170,4 +218,29 @@ class GetTeacherWorkloads {
       workloads: workloads,
     );
   }
+
+  static List<String> _assignmentClasses(
+    List<TeacherAssignmentEntity> assignments,
+    Map<String, String> classNames,
+    Map<String, String> sectionNames,
+  ) {
+    final values = <String>{};
+    for (final assignment in assignments) {
+      final className = classNames[assignment.classId] ?? assignment.classId;
+      final sectionName =
+          sectionNames[assignment.sectionId] ?? assignment.sectionId;
+      values.add('$className - $sectionName');
+    }
+    return values.toList()..sort();
+  }
+
+  static List<String> _assignmentSubjects(
+    List<TeacherAssignmentEntity> assignments,
+  ) {
+    final values = assignments.map((item) => item.subject).toSet().toList();
+    return values..sort();
+  }
+
+  static String _normalise(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 }
