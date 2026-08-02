@@ -235,13 +235,25 @@ class _StatsGrid extends StatelessWidget {
           crossAxisCount: columns,
           crossAxisSpacing: 14,
           mainAxisSpacing: 12,
-          childAspectRatio: 2.65,
+          childAspectRatio: 2.5,
           children: [
             DashboardStatCard(
-              title: 'Total Students',
-              value: '${data.students.length}',
+              title: 'Total Active Students',
+              value: '${data.activeStudents}',
               icon: Icons.school,
               color: Colors.blue,
+            ),
+            DashboardStatCard(
+              title: 'Present Students',
+              value: '${data.presentStudents}',
+              icon: Icons.how_to_reg,
+              color: Colors.cyan,
+            ),
+            DashboardStatCard(
+              title: 'Attendance %',
+              value: data.attendancePercentage,
+              icon: Icons.fact_check,
+              color: Colors.teal,
             ),
             DashboardStatCard(
               title: 'Total Teachers',
@@ -274,26 +286,23 @@ class _StatsGrid extends StatelessWidget {
               color: Colors.purple,
             ),
             DashboardStatCard(
-              title: "Today's Attendance",
-              value: data.attendancePercentage,
-              icon: Icons.fact_check,
-              color: Colors.teal,
-            ),
-            DashboardStatCard(
               title: "Today's Fee Collection",
               value: _money(data.todayCollection),
+              detail: '${data.todayPaidStudents} students paid today',
               icon: Icons.payments,
               color: Colors.indigo,
             ),
             DashboardStatCard(
               title: 'Monthly Fee Collection',
               value: _money(data.monthCollection),
+              detail: '${data.monthPaidStudents} students paid this month',
               icon: Icons.account_balance_wallet,
               color: Colors.deepPurple,
             ),
             DashboardStatCard(
               title: 'Pending Fees',
               value: _money(data.pendingFees),
+              detail: '${data.pendingFeeStudents} students pending',
               icon: Icons.warning_amber,
               color: Colors.red,
             ),
@@ -339,6 +348,17 @@ class _DashboardData {
   final List<TeacherAttendanceEntity> teacherAttendance;
   final List<StaffAttendanceEntity> staffAttendance;
   final DateTime now;
+
+  int get activeStudents => students.where((student) => student.isActive).length;
+  int get presentStudents => todayAttendance
+      .where(
+        (item) =>
+            item.status == AttendanceStatus.present ||
+            item.status == AttendanceStatus.late,
+      )
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
 
   int get presentTeachers => teacherAttendance
       .where((item) => item.status == TeacherAttendanceStatus.present)
@@ -411,6 +431,15 @@ class _DashboardData {
             _sameDay(item.paymentDate, now),
       )
       .fold(0, (sum, item) => sum + item.totalPaid);
+  int get todayPaidStudents => payments
+      .where(
+        (item) =>
+            item.status == FeePaymentStatus.completed &&
+            _sameDay(item.paymentDate, now),
+      )
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
   double get monthCollection => payments
       .where(
         (item) =>
@@ -419,9 +448,28 @@ class _DashboardData {
             item.paymentDate.month == now.month,
       )
       .fold(0, (sum, item) => sum + item.totalPaid);
+  int get monthPaidStudents => payments
+      .where(
+        (item) =>
+            item.status == FeePaymentStatus.completed &&
+            item.paymentDate.year == now.year &&
+            item.paymentDate.month == now.month,
+      )
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
   double get pendingFees => dues
       .where((item) => item.status != MonthlyFeeDueStatus.cancelled)
       .fold(0, (sum, item) => sum + item.outstandingAmount);
+  int get pendingFeeStudents => dues
+      .where(
+        (item) =>
+            item.status != MonthlyFeeDueStatus.cancelled &&
+            item.outstandingAmount > 0,
+      )
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
   static bool _sameDay(DateTime first, DateTime second) =>
       first.year == second.year &&
       first.month == second.month &&
@@ -431,6 +479,7 @@ class _DashboardData {
 class DashboardStatCard extends StatelessWidget {
   final String title;
   final String value;
+  final String? detail;
   final IconData icon;
   final Color color;
 
@@ -438,6 +487,7 @@ class DashboardStatCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
+    this.detail,
     required this.icon,
     required this.color,
   });
@@ -471,6 +521,19 @@ class DashboardStatCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(title, style: const TextStyle(fontSize: 12.5)),
+                  if (detail != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      detail!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

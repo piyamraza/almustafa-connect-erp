@@ -4,21 +4,25 @@ enum FeePaymentMethod { cash, bankTransfer, easypaisa, jazzCash }
 
 enum FeePaymentStatus { completed, cancelled }
 
+enum FeeDueType { monthly, additionalCharge }
+
 class FeePaymentAllocationEntity extends Equatable {
   const FeePaymentAllocationEntity({
     required this.dueId,
     required this.month,
     required this.year,
     required this.amount,
+    this.dueType = FeeDueType.monthly,
   });
 
   final String dueId;
   final int month;
   final int year;
   final double amount;
+  final FeeDueType dueType;
 
   @override
-  List<Object> get props => [dueId, month, year, amount];
+  List<Object> get props => [dueId, month, year, amount, dueType];
 }
 
 class FeePaymentEntity extends Equatable {

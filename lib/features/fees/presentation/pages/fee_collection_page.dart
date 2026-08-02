@@ -7,6 +7,7 @@ import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/fee_document_request_entity.dart';
 import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
+import '../../domain/entities/student_additional_charge_due_entity.dart';
 import '../bloc/fee_collection_bloc.dart';
 import '../bloc/fee_document_bloc.dart';
 
@@ -49,6 +50,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   String? _selectedSectionId;
   StudentEntity? _selectedStudent;
   final Set<String> _selectedDueIds = {};
+  final Set<String> _selectedAdditionalDueIds = {};
   FeePaymentMethod _method = FeePaymentMethod.cash;
   DateTime _paymentDate = DateTime.now();
   bool _loadingStudents = true;
@@ -128,6 +130,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     setState(() {
       _selectedStudent = student;
       _selectedDueIds.clear();
+      _selectedAdditionalDueIds.clear();
       _amountController.clear();
     });
 
@@ -217,6 +220,12 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
         .fold<double>(0, (sum, item) => sum + item.outstandingAmount);
   }
 
+  double _selectedAdditionalOutstanding(
+    List<StudentAdditionalChargeDueEntity> dues,
+  ) => dues
+      .where((item) => _selectedAdditionalDueIds.contains(item.id))
+      .fold<double>(0, (sum, item) => sum + item.outstandingAmount);
+
   Future<void> _pickPaymentDate() async {
     final value = await showDatePicker(
       context: context,
@@ -227,7 +236,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     if (value != null) setState(() => _paymentDate = value);
   }
 
-  void _collect(List<MonthlyFeeDueEntity> dues) {
+  void _collect() {
     final student = _selectedStudent;
     if (student == null) {
       _show('Select a student.');
@@ -251,6 +260,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
         referenceNumber: _referenceController.text.trim(),
         amount: amount,
         dueIds: _selectedDueIds.toList(),
+        additionalChargeDueIds: _selectedAdditionalDueIds.toList(),
         notes: _notesController.text.trim(),
       ),
     );
@@ -317,6 +327,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               _show(state.message!);
               if (state.latestPayment != null) {
                 _selectedDueIds.clear();
+                _selectedAdditionalDueIds.clear();
                 _amountController.clear();
                 _referenceController.clear();
                 _notesController.clear();
@@ -333,6 +344,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
             final payments = state is FeeCollectionLoaded
                 ? state.payments
                 : const <FeePaymentEntity>[];
+            final additionalDues = state is FeeCollectionLoaded
+                ? state.additionalChargeDues
+                : const <StudentAdditionalChargeDueEntity>[];
             final payableDues = dues
                 .where(
                   (item) =>
@@ -341,6 +355,17 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                 )
                 .toList();
             final selectedOutstanding = _selectedOutstanding(payableDues);
+            final payableAdditionalDues = additionalDues
+                .where(
+                  (item) =>
+                      item.status != StudentAdditionalChargeDueStatus.paid &&
+                      item.status != StudentAdditionalChargeDueStatus.waived &&
+                      item.status != StudentAdditionalChargeDueStatus.cancelled,
+                )
+                .toList();
+            final totalSelectedOutstanding =
+                selectedOutstanding +
+                _selectedAdditionalOutstanding(payableAdditionalDues);
 
             return Stack(
               children: [
@@ -380,6 +405,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                               _selectedSectionId = null;
                                               _selectedStudent = null;
                                               _selectedDueIds.clear();
+                                              _selectedAdditionalDueIds.clear();
                                               _searchController.clear();
                                               _query = '';
                                             });
@@ -417,6 +443,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                               _selectedSectionId = value;
                                               _selectedStudent = null;
                                               _selectedDueIds.clear();
+                                              _selectedAdditionalDueIds.clear();
                                               _searchController.clear();
                                               _query = '';
                                             });
@@ -524,13 +551,19 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                   const SizedBox(height: 12),
                                   _duesCard(
                                     payableDues,
-                                    selectedOutstanding,
+                                    totalSelectedOutstanding,
+                                    busy,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _additionalDuesCard(
+                                    payableAdditionalDues,
+                                    totalSelectedOutstanding,
                                     busy,
                                   ),
                                   const SizedBox(height: 12),
                                   _paymentForm(
                                     payableDues,
-                                    selectedOutstanding,
+                                    totalSelectedOutstanding,
                                     busy,
                                   ),
                                   const SizedBox(height: 12),
@@ -734,12 +767,76 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               ),
             ),
             FilledButton.icon(
-              onPressed: busy || dues.isEmpty ? null : () => _collect(dues),
+              onPressed:
+                  busy ||
+                      (_selectedDueIds.isEmpty &&
+                          _selectedAdditionalDueIds.isEmpty)
+                  ? null
+                  : _collect,
               icon: const Icon(Icons.payments_outlined),
               label: const Text('Collect Payment'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _additionalDuesCard(
+    List<StudentAdditionalChargeDueEntity> dues,
+    double selectedOutstanding,
+    bool busy,
+  ) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  'Additional Charge Dues',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Chip(
+                  label: Text(
+                    'Combined selected: Rs. ${selectedOutstanding.toStringAsFixed(0)}',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (dues.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(22),
+              child: Text('No outstanding additional charges.'),
+            )
+          else
+            for (final due in dues)
+              CheckboxListTile(
+                value: _selectedAdditionalDueIds.contains(due.id),
+                title: Text(due.chargeTitle),
+                subtitle: Text(
+                  '${_label(due.chargeCategory.name)} • Due ${_date(due.dueDate)} • '
+                  'Net Rs. ${due.netPayable.toStringAsFixed(0)} • '
+                  'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} • '
+                  'Outstanding Rs. ${due.outstandingAmount.toStringAsFixed(0)}',
+                ),
+                secondary: Chip(label: Text(due.status.name.toUpperCase())),
+                onChanged: busy
+                    ? null
+                    : (selected) => setState(() {
+                        selected == true
+                            ? _selectedAdditionalDueIds.add(due.id)
+                            : _selectedAdditionalDueIds.remove(due.id);
+                      }),
+              ),
+        ],
       ),
     );
   }
@@ -884,4 +981,8 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
       '${value.day.toString().padLeft(2, '0')}/'
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
+
+  static String _label(String value) => value
+      .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}')
+      .trim();
 }

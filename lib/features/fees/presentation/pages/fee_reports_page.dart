@@ -6,6 +6,7 @@ import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/fee_report_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
 import '../bloc/fee_reports_bloc.dart';
+import 'additional_charge_reports_page.dart';
 
 class FeeReportsPage extends StatelessWidget {
   const FeeReportsPage({super.key});
@@ -111,6 +112,17 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
                             'Fee Reports',
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          FilledButton.tonalIcon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    const AdditionalChargeReportsPage(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add_chart_outlined),
+                            label: const Text('Additional Charges Reports'),
                           ),
                           const SizedBox(height: 18),
                           _filters(busy),

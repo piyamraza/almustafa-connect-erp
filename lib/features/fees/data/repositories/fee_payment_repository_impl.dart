@@ -2,9 +2,11 @@ import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
+import '../../domain/entities/student_additional_charge_due_entity.dart';
 import '../../domain/repositories/fee_payment_repository.dart';
 import '../models/fee_payment_model.dart';
 import '../models/monthly_fee_due_model.dart';
+import '../models/student_additional_charge_due_model.dart';
 
 class FeePaymentRepositoryImpl implements FeePaymentRepository {
   const FeePaymentRepositoryImpl(this._firestoreService);
@@ -51,12 +53,13 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     required String referenceNumber,
     required double amount,
     required List<String> dueIds,
+    List<String> additionalChargeDueIds = const [],
     required String notes,
   }) async {
     if (amount <= 0) {
       throw StateError('Payment amount must be greater than zero.');
     }
-    if (dueIds.isEmpty) {
+    if (dueIds.isEmpty && additionalChargeDueIds.isEmpty) {
       throw StateError('Select at least one outstanding due.');
     }
     if (method != FeePaymentMethod.cash && referenceNumber.trim().isEmpty) {
@@ -71,8 +74,12 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     final paymentCollection = _firestoreService.collection(
       FirestorePaths.feePayments,
     );
+    final additionalDueCollection = _firestoreService.collection(
+      FirestorePaths.studentAdditionalChargeDues,
+    );
 
     final dues = <MonthlyFeeDueEntity>[];
+    final additionalDues = <StudentAdditionalChargeDueEntity>[];
 
     for (final dueId in dueIds) {
       final document = await dueCollection.doc(dueId).get();
@@ -96,7 +103,27 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       dues.add(due);
     }
 
-    if (dues.isEmpty) {
+    for (final dueId in additionalChargeDueIds) {
+      final document = await additionalDueCollection.doc(dueId).get();
+      if (!document.exists || document.data() == null) {
+        throw StateError('A selected additional charge due was not found.');
+      }
+      final due = StudentAdditionalChargeDueModel.fromMap({
+        ...document.data()!,
+        'id': document.id,
+      });
+      if (due.studentId != studentId) {
+        throw StateError('Selected dues belong to different students.');
+      }
+      if (due.status == StudentAdditionalChargeDueStatus.cancelled ||
+          due.status == StudentAdditionalChargeDueStatus.waived ||
+          due.status == StudentAdditionalChargeDueStatus.paid) {
+        continue;
+      }
+      additionalDues.add(due);
+    }
+
+    if (dues.isEmpty && additionalDues.isEmpty) {
       throw StateError('No payable dues remain in the selection.');
     }
 
@@ -109,6 +136,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     var remaining = amount;
     final allocations = <FeePaymentAllocationEntity>[];
     final updatedDues = <MonthlyFeeDueEntity>[];
+    final updatedAdditionalDues = <StudentAdditionalChargeDueEntity>[];
     final now = DateTime.now();
 
     for (final due in dues) {
@@ -166,6 +194,52 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       remaining -= allocation;
     }
 
+    additionalDues.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    for (final due in additionalDues) {
+      if (remaining <= 0) break;
+      final allocation = remaining < due.outstandingAmount
+          ? remaining
+          : due.outstandingAmount;
+      if (allocation <= 0) continue;
+      final newPaid = due.paidAmount + allocation;
+      allocations.add(
+        FeePaymentAllocationEntity(
+          dueId: due.id,
+          month: due.dueDate.month,
+          year: due.dueDate.year,
+          amount: allocation,
+          dueType: FeeDueType.additionalCharge,
+        ),
+      );
+      updatedAdditionalDues.add(
+        StudentAdditionalChargeDueEntity(
+          id: due.id,
+          chargeId: due.chargeId,
+          chargeTitle: due.chargeTitle,
+          chargeCategory: due.chargeCategory,
+          studentId: due.studentId,
+          studentName: due.studentName,
+          admissionNo: due.admissionNo,
+          classId: due.classId,
+          sectionId: due.sectionId,
+          academicSession: due.academicSession,
+          amount: due.amount,
+          discountAmount: due.discountAmount,
+          waivedAmount: due.waivedAmount,
+          netPayable: due.netPayable,
+          paidAmount: newPaid,
+          dueDate: due.dueDate,
+          status: newPaid >= due.netPayable
+              ? StudentAdditionalChargeDueStatus.paid
+              : StudentAdditionalChargeDueStatus.partiallyPaid,
+          notes: due.notes,
+          generatedAt: due.generatedAt,
+          updatedAt: now,
+        ),
+      );
+      remaining -= allocation;
+    }
+
     final id = generateId();
     final receiptNumber =
         'RCPT-${now.year}${now.month.toString().padLeft(2, '0')}'
@@ -199,6 +273,12 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
         MonthlyFeeDueModel.fromEntity(due).toMap(),
       );
     }
+    for (final due in updatedAdditionalDues) {
+      batch.set(
+        additionalDueCollection.doc(due.id),
+        StudentAdditionalChargeDueModel.fromEntity(due).toMap(),
+      );
+    }
 
     batch.set(
       paymentCollection.doc(payment.id),
@@ -224,6 +304,9 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     final dueCollection = _firestoreService.collection(
       FirestorePaths.monthlyFeeDues,
     );
+    final additionalDueCollection = _firestoreService.collection(
+      FirestorePaths.studentAdditionalChargeDues,
+    );
 
     final paymentDocument = await paymentCollection.doc(paymentId).get();
 
@@ -244,6 +327,31 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     final now = DateTime.now();
 
     for (final allocation in payment.allocations) {
+      if (allocation.dueType == FeeDueType.additionalCharge) {
+        final document = await additionalDueCollection
+            .doc(allocation.dueId)
+            .get();
+        if (!document.exists || document.data() == null) continue;
+        final due = StudentAdditionalChargeDueModel.fromMap({
+          ...document.data()!,
+          'id': document.id,
+        });
+        final paid = (due.paidAmount - allocation.amount).clamp(
+          0,
+          double.infinity,
+        );
+        final status = paid <= 0
+            ? StudentAdditionalChargeDueStatus.unpaid
+            : paid >= due.netPayable
+            ? StudentAdditionalChargeDueStatus.paid
+            : StudentAdditionalChargeDueStatus.partiallyPaid;
+        batch.update(additionalDueCollection.doc(due.id), {
+          'paidAmount': paid,
+          'status': status.name,
+          'updatedAt': now,
+        });
+        continue;
+      }
       final dueDocument = await dueCollection.doc(allocation.dueId).get();
 
       if (!dueDocument.exists || dueDocument.data() == null) {

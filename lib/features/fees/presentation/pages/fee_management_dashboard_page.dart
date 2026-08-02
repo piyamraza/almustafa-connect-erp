@@ -6,6 +6,7 @@ import 'fee_reports_page.dart';
 import 'fee_structure_page.dart';
 import 'monthly_fee_generation_page.dart';
 import 'student_fee_assignment_page.dart';
+import 'additional_charges_management_page.dart';
 
 const _pageBackground = Color(0xFFF2F5FB);
 const _textPrimary = Color(0xFF182230);
@@ -56,6 +57,21 @@ class FeeManagementDashboardPage extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const MonthlyFeeGenerationPage(),
+            ),
+          );
+        },
+      ),
+      _FeeFeature(
+        title: 'Additional Charges',
+        description:
+            'Create and generate school-wide, class-wise or student-specific charges.',
+        icon: Icons.add_card_outlined,
+        color: const Color(0xFFDB2777),
+        lightColor: const Color(0xFFFFECF5),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AdditionalChargesManagementPage(),
             ),
           );
         },

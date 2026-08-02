@@ -4,6 +4,8 @@ import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
 import '../../domain/repositories/fee_payment_repository.dart';
 import '../../domain/repositories/monthly_fee_due_repository.dart';
+import '../../domain/entities/student_additional_charge_due_entity.dart';
+import '../../domain/repositories/student_additional_charge_due_repository.dart';
 
 sealed class FeeCollectionEvent {
   const FeeCollectionEvent();
@@ -27,6 +29,7 @@ class CollectStudentFeePayment extends FeeCollectionEvent {
     required this.referenceNumber,
     required this.amount,
     required this.dueIds,
+    this.additionalChargeDueIds = const [],
     required this.notes,
   });
 
@@ -39,6 +42,7 @@ class CollectStudentFeePayment extends FeeCollectionEvent {
   final String referenceNumber;
   final double amount;
   final List<String> dueIds;
+  final List<String> additionalChargeDueIds;
   final String notes;
 }
 
@@ -72,12 +76,14 @@ class FeeCollectionLoaded extends FeeCollectionState {
   const FeeCollectionLoaded({
     required this.dues,
     required this.payments,
+    required this.additionalChargeDues,
     this.latestPayment,
     this.message,
   });
 
   final List<MonthlyFeeDueEntity> dues;
   final List<FeePaymentEntity> payments;
+  final List<StudentAdditionalChargeDueEntity> additionalChargeDues;
   final FeePaymentEntity? latestPayment;
   final String? message;
 }
@@ -89,14 +95,18 @@ class FeeCollectionError extends FeeCollectionState {
 }
 
 class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
-  FeeCollectionBloc(this._dueRepository, this._paymentRepository)
-    : super(const FeeCollectionInitial()) {
+  FeeCollectionBloc(
+    this._dueRepository,
+    this._additionalDueRepository,
+    this._paymentRepository,
+  ) : super(const FeeCollectionInitial()) {
     on<LoadFeeCollectionData>(_load);
     on<CollectStudentFeePayment>(_collect);
     on<CancelStudentFeePayment>(_cancel);
   }
 
   final MonthlyFeeDueRepository _dueRepository;
+  final StudentAdditionalChargeDueRepository _additionalDueRepository;
   final FeePaymentRepository _paymentRepository;
 
   Future<void> _load(
@@ -113,7 +123,19 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
-      emit(FeeCollectionLoaded(dues: dues, payments: payments));
+      final additional = event.studentId == null
+          ? <StudentAdditionalChargeDueEntity>[]
+          : await _additionalDueRepository.getStudentDues(
+              event.studentId!,
+              academicSession: event.academicSession,
+            );
+      emit(
+        FeeCollectionLoaded(
+          dues: dues,
+          payments: payments,
+          additionalChargeDues: additional,
+        ),
+      );
     } catch (error) {
       emit(FeeCollectionError(_message(error)));
     }
@@ -135,6 +157,7 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         referenceNumber: event.referenceNumber,
         amount: event.amount,
         dueIds: event.dueIds,
+        additionalChargeDueIds: event.additionalChargeDueIds,
         notes: event.notes,
       );
 
@@ -146,11 +169,16 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+      final additional = await _additionalDueRepository.getStudentDues(
+        event.studentId,
+        academicSession: event.academicSession,
+      );
 
       emit(
         FeeCollectionLoaded(
           dues: dues,
           payments: payments,
+          additionalChargeDues: additional,
           latestPayment: payment,
           message: 'Payment collected. Receipt: ${payment.receiptNumber}',
         ),
@@ -179,11 +207,16 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+      final additional = await _additionalDueRepository.getStudentDues(
+        event.studentId,
+        academicSession: event.academicSession,
+      );
 
       emit(
         FeeCollectionLoaded(
           dues: dues,
           payments: payments,
+          additionalChargeDues: additional,
           message: 'Payment cancelled successfully.',
         ),
       );

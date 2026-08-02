@@ -217,6 +217,24 @@ service cloud.firestore {
       allow delete: if hasPermission('feesManage');
     }
 
+    match /additional_charges/{document=**} {
+      allow read: if hasPermission('feesView');
+      allow create, update: if hasPermission('feesManage');
+      allow delete: if hasPermission('feesManage');
+    }
+
+    match /student_additional_charge_dues/{document=**} {
+      allow read: if hasPermission('feesView')
+          || (
+            activeAssignment()
+            && assignment().roleId == 'parent'
+            && resourceStudentId() in assignment().studentIds
+          );
+      allow create: if hasPermission('feesManage');
+      allow update: if hasAnyPermission('feesManage', 'feesCollect');
+      allow delete: if hasPermission('feesManage');
+    }
+
     match /fee_challans/{document=**} {
       allow read: if hasPermission('feesView');
       allow write: if hasAnyPermission('feesManage', 'feesCollect');

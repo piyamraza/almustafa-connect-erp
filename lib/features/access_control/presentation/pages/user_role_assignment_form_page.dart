@@ -4,7 +4,6 @@ import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/app_role_entity.dart';
 import '../../domain/entities/user_role_assignment_entity.dart';
 import '../../domain/repositories/app_role_repository.dart';
-import '../../domain/repositories/user_role_assignment_repository.dart';
 
 class UserRoleAssignmentFormPage extends StatefulWidget {
   const UserRoleAssignmentFormPage({super.key, this.existing});

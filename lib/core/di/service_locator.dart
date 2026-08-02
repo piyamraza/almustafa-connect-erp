@@ -30,6 +30,8 @@ import '../../features/exams/data/repositories/exam_date_sheet_repository_impl.d
 import '../../features/fees/data/services/fee_report_service_impl.dart';
 import '../../features/fees/data/services/fee_document_service_impl.dart';
 import '../../features/fees/data/repositories/fee_payment_repository_impl.dart';
+import '../../features/fees/data/repositories/additional_charge_repository_impl.dart';
+import '../../features/fees/data/repositories/student_additional_charge_due_repository_impl.dart';
 import '../../features/fees/data/repositories/monthly_fee_due_repository_impl.dart';
 import '../../features/fees/data/repositories/student_fee_assignment_repository_impl.dart';
 import '../../features/fees/data/repositories/fee_structure_repository_impl.dart';
@@ -45,6 +47,9 @@ import '../../features/exams/domain/usecases/validate_exam_date_sheet.dart';
 import '../../features/fees/domain/services/fee_report_service.dart';
 import '../../features/fees/domain/services/fee_document_service.dart';
 import '../../features/fees/domain/repositories/fee_payment_repository.dart';
+import '../../features/fees/domain/repositories/additional_charge_repository.dart';
+import '../../features/fees/domain/repositories/student_additional_charge_due_repository.dart';
+import '../../features/fees/domain/services/additional_charge_generation_service.dart';
 import '../../features/fees/domain/repositories/monthly_fee_due_repository.dart';
 import '../../features/fees/domain/usecases/generate_monthly_fees.dart';
 import '../../features/fees/domain/repositories/student_fee_assignment_repository.dart';
@@ -80,6 +85,7 @@ import '../../features/exams/presentation/bloc/exam_date_sheet_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_reports_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_document_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_collection_bloc.dart';
+import '../../features/fees/presentation/bloc/additional_charges_bloc.dart';
 import '../../features/fees/presentation/bloc/monthly_fee_generation_bloc.dart';
 import '../../features/fees/presentation/bloc/student_fee_assignment_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_structure_bloc.dart';
@@ -448,6 +454,21 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<MonthlyFeeDueRepository>(
     () => MonthlyFeeDueRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<AdditionalChargeRepository>(
+    () => AdditionalChargeRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<StudentAdditionalChargeDueRepository>(
+    () => StudentAdditionalChargeDueRepositoryImpl(
+      sl<FirebaseFirestoreService>(),
+    ),
+  );
+  sl.registerLazySingleton<AdditionalChargeGenerationService>(
+    () => AdditionalChargeGenerationService(
+      sl<StudentRepository>(),
+      sl<AdditionalChargeRepository>(),
+      sl<StudentAdditionalChargeDueRepository>(),
+    ),
   );
 
   sl.registerLazySingleton<GenerateMonthlyFees>(
@@ -981,7 +1002,15 @@ Future<void> setupServiceLocator() async {
   sl.registerFactory<FeeCollectionBloc>(
     () => FeeCollectionBloc(
       sl<MonthlyFeeDueRepository>(),
+      sl<StudentAdditionalChargeDueRepository>(),
       sl<FeePaymentRepository>(),
+    ),
+  );
+  sl.registerFactory<AdditionalChargesBloc>(
+    () => AdditionalChargesBloc(
+      sl<AdditionalChargeRepository>(),
+      sl<StudentAdditionalChargeDueRepository>(),
+      sl<AdditionalChargeGenerationService>(),
     ),
   );
   sl.registerFactory<MonthlyFeeGenerationBloc>(

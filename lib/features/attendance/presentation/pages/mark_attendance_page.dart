@@ -194,7 +194,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
           (_selectedSection == null || student.sectionId == _selectedSection) &&
           (query.isEmpty ||
               student.fullName.toLowerCase().contains(query) ||
-              student.admissionNo.toLowerCase().contains(query) ||
+              student.fatherName.toLowerCase().contains(query) ||
               student.rollNumber.toLowerCase().contains(query));
     }).toList();
     filtered.sort(_compareByRollNumber);
@@ -438,11 +438,12 @@ class _ClassGrid extends StatelessWidget {
                   .where(
                     (student) =>
                         student.fullName.toLowerCase().contains(query) ||
-                        student.admissionNo.toLowerCase().contains(query),
+                        student.fatherName.toLowerCase().contains(query) ||
+                        student.rollNumber.toLowerCase().contains(query),
                   )
                   .toList();
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -528,7 +529,7 @@ class _AcademicStructureLoadError extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -614,12 +615,12 @@ class _AttendanceList extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = section == null ? className : '$className • Section $section';
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -627,7 +628,7 @@ class _AttendanceList extends StatelessWidget {
                   controller: searchController,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: 'Search by student name or admission no',
+                    hintText: 'Search by name, father name or roll number',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -642,13 +643,13 @@ class _AttendanceList extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Expanded(
             child: students.isEmpty
                 ? const Center(child: Text('No students found for this class.'))
                 : ListView.separated(
                     itemCount: students.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 4),
                     itemBuilder: (context, index) {
                       final student = students[index];
                       final status = attendanceStatus.putIfAbsent(
@@ -661,7 +662,10 @@ class _AttendanceList extends StatelessWidget {
                       );
                       return Card(
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final details = _StudentDetails(student: student);
@@ -675,15 +679,15 @@ class _AttendanceList extends StatelessWidget {
                                   ? Column(
                                       children: [
                                         details,
-                                        const SizedBox(height: 16),
+                                        const SizedBox(height: 8),
                                         controls,
                                       ],
                                     )
                                   : Row(
                                       children: [
                                         Expanded(child: details),
-                                        const SizedBox(width: 24),
-                                        SizedBox(width: 400, child: controls),
+                                        const SizedBox(width: 14),
+                                        SizedBox(width: 380, child: controls),
                                       ],
                                     );
                             },
@@ -701,41 +705,55 @@ class _AttendanceList extends StatelessWidget {
 
 class _StudentDetails extends StatelessWidget {
   const _StudentDetails({required this.student});
+
   final StudentEntity student;
+
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      CircleAvatar(
-        radius: 24,
-        child: Text(
-          student.fullName.isEmpty ? '?' : student.fullName[0].toUpperCase(),
+  Widget build(BuildContext context) {
+    final father = student.fatherName.trim().isEmpty
+        ? '-'
+        : student.fatherName.trim();
+    final roll = student.rollNumber.trim().isEmpty
+        ? '-'
+        : student.rollNumber.trim();
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 18,
+          child: Text(
+            student.fullName.isEmpty ? '?' : student.fullName[0].toUpperCase(),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
         ),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              student.fullName,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
-            ),
-            Text('Admission No: ${student.admissionNo}'),
-            Text('Father: ${student.fatherName}'),
-            if (student.guardianPhone.isNotEmpty)
-              Text('Mobile: ${student.guardianPhone}'),
-          ],
+        const SizedBox(width: 10),
+        Expanded(
+          child: Wrap(
+            spacing: 18,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                student.fullName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                'Father: $father',
+                style: const TextStyle(
+                  color: Color(0xFF667085),
+                  fontSize: 13.5,
+                ),
+              ),
+              Text('Roll No: $roll', style: const TextStyle(fontSize: 13.5)),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class _AttendanceControls extends StatelessWidget {
@@ -762,6 +780,8 @@ class _AttendanceControls extends StatelessWidget {
           initialValue: status,
           decoration: const InputDecoration(
             labelText: 'Status',
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(),
           ),
           items: AttendanceStatus.values
@@ -789,6 +809,8 @@ class _AttendanceControls extends StatelessWidget {
           controller: remarksController,
           decoration: const InputDecoration(
             labelText: 'Remarks',
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(),
           ),
         ),

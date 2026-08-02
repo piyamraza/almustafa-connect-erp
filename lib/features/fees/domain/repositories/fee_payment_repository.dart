@@ -16,6 +16,7 @@ abstract class FeePaymentRepository {
     required String referenceNumber,
     required double amount,
     required List<String> dueIds,
+    List<String> additionalChargeDueIds = const [],
     required String notes,
   });
 

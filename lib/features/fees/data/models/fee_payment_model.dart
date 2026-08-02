@@ -74,6 +74,11 @@ class FeePaymentModel extends FeePaymentEntity {
               month: (item['month'] as num?)?.toInt() ?? 1,
               year: (item['year'] as num?)?.toInt() ?? DateTime.now().year,
               amount: (item['amount'] as num?)?.toDouble() ?? 0,
+              dueType:
+                  FeeDueType.values
+                      .where((value) => value.name == item['dueType'])
+                      .firstOrNull ??
+                  FeeDueType.monthly,
             ),
           )
           .toList(growable: false),
@@ -107,6 +112,7 @@ class FeePaymentModel extends FeePaymentEntity {
             'month': item.month,
             'year': item.year,
             'amount': item.amount,
+            'dueType': item.dueType.name,
           },
         )
         .toList(growable: false),

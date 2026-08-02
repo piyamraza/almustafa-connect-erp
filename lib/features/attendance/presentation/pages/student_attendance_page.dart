@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../students/domain/entities/student_entity.dart';
+import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/attendance_entity.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
@@ -27,6 +29,25 @@ class StudentAttendancePage extends StatefulWidget {
 class _StudentAttendancePageState extends State<StudentAttendancePage> {
   final TextEditingController _searchController = TextEditingController();
   String _search = '';
+  Map<String, StudentEntity> _studentDetails = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentDetails();
+  }
+
+  Future<void> _loadStudentDetails() async {
+    try {
+      final students = await sl<StudentRepository>().getStudents();
+      if (!mounted) return;
+      setState(() {
+        _studentDetails = {for (final student in students) student.id: student};
+      });
+    } catch (_) {
+      // Attendance remains available if profile details cannot be loaded.
+    }
+  }
 
   @override
   void dispose() {
@@ -50,8 +71,12 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
           if (state is AttendanceLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (state is AttendanceError) return Center(child: Text(state.message));
-          if (state is! AttendanceLoaded) return const SizedBox();
+          if (state is AttendanceError) {
+            return Center(child: Text(state.message));
+          }
+          if (state is! AttendanceLoaded) {
+            return const SizedBox();
+          }
 
           final students = _buildStudentSummaries(state.attendance);
           return Column(
@@ -60,15 +85,19 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                 padding: const EdgeInsets.all(16),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (value) => setState(() => _search = value.trim().toLowerCase()),
+                  onChanged: (value) =>
+                      setState(() => _search = value.trim().toLowerCase()),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.search),
-                    hintText: 'Search by name or admission number...',
+                    hintText: 'Search by name, father name or roll number...',
                     suffixIcon: _search.isEmpty
                         ? null
                         : IconButton(
                             icon: const Icon(Icons.clear),
-                            onPressed: _searchController.clear,
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _search = '');
+                            },
                           ),
                     border: const OutlineInputBorder(),
                   ),
@@ -94,21 +123,26 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                               ),
                               title: Text(student.name),
                               subtitle: Text(
-                                '${student.admissionNo} • ${student.classId}-${student.sectionId}\n'
-                                '${student.records.length} attendance record(s)',
+                                'Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}\n'
+                                'Class: ${student.classId}-${student.sectionId}\n'
+                                'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
                               ),
                               isThreeLine: true,
-                              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 18,
+                              ),
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => StudentAttendanceHistoryDetailPage(
-                                    studentId: student.studentId,
-                                    studentName: student.name,
-                                    admissionNo: student.admissionNo,
-                                    classId: student.classId,
-                                    sectionId: student.sectionId,
-                                    records: student.records,
-                                  ),
+                                  builder: (_) =>
+                                      StudentAttendanceHistoryDetailPage(
+                                        studentId: student.studentId,
+                                        studentName: student.name,
+                                        admissionNo: student.admissionNo,
+                                        classId: student.classId,
+                                        sectionId: student.sectionId,
+                                        records: student.records,
+                                      ),
                                 ),
                               ),
                             ),
@@ -124,10 +158,14 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
 
     return inheritedBloc == null
         ? BlocProvider<AttendanceBloc>(
-            create: (_) => sl<AttendanceBloc>()..add(const LoadAttendanceEvent()),
+            create: (_) =>
+                sl<AttendanceBloc>()..add(const LoadAttendanceEvent()),
             child: content,
           )
-        : BlocProvider<AttendanceBloc>.value(value: inheritedBloc, child: content);
+        : BlocProvider<AttendanceBloc>.value(
+            value: inheritedBloc,
+            child: content,
+          );
   }
 
   List<_StudentAttendanceSummary> _buildStudentSummaries(
@@ -149,26 +187,34 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
       );
       final matchesSelection =
           (selectedDay == null || recordDay == selectedDay) &&
-              (widget.classId == null || record.classId == widget.classId) &&
-              (widget.sectionId == null || record.sectionId == widget.sectionId) &&
-              (_search.isEmpty ||
-                  record.studentName.toLowerCase().contains(_search) ||
-                  record.admissionNo.toLowerCase().contains(_search));
+          (widget.classId == null || record.classId == widget.classId) &&
+          (widget.sectionId == null || record.sectionId == widget.sectionId);
       if (matchesSelection) {
         grouped.putIfAbsent(record.studentId, () => []).add(record);
       }
     }
-    final summaries = grouped.entries.map((entry) {
-      final first = entry.value.first;
-      return _StudentAttendanceSummary(
-        studentId: entry.key,
-        name: first.studentName,
-        admissionNo: first.admissionNo,
-        classId: first.classId,
-        sectionId: first.sectionId,
-        records: entry.value,
-      );
-    }).toList();
+    final summaries = grouped.entries
+        .map((entry) {
+          final first = entry.value.first;
+          final details = _studentDetails[entry.key];
+          return _StudentAttendanceSummary(
+            studentId: entry.key,
+            name: first.studentName,
+            admissionNo: first.admissionNo,
+            classId: first.classId,
+            sectionId: first.sectionId,
+            fatherName: details?.fatherName ?? '',
+            rollNumber: details?.rollNumber ?? '',
+            records: entry.value,
+          );
+        })
+        .where((student) {
+          if (_search.isEmpty) return true;
+          return student.name.toLowerCase().contains(_search) ||
+              student.fatherName.toLowerCase().contains(_search) ||
+              student.rollNumber.toLowerCase().contains(_search);
+        })
+        .toList();
     summaries.sort((first, second) => first.name.compareTo(second.name));
     return summaries;
   }
@@ -181,6 +227,8 @@ class _StudentAttendanceSummary {
     required this.admissionNo,
     required this.classId,
     required this.sectionId,
+    required this.fatherName,
+    required this.rollNumber,
     required this.records,
   });
 
@@ -189,5 +237,7 @@ class _StudentAttendanceSummary {
   final String admissionNo;
   final String classId;
   final String sectionId;
+  final String fatherName;
+  final String rollNumber;
   final List<AttendanceEntity> records;
 }
