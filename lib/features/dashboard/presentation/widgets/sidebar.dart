@@ -5,6 +5,7 @@ import '../../../access_control/domain/entities/app_permission.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../access_control/presentation/pages/roles_permissions_page.dart';
 import '../../../access_control/presentation/pages/unauthorized_access_page.dart';
+import '../../../accounts/presentation/pages/accounts_dashboard_page.dart';
 import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
@@ -367,6 +368,18 @@ class _SidebarState extends State<Sidebar> {
                     if (_access.hasPermission(AppPermission.reportsView))
                       _menuTile(
                         context,
+                        icon: Icons.account_balance_outlined,
+                        title: 'Accounts & Payroll',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.reportsView,
+                          moduleName: 'Accounts & Payroll',
+                          page: const AccountsDashboardPage(),
+                        ),
+                      ),
+                    if (_access.hasPermission(AppPermission.reportsView))
+                      _menuTile(
+                        context,
                         icon: Icons.assessment,
                         title: 'Reports',
                         onTap: () {
@@ -461,6 +474,7 @@ class _SidebarState extends State<Sidebar> {
       'Academic Calendar' => const Color(0xFF22D3EE),
       'Notices & Circulars' => const Color(0xFFFB7185),
       'Parents' => const Color(0xFF818CF8),
+      'Accounts & Payroll' => const Color(0xFF0F766E),
       'Reports' => const Color(0xFF60A5FA),
       'Roles & Permissions' => const Color(0xFFE879F9),
       _ => const Color(0xFF94A3B8),

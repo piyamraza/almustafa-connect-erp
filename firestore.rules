@@ -326,6 +326,45 @@ service cloud.firestore {
     }
 
     // -----------------------------------------------------------------
+    // Accounts and payroll
+    // -----------------------------------------------------------------
+
+    match /expense_categories/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /expenses/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /income_entries/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /payroll_profiles/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /payroll_records/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /monthly_profit_loss/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    match /cashbook_entries/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow write: if hasPermission('reportsExport');
+    }
+
+    // -----------------------------------------------------------------
     // Exams, date sheets and results
     // -----------------------------------------------------------------
 
