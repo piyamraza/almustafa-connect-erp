@@ -42,6 +42,7 @@ dependencies:
   cloud_firestore: ^6.0.1
   cloud_functions: ^6.0.1
   firebase_storage: ^13.0.1
+  firebase_messaging: ^16.4.3
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.5.3
   internet_connection_checker_plus: ^2.7.2

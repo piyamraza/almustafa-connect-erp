@@ -9,10 +9,9 @@ import 'communication_state.dart';
 class CommunicationBloc extends Bloc<CommunicationEvent, CommunicationState> {
   CommunicationBloc({
     required this._getMessages,
-    required SaveCommunicationMessage saveMessage,
+    required this._saveMessage,
     required this._deleteMessage,
-  }) : _saveMessage = saveMessage,
-       super(const CommunicationInitial()) {
+  }) : super(const CommunicationInitial()) {
     on<LoadCommunicationDashboard>(_load);
     on<SaveCommunicationMessageRequested>(_save);
     on<DeleteCommunicationMessageRequested>(_delete);

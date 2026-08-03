@@ -1,6 +1,21 @@
 class FirestorePaths {
   FirestorePaths._();
 
+  static const String storeItems = 'store_items';
+  static const String storeSuppliers = 'store_suppliers';
+  static const String storePurchases = 'store_purchases';
+  static const String storeSales = 'store_sales';
+  static const String storePayments = 'store_payments';
+  static const String storeStudentPayments = 'store_student_payments';
+  static const String storeSupplierPayments = 'store_supplier_payments';
+  static const String systemSettings = 'system_settings';
+  static const String userPreferences = 'user_preferences';
+  static const String activeSessions = 'active_sessions';
+  static const String loginHistory = 'login_history';
+  static const String securityLogs = 'security_logs';
+  static const String systemHealthLogs = 'system_health_logs';
+  static const String backupHistory = 'backup_history';
+  static const String restoreRequests = 'restore_requests';
   static const String students = 'students';
   static const String teachers = 'teachers';
   static const String teacherAssignments = 'teacher_assignments';
@@ -46,11 +61,19 @@ class FirestorePaths {
   static const String academicYearConfigs = 'academic_year_configs';
   static const String homework = 'homework';
   static const String homeworkSubmissions = 'homework_submissions';
+  static const String pushNotificationRequests = 'push_notification_requests';
+  static const String pushDeviceTokens = 'push_device_tokens';
+  static const String whatsappBroadcasts = 'whatsapp_broadcasts';
+  static const String whatsappTemplates = 'whatsapp_templates';
+  static const String whatsappMessageRequests = 'whatsapp_message_requests';
+  static const String communicationBroadcasts = 'communication_broadcasts';
   static const String communicationMessages = 'communication_messages';
   static const String communicationReceipts = 'communication_receipts';
+  static const String chatMessages = 'chat_messages';
   static const String communicationThreads = 'communication_threads';
   static const String communicationParticipants = 'communication_participants';
   static const String communicationDeliveryLogs = 'communication_delivery_logs';
+  static const String communicationAuditLogs = 'communication_audit_logs';
   static const String notices = 'notices';
   static const String noticeReceipts = 'notice_receipts';
   static const String parentAccounts = 'parent_accounts';

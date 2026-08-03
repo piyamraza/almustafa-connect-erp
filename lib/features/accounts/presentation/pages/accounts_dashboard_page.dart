@@ -80,7 +80,7 @@ class _AccountsDashboardView extends StatelessWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       Text(
@@ -88,7 +88,7 @@ class _AccountsDashboardView extends StatelessWidget {
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final columns = constraints.maxWidth >= 1100
@@ -137,7 +137,9 @@ class _AccountsDashboardView extends StatelessWidget {
                             physics: const NeverScrollableScrollPhysics(),
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: columns == 1
+                            childAspectRatio: columns == 5
+                                ? 2.35
+                                : columns == 1
                                 ? 3.1
                                 : columns == 2
                                 ? 1.55
@@ -146,7 +148,7 @@ class _AccountsDashboardView extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 12),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final wide = constraints.maxWidth >= 900;
@@ -185,22 +187,22 @@ class _AccountsDashboardView extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       AccountsRecentTransactions(
                         items: summary.recentTransactions,
                       ),
-                      const SizedBox(height: 26),
+                      const SizedBox(height: 12),
                       Text(
                         'Accounts Modules',
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                     ]),
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   sliver: _AccountsModuleGrid(),
                 ),
               ],
@@ -257,7 +259,9 @@ class _AccountsModuleGrid extends StatelessWidget {
     return SliverLayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.crossAxisExtent;
-        final columns = width >= 1100
+        final columns = width >= 1400
+            ? 6
+            : width >= 1100
             ? 3
             : width >= 650
             ? 2
@@ -266,9 +270,13 @@ class _AccountsModuleGrid extends StatelessWidget {
         return SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: columns == 1 ? 2.25 : 1.35,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: columns == 6
+                ? 1.2
+                : columns == 1
+                ? 2.25
+                : 1.35,
           ),
           delegate: SliverChildBuilderDelegate((context, index) {
             final module = modules[index];
@@ -282,24 +290,24 @@ class _AccountsModuleGrid extends StatelessWidget {
                   ).push(MaterialPageRoute<void>(builder: (_) => module.page));
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(module.icon, size: 34),
-                      const SizedBox(height: 14),
+                      Icon(module.icon, size: 24),
+                      const SizedBox(height: 8),
                       Text(
                         module.title,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 4),
                       Text(module.description),
                       const Spacer(),
                       const Align(
                         alignment: Alignment.centerRight,
-                        child: Icon(Icons.arrow_forward),
+                        child: Icon(Icons.arrow_forward, size: 18),
                       ),
                     ],
                   ),

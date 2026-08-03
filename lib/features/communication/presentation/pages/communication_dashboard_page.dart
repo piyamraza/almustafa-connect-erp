@@ -7,6 +7,12 @@ import '../bloc/communication_bloc.dart';
 import '../bloc/communication_event.dart';
 import '../bloc/communication_state.dart';
 import 'announcements_page.dart';
+import 'communication_broadcast_page.dart';
+import 'communication_audit_page.dart';
+import 'communication_analytics_page.dart';
+import 'in_app_chat_page.dart';
+import 'push_notification_history_page.dart';
+import 'whatsapp_dashboard_page.dart';
 
 class CommunicationDashboardPage extends StatelessWidget {
   const CommunicationDashboardPage({super.key});
@@ -80,30 +86,77 @@ class _CommunicationDashboardView extends StatelessWidget {
                   );
                 },
               ),
-              const _ModuleCard(
+              _ModuleCard(
                 title: 'Push Notifications',
-                subtitle: 'Phase 3',
+                subtitle: 'History, delivery logs, and failed retries',
                 icon: Icons.notifications_active_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PushNotificationHistoryPage(),
+                    ),
+                  );
+                },
               ),
-              const _ModuleCard(
+              _ModuleCard(
                 title: 'WhatsApp Integration',
-                subtitle: 'Phase 4',
+                subtitle: 'Templates, sending requests, and history',
                 icon: Icons.chat_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const WhatsAppDashboardPage(),
+                    ),
+                  );
+                },
               ),
-              const _ModuleCard(
+              _ModuleCard(
                 title: 'In-App Chat',
-                subtitle: 'Phase 5',
+                subtitle: 'Admin, teacher, and parent conversations',
                 icon: Icons.forum_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const InAppChatPage(),
+                    ),
+                  );
+                },
               ),
-              const _ModuleCard(
+              _ModuleCard(
                 title: 'Broadcast Messages',
-                subtitle: 'Phase 6',
+                subtitle: 'In-App, Push, and WhatsApp broadcasts',
                 icon: Icons.cell_tower_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CommunicationBroadcastPage(),
+                    ),
+                  );
+                },
               ),
-              const _ModuleCard(
-                title: 'Communication History',
-                subtitle: 'Phase 7',
+              _ModuleCard(
+                title: 'Communication Analytics',
+                subtitle: 'Channel performance, trends, and failure rates',
+                icon: Icons.analytics_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CommunicationAnalyticsPage(),
+                    ),
+                  );
+                },
+              ),
+              _ModuleCard(
+                title: 'Delivery Tracking & Audit',
+                subtitle: 'Sent, delivered, read, failed, and audit history',
                 icon: Icons.history_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CommunicationAuditPage(),
+                    ),
+                  );
+                },
               ),
             ],
           );

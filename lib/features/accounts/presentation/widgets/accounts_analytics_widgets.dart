@@ -173,11 +173,11 @@ class AccountsKpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            CircleAvatar(radius: 25, child: Icon(icon)),
-            const SizedBox(width: 14),
+            CircleAvatar(radius: 18, child: Icon(icon, size: 19)),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,7 +186,7 @@ class AccountsKpiCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Rs. ${_money(value)}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -461,18 +461,18 @@ class _EmptyAnalyticsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Column(
           children: [
-            Icon(icon, size: 42),
-            const SizedBox(height: 10),
+            Icon(icon, size: 28),
+            const SizedBox(height: 6),
             Text(
               title,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             Text(message, textAlign: TextAlign.center),
           ],
         ),

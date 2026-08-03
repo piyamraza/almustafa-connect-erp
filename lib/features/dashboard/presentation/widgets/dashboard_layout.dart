@@ -282,9 +282,13 @@ class _StatsGrid extends StatelessWidget {
             DashboardStatCard(
               title: 'Pending Attendance',
               value: '${data.pendingAttendanceGroups.length}',
-              detail: 'class sections need attention',
+              detail: data.pendingAttendanceGroups.isNotEmpty
+                  ? 'class sections need attention'
+                  : null,
               icon: Icons.pending_actions_outlined,
-              color: Colors.red,
+              color: data.pendingAttendanceGroups.isNotEmpty
+                  ? Colors.red
+                  : Colors.green,
             ),
             DashboardStatCard(
               title: 'Total Teachers',
