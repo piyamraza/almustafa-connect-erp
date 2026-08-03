@@ -27,6 +27,13 @@ import '../../features/accounts/data/services/accounts_report_service_impl.dart'
 import '../../features/accounts/domain/services/accounts_report_service.dart';
 import '../../features/accounts/domain/usecases/get_accounts_report_data.dart';
 import '../../features/accounts/presentation/bloc/accounts_reports_bloc.dart';
+import '../../features/communication/data/datasources/communication_remote_datasource.dart';
+import '../../features/communication/data/repositories/communication_repository_impl.dart';
+import '../../features/communication/domain/repositories/communication_repository.dart';
+import '../../features/communication/domain/usecases/delete_communication_message.dart';
+import '../../features/communication/domain/usecases/get_communication_messages.dart';
+import '../../features/communication/domain/usecases/save_communication_message.dart';
+import '../../features/communication/presentation/bloc/communication_bloc.dart';
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
@@ -637,6 +644,13 @@ Future<void> setupServiceLocator() async {
     () => AccountsRepositoryImpl(sl<AccountsRemoteDataSource>()),
   );
 
+  sl.registerLazySingleton<CommunicationRemoteDataSource>(
+    () => CommunicationRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<CommunicationRepository>(
+    () => CommunicationRepositoryImpl(sl<CommunicationRemoteDataSource>()),
+  );
+
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
       source: sl<AcademicStructureRemoteDataSource>(),
@@ -732,6 +746,17 @@ Future<void> setupServiceLocator() async {
 
   sl.registerLazySingleton<GetAccountsOverview>(
     () => GetAccountsOverview(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<DeleteCommunicationMessage>(
+    () => DeleteCommunicationMessage(sl<CommunicationRepository>()),
+  );
+
+  sl.registerLazySingleton<GetCommunicationMessages>(
+    () => GetCommunicationMessages(sl<CommunicationRepository>()),
+  );
+  sl.registerLazySingleton<SaveCommunicationMessage>(
+    () => SaveCommunicationMessage(sl<CommunicationRepository>()),
   );
 
   sl.registerLazySingleton<LoginUseCase>(
@@ -1088,6 +1113,14 @@ Future<void> setupServiceLocator() async {
 
   sl.registerFactory<AccountsBloc>(
     () => AccountsBloc(sl<GetAccountsOverview>()),
+  );
+
+  sl.registerFactory<CommunicationBloc>(
+    () => CommunicationBloc(
+      getMessages: sl<GetCommunicationMessages>(),
+      saveMessage: sl<SaveCommunicationMessage>(),
+      deleteMessage: sl<DeleteCommunicationMessage>(),
+    ),
   );
 
   sl.registerFactory<AuthenticationBloc>(

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/domain/entities/attendance_entity.dart';
 import '../../../attendance/domain/repositories/attendance_repository.dart';
+import '../../../attendance/presentation/pages/mark_attendance_page.dart';
 import '../../../fees/domain/entities/fee_payment_entity.dart';
 import '../../../fees/domain/entities/monthly_fee_due_entity.dart';
 import '../../../fees/domain/repositories/fee_payment_repository.dart';
@@ -58,6 +60,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       _safe(sl<TeacherRepository>().getTeachers()),
       _safe(sl<StaffRepository>().getStaff()),
       _safe(sl<AcademicStructureRepository>().getClasses()),
+      _safe(sl<AcademicStructureRepository>().getSections()),
       _safe(sl<AttendanceRepository>().getAttendanceByDate(now)),
       _safe(sl<FeePaymentRepository>().getPayments()),
       _safe(sl<MonthlyFeeDueRepository>().getMonthlyDues()),
@@ -74,12 +77,13 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       teachers: values[1] as List<TeacherEntity>,
       staff: values[2] as List<StaffEntity>,
       classes: values[3] as List<AcademicClassEntity>,
-      todayAttendance: values[4] as List<AttendanceEntity>,
-      payments: values[5] as List<FeePaymentEntity>,
-      dues: values[6] as List<MonthlyFeeDueEntity>,
-      notices: values[7] as List<NoticeEntity>,
-      teacherAttendance: values[8] as List<TeacherAttendanceEntity>,
-      staffAttendance: values[9] as List<StaffAttendanceEntity>,
+      sections: values[4] as List<SectionEntity>,
+      todayAttendance: values[5] as List<AttendanceEntity>,
+      payments: values[6] as List<FeePaymentEntity>,
+      dues: values[7] as List<MonthlyFeeDueEntity>,
+      notices: values[8] as List<NoticeEntity>,
+      teacherAttendance: values[9] as List<TeacherAttendanceEntity>,
+      staffAttendance: values[10] as List<StaffAttendanceEntity>,
       now: now,
     );
   }
@@ -150,6 +154,26 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           ),
                           const SizedBox(height: 14),
                           _StatsGrid(data: data),
+                          const SizedBox(height: 14),
+                          _PendingAttendanceCard(
+                            groups: data.pendingAttendanceGroups,
+                            onOpen: (group) async {
+                              final navigator = Navigator.of(context);
+                              await navigator.push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => MarkAttendancePage(
+                                    attendanceDate: data.now,
+                                    classId: group.classId,
+                                    sectionId: group.sectionId,
+                                  ),
+                                ),
+                              );
+                              if (!mounted) {
+                                return;
+                              }
+                              await _refresh();
+                            },
+                          ),
                           const SizedBox(height: 14),
                           LayoutBuilder(
                             builder: (context, constraints) {
@@ -256,6 +280,13 @@ class _StatsGrid extends StatelessWidget {
               color: Colors.teal,
             ),
             DashboardStatCard(
+              title: 'Pending Attendance',
+              value: '${data.pendingAttendanceGroups.length}',
+              detail: 'class sections need attention',
+              icon: Icons.pending_actions_outlined,
+              color: Colors.red,
+            ),
+            DashboardStatCard(
               title: 'Total Teachers',
               value: '${data.teachers.length}',
               icon: Icons.person,
@@ -329,6 +360,7 @@ class _DashboardData {
     required this.teachers,
     required this.staff,
     required this.classes,
+    required this.sections,
     required this.todayAttendance,
     required this.payments,
     required this.dues,
@@ -341,6 +373,7 @@ class _DashboardData {
   final List<TeacherEntity> teachers;
   final List<StaffEntity> staff;
   final List<AcademicClassEntity> classes;
+  final List<SectionEntity> sections;
   final List<AttendanceEntity> todayAttendance;
   final List<FeePaymentEntity> payments;
   final List<MonthlyFeeDueEntity> dues;
@@ -424,6 +457,122 @@ class _DashboardData {
     return '${(present * 100 / todayAttendance.length).toStringAsFixed(1)}%';
   }
 
+  List<_PendingAttendanceGroup> get pendingAttendanceGroups {
+    final activeClasses = classes.where((item) => item.isActive).toList();
+    final activeSections = sections.where((item) => item.isActive).toList();
+    final builders = <String, _PendingAttendanceGroupBuilder>{};
+
+    for (final student in students.where((item) => item.isActive)) {
+      final academicClass = _classFor(student.classId, activeClasses);
+      if (academicClass == null) {
+        continue;
+      }
+
+      final section = _sectionFor(
+        classId: academicClass.id,
+        value: student.sectionId,
+        values: activeSections,
+      );
+      final key = _attendanceGroupKey(academicClass.id, section?.id);
+      final builder = builders.putIfAbsent(
+        key,
+        () => _PendingAttendanceGroupBuilder(
+          classId: academicClass.id,
+          className: academicClass.name,
+          sectionId: section?.id,
+          sectionName: section?.name,
+        ),
+      );
+      builder.studentIds.add(student.id);
+    }
+
+    for (final record in todayAttendance.where(
+      (item) => _sameDay(item.attendanceDate, now),
+    )) {
+      final academicClass = _classFor(record.classId, activeClasses);
+      if (academicClass == null) {
+        continue;
+      }
+
+      final section = _sectionFor(
+        classId: academicClass.id,
+        value: record.sectionId,
+        values: activeSections,
+      );
+      final key = _attendanceGroupKey(academicClass.id, section?.id);
+      final builder = builders[key];
+      if (builder != null) {
+        builder.recordedStudentIds.add(record.studentId);
+      }
+    }
+
+    final pending = builders.values
+        .map(
+          (builder) => _PendingAttendanceGroup(
+            classId: builder.classId,
+            className: builder.className,
+            sectionId: builder.sectionId,
+            sectionName: builder.sectionName,
+            totalStudents: builder.studentIds.length,
+            markedStudents: builder.recordedStudentIds
+                .intersection(builder.studentIds)
+                .length,
+          ),
+        )
+        .where((group) => group.markedStudents < group.totalStudents)
+        .toList();
+
+    pending.sort((first, second) {
+      final classComparison = first.className.toLowerCase().compareTo(
+        second.className.toLowerCase(),
+      );
+      if (classComparison != 0) {
+        return classComparison;
+      }
+      return first.sectionNameOrEmpty.toLowerCase().compareTo(
+        second.sectionNameOrEmpty.toLowerCase(),
+      );
+    });
+    return pending;
+  }
+
+  static AcademicClassEntity? _classFor(
+    String value,
+    List<AcademicClassEntity> values,
+  ) {
+    final normalized = value.trim().toLowerCase();
+    for (final item in values) {
+      if (item.id.trim().toLowerCase() == normalized ||
+          item.name.trim().toLowerCase() == normalized) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  static SectionEntity? _sectionFor({
+    required String classId,
+    required String value,
+    required List<SectionEntity> values,
+  }) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final item in values) {
+      if (item.classId == classId &&
+          (item.id.trim().toLowerCase() == normalized ||
+              item.name.trim().toLowerCase() == normalized)) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  static String _attendanceGroupKey(String classId, String? sectionId) {
+    return '$classId|${sectionId ?? ''}';
+  }
+
   double get todayCollection => payments
       .where(
         (item) =>
@@ -474,6 +623,207 @@ class _DashboardData {
       first.year == second.year &&
       first.month == second.month &&
       first.day == second.day;
+}
+
+class _PendingAttendanceGroupBuilder {
+  _PendingAttendanceGroupBuilder({
+    required this.classId,
+    required this.className,
+    required this.sectionId,
+    required this.sectionName,
+  });
+
+  final String classId;
+  final String className;
+  final String? sectionId;
+  final String? sectionName;
+  final Set<String> studentIds = <String>{};
+  final Set<String> recordedStudentIds = <String>{};
+}
+
+class _PendingAttendanceGroup {
+  const _PendingAttendanceGroup({
+    required this.classId,
+    required this.className,
+    required this.sectionId,
+    required this.sectionName,
+    required this.totalStudents,
+    required this.markedStudents,
+  });
+
+  final String classId;
+  final String className;
+  final String? sectionId;
+  final String? sectionName;
+  final int totalStudents;
+  final int markedStudents;
+
+  String get sectionNameOrEmpty => sectionName ?? '';
+  String get title => sectionName == null || sectionName!.isEmpty
+      ? className
+      : '$className - ${sectionName!}';
+  bool get hasNoAttendance => markedStudents == 0;
+  int get remainingStudents => totalStudents - markedStudents;
+}
+
+class _PendingAttendanceCard extends StatelessWidget {
+  const _PendingAttendanceCard({required this.groups, required this.onOpen});
+
+  final List<_PendingAttendanceGroup> groups;
+  final ValueChanged<_PendingAttendanceGroup> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: groups.isEmpty
+                      ? Colors.green.withValues(alpha: 0.12)
+                      : colorScheme.errorContainer,
+                  child: Icon(
+                    groups.isEmpty
+                        ? Icons.task_alt_outlined
+                        : Icons.warning_amber_rounded,
+                    color: groups.isEmpty
+                        ? Colors.green.shade700
+                        : colorScheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Today's Pending Attendance",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        groups.isEmpty
+                            ? 'All active class sections are up to date.'
+                            : '${groups.length} class section(s) still need attendance.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (groups.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('No pending student attendance for today.'),
+                ),
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final twoColumns = constraints.maxWidth >= 760;
+                  final tileWidth = twoColumns
+                      ? (constraints.maxWidth - 12) / 2
+                      : constraints.maxWidth;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: groups
+                        .map(
+                          (group) => SizedBox(
+                            width: tileWidth,
+                            child: _PendingAttendanceTile(
+                              group: group,
+                              onOpen: () => onOpen(group),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingAttendanceTile extends StatelessWidget {
+  const _PendingAttendanceTile({required this.group, required this.onOpen});
+
+  final _PendingAttendanceGroup group;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final incomplete = !group.hasNoAttendance;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 92),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: incomplete
+            ? colorScheme.tertiaryContainer.withValues(alpha: 0.38)
+            : colorScheme.errorContainer.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            incomplete ? Icons.timelapse_outlined : Icons.event_busy_outlined,
+            color: incomplete
+                ? colorScheme.onTertiaryContainer
+                : colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  group.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  incomplete
+                      ? '${group.markedStudents}/${group.totalStudents} marked - ${group.remainingStudents} remaining'
+                      : '${group.totalStudents} students - not marked yet',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onOpen,
+            child: const Text('Mark'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class DashboardStatCard extends StatelessWidget {

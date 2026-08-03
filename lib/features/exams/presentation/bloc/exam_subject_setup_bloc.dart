@@ -21,15 +21,14 @@ class ExamSubjectSetupBloc
     extends Bloc<ExamSubjectSetupEvent, ExamSubjectSetupState> {
   ExamSubjectSetupBloc({
     required this._getSetups,
-    required create_usecase.CreateExamSubjectSetups createSetups,
+    required this._createSetups,
     required this._updateSetup,
     required this._deleteSetup,
     required this._examRepository,
     required this._academicStructureRepository,
     required this._subjectSetupRepository,
     required this._markRepository,
-  }) : _createSetups = createSetups,
-       super(const ExamSubjectSetupInitial()) {
+  }) : super(const ExamSubjectSetupInitial()) {
     on<LoadExamSubjectSetups>(_load);
     on<RefreshExamSubjectSetups>(_refresh);
     on<CreateExamSubjectSetups>(_create);

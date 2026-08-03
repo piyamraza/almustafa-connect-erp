@@ -8,11 +8,9 @@ import 'accounts_reports_state.dart';
 class AccountsReportsBloc
     extends Bloc<AccountsReportsEvent, AccountsReportsState> {
   AccountsReportsBloc({
-    required GetAccountsReportData getReportData,
-    required AccountsReportService reportService,
-  }) : _getReportData = getReportData,
-       _reportService = reportService,
-       super(const AccountsReportsReady()) {
+    required this._getReportData,
+    required this._reportService,
+  }) : super(const AccountsReportsReady()) {
     on<ExportAccountsPdfRequested>(_exportPdf);
     on<ExportAccountsExcelRequested>(_exportExcel);
   }

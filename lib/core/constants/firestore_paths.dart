@@ -46,6 +46,11 @@ class FirestorePaths {
   static const String academicYearConfigs = 'academic_year_configs';
   static const String homework = 'homework';
   static const String homeworkSubmissions = 'homework_submissions';
+  static const String communicationMessages = 'communication_messages';
+  static const String communicationReceipts = 'communication_receipts';
+  static const String communicationThreads = 'communication_threads';
+  static const String communicationParticipants = 'communication_participants';
+  static const String communicationDeliveryLogs = 'communication_delivery_logs';
   static const String notices = 'notices';
   static const String noticeReceipts = 'notice_receipts';
   static const String parentAccounts = 'parent_accounts';

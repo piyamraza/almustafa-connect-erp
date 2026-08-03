@@ -6,15 +6,11 @@ import 'income_state.dart';
 
 class IncomeBloc extends Bloc<IncomeEvent, IncomeState> {
   IncomeBloc({
-    required GetIncomeEntries getIncomeEntries,
-    required SaveIncomeEntry saveIncomeEntry,
-    required ReverseIncomeEntry reverseIncomeEntry,
-    required SyncFeePaymentsToIncome syncFeePayments,
-  }) : _getIncomeEntries = getIncomeEntries,
-       _saveIncomeEntry = saveIncomeEntry,
-       _reverseIncomeEntry = reverseIncomeEntry,
-       _syncFeePayments = syncFeePayments,
-       super(const IncomeInitial()) {
+    required this._getIncomeEntries,
+    required this._saveIncomeEntry,
+    required this._reverseIncomeEntry,
+    required this._syncFeePayments,
+  }) : super(const IncomeInitial()) {
     on<LoadIncomeEntries>(_load);
     on<SaveIncomeEntryRequested>(_save);
     on<ReverseIncomeEntryRequested>(_reverse);

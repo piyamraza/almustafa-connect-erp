@@ -328,10 +328,16 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                       return Center(child: Text(state.message));
                     }
                     if (state is! StudentLoaded) return const SizedBox();
+                    final attendanceState = context.read<AttendanceBloc>().state;
+                    final attendanceRecords = attendanceState is AttendanceLoaded
+                        ? attendanceState.attendance
+                        : const <AttendanceEntity>[];
                     return _isChoosingClass
                         ? _ClassGrid(
                             classes: structure.activeClasses,
                             students: state.students,
+                            attendanceRecords: attendanceRecords,
+                            selectedDate: _selectedDate,
                             searchController: _searchController,
                             onClassSelected: (academicClass) => _selectClass(
                               context,
@@ -426,6 +432,8 @@ class _ClassGrid extends StatelessWidget {
   const _ClassGrid({
     required this.classes,
     required this.students,
+    required this.attendanceRecords,
+    required this.selectedDate,
     required this.searchController,
     required this.onClassSelected,
     required this.onStudentSelected,
@@ -434,6 +442,8 @@ class _ClassGrid extends StatelessWidget {
   });
   final List<AcademicClassEntity> classes;
   final List<StudentEntity> students;
+  final List<AttendanceEntity> attendanceRecords;
+  final DateTime selectedDate;
   final TextEditingController searchController;
   final ValueChanged<AcademicClassEntity> onClassSelected;
   final ValueChanged<StudentEntity> onStudentSelected;
@@ -514,21 +524,63 @@ class _ClassGrid extends StatelessWidget {
                         itemCount: classes.length,
                         itemBuilder: (context, index) {
                           final academicClass = classes[index];
-                          final count = students
+                          final classStudents = students
                               .where(
                                 (student) =>
                                     student.classId == academicClass.id ||
                                     student.classId == academicClass.name,
                               )
-                              .length;
+                              .toList();
+                          final studentIds = classStudents
+                              .map((student) => student.id)
+                              .toSet();
+                          final markedStudentIds = attendanceRecords
+                              .where(
+                                (record) =>
+                                    _sameDay(record.attendanceDate, selectedDate) &&
+                                    studentIds.contains(record.studentId),
+                              )
+                              .map((record) => record.studentId)
+                              .toSet();
+                          final count = classStudents.length;
+                          final isComplete =
+                              count > 0 && markedStudentIds.length == count;
+                          final isPartial =
+                              markedStudentIds.isNotEmpty && !isComplete;
+                          final statusColor = isComplete
+                              ? Colors.green.shade700
+                              : isPartial
+                              ? Colors.orange.shade800
+                              : null;
                           return Card(
+                            color: isComplete
+                                ? Colors.green.shade50
+                                : isPartial
+                                ? Colors.orange.shade50
+                                : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: statusColor?.withValues(alpha: 0.45) ??
+                                    Theme.of(context).colorScheme.outlineVariant,
+                              ),
+                            ),
                             child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
                               onTap: () => onClassSelected(academicClass),
                               child: Center(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.groups_outlined, size: 20),
+                                    Icon(
+                                      isComplete
+                                          ? Icons.check_circle_outline
+                                          : isPartial
+                                          ? Icons.pending_outlined
+                                          : Icons.groups_outlined,
+                                      size: 20,
+                                      color: statusColor,
+                                    ),
                                     const SizedBox(height: 6),
                                     Text(
                                       _displayClassName(academicClass.name),
@@ -553,6 +605,12 @@ class _ClassGrid extends StatelessWidget {
         );
       },
     );
+  }
+
+  static bool _sameDay(DateTime first, DateTime second) {
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
   }
 }
 

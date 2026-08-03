@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,8 +9,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../domain/entities/cashbook_entry_entity.dart';
 import '../../domain/entities/expense_entity.dart';
-import '../../domain/entities/income_entry_entity.dart';
-import '../../domain/entities/monthly_profit_loss_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
 import '../../domain/services/accounts_report_service.dart';
 

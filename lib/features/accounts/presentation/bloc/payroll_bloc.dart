@@ -6,17 +6,12 @@ import 'payroll_state.dart';
 
 class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
   PayrollBloc({
-    required GetPayrollManagementData getData,
-    required SavePayrollProfile saveProfile,
-    required GenerateMonthlyPayroll generatePayroll,
-    required SavePayrollRecord saveRecord,
-    required UpdatePayrollStatus updateStatus,
-  }) : _getData = getData,
-       _saveProfile = saveProfile,
-       _generatePayroll = generatePayroll,
-       _saveRecord = saveRecord,
-       _updateStatus = updateStatus,
-       super(const PayrollInitial()) {
+    required this._getData,
+    required this._saveProfile,
+    required this._generatePayroll,
+    required this._saveRecord,
+    required this._updateStatus,
+  }) : super(const PayrollInitial()) {
     on<LoadPayroll>(_load);
     on<SavePayrollProfileRequested>(_saveProfileRequested);
     on<GeneratePayrollRequested>(_generateRequested);

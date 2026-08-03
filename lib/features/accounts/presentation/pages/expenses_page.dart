@@ -96,7 +96,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                     SizedBox(
                       width: 220,
                       child: DropdownButtonFormField<String?>(
-                        value: _categoryFilter,
+                        initialValue: _categoryFilter,
                         decoration: const InputDecoration(
                           labelText: 'Category',
                         ),
@@ -119,7 +119,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                     SizedBox(
                       width: 200,
                       child: DropdownButtonFormField<ExpenseStatus?>(
-                        value: _statusFilter,
+                        initialValue: _statusFilter,
                         decoration: const InputDecoration(labelText: 'Status'),
                         items: [
                           const DropdownMenuItem(
@@ -333,7 +333,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: selectedCategoryId,
+                    initialValue: selectedCategoryId,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: state.activeCategories
                         .map(

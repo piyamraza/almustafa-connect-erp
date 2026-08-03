@@ -6,17 +6,12 @@ import 'expense_state.dart';
 
 class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   ExpenseBloc({
-    required GetExpenseManagementData getData,
-    required SaveExpenseCategory saveCategory,
-    required SetExpenseCategoryActive setCategoryActive,
-    required SaveExpense saveExpense,
-    required UpdateExpenseStatus updateStatus,
-  }) : _getData = getData,
-       _saveCategory = saveCategory,
-       _setCategoryActive = setCategoryActive,
-       _saveExpense = saveExpense,
-       _updateStatus = updateStatus,
-       super(const ExpenseInitial()) {
+    required this._getData,
+    required this._saveCategory,
+    required this._setCategoryActive,
+    required this._saveExpense,
+    required this._updateStatus,
+  }) : super(const ExpenseInitial()) {
     on<LoadExpenses>(_load);
     on<SaveExpenseCategoryRequested>(_saveCategoryRequested);
     on<ToggleExpenseCategoryRequested>(_toggleCategory);
