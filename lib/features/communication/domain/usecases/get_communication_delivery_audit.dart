@@ -27,10 +27,10 @@ class CommunicationDeliveryAuditData {
 class GetCommunicationDeliveryAudit {
   const GetCommunicationDeliveryAudit({
     required this._broadcastRepository,
-    required PushDeliveryLogRepository pushLogRepository,
+    required this._pushLogRepository,
     required this._whatsappRepository,
     required this._auditRepository,
-  }) : _pushLogRepository = pushLogRepository;
+  });
 
   final CommunicationBroadcastRepository _broadcastRepository;
   final PushDeliveryLogRepository _pushLogRepository;

@@ -36,6 +36,15 @@ abstract class UserAccountService {
 
   Future<void> setDisabled({required String uid, required bool disabled});
 
+  Future<void> updateAccount({
+    required String uid,
+    required String displayName,
+    required String login,
+    required String branchId,
+    required String linkedEntityType,
+    required String linkedEntityId,
+  });
+
   Future<void> updateRole({
     required String uid,
     required String roleId,

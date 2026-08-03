@@ -7,9 +7,8 @@ import 'settings_state.dart';
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   SettingsBloc({
     required this._getSettings,
-    required SaveSchoolSettings saveSettings,
-  }) : _saveSettings = saveSettings,
-       super(const SettingsInitial()) {
+    required this._saveSettings,
+  }) : super(const SettingsInitial()) {
     on<LoadSettings>(_load);
     on<SaveSettingsRequested>(_save);
   }

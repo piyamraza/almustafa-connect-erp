@@ -8,10 +8,9 @@ class WhatsAppBroadcastBloc
     extends Bloc<WhatsAppBroadcastEvent, WhatsAppBroadcastState> {
   WhatsAppBroadcastBloc({
     required this._getBroadcasts,
-    required QueueWhatsAppBroadcast queueBroadcast,
+    required this._queueBroadcast,
     required this._retryBroadcast,
-  }) : _queueBroadcast = queueBroadcast,
-       super(const WhatsAppBroadcastInitial()) {
+  }) : super(const WhatsAppBroadcastInitial()) {
     on<LoadWhatsAppBroadcasts>(_load);
     on<QueueWhatsAppBroadcastRequested>(_queue);
     on<RetryWhatsAppBroadcastRequested>(_retry);

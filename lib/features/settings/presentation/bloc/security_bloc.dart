@@ -7,10 +7,9 @@ import 'security_state.dart';
 class SecurityBloc extends Bloc<SecurityEvent, SecurityState> {
   SecurityBloc({
     required this._getData,
-    required ChangeUserPassword changePassword,
+    required this._changePassword,
     required this._revokeSession,
-  }) : _changePassword = changePassword,
-       super(const SecurityInitial()) {
+  }) : super(const SecurityInitial()) {
     on<LoadSecurityData>(_load);
     on<ChangePasswordRequested>(_change);
     on<RevokeSessionRequested>(_revoke);

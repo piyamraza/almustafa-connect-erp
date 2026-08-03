@@ -8,10 +8,9 @@ class CommunicationBroadcastBloc
     extends Bloc<CommunicationBroadcastEvent, CommunicationBroadcastState> {
   CommunicationBroadcastBloc({
     required this._getBroadcasts,
-    required QueueCommunicationBroadcast queueBroadcast,
+    required this._queueBroadcast,
     required this._retryBroadcast,
-  }) : _queueBroadcast = queueBroadcast,
-       super(const CommunicationBroadcastInitial()) {
+  }) : super(const CommunicationBroadcastInitial()) {
     on<LoadCommunicationBroadcasts>(_load);
     on<QueueCommunicationBroadcastRequested>(_queue);
     on<RetryCommunicationBroadcastRequested>(_retry);

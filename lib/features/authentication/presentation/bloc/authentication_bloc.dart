@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/usecases/forgot_password_usecase.dart';
@@ -49,9 +50,34 @@ class AuthenticationBloc
           const AuthenticationFailure(message: 'Unable to authenticate user.'),
         );
       }
-    } catch (e) {
-      emit(AuthenticationFailure(message: e.toString()));
+    } on FirebaseAuthException catch (error) {
+      emit(AuthenticationFailure(message: _loginError(error)));
+    } on FormatException catch (error) {
+      emit(AuthenticationFailure(message: error.message));
+    } catch (_) {
+      emit(
+        const AuthenticationFailure(
+          message: 'Login failed. Please try again.',
+        ),
+      );
     }
+  }
+
+  String _loginError(FirebaseAuthException error) {
+    return switch (error.code) {
+      'invalid-credential' ||
+      'user-not-found' ||
+      'wrong-password' ||
+      'invalid-email' =>
+        'Username/mobile/email or password is incorrect.',
+      'user-disabled' =>
+        'This account is disabled. Please contact the administrator.',
+      'too-many-requests' =>
+        'Too many failed attempts. Please wait and try again.',
+      'network-request-failed' =>
+        'Internet connection is unavailable. Please check your network.',
+      _ => 'Login failed. Please check your credentials and try again.',
+    };
   }
 
   Future<void> _onLogoutRequested(

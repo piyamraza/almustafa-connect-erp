@@ -235,6 +235,155 @@ class _UserAccountsManagementPageState
     }
   }
 
+  Future<void> _editAccount(UserAccountEntity account) async {
+    final formKey = GlobalKey<FormState>();
+    final name = TextEditingController(text: account.displayName);
+    final login = TextEditingController(
+      text: account.username.isEmpty ? account.email : account.username,
+    );
+    final branch = TextEditingController(text: account.branchId);
+    final linkedId = TextEditingController(text: account.linkedEntityId);
+    var linkedType = account.linkedEntityType;
+
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Edit User Account'),
+              content: SizedBox(
+                width: 520,
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: name,
+                          decoration: const InputDecoration(
+                            labelText: 'Display Name',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value == null || value.trim().isEmpty
+                              ? 'Display name is required'
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: login,
+                          decoration: const InputDecoration(
+                            labelText: 'Username / Mobile / Email',
+                            helperText:
+                                'Changing this also changes login credentials.',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value == null || value.trim().isEmpty
+                              ? 'Login is required'
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: branch,
+                          decoration: const InputDecoration(
+                            labelText: 'Branch ID',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: linkedType,
+                          decoration: const InputDecoration(
+                            labelText: 'Linked Account Type',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: '', child: Text('None')),
+                            DropdownMenuItem(
+                              value: 'parent',
+                              child: Text('Parent'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'teacher',
+                              child: Text('Teacher'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'staff',
+                              child: Text('Staff'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'student',
+                              child: Text('Student'),
+                            ),
+                          ],
+                          onChanged: (value) => setDialogState(() {
+                            linkedType = value ?? '';
+                            if (linkedType.isEmpty) linkedId.clear();
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: linkedId,
+                          enabled: linkedType.isNotEmpty,
+                          decoration: const InputDecoration(
+                            labelText: 'Linked Record ID',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  },
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Save Changes'),
+                ),
+              ],
+            ),
+          ),
+        ) ??
+        false;
+
+    if (confirmed && mounted) {
+      setState(() => _loading = true);
+      try {
+        await _service.updateAccount(
+          uid: account.uid,
+          displayName: name.text.trim(),
+          login: login.text.trim(),
+          branchId: branch.text.trim().isEmpty ? 'main' : branch.text.trim(),
+          linkedEntityType: linkedType,
+          linkedEntityId: linkedType.isEmpty ? '' : linkedId.text.trim(),
+        );
+        await _load();
+        _show('User account updated successfully.');
+      } catch (error) {
+        if (mounted) _show(_message(error));
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
+    }
+
+    name.dispose();
+    login.dispose();
+    branch.dispose();
+    linkedId.dispose();
+  }
+
   Future<void> _changeRole(UserAccountEntity account) async {
     AppRoleEntity? selected = _roles
         .where((role) => role.id == account.roleId)
@@ -477,6 +626,7 @@ class _UserAccountsManagementPageState
                     padding: const EdgeInsets.only(bottom: 9),
                     child: _UserAccountCard(
                       account: account,
+                      onEdit: () => _editAccount(account),
                       onToggle: () => _toggleAccount(account),
                       onChangeRole: () => _changeRole(account),
                       onResetPassword: () => _resetPassword(account),
@@ -606,9 +756,9 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                 ),
                 _field(
                   controller: _login,
-                  label: 'Email or Username',
+                  label: 'Username / Mobile / Email',
                   helper:
-                      'Username automatically becomes username@almustafa.school',
+                      'Username or mobile is converted to a secure internal login',
                   validator: _required,
                 ),
                 _field(
@@ -769,12 +919,14 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
 class _UserAccountCard extends StatelessWidget {
   const _UserAccountCard({
     required this.account,
+    required this.onEdit,
     required this.onToggle,
     required this.onChangeRole,
     required this.onResetPassword,
   });
 
   final UserAccountEntity account;
+  final VoidCallback onEdit;
   final VoidCallback onToggle;
   final VoidCallback onChangeRole;
   final VoidCallback onResetPassword;
@@ -825,6 +977,8 @@ class _UserAccountCard extends StatelessWidget {
             PopupMenuButton<String>(
               onSelected: (action) {
                 switch (action) {
+                  case 'edit':
+                    onEdit();
                   case 'role':
                     onChangeRole();
                   case 'password':
@@ -834,6 +988,10 @@ class _UserAccountCard extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Text('Edit Account'),
+                ),
                 const PopupMenuItem(value: 'role', child: Text('Change Role')),
                 const PopupMenuItem(
                   value: 'password',

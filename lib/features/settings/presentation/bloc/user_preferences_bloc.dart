@@ -8,9 +8,8 @@ class UserPreferencesBloc
     extends Bloc<UserPreferencesEvent, UserPreferencesState> {
   UserPreferencesBloc({
     required this._getPreferences,
-    required SaveUserPreferences savePreferences,
-  }) : _savePreferences = savePreferences,
-       super(const UserPreferencesInitial()) {
+    required this._savePreferences,
+  }) : super(const UserPreferencesInitial()) {
     on<LoadUserPreferences>(_load);
     on<SaveUserPreferencesRequested>(_save);
   }

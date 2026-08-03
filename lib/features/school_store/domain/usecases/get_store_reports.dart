@@ -10,10 +10,10 @@ import '../repositories/store_sale_repository.dart';
 class GetStoreReports {
   const GetStoreReports({
     required this._storeRepository,
-    required StorePurchaseRepository purchaseRepository,
+    required this._purchaseRepository,
     required this._saleRepository,
     required this._paymentRepository,
-  }) : _purchaseRepository = purchaseRepository;
+  });
 
   final SchoolStoreRepository _storeRepository;
   final StorePurchaseRepository _purchaseRepository;

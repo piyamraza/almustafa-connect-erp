@@ -6,10 +6,9 @@ import 'school_store_state.dart';
 class SchoolStoreBloc extends Bloc<SchoolStoreEvent, SchoolStoreState> {
   SchoolStoreBloc({
     required this._getItems,
-    required SaveStoreItem saveItem,
+    required this._saveItem,
     required this._deleteItem,
-  }) : _saveItem = saveItem,
-       super(const SchoolStoreInitial()) {
+  }) : super(const SchoolStoreInitial()) {
     on<LoadSchoolStore>(_load);
     on<SaveStoreItemRequested>(_save);
     on<DeleteStoreItemRequested>(_delete);

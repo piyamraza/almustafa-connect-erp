@@ -107,7 +107,18 @@ class AcademicCalendarPolicyServiceImpl
     required String academicSession,
     required DateTime date,
   }) async {
-    final config = await _requiredConfig(academicSession);
+    final config = await _configRepository.getBySession(academicSession);
+
+    // Homework creation must remain available while a new academic session is
+    // being set up. Once the wizard configuration exists, all calendar rules
+    // below are enforced normally.
+    if (config == null) {
+      return const AcademicCalendarPolicyDecision(
+        allowed: true,
+        message:
+            'Homework date accepted; academic calendar is not configured.',
+      );
+    }
 
     if (!_insideSession(config, date)) {
       return const AcademicCalendarPolicyDecision(

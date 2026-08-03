@@ -38,6 +38,7 @@ class DashboardLayout extends StatefulWidget {
 
 class _DashboardLayoutState extends State<DashboardLayout> {
   late Future<_DashboardData> _dashboardFuture;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -94,8 +95,30 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _dashboardFuture = _loadDashboard());
-    await _dashboardFuture;
+    if (_isRefreshing) return;
+
+    final refreshFuture = _loadDashboard();
+    setState(() {
+      _isRefreshing = true;
+      _dashboardFuture = refreshFuture;
+    });
+
+    try {
+      await refreshFuture;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Dashboard refreshed.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
   }
 
   @override
@@ -146,9 +169,16 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: _refresh,
+                                onPressed: _isRefreshing ? null : _refresh,
                                 tooltip: 'Refresh dashboard',
-                                icon: const Icon(Icons.refresh),
+                                icon: _isRefreshing
+                                    ? const SizedBox.square(
+                                        dimension: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.refresh),
                               ),
                             ],
                           ),

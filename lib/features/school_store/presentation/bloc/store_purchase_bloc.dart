@@ -11,12 +11,11 @@ import 'store_purchase_state.dart';
 class StorePurchaseBloc extends Bloc<StorePurchaseEvent, StorePurchaseState> {
   StorePurchaseBloc({
     required this._getSuppliers,
-    required SaveStoreSupplier saveSupplier,
+    required this._saveSupplier,
     required this._getPurchases,
     required this._savePurchase,
     required this._getItems,
-  }) : _saveSupplier = saveSupplier,
-       super(const StorePurchaseInitial()) {
+  }) : super(const StorePurchaseInitial()) {
     on<LoadStorePurchases>(_load);
     on<SaveStoreSupplierRequested>(_saveSupplierEvent);
     on<SaveStorePurchaseRequested>(_savePurchaseEvent);

@@ -73,6 +73,22 @@ class _LoginViewState extends State<_LoginView> {
             context,
             MaterialPageRoute(builder: (_) => const DashboardPage()),
           );
+        } else if (state is AuthenticationFailure) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.message
+                      .replaceFirst('Exception: ', '')
+                      .replaceFirst('FormatException: ', ''),
+                ),
+              ),
+            );
+        } else if (state is PasswordResetEmailSent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password reset email sent.')),
+          );
         }
       },
       child: Scaffold(
@@ -122,14 +138,18 @@ class _LoginViewState extends State<_LoginView> {
 
                             TextFormField(
                               controller: _emailController,
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.username],
                               decoration: const InputDecoration(
-                                labelText: "Email",
+                                labelText: "Username / Mobile / Email",
+                                hintText: "e.g. parent01 or 03001234567",
                                 border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.email),
+                                prefixIcon: Icon(Icons.person_outline),
                               ),
                               validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "Enter email";
+                                if (value == null || value.trim().isEmpty) {
+                                  return "Enter username, mobile or email";
                                 }
 
                                 return null;
@@ -196,10 +216,13 @@ class _LoginViewState extends State<_LoginView> {
 
                             TextButton(
                               onPressed: () {
-                                if (_emailController.text.trim().isEmpty) {
+                                final login = _emailController.text.trim();
+                                if (login.isEmpty || !login.contains('@')) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("Enter your email first."),
+                                      content: Text(
+                                        "Enter your account email for password reset.",
+                                      ),
                                     ),
                                   );
                                   return;
@@ -207,7 +230,7 @@ class _LoginViewState extends State<_LoginView> {
 
                                 context.read<AuthenticationBloc>().add(
                                   ForgotPasswordRequested(
-                                    email: _emailController.text.trim(),
+                                    email: login,
                                   ),
                                 );
                               },

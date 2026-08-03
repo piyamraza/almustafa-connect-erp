@@ -5,6 +5,8 @@ import '../../../access_control/domain/entities/app_permission.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../access_control/presentation/pages/roles_permissions_page.dart';
 import '../../../access_control/presentation/pages/unauthorized_access_page.dart';
+import '../../../authentication/domain/usecases/logout_usecase.dart';
+import '../../../authentication/presentation/pages/login_page.dart';
 import '../../../accounts/presentation/pages/accounts_dashboard_page.dart';
 import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
@@ -40,6 +42,7 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   late final AccessControlService _access;
   final ScrollController _scrollController = ScrollController();
+  bool _loggingOut = false;
 
   @override
   void initState() {
@@ -58,6 +61,52 @@ class _SidebarState extends State<Sidebar> {
 
   void _refresh() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    if (_loggingOut) return;
+
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to logout?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.logout),
+                label: const Text('Logout'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) return;
+    setState(() => _loggingOut = true);
+
+    try {
+      await sl<LogoutUseCase>()();
+      await _access.clear();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loggingOut = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text('Logout failed: $error')),
+        );
+    }
   }
 
   void _open(
@@ -441,6 +490,13 @@ class _SidebarState extends State<Sidebar> {
                           page: const SettingsDashboardPage(),
                         ),
                       ),
+                    const Divider(height: 28),
+                    _menuTile(
+                      context,
+                      icon: Icons.logout_outlined,
+                      title: _loggingOut ? 'Logging out...' : 'Logout',
+                      onTap: _loggingOut ? () {} : () => _logout(context),
+                    ),
                   ],
                 ),
               ),
@@ -502,6 +558,8 @@ class _SidebarState extends State<Sidebar> {
       'Reports' => const Color(0xFF60A5FA),
       'Roles & Permissions' => const Color(0xFFE879F9),
       'Settings' => const Color(0xFF64748B),
+      'Logout' => const Color(0xFFDC2626),
+      'Logging out...' => const Color(0xFFDC2626),
       _ => const Color(0xFF94A3B8),
     };
   }

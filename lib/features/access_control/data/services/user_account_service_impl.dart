@@ -38,11 +38,24 @@ class UserAccountServiceImpl implements UserAccountService {
 
   @override
   Future<List<UserAccountEntity>> listChatParticipants() async {
-    final callable = _functions.httpsCallable('listChatParticipants');
-    final response = await callable.call<Map<String, dynamic>>();
-    final data = Map<String, dynamic>.from(response.data);
-    final rawUsers = data['users'] as List<dynamic>? ?? const [];
+    try {
+      final callable = _functions.httpsCallable('listChatParticipants');
+      final response = await callable.call<Map<String, dynamic>>();
+      return _mapAccounts(response.data);
+    } on FirebaseFunctionsException catch (error) {
+      // Existing deployments may not yet contain the chat-specific callable,
+      // or an older implementation may fail while loading the directory. An
+      // authorised administrator can still use the account directory.
+      if (!{'internal', 'not-found', 'unavailable'}.contains(error.code)) {
+        rethrow;
+      }
+      return listAccounts();
+    }
+  }
 
+  List<UserAccountEntity> _mapAccounts(Map<String, dynamic> responseData) {
+    final data = Map<String, dynamic>.from(responseData);
+    final rawUsers = data['users'] as List<dynamic>? ?? const [];
     return rawUsers
         .map(
           (item) =>
@@ -97,6 +110,25 @@ class UserAccountServiceImpl implements UserAccountService {
     await _functions.httpsCallable('setUserAccountDisabled').call({
       'uid': uid,
       'disabled': disabled,
+    });
+  }
+
+  @override
+  Future<void> updateAccount({
+    required String uid,
+    required String displayName,
+    required String login,
+    required String branchId,
+    required String linkedEntityType,
+    required String linkedEntityId,
+  }) async {
+    await _functions.httpsCallable('updateUserAccount').call({
+      'uid': uid,
+      'displayName': displayName,
+      'login': login,
+      'branchId': branchId,
+      'linkedEntityType': linkedEntityType,
+      'linkedEntityId': linkedEntityId,
     });
   }
 

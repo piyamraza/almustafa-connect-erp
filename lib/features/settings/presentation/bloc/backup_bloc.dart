@@ -7,10 +7,9 @@ import 'backup_state.dart';
 class BackupBloc extends Bloc<BackupEvent, BackupState> {
   BackupBloc({
     required this._getData,
-    required RequestBackup requestBackup,
+    required this._requestBackup,
     required this._requestRestore,
-  }) : _requestBackup = requestBackup,
-       super(const BackupInitial()) {
+  }) : super(const BackupInitial()) {
     on<LoadBackupData>(_load);
     on<CreateBackupRequested>(_backup);
     on<CreateRestoreRequestRequested>(_restore);

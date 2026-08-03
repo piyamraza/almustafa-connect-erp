@@ -7,10 +7,9 @@ import 'store_payment_state.dart';
 class StorePaymentBloc extends Bloc<StorePaymentEvent, StorePaymentState> {
   StorePaymentBloc({
     required this._getData,
-    required ReceiveStoreStudentPayment receiveStudentPayment,
+    required this._receiveStudentPayment,
     required this._paySupplier,
-  }) : _receiveStudentPayment = receiveStudentPayment,
-       super(const StorePaymentInitial()) {
+  }) : super(const StorePaymentInitial()) {
     on<LoadStorePayments>(_load);
     on<ReceiveStudentPaymentRequested>(_receive);
     on<PaySupplierRequested>(_pay);

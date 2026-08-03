@@ -17,14 +17,20 @@ function clean(value) {
 function normaliseLogin(value) {
   const login = clean(value).toLowerCase();
   if (!login) {
-    throw new HttpsError("invalid-argument", "Email or username is required.");
+    throw new HttpsError(
+        "invalid-argument",
+        "Email, username or mobile number is required.",
+    );
   }
 
   if (login.includes("@")) return login;
 
   const safeUsername = login.replace(/[^a-z0-9._-]/g, "");
   if (!safeUsername) {
-    throw new HttpsError("invalid-argument", "Enter a valid username.");
+    throw new HttpsError(
+        "invalid-argument",
+        "Enter a valid username or mobile number.",
+    );
   }
 
   return `${safeUsername}@almustafa.school`;
@@ -315,19 +321,22 @@ exports.listChatParticipants = onCall(async (request) => {
     );
   }
 
-  const result = await auth.listUsers(1000);
-  const roleSnapshots = await Promise.all(
-      result.users.map((user) =>
-        db.collection("user_roles").doc(user.uid).get()),
+  // Load role assignments in one query. Issuing up to 1,000 Firestore reads in
+  // parallel can make this callable fail with a generic `internal` error.
+  const [result, roleQuery] = await Promise.all([
+    auth.listUsers(1000),
+    db.collection("user_roles").get(),
+  ]);
+  const rolesByUserId = new Map(
+      roleQuery.docs.map((document) => [document.id, document.data()]),
   );
 
   const users = result.users
-      .map((user, index) => {
-        const roleData = roleSnapshots[index].exists ?
-          roleSnapshots[index].data() :
-          {};
+      .map((user) => {
+        const roleData = rolesByUserId.get(user.uid) || {};
         return {
           uid: user.uid,
+          email: user.email || "",
           displayName: user.displayName || roleData.userName || "",
           username: roleData.username || "",
           roleId: roleData.roleId || "",
@@ -335,7 +344,11 @@ exports.listChatParticipants = onCall(async (request) => {
           linkedEntityType: roleData.linkedEntityType || "",
           linkedEntityId: roleData.linkedEntityId || "",
           disabled: user.disabled,
+          emailVerified: user.emailVerified,
           isActive: roleData.isActive === true,
+          branchId: roleData.branchId || "main",
+          createdAt: user.metadata.creationTime || "",
+          lastSignInAt: user.metadata.lastSignInTime || "",
         };
       })
       .filter((user) =>
@@ -376,6 +389,71 @@ exports.setUserAccountDisabled = onCall(async (request) => {
   return {
     uid,
     disabled: user.disabled,
+  };
+});
+
+exports.updateUserAccount = onCall(async (request) => {
+  await requireUserManagementPermission(request);
+
+  const data = request.data || {};
+  const uid = clean(data.uid);
+  const displayName = clean(data.displayName);
+  const loginEmail = normaliseLogin(data.login);
+  const username = loginEmail.endsWith("@almustafa.school") ?
+    loginEmail.split("@")[0] :
+    "";
+  const branchId = clean(data.branchId) || "main";
+  const linkedEntityType = clean(data.linkedEntityType);
+  const linkedEntityId = clean(data.linkedEntityId);
+
+  if (!uid || !displayName) {
+    throw new HttpsError(
+        "invalid-argument",
+        "User UID and display name are required.",
+    );
+  }
+
+  let user;
+  try {
+    user = await auth.updateUser(uid, {
+      displayName,
+      email: loginEmail,
+    });
+  } catch (error) {
+    if (error.code === "auth/email-already-exists") {
+      throw new HttpsError(
+          "already-exists",
+          "This username, mobile number or email is already in use.",
+      );
+    }
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "Firebase user was not found.");
+    }
+    if (error.code === "auth/invalid-email") {
+      throw new HttpsError(
+          "invalid-argument",
+          "Enter a valid username, mobile number or email.",
+      );
+    }
+    throw error;
+  }
+
+  await db.collection("user_roles").doc(uid).set({
+    userId: uid,
+    userName: displayName,
+    email: user.email || loginEmail,
+    username,
+    branchId,
+    linkedEntityType,
+    linkedEntityId,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  return {
+    uid,
+    displayName,
+    email: user.email || loginEmail,
+    username,
   };
 });
 

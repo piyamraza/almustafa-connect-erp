@@ -7,12 +7,11 @@ import 'chat_state.dart';
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc({
     required this._getThreads,
-    required GetChatMessages getMessages,
+    required this._getMessages,
     required this._createThread,
     required this._sendMessage,
     required this._markRead,
-  }) : _getMessages = getMessages,
-       super(const ChatInitial()) {
+  }) : super(const ChatInitial()) {
     on<LoadChatThreads>(_loadThreads);
     on<OpenChatThread>(_openThread);
     on<CreateChatThreadRequested>(_create);

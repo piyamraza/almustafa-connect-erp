@@ -11,11 +11,10 @@ import 'store_sale_state.dart';
 class StoreSaleBloc extends Bloc<StoreSaleEvent, StoreSaleState> {
   StoreSaleBloc({
     required this._getStudents,
-    required GetStoreItems getItems,
+    required this._getItems,
     required this._getSales,
     required this._saveSale,
-  }) : _getItems = getItems,
-       super(const StoreSaleInitial()) {
+  }) : super(const StoreSaleInitial()) {
     on<LoadStoreSales>(_load);
     on<SaveStoreSaleRequested>(_save);
   }
