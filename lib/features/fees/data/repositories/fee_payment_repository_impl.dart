@@ -59,9 +59,6 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     if (amount <= 0) {
       throw StateError('Payment amount must be greater than zero.');
     }
-    if (dueIds.isEmpty && additionalChargeDueIds.isEmpty) {
-      throw StateError('Select at least one outstanding due.');
-    }
     if (method != FeePaymentMethod.cash && referenceNumber.trim().isEmpty) {
       throw StateError(
         'Transaction/reference number is required for non-cash payment.',
@@ -121,10 +118,6 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
         continue;
       }
       additionalDues.add(due);
-    }
-
-    if (dues.isEmpty && additionalDues.isEmpty) {
-      throw StateError('No payable dues remain in the selection.');
     }
 
     dues.sort((a, b) {

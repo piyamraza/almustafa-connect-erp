@@ -1,3 +1,65 @@
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$root = (Get-Location).Path
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$backup = Join-Path (Split-Path $root -Parent) "almustafa-connect-erp_backups\whatsapp_click_to_chat_$stamp"
+
+function Full([string]$Path) { Join-Path $root $Path }
+
+function WriteUtf8([string]$Path,[string]$Text) {
+  $full = Full $Path
+  $dir = Split-Path $full -Parent
+
+  if (-not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+  }
+
+  [IO.File]::WriteAllText(
+    $full,
+    $Text.Replace("`r`n","`n"),
+    $utf8
+  )
+}
+
+function BackupFile([string]$Path) {
+  $source = Full $Path
+  if (-not (Test-Path $source)) { return }
+
+  $target = Join-Path $backup $Path
+  $dir = Split-Path $target -Parent
+
+  if (-not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+  }
+
+  Copy-Item $source $target -Force
+}
+
+if (-not (Test-Path (Full 'pubspec.yaml'))) {
+  throw 'PROJECT ROOT ERROR: Run from Flutter project root.'
+}
+
+$page = 'lib/features/communication/presentation/pages/whatsapp_dashboard_page.dart'
+
+if (-not (Test-Path (Full $page))) {
+  throw "REQUIRED FILE ERROR: $page"
+}
+
+$pubspec = [IO.File]::ReadAllText((Full 'pubspec.yaml'))
+
+if (-not $pubspec.Contains('url_launcher:')) {
+  throw 'DEPENDENCY ERROR: url_launcher is missing from pubspec.yaml.'
+}
+
+New-Item -ItemType Directory -Path $backup -Force | Out-Null
+BackupFile $page
+
+WriteUtf8 $page @'
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,7 +78,8 @@ class WhatsAppDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<WhatsAppBloc>()..add(const LoadWhatsAppDashboard()),
+      create: (_) =>
+          sl<WhatsAppBloc>()..add(const LoadWhatsAppDashboard()),
       child: const _WhatsAppDashboardView(),
     );
   }
@@ -46,11 +109,16 @@ class _WhatsAppDashboardView extends StatelessWidget {
 
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(text)));
+            ..showSnackBar(
+              SnackBar(content: Text(text)),
+            );
         },
         builder: (context, state) {
-          if (state is WhatsAppInitial || state is WhatsAppLoading) {
-            return const Center(child: CircularProgressIndicator());
+          if (state is WhatsAppInitial ||
+              state is WhatsAppLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
           if (state is WhatsAppFailure) {
@@ -61,7 +129,8 @@ class _WhatsAppDashboardView extends StatelessWidget {
 
           return Column(
             children: [
-              if (data.isProcessing) const LinearProgressIndicator(),
+              if (data.isProcessing)
+                const LinearProgressIndicator(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Wrap(
@@ -69,13 +138,23 @@ class _WhatsAppDashboardView extends StatelessWidget {
                   runSpacing: 12,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Chip(label: Text('Templates: ${data.templates.length}')),
+                    Chip(
+                      label: Text(
+                        'Templates: ${data.templates.length}',
+                      ),
+                    ),
                     const Chip(
-                      avatar: Icon(Icons.check_circle_outline, size: 18),
-                      label: Text('No Meta approval required'),
+                      avatar: Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                      ),
+                      label: Text(
+                        'No Meta approval required',
+                      ),
                     ),
                     FilledButton.tonalIcon(
-                      onPressed: () => _showTemplateDialog(context),
+                      onPressed: () =>
+                          _showTemplateDialog(context),
                       icon: const Icon(Icons.add),
                       label: const Text('New Template'),
                     ),
@@ -98,17 +177,21 @@ class _WhatsAppDashboardView extends StatelessWidget {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                  padding:
+                      const EdgeInsets.fromLTRB(16, 0, 16, 96),
                   children: [
                     Text(
                       'Message Templates',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style:
+                          Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
                     if (data.templates.isEmpty)
                       const Card(
                         child: ListTile(
-                          title: Text('No WhatsApp templates found.'),
+                          title: Text(
+                            'No WhatsApp templates found.',
+                          ),
                           subtitle: Text(
                             'Create a template for fee reminders, '
                             'holidays, attendance or notices.',
@@ -119,7 +202,9 @@ class _WhatsAppDashboardView extends StatelessWidget {
                       (template) => Card(
                         child: ListTile(
                           leading: const CircleAvatar(
-                            child: Icon(Icons.description_outlined),
+                            child: Icon(
+                              Icons.description_outlined,
+                            ),
                           ),
                           title: Text(template.name),
                           subtitle: Text(
@@ -131,7 +216,9 @@ class _WhatsAppDashboardView extends StatelessWidget {
                               context,
                               initialTemplate: template,
                             ),
-                            icon: const Icon(Icons.send_outlined),
+                            icon: const Icon(
+                              Icons.send_outlined,
+                            ),
                           ),
                         ),
                       ),
@@ -146,11 +233,15 @@ class _WhatsAppDashboardView extends StatelessWidget {
     );
   }
 
-  static Future<void> _showTemplateDialog(BuildContext context) async {
+  static Future<void> _showTemplateDialog(
+    BuildContext context,
+  ) async {
     final nameController = TextEditingController();
-    final languageController = TextEditingController(text: 'en');
+    final languageController =
+        TextEditingController(text: 'en');
     final bodyController = TextEditingController();
-    final variablesController = TextEditingController();
+    final variablesController =
+        TextEditingController();
 
     final save = await showDialog<bool>(
       context: context,
@@ -164,12 +255,16 @@ class _WhatsAppDashboardView extends StatelessWidget {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Template Name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Template Name',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: languageController,
-                  decoration: const InputDecoration(labelText: 'Language Code'),
+                  decoration: const InputDecoration(
+                    labelText: 'Language Code',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -186,8 +281,10 @@ class _WhatsAppDashboardView extends StatelessWidget {
                 TextField(
                   controller: variablesController,
                   decoration: const InputDecoration(
-                    labelText: 'Variable Names (comma separated)',
-                    helperText: 'Example: StudentName, Amount, DueDate',
+                    labelText:
+                        'Variable Names (comma separated)',
+                    helperText:
+                        'Example: StudentName, Amount, DueDate',
                   ),
                 ),
               ],
@@ -196,11 +293,13 @@ class _WhatsAppDashboardView extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () =>
+                Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () =>
+                Navigator.pop(dialogContext, true),
             child: const Text('Save'),
           ),
         ],
@@ -212,24 +311,25 @@ class _WhatsAppDashboardView extends StatelessWidget {
       final user = sl<GetCurrentUserUseCase>()();
 
       context.read<WhatsAppBloc>().add(
-        SaveWhatsAppTemplateRequested(
-          WhatsAppTemplateEntity(
-            id: 'wa_template_${now.microsecondsSinceEpoch}',
-            name: nameController.text.trim(),
-            languageCode: languageController.text.trim(),
-            body: bodyController.text.trim(),
-            variableNames: variablesController.text
-                .split(',')
-                .map((item) => item.trim())
-                .where((item) => item.isNotEmpty)
-                .toList(),
-            status: WhatsAppTemplateStatus.draft,
-            createdBy: user?.uid ?? '',
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ),
-      );
+            SaveWhatsAppTemplateRequested(
+              WhatsAppTemplateEntity(
+                id: 'wa_template_${now.microsecondsSinceEpoch}',
+                name: nameController.text.trim(),
+                languageCode:
+                    languageController.text.trim(),
+                body: bodyController.text.trim(),
+                variableNames: variablesController.text
+                    .split(',')
+                    .map((item) => item.trim())
+                    .where((item) => item.isNotEmpty)
+                    .toList(),
+                status: WhatsAppTemplateStatus.draft,
+                createdBy: user?.uid ?? '',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            ),
+          );
     }
 
     nameController.dispose();
@@ -250,7 +350,9 @@ class _WhatsAppDashboardView extends StatelessWidget {
 
     WhatsAppTemplateEntity? selectedTemplate =
         initialTemplate ??
-        (state.templates.isEmpty ? null : state.templates.first);
+            (state.templates.isEmpty
+                ? null
+                : state.templates.first);
 
     if (selectedTemplate != null) {
       messageController.text = selectedTemplate.body;
@@ -259,7 +361,8 @@ class _WhatsAppDashboardView extends StatelessWidget {
     final open = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) =>
+            AlertDialog(
           title: const Text('Open WhatsApp Chat'),
           content: SizedBox(
             width: 600,
@@ -271,23 +374,28 @@ class _WhatsAppDashboardView extends StatelessWidget {
                     controller: phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Recipient Phone with Country Code',
-                      helperText: 'Pakistan example: 923001234567',
+                      labelText:
+                          'Recipient Phone with Country Code',
+                      helperText:
+                          'Pakistan example: 923001234567',
                     ),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<WhatsAppTemplateEntity?>(
+                  DropdownButtonFormField<
+                      WhatsAppTemplateEntity?>(
                     initialValue: selectedTemplate,
                     decoration: const InputDecoration(
                       labelText: 'Template (optional)',
                     ),
                     items: [
-                      const DropdownMenuItem<WhatsAppTemplateEntity?>(
+                      const DropdownMenuItem<
+                          WhatsAppTemplateEntity?>(
                         value: null,
                         child: Text('Custom Message'),
                       ),
                       ...state.templates.map(
-                        (item) => DropdownMenuItem<WhatsAppTemplateEntity?>(
+                        (item) => DropdownMenuItem<
+                            WhatsAppTemplateEntity?>(
                           value: item,
                           child: Text(item.name),
                         ),
@@ -297,7 +405,8 @@ class _WhatsAppDashboardView extends StatelessWidget {
                       setDialogState(() {
                         selectedTemplate = value;
                         if (value != null) {
-                          messageController.text = value.body;
+                          messageController.text =
+                              value.body;
                         }
                       });
                     },
@@ -318,11 +427,13 @@ class _WhatsAppDashboardView extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             FilledButton.icon(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, true),
               icon: const Icon(Icons.open_in_new),
               label: const Text('Open WhatsApp'),
             ),
@@ -332,22 +443,29 @@ class _WhatsAppDashboardView extends StatelessWidget {
     );
 
     if (open == true && context.mounted) {
-      final phone = _normalizePhone(phoneController.text);
+      final phone =
+          _normalizePhone(phoneController.text);
 
       if (phone.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Enter a valid recipient phone number.'),
+            content: Text(
+              'Enter a valid recipient phone number.',
+            ),
           ),
         );
       } else if (messageController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Enter a message.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enter a message.'),
+          ),
+        );
       } else {
-        final uri = Uri.https('wa.me', '/$phone', {
-          'text': messageController.text.trim(),
-        });
+        final uri = Uri.https(
+          'wa.me',
+          '/$phone',
+          {'text': messageController.text.trim()},
+        );
 
         final launched = await launchUrl(
           uri,
@@ -356,7 +474,11 @@ class _WhatsAppDashboardView extends StatelessWidget {
 
         if (!launched && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('WhatsApp could not be opened.')),
+            const SnackBar(
+              content: Text(
+                'WhatsApp could not be opened.',
+              ),
+            ),
           );
         }
       }
@@ -367,16 +489,41 @@ class _WhatsAppDashboardView extends StatelessWidget {
   }
 
   static String _normalizePhone(String value) {
-    var phone = value.replaceAll(RegExp(r'[^0-9]'), '');
+    var phone =
+        value.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (phone.startsWith('00')) {
       phone = phone.substring(2);
     }
 
-    if (phone.startsWith('0') && phone.length == 11) {
+    if (phone.startsWith('0') &&
+        phone.length == 11) {
       phone = '92${phone.substring(1)}';
     }
 
     return phone;
   }
 }
+'@
+
+& dart format $page
+
+if ($LASTEXITCODE -ne 0) {
+  throw "DART FORMAT ERROR. Backup: $backup"
+}
+
+& flutter analyze `
+  lib/features/communication `
+  --no-fatal-infos `
+  --no-fatal-warnings
+
+if ($LASTEXITCODE -ne 0) {
+  throw "COMMUNICATION ANALYZE ERROR. Backup: $backup"
+}
+
+Write-Host ''
+Write-Host 'WhatsApp Click-to-Chat installed successfully.' -ForegroundColor Green
+Write-Host "Backup: $backup" -ForegroundColor Cyan
+Write-Host ''
+Write-Host 'No Meta API, approval, token, or messaging charges are required.' -ForegroundColor Yellow
+Write-Host 'The user must review and press Send inside WhatsApp.' -ForegroundColor Yellow

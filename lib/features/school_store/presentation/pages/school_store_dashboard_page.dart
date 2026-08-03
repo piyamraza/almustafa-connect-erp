@@ -146,7 +146,7 @@ class _View extends StatelessWidget {
                 child: ListTile(
                   title: Text(e.name),
                   subtitle: Text(
-                    '${e.category.name} â€¢ Purchase ${e.purchasePrice.toStringAsFixed(0)} â€¢ Sale ${e.salePrice.toStringAsFixed(0)}',
+                    '${e.category.name} | Purchase Rs. ${e.purchasePrice.toStringAsFixed(0)} | Sale Rs. ${e.salePrice.toStringAsFixed(0)}',
                   ),
                   trailing: Text('Stock ${e.currentStock}'),
                   onTap: () => _dialog(c, existing: e),
@@ -237,13 +237,17 @@ class _View extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Purchase Price',
+                    prefixText: 'Rs. ',
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: s,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Sale Price'),
+                  decoration: const InputDecoration(
+                    labelText: 'Sale Price',
+                    prefixText: 'Rs. ',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(

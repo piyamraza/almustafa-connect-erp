@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../authentication/domain/usecases/get_current_user_usecase.dart';
+import '../../../access_control/data/services/user_account_service_impl.dart';
+import '../../../access_control/domain/entities/user_account_entity.dart';
 import '../../domain/entities/chat_message_entity.dart';
 import '../../domain/entities/chat_thread_entity.dart';
 import '../bloc/chat_bloc.dart';
@@ -120,59 +122,215 @@ class _InAppChatView extends StatelessWidget {
   }
 
   Future<void> _createThread(BuildContext context) async {
-    final participantIdController = TextEditingController();
-    final participantNameController = TextEditingController();
+    final currentUser = sl<GetCurrentUserUseCase>()();
+    final currentUserId = currentUser?.uid ?? '';
+    List<UserAccountEntity> accounts;
+
+    try {
+      accounts = (await UserAccountServiceImpl().listChatParticipants())
+          .where(
+            (account) =>
+                account.uid.isNotEmpty &&
+                account.uid != currentUserId &&
+                account.isActive &&
+                !account.disabled,
+          )
+          .toList();
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Users could not be loaded: '
+              '${error.toString().replaceFirst('Exception: ', '')}',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    final searchController = TextEditingController();
     final titleController = TextEditingController();
+    UserAccountEntity? selectedAccount;
+    String? roleFilter;
+    var query = '';
+
+    final roles = accounts
+        .map((account) => account.roleName.trim())
+        .where((role) => role.isNotEmpty && role != 'Not Assigned')
+        .toSet()
+        .toList()
+      ..sort();
 
     final create = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('New Conversation'),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: participantIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Participant User ID',
-                ),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final normalizedQuery = query.trim().toLowerCase();
+          final visibleAccounts = accounts.where((account) {
+            final roleMatches =
+                roleFilter == null || account.roleName == roleFilter;
+            final queryMatches =
+                normalizedQuery.isEmpty ||
+                account.displayName.toLowerCase().contains(normalizedQuery) ||
+                account.username.toLowerCase().contains(normalizedQuery) ||
+                account.email.toLowerCase().contains(normalizedQuery) ||
+                account.roleName.toLowerCase().contains(normalizedQuery);
+            return roleMatches && queryMatches;
+          }).toList();
+
+          return AlertDialog(
+            title: const Text('New Conversation'),
+            content: SizedBox(
+              width: 620,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 190,
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: roleFilter,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'User Type',
+                            prefixIcon: Icon(Icons.groups_outlined),
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('All Users'),
+                            ),
+                            ...roles.map(
+                              (role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(
+                                  role,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) => setDialogState(() {
+                            roleFilter = value;
+                            selectedAccount = null;
+                          }),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: (value) =>
+                              setDialogState(() => query = value),
+                          decoration: const InputDecoration(
+                            labelText: 'Search by name',
+                            hintText: 'Name, username or email',
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    height: 260,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: visibleAccounts.isEmpty
+                        ? const Center(
+                            child: Text('No active chat account found.'),
+                          )
+                        : ListView.separated(
+                            itemCount: visibleAccounts.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final account = visibleAccounts[index];
+                              final selected =
+                                  selectedAccount?.uid == account.uid;
+                              return ListTile(
+                                selected: selected,
+                                selectedTileColor: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: .45),
+                                leading: CircleAvatar(
+                                  child: Text(
+                                    account.displayName.trim().isEmpty
+                                        ? '?'
+                                        : account.displayName
+                                              .trim()[0]
+                                              .toUpperCase(),
+                                  ),
+                                ),
+                                title: Text(
+                                  account.displayName.trim().isEmpty
+                                      ? account.username
+                                      : account.displayName,
+                                ),
+                                subtitle: Text(
+                                  '${account.roleName} | '
+                                  '${account.email.isEmpty ? account.username : account.email}',
+                                ),
+                                trailing: selected
+                                    ? const Icon(Icons.check_circle)
+                                    : null,
+                                onTap: () => setDialogState(
+                                  () => selectedAccount = account,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Conversation Title (Optional)',
+                      prefixIcon: Icon(Icons.title),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: participantNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Participant Name',
-                ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Conversation Title',
-                ),
+              FilledButton.icon(
+                onPressed: selectedAccount == null
+                    ? null
+                    : () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.chat_outlined),
+                label: const Text('Start Chat'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Create'),
-          ),
-        ],
+          );
+        },
       ),
     );
 
-    if (create == true && context.mounted) {
-      final user = sl<GetCurrentUserUseCase>()();
+    final title = titleController.text.trim();
+    final participant = selectedAccount;
+    await WidgetsBinding.instance.endOfFrame;
+    searchController.dispose();
+    titleController.dispose();
+
+    if (create == true && participant != null && context.mounted) {
       final now = DateTime.now();
-      final currentUserId = user?.uid ?? '';
+      final participantName = participant.displayName.trim().isEmpty
+          ? participant.username
+          : participant.displayName.trim();
 
       context.read<ChatBloc>().add(
         CreateChatThreadRequested(
@@ -181,26 +339,23 @@ class _InAppChatView extends StatelessWidget {
             type: ChatThreadType.custom,
             participantIds: [
               currentUserId,
-              participantIdController.text.trim(),
+              participant.uid,
             ],
             participantNames: {
-              currentUserId: 'Current User',
-              participantIdController.text.trim(): participantNameController
-                  .text
-                  .trim(),
+              currentUserId: currentUser?.displayName?.trim().isNotEmpty == true
+                  ? currentUser!.displayName!.trim()
+                  : 'Current User',
+              participant.uid: participantName,
             },
             createdBy: currentUserId,
             createdAt: now,
             updatedAt: now,
-            title: titleController.text.trim(),
+            title: title.isEmpty ? participantName : title,
           ),
         ),
       );
     }
 
-    participantIdController.dispose();
-    participantNameController.dispose();
-    titleController.dispose();
   }
 }
 

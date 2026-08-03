@@ -180,7 +180,10 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
           payments: payments,
           additionalChargeDues: additional,
           latestPayment: payment,
-          message: 'Payment collected. Receipt: ${payment.receiptNumber}',
+          message: payment.advanceAmount > 0
+              ? 'Payment collected. Rs. ${payment.advanceAmount.toStringAsFixed(0)} '
+                    'recorded as advance. Receipt: ${payment.receiptNumber}'
+              : 'Payment collected. Receipt: ${payment.receiptNumber}',
         ),
       );
     } catch (error) {

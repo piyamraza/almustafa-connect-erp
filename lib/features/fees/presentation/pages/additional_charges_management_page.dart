@@ -706,6 +706,7 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
                   _classId = null;
                   _sectionId = null;
                   _selected.clear();
+                  _excluded.clear();
                 }),
               ),
               if (_scope != AdditionalChargeScope.entireSchool) _classField(),
@@ -736,7 +737,11 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
               if (_scope == AdditionalChargeScope.selectedStudents)
                 _studentsBox('Selected Students', _selected),
               if (_scope != AdditionalChargeScope.selectedStudents)
-                _studentsBox('Exclude Students', _excluded),
+                _studentsBox(
+                  'Students to Charge',
+                  _excluded,
+                  exclusionMode: true,
+                ),
               SwitchListTile(
                 value: _mandatory,
                 onChanged: (v) => setState(() => _mandatory = v),
@@ -853,39 +858,100 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
           : null,
     ),
   );
-  Widget _studentsBox(String title, Set<String> values) => SizedBox(
-    width: 540,
-    height: 210,
-    child: Card(
-      color: const Color(0xFFF7F9FD),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text('$title (${values.length})'),
-            subtitle: const Text('Class-first filtered active students'),
-          ),
-          Expanded(
-            child: ListView(
-              children: _filteredStudents
-                  .map(
-                    (s) => CheckboxListTile(
-                      dense: true,
-                      value: values.contains(s.id),
-                      title: Text(s.fullName),
-                      subtitle: Text(s.admissionNo),
-                      onChanged: (v) => setState(
-                        () =>
-                            v == true ? values.add(s.id) : values.remove(s.id),
-                      ),
+  Widget _studentsBox(
+    String title,
+    Set<String> values, {
+    bool exclusionMode = false,
+  }) {
+    final students = _filteredStudents;
+    final markedCount = exclusionMode
+        ? students.where((student) => !values.contains(student.id)).length
+        : students.where((student) => values.contains(student.id)).length;
+
+    void markAll() => setState(() {
+      if (exclusionMode) {
+        values.removeAll(students.map((student) => student.id));
+      } else {
+        values.addAll(students.map((student) => student.id));
+      }
+    });
+
+    void unmarkAll() => setState(() {
+      if (exclusionMode) {
+        values.addAll(students.map((student) => student.id));
+      } else {
+        values.removeAll(students.map((student) => student.id));
+      }
+    });
+
+    return SizedBox(
+      width: 540,
+      height: 210,
+      child: Card(
+        color: const Color(0xFFF7F9FD),
+        child: Column(
+          children: [
+            ListTile(
+              title: Text('$title ($markedCount of ${students.length})'),
+              subtitle: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  TextButton.icon(
+                    onPressed:
+                        students.isEmpty || markedCount == students.length
+                        ? null
+                        : markAll,
+                    icon: const Icon(Icons.check_box_outlined, size: 18),
+                    label: const Text('Mark All'),
+                  ),
+                  TextButton.icon(
+                    onPressed: students.isEmpty || markedCount == 0
+                        ? null
+                        : unmarkAll,
+                    icon: const Icon(
+                      Icons.check_box_outline_blank,
+                      size: 18,
                     ),
-                  )
-                  .toList(),
+                    label: const Text('Unmark All'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                children: students
+                    .map(
+                      (s) => CheckboxListTile(
+                        dense: true,
+                        value: exclusionMode
+                            ? !values.contains(s.id)
+                            : values.contains(s.id),
+                        title: Text(s.fullName),
+                        subtitle: Text(
+                          'Father: ${s.fatherName.trim().isEmpty ? '-' : s.fatherName.trim()}',
+                        ),
+                        onChanged: (v) => setState(() {
+                          if (exclusionMode) {
+                            v == true
+                                ? values.remove(s.id)
+                                : values.add(s.id);
+                          } else {
+                            v == true
+                                ? values.add(s.id)
+                                : values.remove(s.id);
+                          }
+                        }),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
   void _save() {
     if (!_key.currentState!.validate()) return;
     if (_scope == AdditionalChargeScope.selectedStudents && _selected.isEmpty) {

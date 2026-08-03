@@ -37,6 +37,25 @@ class UserAccountServiceImpl implements UserAccountService {
   }
 
   @override
+  Future<List<UserAccountEntity>> listChatParticipants() async {
+    final callable = _functions.httpsCallable('listChatParticipants');
+    final response = await callable.call<Map<String, dynamic>>();
+    final data = Map<String, dynamic>.from(response.data);
+    final rawUsers = data['users'] as List<dynamic>? ?? const [];
+
+    return rawUsers
+        .map(
+          (item) =>
+              UserAccountEntity.fromMap(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList(growable: false)
+      ..sort(
+        (a, b) =>
+            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+      );
+  }
+
+  @override
   Future<CreatedUserAccount> createAccount({
     required String displayName,
     required String login,

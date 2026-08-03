@@ -236,6 +236,7 @@ class _StorePaymentsView extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Amount Received',
+                    prefixText: 'Rs. ',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -327,7 +328,10 @@ class _StorePaymentsView extends StatelessWidget {
                 TextField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Amount Paid'),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount Paid',
+                    prefixText: 'Rs. ',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(

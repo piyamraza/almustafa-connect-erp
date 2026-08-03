@@ -284,13 +284,19 @@ class _StorePurchasesView extends StatelessWidget {
                 TextField(
                   controller: priceController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Unit Price'),
+                  decoration: const InputDecoration(
+                    labelText: 'Unit Price',
+                    prefixText: 'Rs. ',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: paidController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Paid Amount'),
+                  decoration: const InputDecoration(
+                    labelText: 'Paid Amount',
+                    prefixText: 'Rs. ',
+                  ),
                 ),
               ],
             ),

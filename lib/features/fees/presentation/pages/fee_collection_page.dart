@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
+import '../../../school_store/domain/entities/store_sale_entity.dart';
+import '../../../school_store/domain/repositories/store_payment_repository.dart';
 import '../../domain/entities/fee_document_request_entity.dart';
 import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
@@ -16,6 +18,7 @@ import '../bloc/fee_document_bloc.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 
 class FeeCollectionPage extends StatelessWidget {
   const FeeCollectionPage({super.key});
@@ -177,7 +180,43 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     );
   }
 
+  void _selectStudentFromSearch(StudentEntity student) {
+    AcademicClassEntity? studentClass;
+    for (final item in _classes) {
+      if (_academicResolver.sameClass(item.id, student.classId)) {
+        studentClass = item;
+        break;
+      }
+    }
+
+    SectionEntity? studentSection;
+    for (final item in _sections) {
+      if (_academicResolver.sameSection(item.id, student.sectionId) &&
+          (studentClass == null || item.classId == studentClass.id)) {
+        studentSection = item;
+        break;
+      }
+    }
+
+    setState(() {
+      _selectedClassId = studentClass?.id;
+      _selectedSectionId = studentSection?.id;
+      _searchController.clear();
+      _query = '';
+    });
+    _selectStudent(student);
+  }
+
   String _normal(String value) => value.trim().toLowerCase();
+
+  AcademicReferenceResolver get _academicResolver =>
+      AcademicReferenceResolver(classes: _classes, sections: _sections);
+
+  String _className(StudentEntity student) =>
+      _academicResolver.className(student.classId);
+
+  String _sectionName(StudentEntity student) =>
+      _academicResolver.sectionName(student.sectionId);
 
   AcademicClassEntity? get _selectedClass {
     final id = _selectedClassId;
@@ -214,16 +253,14 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     final selected = _selectedClass;
     if (selected == null) return false;
 
-    final value = _normal(student.classId);
-    return value == _normal(selected.id) || value == _normal(selected.name);
+    return _academicResolver.sameClass(student.classId, selected.id);
   }
 
   bool _matchesSection(StudentEntity student) {
     final selected = _selectedSection;
     if (selected == null) return false;
 
-    final value = _normal(student.sectionId);
-    return value == _normal(selected.id) || value == _normal(selected.name);
+    return _academicResolver.sameSection(student.sectionId, selected.id);
   }
 
   List<StudentEntity> get _visibleStudents {
@@ -271,7 +308,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     if (value != null) setState(() => _paymentDate = value);
   }
 
-  void _collect() {
+  Future<void> _collect() async {
     final student = _selectedStudent;
     if (student == null) {
       _show('Select a student.');
@@ -282,6 +319,36 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     if (amount == null || amount <= 0) {
       _show('Enter a valid payment amount.');
       return;
+    }
+
+    if (_selectedDueIds.isEmpty && _selectedAdditionalDueIds.isEmpty) {
+      final confirmed =
+          await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              icon: const Icon(Icons.info_outline),
+              title: const Text('No Receivable Found'),
+              content: Text(
+                'There is no selected receivable for ${student.fullName}. '
+                'Rs. ${amount.toStringAsFixed(0)} will be recorded as advance fee. '
+                'Do you want to continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text('Collect as Advance'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+
+      if (!confirmed || !mounted) return;
     }
 
     context.read<FeeCollectionBloc>().add(
@@ -354,6 +421,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F7FC),
       appBar: AppBar(
         actions: const [DashboardNavigationButton()],
         title: const Text('Fee Collection'),
@@ -407,16 +475,21 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
 
             return Stack(
               children: [
-                Row(
+                Column(
                   children: [
+                    _globalStudentSearch(busy),
+                    Expanded(
+                      child: Row(
+                        children: [
                     SizedBox(
-                      width: 340,
+                      width: 310,
                       child: Card(
-                        margin: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.fromLTRB(12, 10, 10, 12),
+                        clipBehavior: Clip.antiAlias,
                         child: Column(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(14),
+                              padding: const EdgeInsets.all(10),
                               child: Column(
                                 children: [
                                   DropdownButtonFormField<String>(
@@ -437,7 +510,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                         .toList(),
                                     onChanged: busy ? null : _selectClass,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
                                     initialValue:
                                         _availableSections.any(
@@ -474,7 +547,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                         ? null
                                         : _selectSection,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 8),
                                   TextFormField(
                                     controller: _searchController,
                                     enabled: _selectedSectionId != null,
@@ -526,6 +599,10 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                         final student = _visibleStudents[index];
                                         final name = student.fullName.trim();
                                         return ListTile(
+                                          dense: true,
+                                          visualDensity: const VisualDensity(
+                                            vertical: -2,
+                                          ),
                                           selected:
                                               _selectedStudent?.id ==
                                               student.id,
@@ -542,11 +619,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                           ),
                                           title: Text(student.fullName),
                                           subtitle: Text(
-                                            '${student.admissionNo}\n'
-                                            'Roll: '
+                                            '${student.admissionNo}  |  Roll: '
                                             '${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
                                           ),
-                                          isThreeLine: true,
                                           trailing:
                                               _selectedStudent?.id == student.id
                                               ? const Icon(Icons.check_circle)
@@ -568,11 +643,16 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                               child: Text('Select a student to collect fee.'),
                             )
                           : SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(0, 16, 16, 24),
+                              padding: const EdgeInsets.fromLTRB(0, 10, 12, 18),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _studentHeader(),
+                                  _studentHeader(
+                                    dues,
+                                    additionalDues,
+                                    payments,
+                                    busy,
+                                  ),
                                   const SizedBox(height: 12),
                                   _duesCard(
                                     payableDues,
@@ -597,6 +677,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                               ),
                             ),
                     ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 if (busy)
@@ -614,24 +697,142 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     );
   }
 
-  Widget _studentHeader() {
+  Widget _globalStudentSearch(bool busy) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      child: Autocomplete<StudentEntity>(
+        displayStringForOption: (student) => student.fullName,
+        optionsBuilder: (value) {
+          final query = _normal(value.text);
+          if (query.isEmpty) return const Iterable<StudentEntity>.empty();
+          return _students
+              .where(
+                (student) =>
+                    _normal(student.fullName).contains(query) ||
+                    _normal(student.fatherName).contains(query) ||
+                    _normal(student.admissionNo).contains(query) ||
+                    _normal(student.rollNumber).contains(query),
+              )
+              .take(10);
+        },
+        onSelected: busy ? (_) {} : _selectStudentFromSearch,
+        fieldViewBuilder:
+            (context, controller, focusNode, onFieldSubmitted) => TextField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: !busy,
+              onSubmitted: (_) => onFieldSubmitted(),
+              decoration: const InputDecoration(
+                labelText: 'Search student by name',
+                hintText: 'Type student or father name, admission or roll no.',
+                prefixIcon: Icon(Icons.person_search_outlined),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+        optionsViewBuilder: (context, onSelected, options) {
+          final results = options.toList(growable: false);
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 720,
+                  maxHeight: 360,
+                ),
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: results.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final student = results[index];
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.person_outline),
+                      ),
+                      title: Text(student.fullName),
+                      subtitle: Text(
+                        'Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}  |  '
+                        'Class: ${_className(student)} - ${_sectionName(student)}  |  '
+                        'Roll: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
+                      ),
+                      onTap: () => onSelected(student),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _studentHeader(
+    List<MonthlyFeeDueEntity> dues,
+    List<StudentAdditionalChargeDueEntity> additionalDues,
+    List<FeePaymentEntity> payments,
+    bool busy,
+  ) {
     final student = _selectedStudent!;
     return Card(
+      color: Theme.of(context).colorScheme.primaryContainer.withValues(
+        alpha: .42,
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 18,
-          runSpacing: 8,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
           children: [
-            Text(
-              student.fullName,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            CircleAvatar(
+              radius: 21,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              child: Text(
+                student.fullName.trim().isEmpty
+                    ? '?'
+                    : student.fullName.trim()[0].toUpperCase(),
+              ),
             ),
-            Chip(label: Text(student.admissionNo)),
-            Chip(label: Text('Roll ${student.rollNumber}')),
-            Chip(label: Text(student.guardianPhone)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    student.fullName,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${student.admissionNo}  |  Roll ${student.rollNumber}  |  '
+                    '${_className(student)}-${_sectionName(student)}',
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: busy
+                  ? null
+                  : () => _openStudentLedger(
+                      dues,
+                      additionalDues,
+                      payments,
+                    ),
+              icon: const Icon(Icons.menu_book_outlined, size: 19),
+              label: const Text('Student Ledger'),
+            ),
+            const SizedBox(width: 8),
+            if (student.guardianPhone.trim().isNotEmpty)
+              Chip(
+                avatar: const Icon(Icons.phone_outlined, size: 16),
+                label: Text(student.guardianPhone),
+              ),
           ],
         ),
       ),
@@ -643,6 +844,19 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     double selectedOutstanding,
     bool busy,
   ) {
+    if (dues.isEmpty) {
+      return const Card(
+        child: ListTile(
+          dense: true,
+          leading: CircleAvatar(
+            child: Icon(Icons.check_circle_outline, size: 20),
+          ),
+          title: Text('No Monthly Fee Due'),
+          subtitle: Text('This student has no outstanding monthly fee.'),
+        ),
+      );
+    }
+
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,13 +922,39 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     bool busy,
   ) {
     return Card(
+      color: Theme.of(context).colorScheme.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Wrap(
           spacing: 12,
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            SizedBox(
+              width: double.infinity,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.payments_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Collect Payment',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    selectedOutstanding > 0
+                        ? 'Selected Rs. ${selectedOutstanding.toStringAsFixed(0)}'
+                        : 'No due selected - payment can be saved as advance',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
             SizedBox(
               width: 170,
               child: TextFormField(
@@ -792,12 +1032,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               ),
             ),
             FilledButton.icon(
-              onPressed:
-                  busy ||
-                      (_selectedDueIds.isEmpty &&
-                          _selectedAdditionalDueIds.isEmpty)
-                  ? null
-                  : _collect,
+              onPressed: busy ? null : _collect,
               icon: const Icon(Icons.payments_outlined),
               label: const Text('Collect Payment'),
             ),
@@ -812,6 +1047,19 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     double selectedOutstanding,
     bool busy,
   ) {
+    if (dues.isEmpty) {
+      return const Card(
+        child: ListTile(
+          dense: true,
+          leading: CircleAvatar(
+            child: Icon(Icons.check_circle_outline, size: 20),
+          ),
+          title: Text('No Additional Charges'),
+          subtitle: Text('This student has no outstanding additional dues.'),
+        ),
+      );
+    }
+
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -979,6 +1227,319 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     );
   }
 
+  Future<void> _openStudentLedger(
+    List<MonthlyFeeDueEntity> dues,
+    List<StudentAdditionalChargeDueEntity> additionalDues,
+    List<FeePaymentEntity> payments,
+  ) async {
+    final now = DateTime.now();
+    var fromMonth = 1;
+    var fromYear = now.year;
+    var toMonth = now.month;
+    var toYear = now.year;
+
+    final period = await showDialog<_LedgerPeriod>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Student Ledger Duration'),
+          content: SizedBox(
+            width: 520,
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _ledgerMonthField(
+                  label: 'From Month',
+                  value: fromMonth,
+                  changed: (value) =>
+                      setDialogState(() => fromMonth = value),
+                ),
+                _ledgerYearField(
+                  label: 'From Year',
+                  value: fromYear,
+                  changed: (value) => setDialogState(() => fromYear = value),
+                ),
+                _ledgerMonthField(
+                  label: 'To Month',
+                  value: toMonth,
+                  changed: (value) => setDialogState(() => toMonth = value),
+                ),
+                _ledgerYearField(
+                  label: 'To Year',
+                  value: toYear,
+                  changed: (value) => setDialogState(() => toYear = value),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                final from = DateTime(fromYear, fromMonth);
+                final to = DateTime(toYear, toMonth);
+                if (from.isAfter(to)) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('From month must be before To month.'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  _LedgerPeriod(from: from, to: to),
+                );
+              },
+              icon: const Icon(Icons.summarize_outlined),
+              label: const Text('Generate Ledger'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (period == null || !mounted) return;
+
+    List<StoreSaleEntity> storeSales = const [];
+    try {
+      final storeRepository = sl<StorePaymentRepository>();
+      storeSales = await storeRepository.getSales();
+    } catch (_) {
+      // Fee ledger remains available if the optional school-store data fails.
+    }
+
+    if (!mounted) return;
+    _showStudentLedger(
+      period: period,
+      dues: dues,
+      additionalDues: additionalDues,
+      payments: payments,
+      storeSales: storeSales,
+    );
+  }
+
+  Widget _ledgerMonthField({
+    required String label,
+    required int value,
+    required ValueChanged<int> changed,
+  }) => SizedBox(
+    width: 230,
+    child: DropdownButtonFormField<int>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        for (var month = 1; month <= 12; month++)
+          DropdownMenuItem(value: month, child: Text(_monthName(month))),
+      ],
+      onChanged: (next) {
+        if (next != null) changed(next);
+      },
+    ),
+  );
+
+  Widget _ledgerYearField({
+    required String label,
+    required int value,
+    required ValueChanged<int> changed,
+  }) => SizedBox(
+    width: 230,
+    child: DropdownButtonFormField<int>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        for (var year = DateTime.now().year - 5;
+            year <= DateTime.now().year + 2;
+            year++)
+          DropdownMenuItem(value: year, child: Text('$year')),
+      ],
+      onChanged: (next) {
+        if (next != null) changed(next);
+      },
+    ),
+  );
+
+  void _showStudentLedger({
+    required _LedgerPeriod period,
+    required List<MonthlyFeeDueEntity> dues,
+    required List<StudentAdditionalChargeDueEntity> additionalDues,
+    required List<FeePaymentEntity> payments,
+    required List<StoreSaleEntity> storeSales,
+  }) {
+    final student = _selectedStudent!;
+    bool inPeriod(DateTime date) {
+      final month = DateTime(date.year, date.month);
+      return !month.isBefore(period.from) && !month.isAfter(period.to);
+    }
+
+    final monthly = dues
+        .where(
+          (due) =>
+              due.status != MonthlyFeeDueStatus.cancelled &&
+              inPeriod(DateTime(due.year, due.month)),
+        )
+        .toList();
+    final extras = additionalDues
+        .where(
+          (due) =>
+              due.status != StudentAdditionalChargeDueStatus.cancelled &&
+              inPeriod(due.dueDate),
+        )
+        .toList();
+    final periodPayments = payments
+        .where(
+          (payment) =>
+              payment.status == FeePaymentStatus.completed &&
+              inPeriod(payment.paymentDate),
+        )
+        .toList();
+
+    final monthlyIds = monthly.map((due) => due.id).toSet();
+    final extraById = {for (final due in extras) due.id: due};
+    var schoolPaid = 0.0;
+    final extraPaid = <String, double>{};
+    for (final payment in periodPayments) {
+      for (final allocation in payment.allocations) {
+        if (allocation.dueType == FeeDueType.monthly &&
+            monthlyIds.contains(allocation.dueId)) {
+          schoolPaid += allocation.amount;
+        } else {
+          final due = extraById[allocation.dueId];
+          if (due != null) {
+            final label = _label(due.chargeCategory.name);
+            extraPaid[label] = (extraPaid[label] ?? 0) + allocation.amount;
+          }
+        }
+      }
+    }
+
+    final lines = <_LedgerLine>[
+      _LedgerLine(
+        label: 'School Fee',
+        payable: monthly.fold<double>(
+          0,
+          (sum, due) => sum + due.netPayable,
+        ),
+        paid: schoolPaid,
+      ),
+    ];
+    final extraPayable = <String, double>{};
+    for (final due in extras) {
+      final label = _label(due.chargeCategory.name);
+      extraPayable[label] = (extraPayable[label] ?? 0) + due.netPayable;
+    }
+    for (final entry in extraPayable.entries) {
+      lines.add(
+        _LedgerLine(
+          label: entry.key,
+          payable: entry.value,
+          paid: extraPaid[entry.key] ?? 0,
+        ),
+      );
+    }
+
+    final bookSales = storeSales.where(
+      (sale) => sale.studentId == student.id && inPeriod(sale.saleDate),
+    );
+    final booksPayable = bookSales.fold<double>(
+      0,
+      (sum, sale) => sum + sale.netAmount,
+    );
+    final booksPaid = bookSales.fold<double>(
+      0,
+      (sum, sale) => sum + sale.paidAmount,
+    );
+    if (booksPayable > 0 || booksPaid > 0) {
+      lines.add(
+        _LedgerLine(
+          label: 'Books / School Store',
+          payable: booksPayable,
+          paid: booksPaid,
+        ),
+      );
+    }
+
+    final totalPayable = lines.fold<double>(
+      0,
+      (sum, line) => sum + line.payable,
+    );
+    final totalPaid = lines.fold<double>(0, (sum, line) => sum + line.paid);
+    final advance = periodPayments.fold<double>(
+      0,
+      (sum, payment) => sum + payment.advanceAmount,
+    );
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${student.fullName} - Student Ledger'),
+        content: SizedBox(
+          width: 820,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_monthName(period.from.month)} ${period.from.year} to '
+                  '${_monthName(period.to.month)} ${period.to.year}',
+                ),
+                const SizedBox(height: 14),
+                DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Category')),
+                    DataColumn(label: Text('Payable'), numeric: true),
+                    DataColumn(label: Text('Paid'), numeric: true),
+                    DataColumn(label: Text('Balance'), numeric: true),
+                  ],
+                  rows: [
+                    for (final line in lines)
+                      DataRow(
+                        cells: [
+                          DataCell(Text(line.label)),
+                          DataCell(Text('Rs. ${line.payable.toStringAsFixed(0)}')),
+                          DataCell(Text('Rs. ${line.paid.toStringAsFixed(0)}')),
+                          DataCell(
+                            Text(
+                              'Rs. ${(line.payable - line.paid).toStringAsFixed(0)}',
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    Chip(label: Text('Total Payable: Rs. ${totalPayable.toStringAsFixed(0)}')),
+                    Chip(label: Text('Total Paid: Rs. ${totalPaid.toStringAsFixed(0)}')),
+                    Chip(label: Text('Advance: Rs. ${advance.toStringAsFixed(0)}')),
+                    Chip(
+                      label: Text(
+                        'Balance: Rs. ${(totalPayable - totalPaid).toStringAsFixed(0)}',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static String _methodLabel(FeePaymentMethod method) => switch (method) {
     FeePaymentMethod.cash => 'Cash',
     FeePaymentMethod.bankTransfer => 'Bank Transfer',
@@ -1010,4 +1571,23 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   static String _label(String value) => value
       .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}')
       .trim();
+}
+
+class _LedgerPeriod {
+  const _LedgerPeriod({required this.from, required this.to});
+
+  final DateTime from;
+  final DateTime to;
+}
+
+class _LedgerLine {
+  const _LedgerLine({
+    required this.label,
+    required this.payable,
+    required this.paid,
+  });
+
+  final String label;
+  final double payable;
+  final double paid;
 }

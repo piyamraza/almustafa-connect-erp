@@ -81,6 +81,20 @@ class _AccountsDashboardView extends StatelessWidget {
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      'Accounts Modules',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  sliver: _AccountsModuleGrid(),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       Text(
@@ -191,19 +205,8 @@ class _AccountsDashboardView extends StatelessWidget {
                       AccountsRecentTransactions(
                         items: summary.recentTransactions,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Accounts Modules',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 10),
                     ]),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  sliver: _AccountsModuleGrid(),
                 ),
               ],
             ),

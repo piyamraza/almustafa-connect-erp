@@ -256,13 +256,17 @@ class _StoreSalesView extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Unit Sale Price',
+                      prefixText: 'Rs. ',
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: discountController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Discount'),
+                    decoration: const InputDecoration(
+                      labelText: 'Discount',
+                      prefixText: 'Rs. ',
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -270,6 +274,7 @@ class _StoreSalesView extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Paid Amount',
+                      prefixText: 'Rs. ',
                       helperText: 'Enter 0 for full credit sale.',
                     ),
                   ),

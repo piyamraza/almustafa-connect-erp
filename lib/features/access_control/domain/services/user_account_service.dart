@@ -21,6 +21,8 @@ abstract class UserAccountService {
 
   Future<List<UserAccountEntity>> listAccounts();
 
+  Future<List<UserAccountEntity>> listChatParticipants();
+
   Future<CreatedUserAccount> createAccount({
     required String displayName,
     required String login,

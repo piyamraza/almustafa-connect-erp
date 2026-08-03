@@ -299,6 +299,55 @@ exports.listUserAccounts = onCall(async (request) => {
   };
 });
 
+exports.listChatParticipants = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Please sign in first.");
+  }
+
+  const callerRole = await db
+      .collection("user_roles")
+      .doc(request.auth.uid)
+      .get();
+  if (!callerRole.exists || callerRole.data().isActive !== true) {
+    throw new HttpsError(
+        "permission-denied",
+        "Your user account has no active role assignment.",
+    );
+  }
+
+  const result = await auth.listUsers(1000);
+  const roleSnapshots = await Promise.all(
+      result.users.map((user) =>
+        db.collection("user_roles").doc(user.uid).get()),
+  );
+
+  const users = result.users
+      .map((user, index) => {
+        const roleData = roleSnapshots[index].exists ?
+          roleSnapshots[index].data() :
+          {};
+        return {
+          uid: user.uid,
+          displayName: user.displayName || roleData.userName || "",
+          username: roleData.username || "",
+          roleId: roleData.roleId || "",
+          roleName: roleData.roleName || "Not Assigned",
+          linkedEntityType: roleData.linkedEntityType || "",
+          linkedEntityId: roleData.linkedEntityId || "",
+          disabled: user.disabled,
+          isActive: roleData.isActive === true,
+        };
+      })
+      .filter((user) =>
+        user.uid !== request.auth.uid &&
+        !user.disabled &&
+        user.isActive &&
+        user.roleId,
+      );
+
+  return {users};
+});
+
 exports.setUserAccountDisabled = onCall(async (request) => {
   const caller = await requireUserManagementPermission(request);
   const uid = clean(request.data?.uid);

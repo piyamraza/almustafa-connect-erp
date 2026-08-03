@@ -63,8 +63,6 @@ class _AddStudentPageState extends State<AddStudentPage> {
   bool _isSaving = false;
   bool _settingSystemAdmissionNumber = false;
   bool _admissionNumberManuallyEdited = false;
-  bool _settingSystemRollNumber = false;
-  bool _rollNumberManuallyEdited = false;
 
   Uint8List? _imageBytes;
 
@@ -77,6 +75,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
   List<AcademicClassEntity> _academicClasses = const [];
   List<SectionEntity> _academicSections = const [];
+  List<StudentEntity> _existingStudents = const [];
 
   List<String> get classes {
     final values = _academicClasses
@@ -135,9 +134,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
   }
 
   void _setSystemRollNumber(String value) {
-    _settingSystemRollNumber = true;
     _rollNumberController.text = value;
-    _settingSystemRollNumber = false;
   }
 
   void _setSystemAdmissionNumber(String value) {
@@ -153,20 +150,15 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
   Future<void> _loadSystemGeneratedNumbers() async {
     _setSystemAdmissionNumber(_admissionNumberForSequence(1));
-    _setSystemRollNumber('1');
+    _setSystemRollNumber('');
     try {
       final students = await _repository.getStudents();
-      var highestRollNumber = 0;
       final usedAdmissionNumbers = students
           .map((student) => student.admissionNo.trim().toUpperCase())
           .toSet();
       final admissionPrefix = 'ADM-${DateTime.now().year}-';
       var highestAdmissionSequence = 0;
       for (final student in students) {
-        final rollNumber = int.tryParse(student.rollNumber.trim());
-        if (rollNumber != null && rollNumber > highestRollNumber) {
-          highestRollNumber = rollNumber;
-        }
         final admissionNumber = student.admissionNo.trim().toUpperCase();
         if (admissionNumber.startsWith(admissionPrefix)) {
           final sequence = int.tryParse(
@@ -184,17 +176,67 @@ class _AddStudentPageState extends State<AddStudentPage> {
         admissionSequence++;
       }
       if (!mounted) return;
+      _existingStudents = students;
       if (!_admissionNumberManuallyEdited) {
         _setSystemAdmissionNumber(
           _admissionNumberForSequence(admissionSequence),
         );
       }
-      if (!_rollNumberManuallyEdited) {
-        _setSystemRollNumber('${highestRollNumber + 1}');
-      }
+      _suggestRollNumberForSelectedClass();
     } catch (_) {
       // Keep the initial generated values when records cannot be loaded.
     }
+  }
+
+  String _classCode(String className) {
+    final numeric = RegExp(r'\d+').firstMatch(className)?.group(0);
+    if (numeric != null) {
+      return int.parse(numeric).toString().padLeft(2, '0');
+    }
+
+    final normalized = className.trim().toLowerCase();
+    if (normalized.contains('nursery')) return 'NS';
+    if (normalized.contains('prep')) return 'PP';
+    if (normalized.contains('kindergarten') || normalized == 'kg') return 'KG';
+
+    final activeClasses = _academicClasses.where((item) => item.isActive).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final index = activeClasses.indexWhere((item) => item.name == className);
+    return (index + 1).clamp(1, 99).toString().padLeft(2, '0');
+  }
+
+  void _suggestRollNumberForSelectedClass() {
+    if (widget.isEdit) return;
+    final className = selectedClass;
+    if (className == null || className.trim().isEmpty) {
+      _setSystemRollNumber('');
+      return;
+    }
+
+    AcademicClassEntity? selectedAcademicClass;
+    for (final item in _academicClasses) {
+      if (item.name == className || item.id == className) {
+        selectedAcademicClass = item;
+        break;
+      }
+    }
+
+    final code = _classCode(className);
+    var highest = 0;
+    for (final student in _existingStudents) {
+      final sameClass = student.classId == className ||
+          student.classId == selectedAcademicClass?.id;
+      if (!sameClass) continue;
+
+      final roll = student.rollNumber.trim().toUpperCase();
+      final formatted = RegExp(r'^AMS-[^-]+-(\d+)$').firstMatch(roll);
+      final sequence = formatted == null
+          ? int.tryParse(roll)
+          : int.tryParse(formatted.group(1)!);
+      if (sequence != null && sequence > highest) highest = sequence;
+    }
+
+    _setSystemRollNumber('AMS-$code-${highest + 1}');
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -449,11 +491,6 @@ class _AddStudentPageState extends State<AddStudentPage> {
           _admissionNumberManuallyEdited = true;
         }
       });
-      _rollNumberController.addListener(() {
-        if (!_settingSystemRollNumber) {
-          _rollNumberManuallyEdited = true;
-        }
-      });
       _loadSystemGeneratedNumbers();
       return;
     }
@@ -703,9 +740,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
                               controller: _rollNumberController,
                               label: 'Roll Number',
                               icon: Icons.format_list_numbered,
-                              keyboardType: TextInputType.number,
+                              readOnly: !widget.isEdit,
                               helperText:
-                                  'Next number suggested; manual entry allowed',
+                                  'Generated automatically after class selection',
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Roll Number is required';
@@ -748,9 +785,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
                         controller: _rollNumberController,
                         label: 'Roll Number',
                         icon: Icons.format_list_numbered,
-                        keyboardType: TextInputType.number,
+                        readOnly: !widget.isEdit,
                         helperText:
-                            'Next number suggested; manual entry allowed',
+                            'Generated automatically after class selection',
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Roll Number is required';
@@ -829,6 +866,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
                                   selectedClass = value;
                                   selectedSection = null;
                                 });
+                                _suggestRollNumberForSelectedClass();
                               },
                             ),
                           ),
@@ -885,6 +923,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
                             selectedClass = value;
                             selectedSection = null;
                           });
+                          _suggestRollNumberForSelectedClass();
                         },
                       ),
 
@@ -1232,11 +1271,13 @@ class _AddStudentPageState extends State<AddStudentPage> {
     int maxLines = 1,
     String? hintText,
     String? helperText,
+    bool readOnly = false,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      readOnly: readOnly,
       maxLines: maxLines,
       validator: validator,
       decoration: _inputDecoration(

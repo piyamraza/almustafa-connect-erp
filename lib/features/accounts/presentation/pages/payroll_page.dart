@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../authentication/domain/usecases/get_current_user_usecase.dart';
+import '../../../staff/domain/repositories/staff_repository.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
 import '../bloc/payroll_bloc.dart';
@@ -191,12 +193,50 @@ class _PayrollViewState extends State<_PayrollView> {
   }
 
   Future<void> _showProfileDialog(BuildContext context) async {
-    final employeeId = TextEditingController();
-    final employeeName = TextEditingController();
+    final List<_PayrollEmployeeOption> teachers;
+    final List<_PayrollEmployeeOption> staff;
+
+    try {
+      final teacherRecords = await sl<TeacherRepository>().getTeachers();
+      final staffRecords = await sl<StaffRepository>().getStaff();
+      teachers = teacherRecords
+          .where((item) => item.isActive)
+          .map(
+            (item) => _PayrollEmployeeOption(
+              id: item.id,
+              employeeId: item.employeeId,
+              name: item.fullName,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+      staff = staffRecords
+          .where((item) => item.isActive)
+          .map(
+            (item) => _PayrollEmployeeOption(
+              id: item.id,
+              employeeId: item.staffId,
+              name: item.fullName,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load employees: $error')),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
     final basic = TextEditingController();
     final allowances = TextEditingController(text: '0');
     final deductions = TextEditingController(text: '0');
     var employeeType = PayrollEmployeeType.teacher;
+    _PayrollEmployeeOption? selectedEmployee;
 
     final save = await showDialog<bool>(
       context: context,
@@ -208,35 +248,56 @@ class _PayrollViewState extends State<_PayrollView> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  TextField(
-                    controller: employeeId,
-                    decoration: const InputDecoration(labelText: 'Employee ID'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: employeeName,
-                    decoration: const InputDecoration(
-                      labelText: 'Employee Name',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   DropdownButtonFormField<PayrollEmployeeType>(
                     initialValue: employeeType,
                     decoration: const InputDecoration(
                       labelText: 'Employee Type',
                     ),
-                    items: PayrollEmployeeType.values
-                        .map(
-                          (item) => DropdownMenuItem(
-                            value: item,
-                            child: Text(item.name),
-                          ),
-                        )
-                        .toList(),
+                    items: const [
+                      DropdownMenuItem(
+                        value: PayrollEmployeeType.teacher,
+                        child: Text('Teacher'),
+                      ),
+                      DropdownMenuItem(
+                        value: PayrollEmployeeType.administrativeStaff,
+                        child: Text('Staff'),
+                      ),
+                    ],
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() => employeeType = value);
+                        setState(() {
+                          employeeType = value;
+                          selectedEmployee = null;
+                        });
                       }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<_PayrollEmployeeOption>(
+                    key: ValueKey(employeeType),
+                    initialValue: selectedEmployee,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: employeeType == PayrollEmployeeType.teacher
+                          ? 'Select Teacher'
+                          : 'Select Staff',
+                    ),
+                    items:
+                        (employeeType == PayrollEmployeeType.teacher
+                                ? teachers
+                                : staff)
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(
+                                  '${item.name} (${item.employeeId})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (value) {
+                      setState(() => selectedEmployee = value);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -273,7 +334,9 @@ class _PayrollViewState extends State<_PayrollView> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: selectedEmployee == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
               child: const Text('Save'),
             ),
           ],
@@ -283,13 +346,13 @@ class _PayrollViewState extends State<_PayrollView> {
 
     if (save == true && context.mounted) {
       final now = DateTime.now();
-      final id = employeeId.text.trim();
+      final employee = selectedEmployee!;
       context.read<PayrollBloc>().add(
         SavePayrollProfileRequested(
           PayrollProfileEntity(
-            id: id,
-            employeeId: id,
-            employeeName: employeeName.text.trim(),
+            id: employee.id,
+            employeeId: employee.employeeId,
+            employeeName: employee.name,
             employeeType: employeeType,
             basicSalary: int.tryParse(basic.text.trim()) ?? 0,
             fixedAllowances: int.tryParse(allowances.text.trim()) ?? 0,
@@ -303,8 +366,6 @@ class _PayrollViewState extends State<_PayrollView> {
       );
     }
 
-    employeeId.dispose();
-    employeeName.dispose();
     basic.dispose();
     allowances.dispose();
     deductions.dispose();
@@ -475,4 +536,16 @@ class _PayrollViewState extends State<_PayrollView> {
       loan.dispose();
     }
   }
+}
+
+class _PayrollEmployeeOption {
+  const _PayrollEmployeeOption({
+    required this.id,
+    required this.employeeId,
+    required this.name,
+  });
+
+  final String id;
+  final String employeeId;
+  final String name;
 }

@@ -69,6 +69,14 @@ class _IncomeViewState extends State<_IncomeView> {
                 _statusFilter == null || entry.status == _statusFilter;
             return typeMatches && statusMatches;
           }).toList();
+          final feeEntries = entries
+              .where((entry) => entry.sourceType == IncomeSourceType.feePayment)
+              .toList();
+          final otherEntries = entries
+              .where((entry) => entry.sourceType != IncomeSourceType.feePayment)
+              .toList();
+          final visibleRowCount = otherEntries.length +
+              (feeEntries.isEmpty ? 0 : 1);
 
           return Column(
             children: [
@@ -146,14 +154,20 @@ class _IncomeViewState extends State<_IncomeView> {
                 ),
               ),
               Expanded(
-                child: entries.isEmpty
+                child: visibleRowCount == 0
                     ? const Center(child: Text('No income entries found.'))
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                        itemCount: entries.length,
+                        itemCount: visibleRowCount,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
-                          final entry = entries[index];
+                          if (feeEntries.isNotEmpty && index == 0) {
+                            return _feeCollectionSummary(context, feeEntries);
+                          }
+
+                          final entry = otherEntries[
+                            index - (feeEntries.isEmpty ? 0 : 1)
+                          ];
                           return Card(
                             child: ListTile(
                               leading: CircleAvatar(
@@ -206,7 +220,103 @@ class _IncomeViewState extends State<_IncomeView> {
     );
   }
 
+  Widget _feeCollectionSummary(
+    BuildContext context,
+    List<IncomeEntryEntity> entries,
+  ) {
+    final total = entries.fold<int>(
+      0,
+      (sum, entry) => sum + (entry.isActive ? entry.amount : 0),
+    );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        onTap: () => _showFeeCollectionDetails(context, entries),
+        leading: const CircleAvatar(child: Icon(Icons.school_outlined)),
+        title: const Text(
+          'Total Fee Collection',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          '${entries.length} fee receipt${entries.length == 1 ? '' : 's'} — '
+          'click to view details',
+        ),
+        trailing: Wrap(
+          spacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              'Rs. $total',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFeeCollectionDetails(
+    BuildContext context,
+    List<IncomeEntryEntity> entries,
+  ) {
+    final total = entries.fold<int>(
+      0,
+      (sum, entry) => sum + (entry.isActive ? entry.amount : 0),
+    );
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Fee Collection Details — Rs. $total'),
+        content: SizedBox(
+          width: 760,
+          height: 500,
+          child: ListView.separated(
+            itemCount: entries.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(
+                  child: Icon(Icons.receipt_long_outlined),
+                ),
+                title: Text(
+                  entry.studentName.isEmpty
+                      ? entry.description
+                      : entry.studentName,
+                ),
+                subtitle: Text(
+                  '${entry.description} | ${_date(entry.incomeDate)} | '
+                  '${entry.paymentMethod} | ${_label(entry.status.name)}',
+                ),
+                trailing: Text(
+                  'Rs. ${entry.amount}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    decoration: entry.isActive
+                        ? null
+                        : TextDecoration.lineThrough,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showIncomeDialog(BuildContext context) async {
+    final formKey = GlobalKey<FormState>();
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
     final paymentMethodController = TextEditingController(text: 'Cash');
@@ -221,9 +331,11 @@ class _IncomeViewState extends State<_IncomeView> {
           title: const Text('Add Manual Income'),
           content: SizedBox(
             width: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
                   DropdownButtonFormField<IncomeType>(
                     initialValue: incomeType,
                     decoration: const InputDecoration(labelText: 'Income Type'),
@@ -242,17 +354,30 @@ class _IncomeViewState extends State<_IncomeView> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  TextFormField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Amount (Rs.)',
                     ),
+                    validator: (value) {
+                      final amount = int.tryParse(value?.trim() ?? '');
+                      if (amount == null || amount <= 0) {
+                        return 'Enter an amount greater than zero.';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  TextFormField(
                     controller: descriptionController,
-                    decoration: const InputDecoration(labelText: 'Description'),
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'e.g. Donation or hall rent',
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Description is required.'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -288,7 +413,8 @@ class _IncomeViewState extends State<_IncomeView> {
                       }
                     },
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -298,7 +424,11 @@ class _IncomeViewState extends State<_IncomeView> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () {
+                if (formKey.currentState?.validate() == true) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
               child: const Text('Save'),
             ),
           ],
@@ -306,19 +436,34 @@ class _IncomeViewState extends State<_IncomeView> {
       ),
     );
 
+    final amount = int.tryParse(amountController.text.trim()) ?? 0;
+    final description = descriptionController.text.trim();
+    final paymentMethod = paymentMethodController.text.trim();
+    final referenceNumber = referenceController.text.trim();
+
+    // Let the dialog route finish deactivating before rebuilding the page or
+    // disposing controllers that were attached to its form fields.
+    await WidgetsBinding.instance.endOfFrame;
+
+    amountController.dispose();
+    descriptionController.dispose();
+    paymentMethodController.dispose();
+    referenceController.dispose();
+
     if (save == true && context.mounted) {
       final now = DateTime.now();
+      final entryId = 'manual_income_${now.microsecondsSinceEpoch}';
       final user = sl<GetCurrentUserUseCase>()();
       context.read<IncomeBloc>().add(
         SaveIncomeEntryRequested(
           IncomeEntryEntity(
-            id: 'manual_income_${now.microsecondsSinceEpoch}',
+            id: entryId,
             incomeType: incomeType,
-            amount: int.tryParse(amountController.text.trim()) ?? 0,
+            amount: amount,
             incomeDate: incomeDate,
-            description: descriptionController.text.trim(),
-            paymentMethod: paymentMethodController.text.trim(),
-            referenceNumber: referenceController.text.trim(),
+            description: description,
+            paymentMethod: paymentMethod,
+            referenceNumber: referenceNumber,
             studentId: '',
             studentName: '',
             feePaymentId: '',
@@ -326,17 +471,12 @@ class _IncomeViewState extends State<_IncomeView> {
             createdAt: now,
             updatedAt: now,
             sourceType: IncomeSourceType.manual,
-            sourceId: '',
+            sourceId: entryId,
             status: IncomeEntryStatus.active,
           ),
         ),
       );
     }
-
-    amountController.dispose();
-    descriptionController.dispose();
-    paymentMethodController.dispose();
-    referenceController.dispose();
   }
 
   Future<void> _showReverseDialog(
@@ -391,4 +531,9 @@ class _IncomeViewState extends State<_IncomeView> {
         )
         .join(' ');
   }
+
+  static String _date(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')}/'
+      '${value.month.toString().padLeft(2, '0')}/'
+      '${value.year}';
 }

@@ -9,6 +9,7 @@ import '../../../accounts/presentation/pages/accounts_dashboard_page.dart';
 import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
+import '../../../communication/presentation/pages/communication_dashboard_page.dart';
 import '../../../exams/presentation/pages/exam_date_sheet_dashboard_page.dart';
 import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
@@ -16,6 +17,9 @@ import '../../../homework/presentation/pages/homework_dashboard_page.dart';
 import '../../../notices/presentation/pages/notices_dashboard_page.dart';
 import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
+import '../../../reports/presentation/pages/reports_dashboard_page.dart';
+import '../../../school_store/presentation/pages/school_store_dashboard_page.dart';
+import '../../../settings/presentation/pages/settings_dashboard_page.dart';
 import '../../../staff/presentation/pages/add_staff_page.dart';
 import '../../../staff/presentation/pages/staff_attendance_page.dart';
 import '../../../staff/presentation/pages/staff_dashboard_page.dart';
@@ -344,6 +348,18 @@ class _SidebarState extends State<Sidebar> {
                     if (_access.hasPermission(AppPermission.noticesView))
                       _menuTile(
                         context,
+                        icon: Icons.forum_outlined,
+                        title: 'Communication',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.noticesView,
+                          moduleName: 'Communication',
+                          page: const CommunicationDashboardPage(),
+                        ),
+                      ),
+                    if (_access.hasPermission(AppPermission.noticesView))
+                      _menuTile(
+                        context,
                         icon: Icons.campaign_outlined,
                         title: 'Notices & Circulars',
                         onTap: () => _open(
@@ -380,17 +396,26 @@ class _SidebarState extends State<Sidebar> {
                     if (_access.hasPermission(AppPermission.reportsView))
                       _menuTile(
                         context,
+                        icon: Icons.storefront_outlined,
+                        title: 'School Store',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.reportsView,
+                          moduleName: 'School Store',
+                          page: const SchoolStoreDashboardPage(),
+                        ),
+                      ),
+                    if (_access.hasPermission(AppPermission.reportsView))
+                      _menuTile(
+                        context,
                         icon: Icons.assessment,
                         title: 'Reports',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Reports module will be connected next.',
-                              ),
-                            ),
-                          );
-                        },
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.reportsView,
+                          moduleName: 'Reports',
+                          page: const ReportsDashboardPage(),
+                        ),
                       ),
                     if (_access.hasPermission(AppPermission.rolesManage))
                       _menuTile(
@@ -409,15 +434,12 @@ class _SidebarState extends State<Sidebar> {
                         context,
                         icon: Icons.settings,
                         title: 'Settings',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Settings module is not connected yet.',
-                              ),
-                            ),
-                          );
-                        },
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.settingsView,
+                          moduleName: 'Settings',
+                          page: const SettingsDashboardPage(),
+                        ),
                       ),
                   ],
                 ),
@@ -473,10 +495,13 @@ class _SidebarState extends State<Sidebar> {
       'Homework Management' => const Color(0xFFFB923C),
       'Academic Calendar' => const Color(0xFF22D3EE),
       'Notices & Circulars' => const Color(0xFFFB7185),
+      'Communication' => const Color(0xFF06B6D4),
       'Parents' => const Color(0xFF818CF8),
       'Accounts & Payroll' => const Color(0xFF0F766E),
+      'School Store' => const Color(0xFF14B8A6),
       'Reports' => const Color(0xFF60A5FA),
       'Roles & Permissions' => const Color(0xFFE879F9),
+      'Settings' => const Color(0xFF64748B),
       _ => const Color(0xFF94A3B8),
     };
   }
