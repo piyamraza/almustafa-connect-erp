@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import '../../../exams/domain/entities/exam_subject_setup_entity.dart';
-import '../entities/subject_entity.dart';
 import '../entities/subject_component_entity.dart';
 import '../repositories/academic_structure_repository.dart';
 import '../repositories/subject_component_repository.dart';
@@ -72,7 +71,10 @@ class SubjectComponentExamService {
             id: '${setup.id}::${component.id}',
             subjectId:
                 'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}',
-            subjectName: component.componentName,
+            subjectName: _componentDisplayName(
+              parent.name,
+              component.componentName,
+            ),
             totalMarks: totalMarks,
             passingMarks: passingMarks,
           ),
@@ -83,10 +85,10 @@ class SubjectComponentExamService {
     return List.unmodifiable(output);
   }
 
-  SubjectEntity? _resolveParentSubject({
+  dynamic _resolveParentSubject({
     required ExamSubjectSetupEntity setup,
-    required List<SubjectEntity> subjects,
-    required Map<String, SubjectEntity> subjectsById,
+    required List<dynamic> subjects,
+    required Map<String, dynamic> subjectsById,
     required Map<String, List<SubjectComponentEntity>> activeComponentsByParent,
   }) {
     final exact = subjectsById[setup.subjectId];
@@ -108,6 +110,24 @@ class SubjectComponentExamService {
     }
 
     return exact;
+  }
+
+  static String _componentDisplayName(String parentName, String componentName) {
+    final cleanParent = parentName.trim();
+    final cleanComponent = componentName.trim();
+
+    if (cleanParent.isEmpty) return cleanComponent;
+    if (cleanComponent.isEmpty) return cleanParent;
+
+    final normalizedParent = _normalize(cleanParent);
+    final normalizedComponent = _normalize(cleanComponent);
+
+    if (normalizedComponent == normalizedParent ||
+        normalizedComponent.startsWith('$normalizedParent ')) {
+      return cleanComponent;
+    }
+
+    return '$cleanParent $cleanComponent';
   }
 
   static String _normalize(String value) {
