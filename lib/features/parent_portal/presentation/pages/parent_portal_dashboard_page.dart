@@ -13,6 +13,7 @@ import 'parent_academic_dashboard_page.dart';
 import 'parent_attendance_page.dart';
 import 'parent_homework_page.dart';
 import 'parent_results_page.dart';
+import 'parent_fee_page.dart';
 
 import 'parent_communication_dashboard_page.dart';
 
@@ -459,6 +460,15 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
+                  if (module.$1 == 'Fee Status') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ParentFeePage(student: student),
+                      ),
+                    );
+                    return;
+                  }
+
                   if (['Timetable', 'Date Sheet'].contains(module.$1)) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
@@ -469,13 +479,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if ([
-                    'Fee Status',
-
-                    'Academic Calendar',
-
-                    'Notices',
-                  ].contains(module.$1)) {
+                  if (['Academic Calendar', 'Notices'].contains(module.$1)) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentCommunicationDashboardPage(

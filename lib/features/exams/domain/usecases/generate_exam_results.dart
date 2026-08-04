@@ -1,4 +1,8 @@
 import '../../../academic_structure/domain/services/subject_component_exam_service.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../entities/exam_entity.dart';
@@ -21,6 +25,7 @@ class GenerateExamResults {
     required this._gradingRuleRepository,
     required this._resultRepository,
     required this.componentService,
+    required this.academicStructureRepository,
   });
 
   final ExamRepository _examRepository;
@@ -30,19 +35,36 @@ class GenerateExamResults {
   final GradingRuleRepository _gradingRuleRepository;
   final ExamResultRepository _resultRepository;
   final SubjectComponentExamService componentService;
+  final AcademicStructureRepository academicStructureRepository;
 
   Future<List<ExamResultEntity>> call(
     String examId, {
+    required String classId,
+    required String sectionId,
     String actorId = '',
   }) async {
     final normalizedExamId = examId.trim();
+    final normalizedClassId = classId.trim();
+    final normalizedSectionId = sectionId.trim();
     final normalizedActorId = actorId.trim();
 
     if (normalizedExamId.isEmpty) {
+      throw ArgumentError.value(examId, 'examId', 'Exam ID cannot be empty.');
+    }
+
+    if (normalizedClassId.isEmpty) {
       throw ArgumentError.value(
-        examId,
-        'examId',
-        'Exam ID cannot be empty.',
+        classId,
+        'classId',
+        'Class ID cannot be empty.',
+      );
+    }
+
+    if (normalizedSectionId.isEmpty) {
+      throw ArgumentError.value(
+        sectionId,
+        'sectionId',
+        'Section ID cannot be empty.',
       );
     }
 
@@ -52,34 +74,103 @@ class GenerateExamResults {
       _markRepository.getMarksForExam(normalizedExamId),
       _gradingRuleRepository.getActiveRules(),
       _resultRepository.getResultsForExam(normalizedExamId),
+      _studentRepository.getStudents(),
+      academicStructureRepository.getClasses(),
+      academicStructureRepository.getSections(),
     ]);
 
     final exam = responses[0] as ExamEntity?;
 
+    final allSetups = responses[1] as List<ExamSubjectSetupEntity>;
+    final allMarks = responses[2] as List<ExamMarkEntity>;
+    final allResults = responses[4] as List<ExamResultEntity>;
+    final allStudents = responses[5] as List<StudentEntity>;
+    final resolver = AcademicReferenceResolver(
+      classes: responses[6] as List<AcademicClassEntity>,
+      sections: responses[7] as List<SectionEntity>,
+    );
+    final scope = resolver.resolve(
+      classReference: normalizedClassId,
+      sectionReference: normalizedSectionId,
+    );
+    final rawSetups = allSetups
+        .where(
+          (setup) =>
+              setup.isActive &&
+              scope.matches(
+                classId: setup.classId,
+                className: setup.className,
+                sectionId: setup.sectionId,
+                sectionName: setup.sectionName,
+              ),
+        )
+        .toList(growable: false);
+    final setupLocationKeys = {
+      for (final setup in rawSetups) _groupKey(setup.classId, setup.sectionId),
+    };
     final setups = await componentService.expandSetups(
-      (responses[1] as List<ExamSubjectSetupEntity>)
-          .where((setup) => setup.isActive)
+      rawSetups
+          .map(
+            (setup) => setup.copyWith(
+              classId: scope.classId,
+              className: scope.className,
+              sectionId: scope.sectionId,
+              sectionName: scope.sectionName,
+            ),
+          )
           .toList(growable: false),
     );
 
-    final marks = responses[2] as List<ExamMarkEntity>;
+    final marks = allMarks
+        .where(
+          (mark) =>
+              setupLocationKeys.contains(
+                _groupKey(mark.classId, mark.sectionId),
+              ) ||
+              scope.matches(classId: mark.classId, sectionId: mark.sectionId),
+        )
+        .toList(growable: false);
 
     final rules = (responses[3] as List<GradeRuleEntity>)
         .where((rule) => rule.isActive)
         .toList(growable: false);
 
-    final existingResults =
-        responses[4] as List<ExamResultEntity>;
+    final existingResults = allResults
+        .where(
+          (result) => scope.matches(
+            classId: result.classId,
+            className: result.className,
+            sectionId: result.sectionId,
+            sectionName: result.sectionName,
+          ),
+        )
+        .toList(growable: false);
+
+    final students = allStudents
+        .where(
+          (student) =>
+              student.isActive &&
+              scope.matches(
+                classId: student.classId,
+                sectionId: student.sectionId,
+              ),
+        )
+        .toList(growable: false);
 
     if (exam == null) {
-      throw StateError(
-        'The selected exam no longer exists.',
-      );
+      throw StateError('The selected exam no longer exists.');
     }
 
     if (setups.isEmpty) {
       throw StateError(
-        'Add active subject setups before generating results.',
+        'No subject setup is configured for the selected class and section.',
+      );
+    }
+
+    if (students.isEmpty) {
+      throw StateError(
+        'No students are enrolled in the selected class and section. '
+        'If students exist, their class/section references do not match the academic structure.',
       );
     }
 
@@ -89,12 +180,8 @@ class GenerateExamResults {
       );
     }
 
-    if (existingResults.any(
-      (result) => result.status == ResultStatus.locked,
-    )) {
-      throw StateError(
-        'Locked results cannot be regenerated.',
-      );
+    if (existingResults.any((result) => result.status == ResultStatus.locked)) {
+      throw StateError('Locked results cannot be regenerated.');
     }
 
     if (existingResults.any(
@@ -111,24 +198,19 @@ class GenerateExamResults {
     final rulesByMinimum = [...rules]
       ..sort(
         (first, second) =>
-            second.minimumPercentage.compareTo(
-          first.minimumPercentage,
-        ),
+            second.minimumPercentage.compareTo(first.minimumPercentage),
       );
 
     _validateGradeRules(rulesByMinimum);
 
-    final existingById = {
-      for (final result in existingResults)
-        result.id: result,
+    final existingByStudentId = {
+      for (final result in existingResults) result.studentId: result,
     };
 
     final markByIdentity = <String, ExamMarkEntity>{};
 
     for (final mark in marks) {
       final identity = _markIdentity(
-        classId: mark.classId,
-        sectionId: mark.sectionId,
         subjectId: mark.subjectId,
         studentId: mark.studentId,
       );
@@ -142,72 +224,33 @@ class GenerateExamResults {
       markByIdentity[identity] = mark;
     }
 
-    final setupsByGroup =
-        <String, List<ExamSubjectSetupEntity>>{};
-
+    final setupsBySubject = <String, ExamSubjectSetupEntity>{};
     for (final setup in setups) {
-      final groupKey = _groupKey(
-        setup.classId,
-        setup.sectionId,
-      );
-
-      final group = setupsByGroup[groupKey] ??= [];
-
-      if (group.any(
-        (existing) =>
-            existing.subjectId == setup.subjectId,
-      )) {
+      if (setupsBySubject.containsKey(setup.subjectId)) {
         throw StateError(
-          'Duplicate subject setup exists for '
-          '${setup.className}-${setup.sectionName}.',
+          'Duplicate subject setup exists for ${setup.subjectName} in '
+          '${scope.className}-${scope.sectionName}.',
         );
       }
-
-      group.add(setup);
+      setupsBySubject[setup.subjectId] = setup;
     }
 
     final now = DateTime.now();
     final generated = <ExamResultEntity>[];
 
-    for (final entry in setupsByGroup.entries) {
-      final groupSetups = entry.value;
-      final representative = groupSetups.first;
-
-      final students =
-          await _studentRepository
-              .getStudentsByClassAndSection(
-        classId: representative.classId,
-        sectionId: representative.sectionId,
-      );
-
-      for (final student
-          in students.where((student) => student.isActive)) {
-        final resultId =
-            ExamResultEntity.documentIdFor(
-          examId: exam.id,
-          classId: representative.classId,
-          sectionId: representative.sectionId,
-          studentId: student.id,
-        );
-
-        generated.add(
-          _buildResult(
-            exam: exam,
-            student: student,
-            setups: groupSetups,
-            markByIdentity: markByIdentity,
-            gradeRules: rulesByMinimum,
-            existingResult: existingById[resultId],
-            generatedAt: now,
-            generatedBy: normalizedActorId,
-          ),
-        );
-      }
-    }
-
-    if (generated.isEmpty) {
-      throw StateError(
-        'No active students were found for the configured classes.',
+    final groupSetups = setupsBySubject.values.toList(growable: false);
+    for (final student in students) {
+      generated.add(
+        _buildResult(
+          exam: exam,
+          student: student,
+          setups: groupSetups,
+          markByIdentity: markByIdentity,
+          gradeRules: rulesByMinimum,
+          existingResult: existingByStudentId[student.id],
+          generatedAt: now,
+          generatedBy: normalizedActorId,
+        ),
       );
     }
 
@@ -231,13 +274,11 @@ class GenerateExamResults {
     final subjectResults = <SubjectResultEntity>[];
 
     for (final setup in setups) {
-      final mark = markByIdentity[
-          _markIdentity(
-        classId: setup.classId,
-        sectionId: setup.sectionId,
-        subjectId: setup.subjectId,
-        studentId: student.id,
-      )];
+      final mark =
+          markByIdentity[_markIdentity(
+            subjectId: setup.subjectId,
+            studentId: student.id,
+          )];
 
       if (mark == null) {
         throw StateError(
@@ -246,16 +287,14 @@ class GenerateExamResults {
         );
       }
 
-      if (mark.obtainedMarks < 0 ||
-          mark.obtainedMarks > setup.totalMarks) {
+      if (mark.obtainedMarks < 0 || mark.obtainedMarks > setup.totalMarks) {
         throw StateError(
           'Invalid marks for ${student.fullName} '
           'in ${setup.subjectName}.',
         );
       }
 
-      if (mark.isAbsent &&
-          mark.obtainedMarks != 0) {
+      if (mark.isAbsent && mark.obtainedMarks != 0) {
         throw StateError(
           'Absent student ${student.fullName} must '
           'have zero marks in ${setup.subjectName}.',
@@ -269,26 +308,20 @@ class GenerateExamResults {
           totalMarks: setup.totalMarks,
           obtainedMarks: mark.obtainedMarks,
           isAbsent: mark.isAbsent,
-          isPassed: !mark.isAbsent &&
-              mark.obtainedMarks >=
-                  setup.passingMarks,
+          isPassed: !mark.isAbsent && mark.obtainedMarks >= setup.passingMarks,
           remarks: mark.remarks,
         ),
       );
     }
 
-    final grandTotal =
-        subjectResults.fold<double>(
+    final grandTotal = subjectResults.fold<double>(
       0,
-      (total, subject) =>
-          total + subject.totalMarks,
+      (total, subject) => total + subject.totalMarks,
     );
 
-    final grandObtained =
-        subjectResults.fold<double>(
+    final grandObtained = subjectResults.fold<double>(
       0,
-      (total, subject) =>
-          total + subject.obtainedMarks,
+      (total, subject) => total + subject.obtainedMarks,
     );
 
     final percentage = grandTotal == 0
@@ -337,17 +370,13 @@ class GenerateExamResults {
       percentage: percentage,
       grade: gradeRule.grade,
       isPassed:
-          subjectResults.every(
-                (subject) => subject.isPassed,
-              ) &&
-              gradeRule.isPassing,
+          subjectResults.every((subject) => subject.isPassed) &&
+          gradeRule.isPassing,
       classPosition: 0,
       sectionPosition: 0,
       overallRank: 0,
       status: ResultStatus.generated,
-      createdAt:
-          existingResult?.createdAt ??
-              generatedAt,
+      createdAt: existingResult?.createdAt ?? generatedAt,
       updatedAt: generatedAt,
       generatedAt: generatedAt,
       generatedBy: generatedBy.isNotEmpty
@@ -363,41 +392,27 @@ class GenerateExamResults {
       lockedBy: '',
       unlockedAt: existingResult?.unlockedAt,
       unlockedBy: existingResult?.unlockedBy ?? '',
-      unlockReason:
-          existingResult?.unlockReason ?? '',
-      principalRemarks:
-          existingResult?.principalRemarks ?? '',
+      unlockReason: existingResult?.unlockReason ?? '',
+      principalRemarks: existingResult?.principalRemarks ?? '',
     );
   }
 
-  List<ExamResultEntity> _applyRanks(
-    List<ExamResultEntity> results,
-  ) {
+  List<ExamResultEntity> _applyRanks(List<ExamResultEntity> results) {
     final sectionRanks = _rankBy(
       results,
-      (result) => _groupKey(
-        result.classId,
-        result.sectionId,
-      ),
+      (result) => _groupKey(result.classId, result.sectionId),
     );
 
-    final classRanks = _rankBy(
-      results,
-      (result) => result.classId,
-    );
+    final classRanks = _rankBy(results, (result) => result.classId);
 
-    final overallRanks =
-        _rankSingleGroup(results);
+    final overallRanks = _rankSingleGroup(results);
 
     return results
         .map(
           (result) => result.copyWith(
-            sectionPosition:
-                sectionRanks[result.id] ?? 0,
-            classPosition:
-                classRanks[result.id] ?? 0,
-            overallRank:
-                overallRanks[result.id] ?? 0,
+            sectionPosition: sectionRanks[result.id] ?? 0,
+            classPosition: classRanks[result.id] ?? 0,
+            overallRank: overallRanks[result.id] ?? 0,
           ),
         )
         .toList(growable: false);
@@ -405,15 +420,12 @@ class GenerateExamResults {
 
   Map<String, int> _rankBy(
     List<ExamResultEntity> results,
-    String Function(ExamResultEntity result)
-        groupSelector,
+    String Function(ExamResultEntity result) groupSelector,
   ) {
-    final groups =
-        <String, List<ExamResultEntity>>{};
+    final groups = <String, List<ExamResultEntity>>{};
 
     for (final result in results) {
-      (groups[groupSelector(result)] ??= [])
-          .add(result);
+      (groups[groupSelector(result)] ??= []).add(result);
     }
 
     final ranks = <String, int>{};
@@ -425,11 +437,8 @@ class GenerateExamResults {
     return ranks;
   }
 
-  Map<String, int> _rankSingleGroup(
-    List<ExamResultEntity> results,
-  ) {
-    final sorted = [...results]
-      ..sort(_compareForRank);
+  Map<String, int> _rankSingleGroup(List<ExamResultEntity> results) {
+    final sorted = [...results]..sort(_compareForRank);
 
     final ranks = <String, int>{};
 
@@ -437,18 +446,14 @@ class GenerateExamResults {
     double? previousObtained;
     var currentRank = 0;
 
-    for (var index = 0;
-        index < sorted.length;
-        index++) {
+    for (var index = 0; index < sorted.length; index++) {
       final result = sorted[index];
 
       final isTie =
           previousPercentage != null &&
-              previousObtained != null &&
-              result.percentage ==
-                  previousPercentage &&
-              result.grandObtainedMarks ==
-                  previousObtained;
+          previousObtained != null &&
+          result.percentage == previousPercentage &&
+          result.grandObtainedMarks == previousObtained;
 
       if (!isTie) {
         currentRank = index + 1;
@@ -456,28 +461,20 @@ class GenerateExamResults {
 
       ranks[result.id] = currentRank;
       previousPercentage = result.percentage;
-      previousObtained =
-          result.grandObtainedMarks;
+      previousObtained = result.grandObtainedMarks;
     }
 
     return ranks;
   }
 
-  int _compareForRank(
-    ExamResultEntity first,
-    ExamResultEntity second,
-  ) {
-    final percentage =
-        second.percentage.compareTo(
-      first.percentage,
-    );
+  int _compareForRank(ExamResultEntity first, ExamResultEntity second) {
+    final percentage = second.percentage.compareTo(first.percentage);
 
     if (percentage != 0) {
       return percentage;
     }
 
-    final obtained =
-        second.grandObtainedMarks.compareTo(
+    final obtained = second.grandObtainedMarks.compareTo(
       first.grandObtainedMarks,
     );
 
@@ -485,25 +482,18 @@ class GenerateExamResults {
       return obtained;
     }
 
-    return first.studentName
-        .toLowerCase()
-        .compareTo(
-          second.studentName.toLowerCase(),
-        );
+    return first.studentName.toLowerCase().compareTo(
+      second.studentName.toLowerCase(),
+    );
   }
 
-  void _validateGradeRules(
-    List<GradeRuleEntity> rules,
-  ) {
-    for (var index = 0;
-        index < rules.length;
-        index++) {
+  void _validateGradeRules(List<GradeRuleEntity> rules) {
+    for (var index = 0; index < rules.length; index++) {
       final rule = rules[index];
 
       if (rule.minimumPercentage < 0 ||
           rule.maximumPercentage > 100 ||
-          rule.minimumPercentage >
-              rule.maximumPercentage) {
+          rule.minimumPercentage > rule.maximumPercentage) {
         throw StateError(
           'Grade rule ${rule.grade} has '
           'an invalid percentage range.',
@@ -511,9 +501,7 @@ class GenerateExamResults {
       }
 
       if (index > 0 &&
-          rule.maximumPercentage >=
-              rules[index - 1]
-                  .minimumPercentage) {
+          rule.maximumPercentage >= rules[index - 1].minimumPercentage) {
         throw StateError(
           'Grade rule ${rule.grade} overlaps '
           'another grade rule.',
@@ -522,20 +510,11 @@ class GenerateExamResults {
     }
   }
 
-  String _groupKey(
-    String classId,
-    String sectionId,
-  ) {
+  String _groupKey(String classId, String sectionId) {
     return '$classId|$sectionId';
   }
 
-  String _markIdentity({
-    required String classId,
-    required String sectionId,
-    required String subjectId,
-    required String studentId,
-  }) {
-    return '$classId|$sectionId|'
-        '$subjectId|$studentId';
+  String _markIdentity({required String subjectId, required String studentId}) {
+    return '$subjectId|$studentId';
   }
 }

@@ -1,5 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_reference_resolver.dart';
 import '../../domain/entities/exam_entity.dart';
 import '../../domain/entities/exam_result_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
@@ -18,6 +22,7 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     required this._getExamResults,
     required this._generateExamResults,
     required this._updateResultStatus,
+    required this.academicStructureRepository,
   }) : super(const ExamResultsInitial()) {
     on<LoadResultSummary>(_onLoad);
     on<RefreshResultSummary>(_onRefresh);
@@ -34,6 +39,7 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
   final GetExamResults _getExamResults;
   final GenerateExamResults _generateExamResults;
   final UpdateExamResultStatus _updateResultStatus;
+  final AcademicStructureRepository academicStructureRepository;
 
   Future<void> _onLoad(
     LoadResultSummary event,
@@ -158,6 +164,29 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       );
       return;
     }
+    final classId = current.selectedClassId;
+    final sectionId = current.selectedSectionId;
+
+    if (classId == null || classId.trim().isEmpty) {
+      emit(
+        current.copyWith(
+          errorMessage: 'Select a class before generating results.',
+          clearMessages: true,
+        ),
+      );
+      return;
+    }
+
+    if (sectionId == null || sectionId.trim().isEmpty) {
+      emit(
+        current.copyWith(
+          errorMessage: 'Select a section before generating results.',
+          clearMessages: true,
+        ),
+      );
+      return;
+    }
+
     final actorId = event.actorId.trim();
     if (actorId.isEmpty) {
       emit(
@@ -170,7 +199,12 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
     }
     emit(current.copyWith(isProcessing: true, clearMessages: true));
     try {
-      await _generateExamResults(examId, actorId: actorId);
+      await _generateExamResults(
+        examId,
+        classId: classId,
+        sectionId: sectionId,
+        actorId: actorId,
+      );
       final results = await _getExamResults(examId);
       emit(
         current.copyWith(
@@ -316,8 +350,17 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       _getExams(),
       _getSubjectSetupsForExam(examId),
       _getExamResults(examId),
+      academicStructureRepository.getClasses(),
+      academicStructureRepository.getSections(),
     ]);
-    final setups = responses[1] as List<ExamSubjectSetupEntity>;
+    final resolver = AcademicReferenceResolver(
+      classes: responses[3] as List<AcademicClassEntity>,
+      sections: responses[4] as List<SectionEntity>,
+    );
+    final setups = _canonicalizeSetups(
+      responses[1] as List<ExamSubjectSetupEntity>,
+      resolver,
+    );
     final validClass =
         !clearFilters &&
             setups.any((setup) => setup.classId == base.selectedClassId)
@@ -343,6 +386,32 @@ class ExamResultsBloc extends Bloc<ExamResultsEvent, ExamResultsState> {
       successMessage: base.successMessage,
       errorMessage: base.errorMessage,
     );
+  }
+
+  List<ExamSubjectSetupEntity> _canonicalizeSetups(
+    List<ExamSubjectSetupEntity> setups,
+    AcademicReferenceResolver resolver,
+  ) {
+    return setups
+        .map((setup) {
+          try {
+            final scope = resolver.resolve(
+              classReference: setup.classId,
+              className: setup.className,
+              sectionReference: setup.sectionId,
+              sectionName: setup.sectionName,
+            );
+            return setup.copyWith(
+              classId: scope.classId,
+              className: scope.className,
+              sectionId: scope.sectionId,
+              sectionName: scope.sectionName,
+            );
+          } on StateError {
+            return setup;
+          }
+        })
+        .toList(growable: false);
   }
 
   String? _validateStatusChange(

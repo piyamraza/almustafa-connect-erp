@@ -62,8 +62,8 @@ class ResultStatistics extends Equatable {
     final passed = results.where((result) => result.isPassed).length;
     final percentages = results.map((result) => result.percentage).toList();
     percentages.sort();
-    final average = percentages.reduce((sum, value) => sum + value) /
-        percentages.length;
+    final average =
+        percentages.reduce((sum, value) => sum + value) / percentages.length;
     return ResultStatistics(
       totalStudents: results.length,
       passedStudents: passed,
@@ -77,14 +77,14 @@ class ResultStatistics extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalStudents,
-        passedStudents,
-        failedStudents,
-        passPercentage,
-        highestPercentage,
-        lowestPercentage,
-        averagePercentage,
-      ];
+    totalStudents,
+    passedStudents,
+    failedStudents,
+    passPercentage,
+    highestPercentage,
+    lowestPercentage,
+    averagePercentage,
+  ];
 }
 
 class ExamResultsLoaded extends ExamResultsState {
@@ -119,34 +119,71 @@ class ExamResultsLoaded extends ExamResultsState {
   }
 
   List<ExamSubjectSetupEntity> get availableClasses {
-    final byId = <String, ExamSubjectSetupEntity>{};
+    final byName = <String, ExamSubjectSetupEntity>{};
+
     for (final setup in subjectSetups.where((setup) => setup.isActive)) {
-      byId.putIfAbsent(setup.classId, () => setup);
+      final key = _identity(setup.classId, setup.className);
+      byName.putIfAbsent(key, () => setup);
     }
-    final values = byId.values.toList(growable: false);
+
+    final values = byName.values.toList(growable: false);
     values.sort((first, second) => first.className.compareTo(second.className));
     return values;
   }
 
   List<ExamSubjectSetupEntity> get availableSections {
     if (selectedClassId == null) return const [];
-    final byId = <String, ExamSubjectSetupEntity>{};
-    for (final setup in subjectSetups.where(
-      (setup) => setup.isActive && setup.classId == selectedClassId,
-    )) {
-      byId.putIfAbsent(setup.sectionId, () => setup);
+
+    ExamSubjectSetupEntity? selectedClass;
+
+    for (final setup in subjectSetups) {
+      if (setup.classId == selectedClassId) {
+        selectedClass = setup;
+        break;
+      }
     }
-    final values = byId.values.toList(growable: false);
-    values.sort((first, second) => first.sectionName.compareTo(second.sectionName));
+
+    if (selectedClass == null) return const [];
+
+    final selectedClassName = selectedClass.className.trim().toLowerCase();
+    final byName = <String, ExamSubjectSetupEntity>{};
+
+    for (final setup in subjectSetups.where(
+      (setup) =>
+          setup.isActive &&
+          setup.className.trim().toLowerCase() == selectedClassName,
+    )) {
+      final key = _identity(setup.sectionId, setup.sectionName);
+      byName.putIfAbsent(key, () => setup);
+    }
+
+    final values = byName.values.toList(growable: false);
+    values.sort(
+      (first, second) => first.sectionName.compareTo(second.sectionName),
+    );
     return values;
   }
 
   List<ExamResultEntity> get filteredResults {
+    final selectedClass = availableClasses
+        .where((setup) => setup.classId == selectedClassId)
+        .firstOrNull;
+    final selectedSection = availableSections
+        .where((setup) => setup.sectionId == selectedSectionId)
+        .firstOrNull;
     final values = results.where((result) {
-      final classMatches = selectedClassId == null ||
-          result.classId == selectedClassId;
-      final sectionMatches = selectedSectionId == null ||
-          result.sectionId == selectedSectionId;
+      final classMatches =
+          selectedClassId == null ||
+          result.classId == selectedClassId ||
+          (selectedClass != null &&
+              _normalise(result.className) ==
+                  _normalise(selectedClass.className));
+      final sectionMatches =
+          selectedSectionId == null ||
+          result.sectionId == selectedSectionId ||
+          (selectedSection != null &&
+              _normalise(result.sectionName) ==
+                  _normalise(selectedSection.sectionName));
       return classMatches && sectionMatches;
     }).toList();
     values.sort((first, second) {
@@ -166,6 +203,16 @@ class ExamResultsLoaded extends ExamResultsState {
 
   ResultStatistics get statistics =>
       ResultStatistics.fromResults(filteredResults);
+
+  static String _identity(String id, String name) {
+    final normalizedId = _normalise(id);
+    return normalizedId.isNotEmpty ? normalizedId : 'name:${_normalise(name)}';
+  }
+
+  static String _normalise(String value) => value
+      .trim()
+      .replaceAll(RegExp(r'[\s\u200B-\u200D\uFEFF]+'), ' ')
+      .toLowerCase();
 
   ExamResultsLoaded copyWith({
     List<ExamEntity>? exams,
@@ -188,27 +235,31 @@ class ExamResultsLoaded extends ExamResultsState {
       subjectSetups: subjectSetups ?? this.subjectSetups,
       results: results ?? this.results,
       selectedExamId: clearExam ? null : selectedExamId ?? this.selectedExamId,
-      selectedClassId: clearClass ? null : selectedClassId ?? this.selectedClassId,
-      selectedSectionId:
-          clearSection ? null : selectedSectionId ?? this.selectedSectionId,
+      selectedClassId: clearClass
+          ? null
+          : selectedClassId ?? this.selectedClassId,
+      selectedSectionId: clearSection
+          ? null
+          : selectedSectionId ?? this.selectedSectionId,
       isLoading: isLoading ?? this.isLoading,
       isProcessing: isProcessing ?? this.isProcessing,
-      successMessage: successMessage ?? (clearMessages ? null : this.successMessage),
+      successMessage:
+          successMessage ?? (clearMessages ? null : this.successMessage),
       errorMessage: errorMessage ?? (clearMessages ? null : this.errorMessage),
     );
   }
 
   @override
   List<Object?> get props => [
-        exams,
-        subjectSetups,
-        results,
-        selectedExamId,
-        selectedClassId,
-        selectedSectionId,
-        isLoading,
-        isProcessing,
-        successMessage,
-        errorMessage,
-      ];
+    exams,
+    subjectSetups,
+    results,
+    selectedExamId,
+    selectedClassId,
+    selectedSectionId,
+    isLoading,
+    isProcessing,
+    successMessage,
+    errorMessage,
+  ];
 }

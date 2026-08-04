@@ -1,3 +1,4 @@
+import '../../features/parent_portal/parent_fee_di.dart';
 import '../../features/parent_portal/parent_results_di.dart';
 import '../../features/parent_portal/parent_homework_di.dart';
 import '../../features/parent_portal/parent_attendance_di.dart';
@@ -406,6 +407,7 @@ import '../../features/access_control/domain/services/access_control_service.dar
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
+  registerParentFeeDependencies(sl);
   registerParentResultsDependencies(sl);
   registerParentHomeworkDependencies(sl);
   registerParentAttendanceDependencies(sl);
@@ -1429,6 +1431,7 @@ Future<void> setupServiceLocator() async {
       gradingRuleRepository: sl<GradingRuleRepository>(),
       resultRepository: sl<ExamResultRepository>(),
       componentService: sl<SubjectComponentExamService>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 
@@ -1870,6 +1873,7 @@ Future<void> setupServiceLocator() async {
       getExamResults: sl<GetExamResults>(),
       generateExamResults: sl<GenerateExamResults>(),
       updateResultStatus: sl<UpdateExamResultStatus>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 
