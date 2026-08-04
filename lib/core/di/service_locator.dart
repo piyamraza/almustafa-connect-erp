@@ -744,13 +744,16 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<StudentRepository>(
-    () =>
-        StudentRepositoryImpl(remoteDataSource: sl<StudentRemoteDataSource>()),
+    () => StudentRepositoryImpl(
+      remoteDataSource: sl<StudentRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(
       remoteDataSource: sl<AttendanceRemoteDataSource>(),
+      auditService: sl<AuditService>(),
     ),
   );
 

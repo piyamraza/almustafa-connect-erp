@@ -9,6 +9,7 @@ class StaffModel extends StaffEntity {
     required super.fatherName,
     required super.cnic,
     required super.phone,
+    super.whatsappNumber,
     required super.address,
     required super.designation,
     required super.joiningDate,
@@ -28,6 +29,8 @@ class StaffModel extends StaffEntity {
       fatherName: map['fatherName'] as String? ?? '',
       cnic: map['cnic'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
+      whatsappNumber:
+          map['whatsappNumber'] as String? ?? map['phone'] as String? ?? '',
       address: map['address'] as String? ?? '',
       designation: map['designation'] as String? ?? '',
       joiningDate:
@@ -54,6 +57,7 @@ class StaffModel extends StaffEntity {
       fatherName: entity.fatherName,
       cnic: entity.cnic,
       phone: entity.phone,
+      whatsappNumber: entity.whatsappNumber,
       address: entity.address,
       designation: entity.designation,
       joiningDate: entity.joiningDate,
@@ -74,6 +78,7 @@ class StaffModel extends StaffEntity {
       'fatherName': fatherName,
       'cnic': cnic,
       'phone': phone,
+      'whatsappNumber': whatsappNumber,
       'address': address,
       'designation': designation,
       'joiningDate': joiningDate.toIso8601String(),

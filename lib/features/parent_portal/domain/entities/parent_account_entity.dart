@@ -5,6 +5,7 @@ class ParentAccountEntity extends Equatable {
     required this.id,
     required this.fullName,
     required this.mobileNumber,
+    this.whatsappNumber = '',
     required this.email,
     required this.relationship,
     required List<String> studentIds,
@@ -16,6 +17,7 @@ class ParentAccountEntity extends Equatable {
   final String id;
   final String fullName;
   final String mobileNumber;
+  final String whatsappNumber;
   final String email;
   final String relationship;
   final List<String> studentIds;
@@ -26,6 +28,7 @@ class ParentAccountEntity extends Equatable {
   ParentAccountEntity copyWith({
     String? fullName,
     String? mobileNumber,
+    String? whatsappNumber,
     String? email,
     String? relationship,
     List<String>? studentIds,
@@ -36,6 +39,7 @@ class ParentAccountEntity extends Equatable {
       id: id,
       fullName: fullName ?? this.fullName,
       mobileNumber: mobileNumber ?? this.mobileNumber,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       email: email ?? this.email,
       relationship: relationship ?? this.relationship,
       studentIds: studentIds ?? this.studentIds,
@@ -50,6 +54,7 @@ class ParentAccountEntity extends Equatable {
     id,
     fullName,
     mobileNumber,
+    whatsappNumber,
     email,
     relationship,
     studentIds,

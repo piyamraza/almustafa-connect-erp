@@ -7,6 +7,7 @@ class ParentAccountModel extends ParentAccountEntity {
     required super.id,
     required super.fullName,
     required super.mobileNumber,
+    super.whatsappNumber,
     required super.email,
     required super.relationship,
     required super.studentIds,
@@ -20,6 +21,7 @@ class ParentAccountModel extends ParentAccountEntity {
       id: value.id,
       fullName: value.fullName,
       mobileNumber: value.mobileNumber,
+      whatsappNumber: value.whatsappNumber,
       email: value.email,
       relationship: value.relationship,
       studentIds: value.studentIds,
@@ -34,6 +36,10 @@ class ParentAccountModel extends ParentAccountEntity {
       id: map['id'] as String? ?? '',
       fullName: map['fullName'] as String? ?? '',
       mobileNumber: map['mobileNumber'] as String? ?? '',
+      whatsappNumber:
+          map['whatsappNumber'] as String? ??
+          map['mobileNumber'] as String? ??
+          '',
       email: map['email'] as String? ?? '',
       relationship: map['relationship'] as String? ?? 'Guardian',
       studentIds: (map['studentIds'] as List<dynamic>? ?? const [])
@@ -48,6 +54,7 @@ class ParentAccountModel extends ParentAccountEntity {
   Map<String, dynamic> toMap() => {
     'fullName': fullName,
     'mobileNumber': mobileNumber,
+    'whatsappNumber': whatsappNumber,
     'email': email,
     'relationship': relationship,
     'studentIds': studentIds,

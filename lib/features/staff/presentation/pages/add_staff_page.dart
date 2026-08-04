@@ -57,6 +57,7 @@ class _AddStaffViewState extends State<_AddStaffView> {
       fatherName: data.fatherName,
       cnic: data.cnic,
       phone: data.phone,
+      whatsappNumber: data.whatsappNumber,
       address: data.address,
       designation: data.designation,
       joiningDate: data.joiningDate,
@@ -67,9 +68,7 @@ class _AddStaffViewState extends State<_AddStaffView> {
       updatedAt: now,
     );
 
-    context.read<StaffBloc>().add(
-          AddStaffEvent(staff),
-        );
+    context.read<StaffBloc>().add(AddStaffEvent(staff));
   }
 
   void _handleState(BuildContext context, StaffState state) {
@@ -110,7 +109,8 @@ class _AddStaffViewState extends State<_AddStaffView> {
     return BlocListener<StaffBloc, StaffState>(
       listener: _handleState,
       child: Scaffold(
-        appBar: AppBar(actions: const [DashboardNavigationButton()],
+        appBar: AppBar(
+          actions: const [DashboardNavigationButton()],
           title: const Text('Add Staff'),
         ),
         body: SafeArea(
@@ -119,8 +119,8 @@ class _AddStaffViewState extends State<_AddStaffView> {
               final horizontalPadding = constraints.maxWidth >= 1200
                   ? 32.0
                   : constraints.maxWidth >= 700
-                      ? 24.0
-                      : 16.0;
+                  ? 24.0
+                  : 16.0;
 
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
@@ -131,9 +131,7 @@ class _AddStaffViewState extends State<_AddStaffView> {
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 1000,
-                    ),
+                    constraints: const BoxConstraints(maxWidth: 1000),
                     child: StaffForm(
                       onSubmit: _submitStaff,
                       submitLabel: 'Save Staff',

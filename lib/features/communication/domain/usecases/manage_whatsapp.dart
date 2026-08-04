@@ -1,3 +1,4 @@
+import '../../../../core/contact/contact_number_helper.dart';
 import '../entities/whatsapp_message_request_entity.dart';
 import '../entities/whatsapp_template_entity.dart';
 import '../repositories/whatsapp_repository.dart';
@@ -51,7 +52,7 @@ class SendWhatsAppMessage {
   final WhatsAppSenderService _sender;
 
   Future<void> call(WhatsAppMessageRequestEntity request) async {
-    final phone = request.recipientPhone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final phone = ContactNumberHelper.normalizeNumber(request.recipientPhone);
 
     if (phone.length < 10) {
       throw ArgumentError('Valid WhatsApp number is required.');

@@ -20,7 +20,8 @@ class StaffDetailsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Staff Details'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Edit Staff',
             onPressed: onEdit,
@@ -35,8 +36,8 @@ class StaffDetailsPage extends StatelessWidget {
             final horizontalPadding = constraints.maxWidth >= 1200
                 ? 32.0
                 : constraints.maxWidth >= 700
-                    ? 24.0
-                    : 16.0;
+                ? 24.0
+                : 16.0;
 
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -51,10 +52,7 @@ class StaffDetailsPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _ProfileHeader(
-                        staff: staff,
-                        onEdit: onEdit,
-                      ),
+                      _ProfileHeader(staff: staff, onEdit: onEdit),
                       const SizedBox(height: 20),
                       _DetailsSection(
                         title: 'Personal Information',
@@ -89,6 +87,11 @@ class StaffDetailsPage extends StatelessWidget {
                             icon: Icons.phone_outlined,
                             label: 'Phone',
                             value: _displayValue(staff.phone),
+                          ),
+                          _DetailItem(
+                            icon: Icons.chat_outlined,
+                            label: 'WhatsApp',
+                            value: _displayValue(staff.whatsappNumber),
                           ),
                           _DetailItem(
                             icon: Icons.location_on_outlined,
@@ -214,10 +217,7 @@ class StaffDetailsPage extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({
-    required this.staff,
-    required this.onEdit,
-  });
+  const _ProfileHeader({required this.staff, required this.onEdit});
 
   final StaffEntity staff;
   final VoidCallback onEdit;
@@ -262,16 +262,14 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Wrap(
-                  alignment:
-                      isCompact ? WrapAlignment.center : WrapAlignment.start,
+                  alignment: isCompact
+                      ? WrapAlignment.center
+                      : WrapAlignment.start,
                   spacing: 10,
                   runSpacing: 10,
                   children: [
                     Chip(
-                      avatar: const Icon(
-                        Icons.badge_outlined,
-                        size: 18,
-                      ),
+                      avatar: const Icon(Icons.badge_outlined, size: 18),
                       label: Text(
                         staff.staffId.trim().isEmpty
                             ? 'No Staff ID'
@@ -285,9 +283,7 @@ class _ProfileHeader extends StatelessWidget {
                             : Icons.cancel_outlined,
                         size: 18,
                       ),
-                      label: Text(
-                        staff.isActive ? 'Active' : 'Inactive',
-                      ),
+                      label: Text(staff.isActive ? 'Active' : 'Inactive'),
                     ),
                   ],
                 ),
@@ -307,10 +303,7 @@ class _ProfileHeader extends StatelessWidget {
                   const SizedBox(height: 18),
                   information,
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: editButton,
-                  ),
+                  SizedBox(width: double.infinity, child: editButton),
                 ],
               );
             }
@@ -332,9 +325,7 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _StaffProfileImage extends StatelessWidget {
-  const _StaffProfileImage({
-    required this.staff,
-  });
+  const _StaffProfileImage({required this.staff});
 
   final StaffEntity staff;
 
@@ -366,10 +357,7 @@ class _StaffProfileImage extends StatelessWidget {
       height: 104,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-          width: 2,
-        ),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
       child: imageUrl.isEmpty
@@ -406,10 +394,7 @@ class _DetailsSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(icon, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -434,9 +419,7 @@ class _DetailsSection extends StatelessWidget {
                   runSpacing: 14,
                   children: children.map((item) {
                     return SizedBox(
-                      width: item.fullWidth
-                          ? constraints.maxWidth
-                          : itemWidth,
+                      width: item.fullWidth ? constraints.maxWidth : itemWidth,
                       child: item,
                     );
                   }).toList(),
@@ -474,18 +457,12 @@ class _DetailItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 21,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(icon, size: 21, color: theme.colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

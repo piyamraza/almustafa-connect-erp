@@ -51,7 +51,8 @@ class _ParentPortalDashboardView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Parent Portal'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           BlocBuilder<ParentPortalBloc, ParentPortalState>(
             builder: (context, state) {
               if (state is! ParentPortalLoaded ||
@@ -199,7 +200,7 @@ class _ParentList extends StatelessWidget {
                       title: Text(parent.fullName),
                       subtitle: Text(
                         parent.mobileNumber.isNotEmpty
-                            ? parent.mobileNumber
+                            ? '${parent.mobileNumber}${parent.whatsappNumber.isNotEmpty ? ' • WhatsApp ${parent.whatsappNumber}' : ''}'
                             : parent.email,
                       ),
                       onTap: () => onSelect(parent),
@@ -276,7 +277,7 @@ class _ParentDashboardState extends State<_ParentDashboard> {
         const SizedBox(height: 6),
         Text(
           '${widget.parent.relationship} • '
-          '${widget.parent.mobileNumber}',
+          '${widget.parent.mobileNumber}${widget.parent.whatsappNumber.isNotEmpty ? ' • WhatsApp ${widget.parent.whatsappNumber}' : ''}',
         ),
         const SizedBox(height: 18),
         if (widget.students.isEmpty)

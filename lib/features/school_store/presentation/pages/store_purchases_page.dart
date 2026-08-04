@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../../core/widgets/contact_info_field.dart';
 import '../../domain/entities/store_item_entity.dart';
 import '../../domain/entities/store_purchase_entity.dart';
 import '../../domain/entities/store_supplier_entity.dart';
@@ -112,6 +113,8 @@ class _StorePurchasesView extends StatelessWidget {
                   child: ListTile(
                     title: Text(supplier.name),
                     subtitle: Text(
+                      '${supplier.mobileNumber}'
+                      '${supplier.whatsappNumber.isNotEmpty ? ' • WhatsApp ${supplier.whatsappNumber}' : ''}\n'
                       'Purchase Rs. ${total.toStringAsFixed(0)} - '
                       'Paid Rs. ${paid.toStringAsFixed(0)}',
                     ),
@@ -153,35 +156,45 @@ class _StorePurchasesView extends StatelessWidget {
   static Future<void> _showSupplierDialog(BuildContext context) async {
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
+    final whatsappController = TextEditingController();
+    var sameAsMobile = true;
 
     final save = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add Supplier'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Supplier Name'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Supplier'),
+          content: SizedBox(
+            width: 620,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Supplier Name'),
+                ),
+                const SizedBox(height: 10),
+                ContactInfoField(
+                  mobileController: mobileController,
+                  whatsappController: whatsappController,
+                  sameAsMobile: sameAsMobile,
+                  onSameAsMobileChanged: (value) =>
+                      setDialogState(() => sameAsMobile = value),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: mobileController,
-              decoration: const InputDecoration(labelText: 'Mobile Number'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
 
@@ -194,6 +207,7 @@ class _StorePurchasesView extends StatelessWidget {
             id: 'supplier_${now.microsecondsSinceEpoch}',
             name: nameController.text.trim(),
             mobileNumber: mobileController.text.trim(),
+            whatsappNumber: whatsappController.text.trim(),
             createdAt: now,
             updatedAt: now,
           ),
@@ -203,6 +217,7 @@ class _StorePurchasesView extends StatelessWidget {
 
     nameController.dispose();
     mobileController.dispose();
+    whatsappController.dispose();
   }
 
   static Future<void> _showPurchaseDialog(

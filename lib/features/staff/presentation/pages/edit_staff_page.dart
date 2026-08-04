@@ -10,10 +10,7 @@ import '../bloc/staff_state.dart';
 import '../widgets/staff_form.dart';
 
 class EditStaffPage extends StatelessWidget {
-  const EditStaffPage({
-    required this.staff,
-    super.key,
-  });
+  const EditStaffPage({required this.staff, super.key});
 
   final StaffEntity staff;
 
@@ -21,17 +18,13 @@ class EditStaffPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<StaffBloc>(
       create: (_) => sl<StaffBloc>(),
-      child: _EditStaffView(
-        staff: staff,
-      ),
+      child: _EditStaffView(staff: staff),
     );
   }
 }
 
 class _EditStaffView extends StatefulWidget {
-  const _EditStaffView({
-    required this.staff,
-  });
+  const _EditStaffView({required this.staff});
 
   final StaffEntity staff;
 
@@ -59,6 +52,7 @@ class _EditStaffViewState extends State<_EditStaffView> {
       fatherName: data.fatherName,
       cnic: data.cnic,
       phone: data.phone,
+      whatsappNumber: data.whatsappNumber,
       address: data.address,
       designation: data.designation,
       joiningDate: data.joiningDate,
@@ -68,9 +62,7 @@ class _EditStaffViewState extends State<_EditStaffView> {
       updatedAt: DateTime.now(),
     );
 
-    context.read<StaffBloc>().add(
-          UpdateStaffEvent(updatedStaff),
-        );
+    context.read<StaffBloc>().add(UpdateStaffEvent(updatedStaff));
   }
 
   void _handleState(BuildContext context, StaffState state) {
@@ -114,6 +106,7 @@ class _EditStaffViewState extends State<_EditStaffView> {
       fatherName: widget.staff.fatherName,
       cnic: widget.staff.cnic,
       phone: widget.staff.phone,
+      whatsappNumber: widget.staff.whatsappNumber,
       address: widget.staff.address,
       designation: widget.staff.designation,
       joiningDate: widget.staff.joiningDate,
@@ -125,7 +118,8 @@ class _EditStaffViewState extends State<_EditStaffView> {
     return BlocListener<StaffBloc, StaffState>(
       listener: _handleState,
       child: Scaffold(
-        appBar: AppBar(actions: const [DashboardNavigationButton()],
+        appBar: AppBar(
+          actions: const [DashboardNavigationButton()],
           title: const Text('Edit Staff'),
         ),
         body: SafeArea(
@@ -134,8 +128,8 @@ class _EditStaffViewState extends State<_EditStaffView> {
               final horizontalPadding = constraints.maxWidth >= 1200
                   ? 32.0
                   : constraints.maxWidth >= 700
-                      ? 24.0
-                      : 16.0;
+                  ? 24.0
+                  : 16.0;
 
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
@@ -146,9 +140,7 @@ class _EditStaffViewState extends State<_EditStaffView> {
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 1000,
-                    ),
+                    constraints: const BoxConstraints(maxWidth: 1000),
                     child: StaffForm(
                       initialData: initialData,
                       onSubmit: _submitStaff,

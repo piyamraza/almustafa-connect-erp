@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/contact/contact_number_helper.dart';
+import '../../../../core/widgets/contact_info_field.dart';
 
 class StaffFormData {
   const StaffFormData({
@@ -9,6 +11,7 @@ class StaffFormData {
     required this.fatherName,
     required this.cnic,
     required this.phone,
+    required this.whatsappNumber,
     required this.address,
     required this.designation,
     required this.joiningDate,
@@ -22,6 +25,7 @@ class StaffFormData {
   final String fatherName;
   final String cnic;
   final String phone;
+  final String whatsappNumber;
   final String address;
   final String designation;
   final DateTime joiningDate;
@@ -56,6 +60,7 @@ class _StaffFormState extends State<StaffForm> {
   late final TextEditingController _fatherNameController;
   late final TextEditingController _cnicController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _whatsappController;
   late final TextEditingController _addressController;
   late final TextEditingController _designationController;
   late final TextEditingController _joiningDateController;
@@ -64,6 +69,7 @@ class _StaffFormState extends State<StaffForm> {
   DateTime? _joiningDate;
   bool _isActive = true;
   bool _isSubmittingInternally = false;
+  bool _sameAsMobile = true;
 
   @override
   void initState() {
@@ -80,12 +86,17 @@ class _StaffFormState extends State<StaffForm> {
     _fatherNameController = TextEditingController(
       text: initialData?.fatherName ?? '',
     );
-    _cnicController = TextEditingController(
-      text: initialData?.cnic ?? '',
+    _cnicController = TextEditingController(text: initialData?.cnic ?? '');
+    _phoneController = TextEditingController(text: initialData?.phone ?? '');
+    _whatsappController = TextEditingController(
+      text: initialData?.whatsappNumber ?? initialData?.phone ?? '',
     );
-    _phoneController = TextEditingController(
-      text: initialData?.phone ?? '',
-    );
+    _sameAsMobile =
+        initialData == null ||
+        ContactNumberHelper.areSameNumbers(
+          _phoneController.text,
+          _whatsappController.text,
+        );
     _addressController = TextEditingController(
       text: initialData?.address ?? '',
     );
@@ -115,6 +126,7 @@ class _StaffFormState extends State<StaffForm> {
     _fatherNameController.dispose();
     _cnicController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
     _addressController.dispose();
     _designationController.dispose();
     _joiningDateController.dispose();
@@ -154,10 +166,7 @@ class _StaffFormState extends State<StaffForm> {
     });
   }
 
-  String? _validateRequired(
-    String? value,
-    String fieldName,
-  ) {
+  String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required.';
     }
@@ -222,9 +231,7 @@ class _StaffFormState extends State<StaffForm> {
 
     if (_joiningDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select the joining date.'),
-        ),
+        const SnackBar(content: Text('Please select the joining date.')),
       );
       return;
     }
@@ -241,6 +248,7 @@ class _StaffFormState extends State<StaffForm> {
       fatherName: _fatherNameController.text.trim(),
       cnic: _cnicController.text.trim(),
       phone: _phoneController.text.trim(),
+      whatsappNumber: _whatsappController.text.trim(),
       address: _addressController.text.trim(),
       designation: _designationController.text.trim(),
       joiningDate: _joiningDate!,
@@ -349,28 +357,21 @@ class _StaffFormState extends State<StaffForm> {
                       ),
                     ),
                     SizedBox(
-                      width: fieldWidth,
-                      child: TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(11),
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: 'Phone Number *',
-                          hintText: '03001234567',
-                          prefixIcon: Icon(Icons.phone_outlined),
-                          border: OutlineInputBorder(),
-                        ),
+                      width: useTwoColumns ? constraints.maxWidth : fieldWidth,
+                      child: ContactInfoField(
+                        mobileController: _phoneController,
+                        whatsappController: _whatsappController,
+                        sameAsMobile: _sameAsMobile,
+                        onSameAsMobileChanged: (value) =>
+                            setState(() => _sameAsMobile = value),
+                        mobileLabel: 'Phone Number',
+                        mobileRequired: true,
+                        whatsappRequired: true,
                         validator: _validatePhone,
                       ),
                     ),
                     SizedBox(
-                      width: useTwoColumns
-                          ? constraints.maxWidth
-                          : fieldWidth,
+                      width: useTwoColumns ? constraints.maxWidth : fieldWidth,
                       child: TextFormField(
                         controller: _addressController,
                         minLines: 2,
@@ -432,8 +433,7 @@ class _StaffFormState extends State<StaffForm> {
                         onTap: isBusy ? null : _pickJoiningDate,
                         decoration: InputDecoration(
                           labelText: 'Joining Date *',
-                          prefixIcon:
-                              const Icon(Icons.calendar_month_outlined),
+                          prefixIcon: const Icon(Icons.calendar_month_outlined),
                           suffixIcon: IconButton(
                             tooltip: 'Select date',
                             onPressed: isBusy ? null : _pickJoiningDate,
@@ -455,9 +455,7 @@ class _StaffFormState extends State<StaffForm> {
                         ),
                         textInputAction: TextInputAction.done,
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[0-9.]'),
-                          ),
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         ],
                         decoration: const InputDecoration(
                           labelText: 'Monthly Salary *',
@@ -474,9 +472,7 @@ class _StaffFormState extends State<StaffForm> {
                       child: Container(
                         constraints: const BoxConstraints(minHeight: 58),
                         decoration: BoxDecoration(
-                          border: Border.all(
-                            color: theme.colorScheme.outline,
-                          ),
+                          border: Border.all(color: theme.colorScheme.outline),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: SwitchListTile(
@@ -516,14 +512,10 @@ class _StaffFormState extends State<StaffForm> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(
-                isBusy ? 'Saving...' : widget.submitLabel,
-              ),
+              label: Text(isBusy ? 'Saving...' : widget.submitLabel),
             ),
           ),
         ],
@@ -553,9 +545,7 @@ class _FormSection extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),

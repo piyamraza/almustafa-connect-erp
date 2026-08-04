@@ -10,6 +10,7 @@ class StoreSupplierModel extends StoreSupplierEntity {
     required super.updatedAt,
     super.contactPerson,
     super.mobileNumber,
+    super.whatsappNumber,
     super.address,
     super.isActive,
   });
@@ -20,6 +21,7 @@ class StoreSupplierModel extends StoreSupplierEntity {
       name: entity.name,
       contactPerson: entity.contactPerson,
       mobileNumber: entity.mobileNumber,
+      whatsappNumber: entity.whatsappNumber,
       address: entity.address,
       isActive: entity.isActive,
       createdAt: entity.createdAt,
@@ -39,6 +41,10 @@ class StoreSupplierModel extends StoreSupplierEntity {
       name: map['name'] as String? ?? '',
       contactPerson: map['contactPerson'] as String? ?? '',
       mobileNumber: map['mobileNumber'] as String? ?? '',
+      whatsappNumber:
+          map['whatsappNumber'] as String? ??
+          map['mobileNumber'] as String? ??
+          '',
       address: map['address'] as String? ?? '',
       isActive: map['isActive'] as bool? ?? true,
       createdAt: date(map['createdAt']),
@@ -51,6 +57,7 @@ class StoreSupplierModel extends StoreSupplierEntity {
     'name': name,
     'contactPerson': contactPerson,
     'mobileNumber': mobileNumber,
+    'whatsappNumber': whatsappNumber,
     'address': address,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),

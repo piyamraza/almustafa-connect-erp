@@ -15,12 +15,15 @@ class StudentEntity {
   final String fatherName;
   final String fatherCnic;
   final String fatherPhone;
+  final String fatherWhatsapp;
   final String motherName;
   final String motherCnic;
   final String motherPhone;
+  final String motherWhatsapp;
   final String guardianName;
   final String guardianCnic;
   final String guardianPhone;
+  final String guardianWhatsapp;
   final String guardianEmail;
   final String bloodGroup;
   final String medicalAllergies;
@@ -47,12 +50,15 @@ class StudentEntity {
     required this.fatherName,
     this.fatherCnic = '',
     this.fatherPhone = '',
+    this.fatherWhatsapp = '',
     required this.motherName,
     this.motherCnic = '',
     this.motherPhone = '',
+    this.motherWhatsapp = '',
     this.guardianName = '',
     this.guardianCnic = '',
     required this.guardianPhone,
+    this.guardianWhatsapp = '',
     required this.guardianEmail,
     this.bloodGroup = '',
     this.medicalAllergies = '',
@@ -78,12 +84,15 @@ class StudentEntity {
     String? fatherName,
     String? fatherCnic,
     String? fatherPhone,
+    String? fatherWhatsapp,
     String? motherName,
     String? motherCnic,
     String? motherPhone,
+    String? motherWhatsapp,
     String? guardianName,
     String? guardianCnic,
     String? guardianPhone,
+    String? guardianWhatsapp,
     String? guardianEmail,
     String? bloodGroup,
     String? medicalAllergies,
@@ -106,12 +115,15 @@ class StudentEntity {
       fatherName: fatherName ?? this.fatherName,
       fatherCnic: fatherCnic ?? this.fatherCnic,
       fatherPhone: fatherPhone ?? this.fatherPhone,
+      fatherWhatsapp: fatherWhatsapp ?? this.fatherWhatsapp,
       motherName: motherName ?? this.motherName,
       motherCnic: motherCnic ?? this.motherCnic,
       motherPhone: motherPhone ?? this.motherPhone,
+      motherWhatsapp: motherWhatsapp ?? this.motherWhatsapp,
       guardianName: guardianName ?? this.guardianName,
       guardianCnic: guardianCnic ?? this.guardianCnic,
       guardianPhone: guardianPhone ?? this.guardianPhone,
+      guardianWhatsapp: guardianWhatsapp ?? this.guardianWhatsapp,
       guardianEmail: guardianEmail ?? this.guardianEmail,
       bloodGroup: bloodGroup ?? this.bloodGroup,
       medicalAllergies: medicalAllergies ?? this.medicalAllergies,

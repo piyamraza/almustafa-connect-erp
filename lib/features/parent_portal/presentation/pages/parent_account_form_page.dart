@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
+import 'package:almustafa_connect_erp/core/contact/contact_number_helper.dart';
+import 'package:almustafa_connect_erp/core/widgets/contact_info_field.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../students/domain/entities/student_entity.dart';
@@ -20,12 +22,14 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _mobile;
+  late final TextEditingController _whatsapp;
   late final TextEditingController _email;
   late final TextEditingController _relationship;
 
   List<StudentEntity> _matchedStudents = const [];
   final Set<String> _selectedStudentIds = {};
   bool _searching = false;
+  bool _sameAsMobile = true;
 
   @override
   void initState() {
@@ -33,6 +37,12 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
     final existing = widget.existing;
     _name = TextEditingController(text: existing?.fullName ?? '');
     _mobile = TextEditingController(text: existing?.mobileNumber ?? '');
+    _whatsapp = TextEditingController(
+      text: existing?.whatsappNumber ?? existing?.mobileNumber ?? '',
+    );
+    _sameAsMobile =
+        existing == null ||
+        ContactNumberHelper.areSameNumbers(_mobile.text, _whatsapp.text);
     _email = TextEditingController(text: existing?.email ?? '');
     _relationship = TextEditingController(
       text: existing?.relationship ?? 'Guardian',
@@ -47,6 +57,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   void dispose() {
     _name.dispose();
     _mobile.dispose();
+    _whatsapp.dispose();
     _email.dispose();
     _relationship.dispose();
     super.dispose();
@@ -115,6 +126,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
         id: old?.id ?? sl<ParentPortalRepository>().generateId(),
         fullName: _name.text.trim(),
         mobileNumber: _mobile.text.trim(),
+        whatsappNumber: _whatsapp.text.trim(),
         email: _email.text.trim(),
         relationship: _relationship.text.trim(),
         studentIds: _selectedStudentIds.toList(),
@@ -135,7 +147,8 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()],
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
         title: Text(
           widget.existing == null
               ? 'Create Parent Account'
@@ -158,21 +171,18 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                   : null,
             ),
             const SizedBox(height: 12),
+            ContactInfoField(
+              mobileController: _mobile,
+              whatsappController: _whatsapp,
+              sameAsMobile: _sameAsMobile,
+              onSameAsMobileChanged: (value) =>
+                  setState(() => _sameAsMobile = value),
+            ),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                SizedBox(
-                  width: 260,
-                  child: TextFormField(
-                    controller: _mobile,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
                 SizedBox(
                   width: 300,
                   child: TextFormField(

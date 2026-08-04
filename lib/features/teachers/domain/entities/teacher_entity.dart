@@ -10,6 +10,7 @@ class TeacherEntity extends Equatable {
     required this.cnic,
     required this.dateOfBirth,
     required this.phone,
+    this.whatsappNumber = '',
     required this.email,
     required this.address,
     required this.designation,
@@ -30,6 +31,7 @@ class TeacherEntity extends Equatable {
   final String cnic;
   final DateTime dateOfBirth;
   final String phone;
+  final String whatsappNumber;
   final String email;
   final String address;
   final String designation;
@@ -45,8 +47,24 @@ class TeacherEntity extends Equatable {
 
   @override
   List<Object> get props => [
-        id, employeeId, firstName, lastName, gender, cnic, dateOfBirth, phone, email, address,
-        designation, qualification, specialization, experienceYears, joiningDate, isActive,
-        createdAt, updatedAt,
-      ];
+    id,
+    employeeId,
+    firstName,
+    lastName,
+    gender,
+    cnic,
+    dateOfBirth,
+    phone,
+    whatsappNumber,
+    email,
+    address,
+    designation,
+    qualification,
+    specialization,
+    experienceYears,
+    joiningDate,
+    isActive,
+    createdAt,
+    updatedAt,
+  ];
 }

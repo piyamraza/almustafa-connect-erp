@@ -207,6 +207,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   value: student.fatherPhone,
                                 ),
                                 _InfoTile(
+                                  label: 'Father WhatsApp',
+                                  value: student.fatherWhatsapp,
+                                ),
+                                _InfoTile(
                                   label: 'Mother Name',
                                   value: student.motherName,
                                 ),
@@ -219,6 +223,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   value: student.motherPhone,
                                 ),
                                 _InfoTile(
+                                  label: 'Mother WhatsApp',
+                                  value: student.motherWhatsapp,
+                                ),
+                                _InfoTile(
                                   label: 'Guardian Name',
                                   value: student.guardianName,
                                 ),
@@ -229,6 +237,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                 _InfoTile(
                                   label: 'Guardian Phone',
                                   value: student.guardianPhone,
+                                ),
+                                _InfoTile(
+                                  label: 'Guardian WhatsApp',
+                                  value: student.guardianWhatsapp,
                                 ),
                               ],
                             ),
@@ -363,6 +375,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                             value: student.fatherPhone,
                           ),
                           _InfoTile(
+                            label: 'Father WhatsApp',
+                            value: student.fatherWhatsapp,
+                          ),
+                          _InfoTile(
                             label: 'Mother Name',
                             value: student.motherName,
                           ),
@@ -375,6 +391,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                             value: student.motherPhone,
                           ),
                           _InfoTile(
+                            label: 'Mother WhatsApp',
+                            value: student.motherWhatsapp,
+                          ),
+                          _InfoTile(
                             label: 'Guardian Name',
                             value: student.guardianName,
                           ),
@@ -385,6 +405,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                           _InfoTile(
                             label: 'Guardian Phone',
                             value: student.guardianPhone,
+                          ),
+                          _InfoTile(
+                            label: 'Guardian WhatsApp',
+                            value: student.guardianWhatsapp,
                           ),
                         ],
                       ),

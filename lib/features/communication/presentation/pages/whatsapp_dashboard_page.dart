@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/contact/contact_number_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -367,7 +368,7 @@ class _WhatsAppDashboardView extends StatelessWidget {
   }
 
   static String _normalizePhone(String value) {
-    var phone = value.replaceAll(RegExp(r'[^0-9]'), '');
+    var phone = ContactNumberHelper.normalizeNumber(value).replaceAll('+', '');
 
     if (phone.startsWith('00')) {
       phone = phone.substring(2);

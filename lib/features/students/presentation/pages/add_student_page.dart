@@ -13,6 +13,7 @@ import '../bloc/student_state.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/contact_info_field.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
@@ -39,15 +40,21 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final TextEditingController _fatherNameController = TextEditingController();
   final TextEditingController _fatherCnicController = TextEditingController();
   final TextEditingController _fatherPhoneController = TextEditingController();
+  final TextEditingController _fatherWhatsappController =
+      TextEditingController();
 
   final TextEditingController _motherNameController = TextEditingController();
   final TextEditingController _motherCnicController = TextEditingController();
   final TextEditingController _motherPhoneController = TextEditingController();
+  final TextEditingController _motherWhatsappController =
+      TextEditingController();
 
   final TextEditingController _guardianNameController = TextEditingController();
   final TextEditingController _guardianCnicController = TextEditingController();
 
   final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _guardianWhatsappController =
+      TextEditingController();
 
   final TextEditingController _guardianEmailController =
       TextEditingController();
@@ -63,6 +70,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
   bool _isSaving = false;
   bool _settingSystemAdmissionNumber = false;
   bool _admissionNumberManuallyEdited = false;
+  bool _fatherWhatsappSame = true;
+  bool _motherWhatsappSame = true;
+  bool _guardianWhatsappSame = true;
 
   Uint8List? _imageBytes;
 
@@ -114,6 +124,24 @@ class _AddStudentPageState extends State<AddStudentPage> {
     'O+',
     'O-',
   ];
+
+  void _syncFatherWhatsapp() {
+    if (_fatherWhatsappSame) {
+      _fatherWhatsappController.text = _fatherPhoneController.text;
+    }
+  }
+
+  void _syncMotherWhatsapp() {
+    if (_motherWhatsappSame) {
+      _motherWhatsappController.text = _motherPhoneController.text;
+    }
+  }
+
+  void _syncGuardianWhatsapp() {
+    if (_guardianWhatsappSame) {
+      _guardianWhatsappController.text = _mobileController.text;
+    }
+  }
 
   Future<void> _pickDate() async {
     final DateTime? pickedDate = await showManualDatePicker(
@@ -199,8 +227,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
     if (normalized.contains('prep')) return 'PP';
     if (normalized.contains('kindergarten') || normalized == 'kg') return 'KG';
 
-    final activeClasses = _academicClasses.where((item) => item.isActive).toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final activeClasses =
+        _academicClasses.where((item) => item.isActive).toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
     final index = activeClasses.indexWhere((item) => item.name == className);
     return (index + 1).clamp(1, 99).toString().padLeft(2, '0');
   }
@@ -224,7 +253,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
     final code = _classCode(className);
     var highest = 0;
     for (final student in _existingStudents) {
-      final sameClass = student.classId == className ||
+      final sameClass =
+          student.classId == className ||
           student.classId == selectedAcademicClass?.id;
       if (!sameClass) continue;
 
@@ -456,12 +486,15 @@ class _AddStudentPageState extends State<AddStudentPage> {
       fatherName: _fatherNameController.text.trim(),
       fatherCnic: _fatherCnicController.text.trim(),
       fatherPhone: _fatherPhoneController.text.trim(),
+      fatherWhatsapp: _fatherWhatsappController.text.trim(),
       motherName: _motherNameController.text.trim(),
       motherCnic: _motherCnicController.text.trim(),
       motherPhone: _motherPhoneController.text.trim(),
+      motherWhatsapp: _motherWhatsappController.text.trim(),
       guardianName: _guardianNameController.text.trim(),
       guardianCnic: _guardianCnicController.text.trim(),
       guardianPhone: _mobileController.text.trim(),
+      guardianWhatsapp: _guardianWhatsappController.text.trim(),
       guardianEmail: _guardianEmailController.text.trim(),
       bloodGroup: selectedBloodGroup ?? '',
       medicalAllergies: _medicalAllergiesController.text.trim(),
@@ -483,6 +516,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
   void initState() {
     super.initState();
 
+    _fatherPhoneController.addListener(_syncFatherWhatsapp);
+    _motherPhoneController.addListener(_syncMotherWhatsapp);
+    _mobileController.addListener(_syncGuardianWhatsapp);
+
     _loadAcademicStructure();
 
     if (!widget.isEdit) {
@@ -503,12 +540,27 @@ class _AddStudentPageState extends State<AddStudentPage> {
     _fatherNameController.text = student.fatherName;
     _fatherCnicController.text = student.fatherCnic;
     _fatherPhoneController.text = student.fatherPhone;
+    _fatherWhatsappController.text = student.fatherWhatsapp.isEmpty
+        ? student.fatherPhone
+        : student.fatherWhatsapp;
+    _fatherWhatsappSame =
+        _fatherWhatsappController.text == _fatherPhoneController.text;
     _motherNameController.text = student.motherName;
     _motherCnicController.text = student.motherCnic;
     _motherPhoneController.text = student.motherPhone;
+    _motherWhatsappController.text = student.motherWhatsapp.isEmpty
+        ? student.motherPhone
+        : student.motherWhatsapp;
+    _motherWhatsappSame =
+        _motherWhatsappController.text == _motherPhoneController.text;
     _guardianNameController.text = student.guardianName;
     _guardianCnicController.text = student.guardianCnic;
     _mobileController.text = student.guardianPhone;
+    _guardianWhatsappController.text = student.guardianWhatsapp.isEmpty
+        ? student.guardianPhone
+        : student.guardianWhatsapp;
+    _guardianWhatsappSame =
+        _guardianWhatsappController.text == _mobileController.text;
     _guardianEmailController.text = student.guardianEmail;
     _addressController.text = student.address;
 
@@ -588,13 +640,19 @@ class _AddStudentPageState extends State<AddStudentPage> {
     _rollNumberController.dispose();
     _fatherNameController.dispose();
     _fatherCnicController.dispose();
+    _fatherPhoneController.removeListener(_syncFatherWhatsapp);
     _fatherPhoneController.dispose();
+    _fatherWhatsappController.dispose();
     _motherNameController.dispose();
     _motherCnicController.dispose();
+    _motherPhoneController.removeListener(_syncMotherWhatsapp);
     _motherPhoneController.dispose();
+    _motherWhatsappController.dispose();
     _guardianNameController.dispose();
     _guardianCnicController.dispose();
+    _mobileController.removeListener(_syncGuardianWhatsapp);
     _mobileController.dispose();
+    _guardianWhatsappController.dispose();
     _guardianEmailController.dispose();
     _addressController.dispose();
     _dobController.dispose();
@@ -809,6 +867,14 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       nameController: _fatherNameController,
                       cnicController: _fatherCnicController,
                       phoneController: _fatherPhoneController,
+                      whatsappController: _fatherWhatsappController,
+                      sameWhatsapp: _fatherWhatsappSame,
+                      onSameWhatsappChanged: (value) {
+                        setState(() {
+                          _fatherWhatsappSame = value;
+                          if (value) _syncFatherWhatsapp();
+                        });
+                      },
                       nameRequired: true,
                     ),
 
@@ -820,6 +886,14 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       nameController: _motherNameController,
                       cnicController: _motherCnicController,
                       phoneController: _motherPhoneController,
+                      whatsappController: _motherWhatsappController,
+                      sameWhatsapp: _motherWhatsappSame,
+                      onSameWhatsappChanged: (value) {
+                        setState(() {
+                          _motherWhatsappSame = value;
+                          if (value) _syncMotherWhatsapp();
+                        });
+                      },
                     ),
 
                     const SizedBox(height: 16),
@@ -830,6 +904,14 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       nameController: _guardianNameController,
                       cnicController: _guardianCnicController,
                       phoneController: _mobileController,
+                      whatsappController: _guardianWhatsappController,
+                      sameWhatsapp: _guardianWhatsappSame,
+                      onSameWhatsappChanged: (value) {
+                        setState(() {
+                          _guardianWhatsappSame = value;
+                          if (value) _syncGuardianWhatsapp();
+                        });
+                      },
                     ),
 
                     const SizedBox(height: 35),
@@ -1184,56 +1266,67 @@ class _AddStudentPageState extends State<AddStudentPage> {
     required TextEditingController nameController,
     required TextEditingController cnicController,
     required TextEditingController phoneController,
+    required TextEditingController whatsappController,
+    required bool sameWhatsapp,
+    required ValueChanged<bool> onSameWhatsappChanged,
     bool nameRequired = false,
   }) {
-    final fields = <Widget>[
-      _textField(
-        controller: nameController,
-        label: '$relation Name',
-        icon: Icons.family_restroom,
-        validator: nameRequired
-            ? (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '$relation Name is required';
-                }
-                return null;
+    final nameField = _textField(
+      controller: nameController,
+      label: '$relation Name',
+      icon: Icons.family_restroom,
+      validator: nameRequired
+          ? (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$relation Name is required';
               }
-            : null,
-      ),
-      _textField(
-        controller: cnicController,
-        label: '$relation CNIC #',
-        icon: Icons.credit_card_outlined,
-        keyboardType: TextInputType.number,
-        validator: _validateCnic,
-      ),
-      _textField(
-        controller: phoneController,
-        label: '$relation Mobile Number',
-        icon: Icons.phone_outlined,
-        keyboardType: TextInputType.phone,
-        validator: _validateMobile,
-      ),
-    ];
+              return null;
+            }
+          : null,
+    );
+
+    final cnicField = _textField(
+      controller: cnicController,
+      label: '$relation CNIC #',
+      icon: Icons.credit_card_outlined,
+      keyboardType: TextInputType.number,
+      validator: _validateCnic,
+    );
+
+    final contactField = ContactInfoField(
+      mobileController: phoneController,
+      whatsappController: whatsappController,
+      sameAsMobile: sameWhatsapp,
+      onSameAsMobileChanged: onSameWhatsappChanged,
+      mobileLabel: '$relation Mobile Number',
+      whatsappLabel: '$relation WhatsApp Number',
+      validator: _validateMobile,
+    );
+
     if (!isDesktop) {
       return Column(
         children: [
-          fields[0],
+          nameField,
           const SizedBox(height: 16),
-          fields[1],
+          cnicField,
           const SizedBox(height: 16),
-          fields[2],
+          contactField,
         ],
       );
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+
+    return Column(
       children: [
-        Expanded(child: fields[0]),
-        const SizedBox(width: 20),
-        Expanded(child: fields[1]),
-        const SizedBox(width: 20),
-        Expanded(child: fields[2]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: nameField),
+            const SizedBox(width: 20),
+            Expanded(child: cnicField),
+            const SizedBox(width: 20),
+            Expanded(child: contactField),
+          ],
+        ),
       ],
     );
   }

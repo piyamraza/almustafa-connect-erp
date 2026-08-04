@@ -8,6 +8,7 @@ class StoreSupplierEntity extends Equatable {
     required this.updatedAt,
     this.contactPerson = '',
     this.mobileNumber = '',
+    this.whatsappNumber = '',
     this.address = '',
     this.isActive = true,
   });
@@ -16,6 +17,7 @@ class StoreSupplierEntity extends Equatable {
   final String name;
   final String contactPerson;
   final String mobileNumber;
+  final String whatsappNumber;
   final String address;
   final bool isActive;
   final DateTime createdAt;
@@ -27,6 +29,7 @@ class StoreSupplierEntity extends Equatable {
     name,
     contactPerson,
     mobileNumber,
+    whatsappNumber,
     address,
     isActive,
     createdAt,
