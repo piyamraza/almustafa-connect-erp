@@ -347,12 +347,14 @@ class GenerateExamResults {
     final firstSetup = setups.first;
 
     return ExamResultEntity(
-      id: ExamResultEntity.documentIdFor(
-        examId: exam.id,
-        classId: firstSetup.classId,
-        sectionId: firstSetup.sectionId,
-        studentId: student.id,
-      ),
+      id:
+          existingResult?.id ??
+          ExamResultEntity.documentIdFor(
+            examId: exam.id,
+            classId: firstSetup.classId,
+            sectionId: firstSetup.sectionId,
+            studentId: student.id,
+          ),
       examId: exam.id,
       examName: exam.name,
       academicSession: exam.academicSession,

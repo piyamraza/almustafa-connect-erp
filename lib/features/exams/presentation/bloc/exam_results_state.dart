@@ -210,8 +210,8 @@ class ExamResultsLoaded extends ExamResultsState {
   }
 
   static String _normalise(String value) => value
-      .trim()
       .replaceAll(RegExp(r'[\s\u200B-\u200D\uFEFF]+'), ' ')
+      .trim()
       .toLowerCase();
 
   ExamResultsLoaded copyWith({

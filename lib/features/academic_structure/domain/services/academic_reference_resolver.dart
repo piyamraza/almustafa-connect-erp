@@ -37,14 +37,65 @@ class AcademicScopeReference {
 }
 
 class AcademicReferenceResolver {
-  AcademicReferenceResolver({
-    required List<AcademicClassEntity> classes,
-    required List<SectionEntity> sections,
-  }) : _classes = List.unmodifiable(classes),
-       _sections = List.unmodifiable(sections);
+  const AcademicReferenceResolver({
+    required this.classes,
+    required this.sections,
+  });
 
-  final List<AcademicClassEntity> _classes;
-  final List<SectionEntity> _sections;
+  final List<AcademicClassEntity> classes;
+  final List<SectionEntity> sections;
+
+  String className(String reference) {
+    final token = normalize(reference);
+    for (final item in classes) {
+      if (normalize(item.id) == token || normalize(item.name) == token) {
+        return item.name;
+      }
+    }
+    return reference;
+  }
+
+  String sectionName(String reference) {
+    final token = normalize(reference);
+    for (final item in sections) {
+      if (normalize(item.id) == token || normalize(item.name) == token) {
+        return item.name;
+      }
+    }
+    return reference;
+  }
+
+  bool sameClass(String first, String second) {
+    final firstId = _classIdentity(first);
+    final secondId = _classIdentity(second);
+    return firstId.isNotEmpty && firstId == secondId;
+  }
+
+  bool sameSection(String first, String second) {
+    final firstId = _sectionIdentity(first);
+    final secondId = _sectionIdentity(second);
+    return firstId.isNotEmpty && firstId == secondId;
+  }
+
+  String _classIdentity(String reference) {
+    final token = normalize(reference);
+    for (final item in classes) {
+      if (normalize(item.id) == token || normalize(item.name) == token) {
+        return normalize(item.id);
+      }
+    }
+    return token;
+  }
+
+  String _sectionIdentity(String reference) {
+    final token = normalize(reference);
+    for (final item in sections) {
+      if (normalize(item.id) == token || normalize(item.name) == token) {
+        return normalize(item.id);
+      }
+    }
+    return token;
+  }
 
   AcademicScopeReference resolve({
     required String classReference,
@@ -54,13 +105,13 @@ class AcademicReferenceResolver {
   }) {
     final classTokens = {normalize(classReference), normalize(className)}
       ..remove('');
-    final matchingClasses = _classes
-        .where(
-          (item) =>
-              classTokens.contains(normalize(item.id)) ||
-              classTokens.contains(normalize(item.name)),
-        )
-        .toList(growable: false);
+    final matchingClasses = <AcademicClassEntity>[];
+    for (final item in classes) {
+      if (classTokens.contains(normalize(item.id)) ||
+          classTokens.contains(normalize(item.name))) {
+        matchingClasses.add(item);
+      }
+    }
     if (matchingClasses.isEmpty) {
       throw StateError(
         'Class reference mismatch: the selected class is not linked to the academic structure.',
@@ -75,14 +126,14 @@ class AcademicReferenceResolver {
 
     final sectionTokens = {normalize(sectionReference), normalize(sectionName)}
       ..remove('');
-    final matchingSections = _sections
-        .where(
-          (item) =>
-              classAliases.contains(normalize(item.classId)) &&
-              (sectionTokens.contains(normalize(item.id)) ||
-                  sectionTokens.contains(normalize(item.name))),
-        )
-        .toList(growable: false);
+    final matchingSections = <SectionEntity>[];
+    for (final item in sections) {
+      if (classAliases.contains(normalize(item.classId)) &&
+          (sectionTokens.contains(normalize(item.id)) ||
+              sectionTokens.contains(normalize(item.name)))) {
+        matchingSections.add(item);
+      }
+    }
     if (matchingSections.isEmpty) {
       throw StateError(
         'Section reference mismatch: the selected section is not linked to the selected class.',
@@ -134,7 +185,7 @@ class AcademicReferenceResolver {
   }
 
   static String normalize(String value) => value
-      .trim()
       .replaceAll(RegExp(r'[\s\u200B-\u200D\uFEFF]+'), ' ')
+      .trim()
       .toLowerCase();
 }

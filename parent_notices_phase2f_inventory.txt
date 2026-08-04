@@ -1,0 +1,600 @@
+﻿PARENT NOTICES PHASE 2F INVENTORY
+Generated: 08/04/2026 20:41:23
+
+FILE: lib\core\di\service_locator.dart
+  Line 952: () => NoticeDeliveryServiceImpl(sl<NoticeRepository>()),
+  Line 954: sl.registerLazySingleton<NoticeRepository>(
+  Line 955: () => NoticeRepositoryImpl(sl<FirebaseFirestoreService>()),
+  Line 1151: sl.registerLazySingleton<MarkChatThreadRead>(
+  Line 1152: () => MarkChatThreadRead(sl<ChatRepository>()),
+  Line 1160: markRead: sl<MarkChatThreadRead>(),
+  Line 1624: sl.registerFactory<NoticeBloc>(() => NoticeBloc(sl<NoticeRepository>()));
+
+FILE: lib\features\academic_calendar\data\models\academic_calendar_event_model.dart
+  Line 11: required super.audience,
+  Line 33: audience: entity.audience,
+  Line 57: audience: AcademicCalendarAudience.values.firstWhere(
+  Line 58: (item) => item.name == map['audience'],
+  Line 59: orElse: () => AcademicCalendarAudience.wholeSchool,
+  Line 81: 'audience': audience.name,
+
+FILE: lib\features\academic_calendar\data\repositories\academic_calendar_repository_impl.dart
+  Line 62: if (event.audience == AcademicCalendarAudience.selectedClasses &&
+
+FILE: lib\features\academic_calendar\data\services\academic_calendar_policy_service_impl.dart
+  Line 256: required AcademicCalendarAudience audience,
+  Line 270: if (event.audience == AcademicCalendarAudience.wholeSchool) {
+  Line 273: if (event.audience == audience) return true;
+  Line 274: if (event.audience == AcademicCalendarAudience.selectedClasses) {
+
+FILE: lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart
+  Line 13: enum AcademicCalendarAudience {
+  Line 27: required this.audience,
+  Line 45: final AcademicCalendarAudience audience;
+  Line 69: AcademicCalendarAudience? audience,
+  Line 86: audience: audience ?? this.audience,
+  Line 107: audience,
+
+FILE: lib\features\academic_calendar\domain\services\academic_calendar_policy_service.dart
+  Line 59: required AcademicCalendarAudience audience,
+
+FILE: lib\features\academic_calendar\domain\usecases\save_academic_year_wizard.dart
+  Line 25: audience: AcademicCalendarAudience.wholeSchool,
+  Line 48: audience: AcademicCalendarAudience.wholeSchool,
+
+FILE: lib\features\academic_calendar\presentation\pages\academic_calendar_integration_page.dart
+  Line 164: 'Audience-filtered calendar events are available through the policy service.',
+
+FILE: lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart
+  Line 474: '${_audienceLabel(event.audience)}'
+  Line 527: static String _audienceLabel(AcademicCalendarAudience audience) =>
+  Line 528: switch (audience) {
+  Line 529: AcademicCalendarAudience.wholeSchool => 'Whole School',
+  Line 530: AcademicCalendarAudience.students => 'Students',
+  Line 531: AcademicCalendarAudience.teachers => 'Teachers',
+  Line 532: AcademicCalendarAudience.parents => 'Parents',
+  Line 533: AcademicCalendarAudience.selectedClasses => 'Selected Classes',
+  Line 580: late AcademicCalendarAudience _audience;
+  Line 597: _audience = existing?.audience ?? AcademicCalendarAudience.wholeSchool;
+  Line 709: child: DropdownButtonFormField<AcademicCalendarAudience>(
+  Line 710: initialValue: _audience,
+  Line 712: labelText: 'Audience',
+  Line 715: items: AcademicCalendarAudience.values
+  Line 720: _AcademicCalendarViewState._audienceLabel(item),
+  Line 727: setState(() => _audience = value);
+  Line 788: if (_audience == AcademicCalendarAudience.selectedClasses)
+  Line 851: audience: _audience,
+  Line 861: classIds: _audience == AcademicCalendarAudience.selectedClasses
+
+FILE: lib\features\academic_structure\data\datasources\academic_structure_remote_datasource.dart
+  Line 29: required String targetClassId,
+  Line 31: String? targetSectionId,
+  Line 264: required String targetClassId,
+  Line 266: String? targetSectionId,
+  Line 268: if (sourceClassId == targetClassId && sourceSectionId == targetSectionId) {
+  Line 275: final target = targetSectionId == null
+  Line 276: ? await getSubjectsForClass(targetClassId)
+  Line 277: : await getSubjectsForClassSection(targetClassId, targetSectionId);
+  Line 293: classId: targetClassId,
+  Line 294: sectionId: targetSectionId,
+
+FILE: lib\features\academic_structure\data\repositories\academic_structure_repository_impl.dart
+  Line 64: required String targetClassId,
+  Line 66: String? targetSectionId,
+  Line 69: targetClassId: targetClassId,
+  Line 71: targetSectionId: targetSectionId,
+
+FILE: lib\features\academic_structure\domain\repositories\academic_structure_repository.dart
+  Line 26: required String targetClassId,
+  Line 28: String? targetSectionId,
+
+FILE: lib\features\academic_structure\presentation\pages\class_subjects_page.dart
+  Line 158: targetClassId: widget.academicClass.id,
+  Line 160: targetSectionId: _selectedSectionId,
+
+FILE: lib\features\communication\data\datasources\chat_remote_datasource.dart
+  Line 17: Future<void> markThreadRead({
+  Line 91: Future<void> markThreadRead({
+
+FILE: lib\features\communication\data\datasources\communication_remote_datasource.dart
+  Line 48: audienceType: message.audienceType,
+
+FILE: lib\features\communication\data\models\communication_broadcast_model.dart
+  Line 12: required super.audienceType,
+  Line 38: audienceType: entity.audienceType,
+  Line 76: audienceType: CommunicationAudienceType.values.firstWhere(
+  Line 77: (item) => item.name == map['audienceType'],
+  Line 78: orElse: () => CommunicationAudienceType.wholeSchool,
+  Line 106: 'audienceType': audienceType.name,
+
+FILE: lib\features\communication\data\models\communication_message_model.dart
+  Line 11: required super.audienceType,
+  Line 45: audienceType: CommunicationAudienceType.values.firstWhere(
+  Line 46: (item) => item.name == map['audienceType'],
+  Line 47: orElse: () => CommunicationAudienceType.wholeSchool,
+  Line 70: 'audienceType': audienceType.name,
+
+FILE: lib\features\communication\data\models\whatsapp_broadcast_model.dart
+  Line 11: required super.audience,
+  Line 34: audience: entity.audience,
+  Line 64: audience: WhatsAppBroadcastAudience.values.firstWhere(
+  Line 65: (item) => item.name == map['audience'],
+  Line 66: orElse: () => WhatsAppBroadcastAudience.wholeSchool,
+  Line 98: 'audience': audience.name,
+
+FILE: lib\features\communication\data\repositories\chat_repository_impl.dart
+  Line 32: Future<void> markThreadRead({
+  Line 36: return _source.markThreadRead(threadId: threadId, userId: userId);
+
+FILE: lib\features\communication\data\services\firebase_callable_communication_broadcast_sender_service.dart
+  Line 21: 'audienceType': broadcast.audienceType.name,
+
+FILE: lib\features\communication\data\services\firebase_callable_whatsapp_broadcast_sender_service.dart
+  Line 23: 'audience': broadcast.audience.name,
+
+FILE: lib\features\communication\domain\entities\chat_message_entity.dart
+  Line 34: bool isReadBy(String userId) => readBy.contains(userId);
+
+FILE: lib\features\communication\domain\entities\communication_analytics_entity.dart
+  Line 45: class CommunicationAudienceAnalyticsEntity extends Equatable {
+  Line 46: const CommunicationAudienceAnalyticsEntity({
+  Line 47: required this.audience,
+  Line 51: final String audience;
+  Line 55: List<Object?> get props => [audience, total];
+  Line 71: required this.topAudiences,
+  Line 86: final List<CommunicationAudienceAnalyticsEntity> topAudiences;
+  Line 102: topAudiences,
+
+FILE: lib\features\communication\domain\entities\communication_broadcast_entity.dart
+  Line 22: required this.audienceType,
+  Line 44: final CommunicationAudienceType audienceType;
+  Line 67: audienceType,
+
+FILE: lib\features\communication\domain\entities\communication_message_entity.dart
+  Line 5: enum CommunicationAudienceType {
+  Line 23: required this.audienceType,
+  Line 40: final CommunicationAudienceType audienceType;
+  Line 61: audienceType,
+
+FILE: lib\features\communication\domain\entities\whatsapp_broadcast_entity.dart
+  Line 3: enum WhatsAppBroadcastAudience {
+  Line 38: required this.audience,
+  Line 59: final WhatsAppBroadcastAudience audience;
+  Line 81: audience,
+
+FILE: lib\features\communication\domain\repositories\chat_repository.dart
+  Line 13: Future<void> markThreadRead({
+
+FILE: lib\features\communication\domain\usecases\get_communication_analytics.dart
+  Line 194: final audienceMap = <String, int>{};
+  Line 197: final key = item.audienceType.name;
+  Line 198: audienceMap[key] = (audienceMap[key] ?? 0) + 1;
+  Line 201: final topAudiences =
+  Line 202: audienceMap.entries
+  Line 204: (entry) => CommunicationAudienceAnalyticsEntity(
+  Line 205: audience: entry.key,
+  Line 235: topAudiences: topAudiences.take(5).toList(),
+
+FILE: lib\features\communication\domain\usecases\manage_chat.dart
+  Line 61: class MarkChatThreadRead {
+  Line 62: const MarkChatThreadRead(this._repository);
+  Line 67: return _repository.markThreadRead(threadId: threadId, userId: userId);
+
+FILE: lib\features\communication\domain\usecases\manage_communication_broadcasts.dart
+  Line 35: if ((broadcast.audienceType == CommunicationAudienceType.classSection ||
+  Line 36: broadcast.audienceType ==
+  Line 37: CommunicationAudienceType.selectedUsers) &&
+  Line 39: throw ArgumentError('Target IDs are required for the selected audience.');
+  Line 73: audienceType: broadcast.audienceType,
+
+FILE: lib\features\communication\domain\usecases\manage_whatsapp_broadcasts.dart
+  Line 30: if (broadcast.audience == WhatsAppBroadcastAudience.selectedRecipients &&
+  Line 35: if (broadcast.audience == WhatsAppBroadcastAudience.classSection &&
+  Line 61: audience: broadcast.audience,
+
+FILE: lib\features\communication\presentation\bloc\chat_bloc.dart
+  Line 13: required this._markRead,
+  Line 25: final MarkChatThreadRead _markRead;
+  Line 47: await _markRead(threadId: event.thread.id, userId: event.userId);
+
+FILE: lib\features\communication\presentation\pages\announcements_page.dart
+  Line 34: CommunicationAudienceType? _audienceFilter;
+  Line 70: final audienceMatches =
+  Line 71: _audienceFilter == null ||
+  Line 72: message.audienceType == _audienceFilter;
+  Line 73: return statusMatches && audienceMatches;
+  Line 112: DropdownButtonFormField<CommunicationAudienceType?>(
+  Line 113: initialValue: _audienceFilter,
+  Line 115: labelText: 'Audience',
+  Line 120: child: Text('All Audiences'),
+  Line 122: ...CommunicationAudienceType.values.map(
+  Line 130: setState(() => _audienceFilter = value),
+  Line 156: '${_label(message.audienceType.name)} â€¢ '
+  Line 204: var audience =
+  Line 205: existing?.audienceType ?? CommunicationAudienceType.wholeSchool;
+  Line 240: DropdownButtonFormField<CommunicationAudienceType>(
+  Line 241: initialValue: audience,
+  Line 242: decoration: const InputDecoration(labelText: 'Audience'),
+  Line 243: items: CommunicationAudienceType.values
+  Line 253: setDialogState(() => audience = value);
+  Line 397: audienceType: audience,
+
+FILE: lib\features\communication\presentation\pages\communication_analytics_page.dart
+  Line 75: icon: Icons.mark_email_read_outlined,
+  Line 130: CommunicationTopAudiences(
+  Line 131: items: analytics.topAudiences,
+  Line 147: child: CommunicationTopAudiences(
+  Line 148: items: analytics.topAudiences,
+
+FILE: lib\features\communication\presentation\pages\communication_broadcast_page.dart
+  Line 148: '${_label(item.audienceType.name)} â€¢ '
+  Line 192: var audience = CommunicationAudienceType.wholeSchool;
+  Line 219: DropdownButtonFormField<CommunicationAudienceType>(
+  Line 220: initialValue: audience,
+  Line 221: decoration: const InputDecoration(labelText: 'Audience'),
+  Line 222: items: CommunicationAudienceType.values
+  Line 232: setDialogState(() => audience = value);
+  Line 334: '${audience.name}|'
+  Line 352: audienceType: audience,
+
+FILE: lib\features\communication\presentation\pages\whatsapp_broadcast_page.dart
+  Line 115: '${item.audience.name} â€¢ '
+  Line 163: var audience = WhatsAppBroadcastAudience.wholeSchool;
+  Line 204: DropdownButtonFormField<WhatsAppBroadcastAudience>(
+  Line 205: initialValue: audience,
+  Line 206: decoration: const InputDecoration(labelText: 'Audience'),
+  Line 207: items: WhatsAppBroadcastAudience.values
+  Line 217: setDialogState(() => audience = value);
+  Line 330: audience: audience,
+
+FILE: lib\features\communication\presentation\widgets\communication_analytics_widgets.dart
+  Line 186: class CommunicationTopAudiences extends StatelessWidget {
+  Line 187: const CommunicationTopAudiences({required this.items, super.key});
+  Line 189: final List<CommunicationAudienceAnalyticsEntity> items;
+  Line 200: 'Top Audiences',
+  Line 206: if (items.isEmpty) const Text('No audience data available.'),
+  Line 211: title: Text(_label(item.audience)),
+
+FILE: lib\features\dashboard\presentation\widgets\dashboard_layout.dart
+  Line 69: sl<NoticeRepository>().getNotices(
+  Line 1022: class LatestNoticesCard extends StatelessWidget {
+  Line 1038: color: notice.priority == NoticePriority.emergency
+
+FILE: lib\features\exams\presentation\bloc\exam_marks_bloc.dart
+  Line 516: ? 'Marks are read-only because results for this class and section are locked.'
+
+FILE: lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart
+  Line 141: 'Cannot deselect ${blocked.join(', ')} because marks already exist. Remove those marks explicitly first.',
+
+FILE: lib\features\exams\presentation\pages\auto_exam_date_sheet_generator_page.dart
+  Line 234: event.audience == AcademicCalendarAudience.wholeSchool ||
+  Line 235: event.audience == AcademicCalendarAudience.students ||
+  Line 236: event.audience == AcademicCalendarAudience.selectedClasses;
+
+FILE: lib\features\exams\presentation\pages\exam_form_page.dart
+  Line 750: 'Marks already exist; this subject cannot be deselected.',
+
+FILE: lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart
+  Line 138: if (!_isReadOnly) {
+  Line 173: event.audience == AcademicCalendarAudience.wholeSchool ||
+  Line 174: event.audience == AcademicCalendarAudience.students ||
+  Line 175: event.audience == AcademicCalendarAudience.selectedClasses;
+  Line 224: bool get _isReadOnly =>
+  Line 388: if (_isReadOnly) return;
+  Line 585: if (_isReadOnly) {
+  Line 745: onPressed: _loading || _saving || _isReadOnly ? null : _save,
+  Line 760: if (_isReadOnly) ...[
+  Line 844: onPressed: _isReadOnly
+  Line 853: onPressed: _isReadOnly
+  Line 1040: onChanged: _isReadOnly
+  Line 1052: onPressed: _isReadOnly ? null : () => _editPaperTime(paper),
+
+FILE: lib\features\notices\data\models\notice_model.dart
+  Line 5: class NoticeModel extends NoticeEntity {
+  Line 11: required super.priority,
+  Line 12: required super.audienceType,
+  Line 34: priority: value.priority,
+  Line 35: audienceType: value.audienceType,
+  Line 61: priority: NoticePriority.values.firstWhere(
+  Line 62: (item) => item.name == map['priority'],
+  Line 63: orElse: () => NoticePriority.normal,
+  Line 65: audienceType: NoticeAudienceType.values.firstWhere(
+  Line 66: (item) => item.name == map['audienceType'],
+  Line 67: orElse: () => NoticeAudienceType.wholeSchool,
+  Line 109: 'priority': priority.name,
+  Line 110: 'audienceType': audienceType.name,
+
+FILE: lib\features\notices\data\models\notice_receipt_model.dart
+  Line 5: class NoticeReceiptModel extends NoticeReceiptEntity {
+
+FILE: lib\features\notices\data\repositories\notice_receipt_repository_impl.dart
+  Line 7: class NoticeReceiptRepositoryImpl implements NoticeReceiptRepository {
+
+FILE: lib\features\notices\data\repositories\notice_repository_impl.dart
+  Line 7: class NoticeRepositoryImpl implements NoticeRepository {
+  Line 8: const NoticeRepositoryImpl(this._service);
+  Line 13: Future<List<NoticeEntity>> getNotices({
+  Line 16: NoticeAudienceType? audienceType,
+  Line 17: NoticePriority? priority,
+  Line 28: (audienceType == null || item.audienceType == audienceType) &&
+  Line 29: (priority == null || item.priority == priority),
+  Line 50: if (notice.audienceType == NoticeAudienceType.selectedClasses &&
+
+FILE: lib\features\notices\data\services\notice_attachment_service_impl.dart
+  Line 8: class NoticeAttachmentServiceImpl implements NoticeAttachmentService {
+
+FILE: lib\features\notices\data\services\notice_delivery_service_impl.dart
+  Line 7: class NoticeDeliveryServiceImpl implements NoticeDeliveryService {
+  Line 10: final NoticeRepository _repository;
+  Line 19: ..writeln('Priority: ${notice.priority.name.toUpperCase()}');
+  Line 36: final values = await _repository.getNotices(
+
+FILE: lib\features\notices\domain\entities\notice_entity.dart
+  Line 5: enum NoticeAudienceType {
+  Line 15: enum NoticePriority { normal, important, urgent, emergency }
+  Line 17: class NoticeAttachmentEntity extends Equatable {
+  Line 45: class NoticeEntity extends Equatable {
+  Line 51: required this.priority,
+  Line 52: required this.audienceType,
+  Line 75: final NoticePriority priority;
+  Line 76: final NoticeAudienceType audienceType;
+  Line 109: priority: priority,
+  Line 110: audienceType: audienceType,
+  Line 135: priority,
+  Line 136: audienceType,
+
+FILE: lib\features\notices\domain\entities\notice_receipt_entity.dart
+  Line 12: class NoticeReceiptEntity extends Equatable {
+
+FILE: lib\features\notices\domain\repositories\notice_receipt_repository.dart
+  Line 3: abstract class NoticeReceiptRepository {
+
+FILE: lib\features\notices\domain\repositories\notice_repository.dart
+  Line 3: abstract class NoticeRepository {
+  Line 4: Future<List<NoticeEntity>> getNotices({
+  Line 7: NoticeAudienceType? audienceType,
+  Line 8: NoticePriority? priority,
+
+FILE: lib\features\notices\domain\services\notice_attachment_service.dart
+  Line 3: abstract class NoticeAttachmentService {
+
+FILE: lib\features\notices\domain\services\notice_delivery_service.dart
+  Line 3: abstract class NoticeDeliveryService {
+
+FILE: lib\features\notices\presentation\bloc\notice_bloc.dart
+  Line 6: sealed class NoticeEvent {
+  Line 10: class LoadNotices extends NoticeEvent {
+  Line 14: this.audienceType,
+  Line 15: this.priority,
+  Line 20: final NoticeAudienceType? audienceType;
+  Line 21: final NoticePriority? priority;
+  Line 24: class SaveNotice extends NoticeEvent {
+  Line 29: class DeleteNotice extends NoticeEvent {
+  Line 34: class ChangeNoticeStatus extends NoticeEvent {
+  Line 40: sealed class NoticeState {
+  Line 44: class NoticeInitial extends NoticeState {
+  Line 48: class NoticeLoading extends NoticeState {
+  Line 52: class NoticeLoaded extends NoticeState {
+  Line 58: class NoticeError extends NoticeState {
+  Line 63: class NoticeBloc extends Bloc<NoticeEvent, NoticeState> {
+  Line 71: final NoticeRepository _repository;
+  Line 124: final values = await _repository.getNotices(
+  Line 127: audienceType: _lastLoad.audienceType,
+  Line 128: priority: _lastLoad.priority,
+
+FILE: lib\features\notices\presentation\bloc\notice_receipt_bloc.dart
+  Line 6: sealed class NoticeReceiptEvent {
+  Line 10: class LoadNoticeReceipts extends NoticeReceiptEvent {
+  Line 17: class SaveNoticeReceipt extends NoticeReceiptEvent {
+  Line 23: sealed class NoticeReceiptState {
+  Line 27: class NoticeReceiptInitial extends NoticeReceiptState {
+  Line 31: class NoticeReceiptLoading extends NoticeReceiptState {
+  Line 35: class NoticeReceiptLoaded extends NoticeReceiptState {
+  Line 42: class NoticeReceiptError extends NoticeReceiptState {
+  Line 48: class NoticeReceiptBloc extends Bloc<NoticeReceiptEvent, NoticeReceiptState> {
+
+FILE: lib\features\notices\presentation\pages\notices_dashboard_page.dart
+  Line 16: class NoticesDashboardPage extends StatelessWidget {
+  Line 28: class _NoticesDashboardView extends StatefulWidget {
+  Line 35: class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
+  Line 38: NoticeAudienceType? _audience;
+  Line 39: NoticePriority? _priority;
+  Line 52: audienceType: _audience,
+  Line 53: priority: _priority,
+  Line 61: _audience = null;
+  Line 62: _priority = null;
+  Line 122: icon: const Icon(Icons.mark_email_read_outlined),
+  Line 281: _enumFilter<NoticeAudienceType>(
+  Line 283: label: 'Audience',
+  Line 284: value: _audience,
+  Line 285: values: NoticeAudienceType.values,
+  Line 287: onChanged: (value) => setState(() => _audience = value),
+  Line 289: _enumFilter<NoticePriority>(
+  Line 291: label: 'Priority',
+  Line 292: value: _priority,
+  Line 293: values: NoticePriority.values,
+  Line 294: icon: Icons.priority_high,
+  Line 295: onChanged: (value) => setState(() => _priority = value),
+  Line 377: class _NoticeStats extends StatelessWidget {
+  Line 394: e.priority == NoticePriority.urgent ||
+  Line 395: e.priority == NoticePriority.emergency,
+  Line 513: class _NoticeCard extends StatelessWidget {
+  Line 530: Color get _priorityColor => switch (item.priority) {
+  Line 531: NoticePriority.emergency => const Color(0xFFDC2626),
+  Line 532: NoticePriority.urgent => const Color(0xFFEA580C),
+  Line 533: NoticePriority.important => const Color(0xFFD97706),
+  Line 546: border: Border(left: BorderSide(color: _priorityColor, width: 5)),
+  Line 554: backgroundColor: _priorityColor.withValues(alpha: .12),
+  Line 556: item.priority == NoticePriority.emergency
+  Line 559: color: _priorityColor,
+  Line 572: '${item.audienceType.name} • '
+  Line 573: '${item.priority.name.toUpperCase()} • '
+  Line 608: class _EmptyNotices extends StatelessWidget {
+
+FILE: lib\features\notices\presentation\pages\notice_delivery_dashboard_page.dart
+  Line 9: class NoticeDeliveryDashboardPage extends StatelessWidget {
+
+FILE: lib\features\notices\presentation\pages\notice_form_page.dart
+  Line 11: class NoticeFormPage extends StatefulWidget {
+  Line 25: class _NoticeFormPageState extends State<NoticeFormPage> {
+  Line 30: NoticePriority _priority = NoticePriority.normal;
+  Line 31: NoticeAudienceType _audience = NoticeAudienceType.wholeSchool;
+  Line 49: _noticeId = existing?.id ?? sl<NoticeRepository>().generateId();
+  Line 52: _priority = existing?.priority ?? NoticePriority.normal;
+  Line 53: _audience = existing?.audienceType ?? NoticeAudienceType.wholeSchool;
+  Line 127: if (_audience == NoticeAudienceType.selectedClasses && _classIds.isEmpty) {
+  Line 147: priority: _priority,
+  Line 148: audienceType: _audience,
+  Line 220: _enumField<NoticePriority>(
+  Line 221: 'Priority',
+  Line 222: _priority,
+  Line 223: NoticePriority.values,
+  Line 224: (value) => setState(() => _priority = value),
+  Line 226: _enumField<NoticeAudienceType>(
+  Line 227: 'Audience',
+  Line 228: _audience,
+  Line 229: NoticeAudienceType.values,
+  Line 230: (value) => setState(() => _audience = value),
+  Line 241: if (_audience == NoticeAudienceType.selectedClasses)
+  Line 259: if (_audience == NoticeAudienceType.selectedSections)
+
+FILE: lib\features\parent_portal\data\models\parent_notification_model.dart
+  Line 13: required super.isRead,
+  Line 28: isRead: value.isRead,
+  Line 47: isRead: map['isRead'] as bool? ?? false,
+  Line 61: 'isRead': isRead,
+
+FILE: lib\features\parent_portal\data\repositories\parent_notification_repository_impl.dart
+  Line 19: bool? isRead,
+  Line 38: (isRead == null || item.isRead == isRead),
+  Line 55: Future<void> markRead(String id) async {
+  Line 59: .update({'isRead': true, 'readAt': Timestamp.fromDate(DateTime.now())});
+  Line 63: Future<void> markAllRead({
+  Line 70: isRead: false,
+  Line 74: await markRead(item.id);
+
+FILE: lib\features\parent_portal\data\services\parent_communication_service_impl.dart
+  Line 62: final unreadNoticeCount = notices.where((item) => !item.isRead).length;
+  Line 88: Future<void> markNoticeRead({
+  Line 270: priority: _string(map, ['priority'], fallback: 'normal'),
+  Line 273: isRead: receiptStatus == 'read' || receiptStatus == 'acknowledged',
+  Line 322: final audience = _string(map, ['audienceType'], fallback: 'wholeSchool');
+  Line 324: if (['wholeSchool', 'students', 'parents'].contains(audience)) {
+  Line 335: if (audience == 'selectedClasses') {
+  Line 342: if (audience == 'selectedSections') {
+
+FILE: lib\features\parent_portal\data\services\parent_timeline_service_impl.dart
+  Line 99: status: _text(map, ['priority'], fallback: 'Normal'),
+
+FILE: lib\features\parent_portal\domain\entities\parent_communication_dashboard_entity.dart
+  Line 42: class ParentNoticeItemEntity extends Equatable {
+  Line 47: required this.priority,
+  Line 50: required this.isRead,
+  Line 59: final String priority;
+  Line 62: final bool isRead;
+  Line 72: priority,
+  Line 75: isRead,
+
+FILE: lib\features\parent_portal\domain\entities\parent_notification_entity.dart
+  Line 22: required this.isRead,
+  Line 35: final bool isRead;
+  Line 41: ParentNotificationEntity copyWith({bool? isRead, DateTime? readAt}) {
+  Line 49: isRead: isRead ?? this.isRead,
+  Line 65: isRead,
+
+FILE: lib\features\parent_portal\domain\repositories\parent_notification_repository.dart
+  Line 8: bool? isRead,
+  Line 13: Future<void> markRead(String id);
+  Line 15: Future<void> markAllRead({required String parentId, String? studentId});
+
+FILE: lib\features\parent_portal\domain\services\parent_communication_service.dart
+  Line 12: Future<void> markNoticeRead({
+
+FILE: lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart
+  Line 24: class ReadParentNotice extends ParentCommunicationEvent {
+  Line 38: class AcknowledgeParentNotice extends ParentCommunicationEvent {
+  Line 111: await _service.markNoticeRead(
+
+FILE: lib\features\parent_portal\presentation\bloc\parent_notification_bloc.dart
+  Line 15: this.isRead,
+  Line 21: final bool? isRead;
+  Line 24: class MarkParentNotificationRead extends ParentNotificationEvent {
+  Line 25: const MarkParentNotificationRead(this.id);
+  Line 29: class MarkAllParentNotificationsRead extends ParentNotificationEvent {
+  Line 30: const MarkAllParentNotificationsRead({
+  Line 71: on<MarkParentNotificationRead>(_markRead);
+  Line 72: on<MarkAllParentNotificationsRead>(_markAllRead);
+  Line 92: isRead: event.isRead,
+  Line 101: Future<void> _markRead(
+  Line 102: MarkParentNotificationRead event,
+  Line 105: await _repository.markRead(event.id);
+  Line 109: Future<void> _markAllRead(
+  Line 110: MarkAllParentNotificationsRead event,
+  Line 113: await _repository.markAllRead(
+
+FILE: lib\features\parent_portal\presentation\pages\parent_account_form_page.dart
+  Line 356: _sectionTitle(context, 'Status & Contact Priority'),
+
+FILE: lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart
+  Line 118: icon: Icons.mark_email_unread_outlined,
+  Line 261: class _NoticeList extends StatelessWidget {
+  Line 287: if (expanded && !item.isRead) {
+  Line 299: item.isRead
+  Line 300: ? Icons.mark_email_read_outlined
+  Line 301: : Icons.mark_email_unread_outlined,
+  Line 304: subtitle: Text(item.priority.toUpperCase()),
+
+FILE: lib\features\parent_portal\presentation\pages\parent_notification_center_page.dart
+  Line 44: bool? _isRead;
+  Line 52: isRead: _isRead,
+  Line 66: MarkAllParentNotificationsRead(
+  Line 73: label: const Text('Mark All Read'),
+  Line 121: initialValue: _isRead,
+  Line 135: setState(() => _isRead = value);
+  Line 158: fontWeight: item.isRead
+  Line 168: if (!item.isRead) {
+  Line 170: MarkParentNotificationRead(item.id),
+
+FILE: lib\features\results\presentation\pages\merit_list_page.dart
+  Line 90: final ready = _isReady(data, scope);
+  Line 314: bool _isReady(PublishedResultsLoaded data, MeritScope scope) {
+
+FILE: lib\features\results\presentation\pages\student_result_details_page.dart
+  Line 349: class _ReadOnlyNotice extends StatelessWidget {
+
+FILE: lib\features\results\presentation\pages\teacher_results_page.dart
+  Line 60: final isReady = data.selectedTeacherId != null &&
+  Line 63: final summaries = isReady
+  Line 80: if (!isReady)
+
+FILE: lib\features\teacher_portal\presentation\pages\teacher_portal_dashboard_page.dart
+  Line 228: ('Unread Messages', Icons.mark_chat_unread_outlined),
+  Line 303: ('Class Notice', Icons.campaign_outlined, const NoticesDashboardPage()),
+
+FILE: lib\features\timeline\data\models\timeline_event_model.dart
+  Line 17: super.isRead,
+  Line 33: isRead: entity.isRead,
+  Line 50: isRead: map['isRead'] as bool? ?? false,
+  Line 65: 'isRead': isRead,
+
+FILE: lib\features\timeline\data\repositories\timeline_repository_impl.dart
+  Line 56: Future<void> markAsRead(String eventId) async {
+  Line 63: .update({'isRead': true});
+
+FILE: lib\features\timeline\data\services\timeline_service_impl.dart
+  Line 23: Future<void> markEventAsRead(String eventId) {
+  Line 24: return _repository.markAsRead(eventId);
+
+FILE: lib\features\timeline\domain\entities\timeline_event_entity.dart
+  Line 29: this.isRead = false,
+  Line 45: final bool isRead;
+  Line 59: bool? isRead,
+  Line 73: isRead: isRead ?? this.isRead,
+  Line 90: isRead,
+
+FILE: lib\features\timeline\domain\repositories\timeline_repository.dart
+  Line 8: Future<void> markAsRead(String eventId);
+
+FILE: lib\features\timeline\domain\services\timeline_service.dart
+  Line 10: Future<void> markEventAsRead(String eventId);
+
