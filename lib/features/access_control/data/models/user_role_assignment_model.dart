@@ -15,6 +15,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
     required super.assignedBy,
     required super.assignedAt,
     required super.updatedAt,
+    super.isPrimary,
+    super.validFrom,
+    super.validUntil,
   });
 
   factory UserRoleAssignmentModel.fromEntity(UserRoleAssignmentEntity value) {
@@ -27,6 +30,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
       roleName: value.roleName,
       branchId: value.branchId,
       isActive: value.isActive,
+      isPrimary: value.isPrimary,
+      validFrom: value.validFrom,
+      validUntil: value.validUntil,
       assignedBy: value.assignedBy,
       assignedAt: value.assignedAt,
       updatedAt: value.updatedAt,
@@ -43,6 +49,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
       roleName: map['roleName'] as String? ?? '',
       branchId: map['branchId'] as String? ?? 'main',
       isActive: map['isActive'] as bool? ?? true,
+      isPrimary: map['isPrimary'] as bool? ?? false,
+      validFrom: _nullableDate(map['validFrom']),
+      validUntil: _nullableDate(map['validUntil']),
       assignedBy: map['assignedBy'] as String? ?? 'Admin',
       assignedAt: _date(map['assignedAt']),
       updatedAt: _date(map['updatedAt']),
@@ -50,6 +59,7 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
   }
 
   Map<String, dynamic> toMap() => {
+    'id': id,
     'userId': userId,
     'userName': userName,
     'email': email,
@@ -57,14 +67,36 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
     'roleName': roleName,
     'branchId': branchId,
     'isActive': isActive,
+    'isPrimary': isPrimary,
+    'validFrom': validFrom == null ? null : Timestamp.fromDate(validFrom!),
+    'validUntil': validUntil == null ? null : Timestamp.fromDate(validUntil!),
     'assignedBy': assignedBy,
     'assignedAt': Timestamp.fromDate(assignedAt),
     'updatedAt': Timestamp.fromDate(updatedAt),
+    'schemaVersion': 2,
   };
 
   static DateTime _date(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+
+    if (value is DateTime) {
+      return value;
+    }
+
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
     return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static DateTime? _nullableDate(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    return _date(value);
   }
 }

@@ -7,6 +7,10 @@ abstract class UserRoleAssignmentRepository {
     String? searchText,
   });
 
+  /// Returns all role assignments of a user.
+  Future<List<UserRoleAssignmentEntity>> getAssignmentsByUserId(String userId);
+
+  /// Returns the primary role assignment.
   Future<UserRoleAssignmentEntity?> getAssignmentByUserId(String userId);
 
   Future<void> saveAssignment(UserRoleAssignmentEntity assignment);

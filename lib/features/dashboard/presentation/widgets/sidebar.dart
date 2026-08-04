@@ -30,6 +30,7 @@ import '../../../staff/presentation/pages/staff_list_page.dart';
 import '../../../staff/presentation/pages/staff_salary_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
+import '../../../teacher_portal/presentation/pages/substitute_duty_management_page.dart';
 import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
 
 class Sidebar extends StatefulWidget {
@@ -42,11 +43,13 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   late final AccessControlService _access;
   final ScrollController _scrollController = ScrollController();
+
   bool _loggingOut = false;
 
   @override
   void initState() {
     super.initState();
+
     _access = sl<AccessControlService>();
     _access.addListener(_refresh);
     _access.loadCurrentAccess();
@@ -56,15 +59,20 @@ class _SidebarState extends State<Sidebar> {
   void dispose() {
     _access.removeListener(_refresh);
     _scrollController.dispose();
+
     super.dispose();
   }
 
   void _refresh() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  Future<void> _logout(BuildContext context) async {
-    if (_loggingOut) return;
+  Future<void> _logout() async {
+    if (_loggingOut) {
+      return;
+    }
 
     final confirmed =
         await showDialog<bool>(
@@ -74,11 +82,15 @@ class _SidebarState extends State<Sidebar> {
             content: const Text('Are you sure you want to logout?'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                },
                 child: const Text('Cancel'),
               ),
               FilledButton.icon(
-                onPressed: () => Navigator.pop(dialogContext, true),
+                onPressed: () {
+                  Navigator.pop(dialogContext, true);
+                },
                 icon: const Icon(Icons.logout),
                 label: const Text('Logout'),
               ),
@@ -87,25 +99,34 @@ class _SidebarState extends State<Sidebar> {
         ) ??
         false;
 
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !mounted) {
+      return;
+    }
+
     setState(() => _loggingOut = true);
 
     try {
       await sl<LogoutUseCase>()();
       await _access.clear();
-      if (!mounted) return;
+
+      if (!mounted) {
+        return;
+      }
+
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const LoginPage()),
         (_) => false,
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
+
       setState(() => _loggingOut = false);
+
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text('Logout failed: $error')),
-        );
+        ..showSnackBar(SnackBar(content: Text('Logout failed: $error')));
     }
   }
 
@@ -121,6 +142,7 @@ class _SidebarState extends State<Sidebar> {
           builder: (_) => UnauthorizedAccessPage(moduleName: moduleName),
         ),
       );
+
       return;
     }
 
@@ -213,6 +235,18 @@ class _SidebarState extends State<Sidebar> {
                     if (_access.hasPermission(AppPermission.staffView))
                       _menuTile(
                         context,
+                        icon: Icons.swap_horiz,
+                        title: 'Substitute Duties',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.staffView,
+                          moduleName: 'Substitute Duties',
+                          page: const SubstituteDutyManagementPage(),
+                        ),
+                      ),
+                    if (_access.hasPermission(AppPermission.staffView))
+                      _menuTile(
+                        context,
                         icon: Icons.badge,
                         title: 'Staff',
                         onTap: () {
@@ -223,6 +257,7 @@ class _SidebarState extends State<Sidebar> {
                               moduleName: 'Staff',
                               page: const SizedBox.shrink(),
                             );
+
                             return;
                           }
 
@@ -271,6 +306,7 @@ class _SidebarState extends State<Sidebar> {
                                               ),
                                         ),
                                       );
+
                                       return;
                                     }
 
@@ -495,7 +531,7 @@ class _SidebarState extends State<Sidebar> {
                       context,
                       icon: Icons.logout_outlined,
                       title: _loggingOut ? 'Logging out...' : 'Logout',
-                      onTap: _loggingOut ? () {} : () => _logout(context),
+                      onTap: _loggingOut ? () {} : _logout,
                     ),
                   ],
                 ),
@@ -511,15 +547,16 @@ class _SidebarState extends State<Sidebar> {
     required VoidCallback onTap,
   }) {
     final color = _menuColor(title);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       leading: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .18),
+          color: color.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: .28)),
+          border: Border.all(color: color.withValues(alpha: 0.28)),
         ),
         child: Icon(icon, color: color, size: 21),
       ),
@@ -531,7 +568,7 @@ class _SidebarState extends State<Sidebar> {
         ),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: color.withValues(alpha: .10),
+      hoverColor: color.withValues(alpha: 0.10),
       onTap: onTap,
     );
   }
@@ -541,6 +578,7 @@ class _SidebarState extends State<Sidebar> {
       'Students' => const Color(0xFF61A5FA),
       'Teachers' => const Color(0xFF4ADE80),
       'Staff' => const Color(0xFFFBBF24),
+      'Substitute Duties' => const Color(0xFF0EA5E9),
       'Classes' => const Color(0xFFC084FC),
       'Attendance' => const Color(0xFF2DD4BF),
       'Fee Management' => const Color(0xFF34D399),

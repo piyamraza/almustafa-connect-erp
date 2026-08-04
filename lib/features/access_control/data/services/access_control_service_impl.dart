@@ -21,8 +21,11 @@ class AccessControlServiceImpl extends AccessControlService {
   bool _isLoaded = false;
   bool _isLoading = false;
   bool _isBootstrapAccess = false;
-  UserRoleAssignmentEntity? _assignment;
-  AppRoleEntity? _role;
+
+  List<UserRoleAssignmentEntity> _assignments = const [];
+  List<AppRoleEntity> _roles = const [];
+  Set<AppPermission> _permissions = const {};
+
   String? _errorMessage;
 
   @override
@@ -44,35 +47,107 @@ class AccessControlServiceImpl extends AccessControlService {
   String? get currentUserEmail => _auth.currentUser?.email;
 
   @override
-  UserRoleAssignmentEntity? get assignment => _assignment;
+  List<UserRoleAssignmentEntity> get assignments =>
+      List.unmodifiable(_assignments);
 
   @override
-  AppRoleEntity? get role => _role;
+  UserRoleAssignmentEntity? get assignment {
+    for (final item in _assignments) {
+      if (item.isPrimary) {
+        return item;
+      }
+    }
+
+    if (_assignments.isEmpty) {
+      return null;
+    }
+
+    return _assignments.first;
+  }
+
+  @override
+  List<AppRoleEntity> get roles => List.unmodifiable(_roles);
+
+  @override
+  AppRoleEntity? get role {
+    final primaryAssignment = assignment;
+
+    if (primaryAssignment != null) {
+      for (final item in _roles) {
+        if (item.id == primaryAssignment.roleId) {
+          return item;
+        }
+      }
+    }
+
+    if (_roles.isEmpty) {
+      return null;
+    }
+
+    return _roles.first;
+  }
+
+  @override
+  Set<AppPermission> get permissions => Set.unmodifiable(_permissions);
 
   @override
   String? get errorMessage => _errorMessage;
 
   @override
   bool hasPermission(AppPermission permission) {
-    if (!_isLoaded || !isAuthenticated) return false;
-    if (_isBootstrapAccess) return true;
-    if (!(_assignment?.isActive ?? false)) return false;
-    if (!(_role?.isActive ?? false)) return false;
-    return _role?.allows(permission) ?? false;
+    if (!_isLoaded || !isAuthenticated) {
+      return false;
+    }
+
+    if (_isBootstrapAccess) {
+      return true;
+    }
+
+    return _permissions.contains(permission);
   }
 
   @override
-  bool hasAnyPermission(Iterable<AppPermission> permissions) =>
-      permissions.any(hasPermission);
+  bool hasAnyPermission(Iterable<AppPermission> permissions) {
+    return permissions.any(hasPermission);
+  }
 
   @override
-  bool hasAllPermissions(Iterable<AppPermission> permissions) =>
-      permissions.every(hasPermission);
+  bool hasAllPermissions(Iterable<AppPermission> permissions) {
+    return permissions.every(hasPermission);
+  }
+
+  @override
+  bool hasRole(String roleIdOrName) {
+    if (!_isLoaded || !isAuthenticated) {
+      return false;
+    }
+
+    if (_isBootstrapAccess) {
+      return true;
+    }
+
+    final value = roleIdOrName.trim().toLowerCase();
+
+    if (value.isEmpty) {
+      return false;
+    }
+
+    return _roles.any(
+      (item) =>
+          item.id.trim().toLowerCase() == value ||
+          item.name.trim().toLowerCase() == value,
+    );
+  }
 
   @override
   Future<void> loadCurrentAccess({bool forceRefresh = false}) async {
-    if (_isLoading) return;
-    if (_isLoaded && !forceRefresh) return;
+    if (_isLoading) {
+      return;
+    }
+
+    if (_isLoaded && !forceRefresh) {
+      return;
+    }
 
     _isLoading = true;
     _errorMessage = null;
@@ -82,43 +157,94 @@ class AccessControlServiceImpl extends AccessControlService {
       final user = _auth.currentUser;
 
       if (user == null) {
-        _assignment = null;
-        _role = null;
+        _assignments = const [];
+        _roles = const [];
+        _permissions = const {};
         _isBootstrapAccess = false;
         _isLoaded = true;
         return;
       }
 
-      _assignment = await _assignmentRepository.getAssignmentByUserId(user.uid);
+      final allAssignments = await _assignmentRepository.getAssignmentsByUserId(
+        user.uid,
+      );
 
-      if (_assignment == null) {
-        // Safe migration mode: the existing administrator remains able
-        // to configure the first user-role assignment.
-        _role = null;
+      final now = DateTime.now();
+
+      final activeAssignments =
+          allAssignments.where((item) => item.isValidAt(now)).toList()..sort((
+            a,
+            b,
+          ) {
+            if (a.isPrimary != b.isPrimary) {
+              return a.isPrimary ? -1 : 1;
+            }
+
+            return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
+          });
+
+      _assignments = List.unmodifiable(activeAssignments);
+
+      if (_assignments.isEmpty) {
+        _roles = const [];
+        _permissions = const {};
+
+        // Safe migration mode:
+        // If the existing administrator has no assignment yet,
+        // allow access so the first roles can be configured.
         _isBootstrapAccess = true;
         _isLoaded = true;
         return;
       }
 
       _isBootstrapAccess = false;
-      final roles = await _roleRepository.getRoles();
 
-      for (final item in roles) {
-        if (item.id == _assignment!.roleId) {
-          _role = item;
-          break;
+      final availableRoles = await _roleRepository.getRoles();
+
+      final assignedRoleIds = _assignments.map((item) => item.roleId).toSet();
+
+      final activeRoles = availableRoles
+          .where((item) => item.isActive && assignedRoleIds.contains(item.id))
+          .toList();
+
+      activeRoles.sort((a, b) {
+        final primaryRoleId = assignment?.roleId;
+
+        if (a.id == primaryRoleId && b.id != primaryRoleId) {
+          return -1;
         }
+
+        if (b.id == primaryRoleId && a.id != primaryRoleId) {
+          return 1;
+        }
+
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+      _roles = List.unmodifiable(activeRoles);
+
+      final mergedPermissions = <AppPermission>{};
+
+      for (final item in _roles) {
+        mergedPermissions.addAll(item.permissions);
       }
 
-      if (_role == null) {
+      _permissions = Set.unmodifiable(mergedPermissions);
+
+      final missingRoleIds = assignedRoleIds
+          .where((roleId) => !_roles.any((role) => role.id == roleId))
+          .toList();
+
+      if (missingRoleIds.isNotEmpty) {
         _errorMessage =
-            'The assigned role no longer exists. Contact an administrator.';
+            'One or more assigned roles no longer exist or are inactive.';
       }
 
       _isLoaded = true;
     } catch (error) {
-      _assignment = null;
-      _role = null;
+      _assignments = const [];
+      _roles = const [];
+      _permissions = const {};
       _isBootstrapAccess = false;
       _isLoaded = true;
       _errorMessage = error.toString();
@@ -133,9 +259,13 @@ class AccessControlServiceImpl extends AccessControlService {
     _isLoaded = false;
     _isLoading = false;
     _isBootstrapAccess = false;
-    _assignment = null;
-    _role = null;
+
+    _assignments = const [];
+    _roles = const [];
+    _permissions = const {};
+
     _errorMessage = null;
+
     notifyListeners();
   }
 }

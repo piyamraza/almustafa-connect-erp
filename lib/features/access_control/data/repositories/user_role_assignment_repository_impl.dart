@@ -39,55 +39,129 @@ class UserRoleAssignmentRepositoryImpl implements UserRoleAssignmentRepository {
                       item.userId.toLowerCase().contains(query)),
             )
             .toList()
-          ..sort(
-            (a, b) =>
-                a.userName.toLowerCase().compareTo(b.userName.toLowerCase()),
-          );
+          ..sort((a, b) {
+            if (a.userId == b.userId && a.isPrimary != b.isPrimary) {
+              return a.isPrimary ? -1 : 1;
+            }
+
+            return a.userName.toLowerCase().compareTo(b.userName.toLowerCase());
+          });
+
+    return List.unmodifiable(values);
+  }
+
+  @override
+  Future<List<UserRoleAssignmentEntity>> getAssignmentsByUserId(
+    String userId,
+  ) async {
+    final assignments = await getAssignments();
+
+    final values =
+        assignments.where((item) => item.userId == userId.trim()).toList()
+          ..sort((a, b) {
+            if (a.isPrimary != b.isPrimary) {
+              return a.isPrimary ? -1 : 1;
+            }
+
+            return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
+          });
 
     return List.unmodifiable(values);
   }
 
   @override
   Future<UserRoleAssignmentEntity?> getAssignmentByUserId(String userId) async {
-    final assignments = await getAssignments();
+    final assignments = await getAssignmentsByUserId(userId);
 
-    for (final assignment in assignments) {
-      if (assignment.userId == userId) return assignment;
+    if (assignments.isEmpty) {
+      return null;
     }
 
-    return null;
+    for (final assignment in assignments) {
+      if (assignment.isPrimary) {
+        return assignment;
+      }
+    }
+
+    return assignments.first;
   }
 
   @override
   Future<void> saveAssignment(UserRoleAssignmentEntity assignment) async {
-    if (assignment.userId.trim().isEmpty) {
+    final userId = assignment.userId.trim();
+    final email = assignment.email.trim();
+    final roleId = assignment.roleId.trim();
+
+    if (userId.isEmpty) {
       throw StateError('Firebase Auth UID is required.');
     }
 
-    if (assignment.email.trim().isEmpty) {
+    if (email.isEmpty) {
       throw StateError('User email is required.');
     }
 
-    if (assignment.roleId.trim().isEmpty) {
+    if (roleId.isEmpty) {
       throw StateError('Select a role.');
     }
 
-    final existing = await getAssignmentByUserId(assignment.userId.trim());
-
-    if (existing != null && existing.id != assignment.id) {
-      throw StateError('This Firebase user already has a role assignment.');
+    if (assignment.validFrom != null &&
+        assignment.validUntil != null &&
+        assignment.validUntil!.isBefore(assignment.validFrom!)) {
+      throw StateError('Role expiry date cannot be before the start date.');
     }
+
+    final existing = await getAssignmentsByUserId(userId);
+
+    final duplicateRole = existing.any(
+      (item) => item.roleId == roleId && item.id != assignment.id,
+    );
+
+    if (duplicateRole) {
+      throw StateError('This user already has this role assigned.');
+    }
+
+    if (assignment.isPrimary) {
+      for (final item in existing.where(
+        (value) => value.isPrimary && value.id != assignment.id,
+      )) {
+        await _service
+            .collection(FirestorePaths.userRoleAssignments)
+            .doc(item.id)
+            .set(
+              UserRoleAssignmentModel.fromEntity(
+                item.copyWith(isPrimary: false, updatedAt: DateTime.now()),
+              ).toMap(),
+            );
+      }
+    }
+
+    final documentId = assignment.id.trim().isEmpty
+        ? generateId()
+        : assignment.id.trim();
+
+    final normalizedAssignment = UserRoleAssignmentEntity(
+      id: documentId,
+      userId: userId,
+      userName: assignment.userName.trim(),
+      email: email,
+      roleId: roleId,
+      roleName: assignment.roleName.trim(),
+      branchId: assignment.branchId.trim().isEmpty
+          ? 'main'
+          : assignment.branchId.trim(),
+      isActive: assignment.isActive,
+      isPrimary: assignment.isPrimary,
+      validFrom: assignment.validFrom,
+      validUntil: assignment.validUntil,
+      assignedBy: assignment.assignedBy.trim(),
+      assignedAt: assignment.assignedAt,
+      updatedAt: DateTime.now(),
+    );
 
     await _service
         .collection(FirestorePaths.userRoleAssignments)
-        .doc(assignment.userId.trim())
-        .set(UserRoleAssignmentModel.fromEntity(assignment).toMap());
-    if (assignment.id != assignment.userId.trim()) {
-      await _service
-          .collection(FirestorePaths.userRoleAssignments)
-          .doc(assignment.id)
-          .delete();
-    }
+        .doc(documentId)
+        .set(UserRoleAssignmentModel.fromEntity(normalizedAssignment).toMap());
   }
 
   @override
