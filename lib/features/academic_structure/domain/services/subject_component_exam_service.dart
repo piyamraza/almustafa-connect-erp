@@ -42,15 +42,16 @@ class SubjectComponentExamService {
         continue;
       }
 
-      final useManual = setup.componentTotalMarks.isNotEmpty;
+      final useManualTotals = setup.componentTotalMarks.isNotEmpty;
+      final useComponentPassing = setup.componentPassingMarks.isNotEmpty;
 
       for (final component in active) {
-        final total = useManual
+        final total = useManualTotals
             ? setup.componentTotalMarks[component.id]
             : setup.totalMarks / active.length;
-        final passing = useManual
+        final passing = useComponentPassing
             ? setup.componentPassingMarks[component.id]
-            : setup.passingMarks / active.length;
+            : setup.passingMarks;
 
         if (total == null || total <= 0 || passing == null) {
           throw StateError(
@@ -76,7 +77,9 @@ class SubjectComponentExamService {
             totalMarks: total,
             passingMarks: passing,
             componentTotalMarks: const {},
-            componentPassingMarks: const {},
+            componentPassingMarks: useComponentPassing
+                ? {component.id: passing}
+                : const {},
           ),
         );
       }

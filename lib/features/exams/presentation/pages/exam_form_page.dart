@@ -17,6 +17,8 @@ import '../bloc/exam_subject_setup_bloc.dart';
 import '../bloc/exam_subject_setup_event.dart';
 import '../bloc/exam_subject_setup_state.dart';
 
+enum _ComponentPassingMode { combined, componentWise }
+
 class ExamFormPage extends StatelessWidget {
   const ExamFormPage({super.key, this.exam});
 
@@ -159,6 +161,9 @@ class _ExamFormViewState extends State<_ExamFormView> {
         components: _componentsFor(subject),
         componentTotalMarks: setup.componentTotalMarks,
         componentPassingMarks: setup.componentPassingMarks,
+        componentPassingMode: setup.componentPassingMarks.isEmpty
+            ? _ComponentPassingMode.combined
+            : _ComponentPassingMode.componentWise,
       );
     }
   }
@@ -192,17 +197,11 @@ class _ExamFormViewState extends State<_ExamFormView> {
     if (draft.components.isEmpty) return;
 
     final total = double.tryParse(draft.totalController.text.trim()) ?? 0;
-    final passing = double.tryParse(draft.passingController.text.trim()) ?? 0;
-
     final totalEach = total / draft.components.length;
-    final passingEach = passing / draft.components.length;
 
     for (final component in draft.components) {
       draft.componentTotalControllers[component.id]!.text = _marksText(
         totalEach,
-      );
-      draft.componentPassingControllers[component.id]!.text = _marksText(
-        passingEach,
       );
     }
   }
@@ -245,6 +244,10 @@ class _ExamFormViewState extends State<_ExamFormView> {
             components: _componentsFor(subject),
             componentTotalMarks: existing?.componentTotalMarks ?? const {},
             componentPassingMarks: existing?.componentPassingMarks ?? const {},
+            componentPassingMode:
+                existing?.componentPassingMarks.isNotEmpty == true
+                ? _ComponentPassingMode.componentWise
+                : _ComponentPassingMode.combined,
           ),
         );
         draft.selected = selected;
@@ -336,30 +339,38 @@ class _ExamFormViewState extends State<_ExamFormView> {
 
       if (draft.components.isNotEmpty) {
         var componentTotal = 0.0;
-        var componentPassing = 0.0;
 
         for (final component in draft.components) {
           final componentMaximum = double.tryParse(
             draft.componentTotalControllers[component.id]!.text.trim(),
           );
-          final componentPass = double.tryParse(
-            draft.componentPassingControllers[component.id]!.text.trim(),
-          );
 
-          if (componentMaximum == null ||
-              componentMaximum <= 0 ||
-              componentPass == null ||
-              componentPass < 0 ||
-              componentPass > componentMaximum) {
+          if (componentMaximum == null || componentMaximum <= 0) {
             _showMessage(
-              'Check marks for ${draft.subject.name} '
+              'Check total marks for ${draft.subject.name} '
               '${component.componentName}.',
             );
             return;
           }
 
+          if (draft.componentPassingMode ==
+              _ComponentPassingMode.componentWise) {
+            final componentPass = double.tryParse(
+              draft.componentPassingControllers[component.id]!.text.trim(),
+            );
+
+            if (componentPass == null ||
+                componentPass < 0 ||
+                componentPass > componentMaximum) {
+              _showMessage(
+                'Enter valid passing marks for ${draft.subject.name} '
+                '${component.componentName}.',
+              );
+              return;
+            }
+          }
+
           componentTotal += componentMaximum;
-          componentPassing += componentPass;
         }
 
         if ((componentTotal - total).abs() > 0.001) {
@@ -367,15 +378,6 @@ class _ExamFormViewState extends State<_ExamFormView> {
             '${draft.subject.name} component totals must equal '
             '${_marksText(total)}. Current total: '
             '${_marksText(componentTotal)}.',
-          );
-          return;
-        }
-
-        if ((componentPassing - passing).abs() > 0.001) {
-          _showMessage(
-            '${draft.subject.name} component passing marks must equal '
-            '${_marksText(passing)}. Current total: '
-            '${_marksText(componentPassing)}.',
           );
           return;
         }
@@ -425,12 +427,16 @@ class _ExamFormViewState extends State<_ExamFormView> {
                 draft.componentTotalControllers[component.id]!.text.trim(),
               ),
           },
-          componentPassingMarks: {
-            for (final component in draft.components)
-              component.id: double.parse(
-                draft.componentPassingControllers[component.id]!.text.trim(),
-              ),
-          },
+          componentPassingMarks:
+              draft.componentPassingMode == _ComponentPassingMode.componentWise
+              ? {
+                  for (final component in draft.components)
+                    component.id: double.parse(
+                      draft.componentPassingControllers[component.id]!.text
+                          .trim(),
+                    ),
+                }
+              : const {},
           isActive: true,
           displayOrder: index,
           createdAt: old?.createdAt ?? now,
@@ -821,6 +827,9 @@ class _ExamFormViewState extends State<_ExamFormView> {
         components: _componentsFor(subject),
         componentTotalMarks: old?.componentTotalMarks ?? const {},
         componentPassingMarks: old?.componentPassingMarks ?? const {},
+        componentPassingMode: old?.componentPassingMarks.isNotEmpty == true
+            ? _ComponentPassingMode.componentWise
+            : _ComponentPassingMode.combined,
       );
       _drafts[key] = draft;
     }
@@ -905,7 +914,45 @@ class _ExamFormViewState extends State<_ExamFormView> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'Passing Method',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  RadioGroup<_ComponentPassingMode>(
+                    groupValue: draft.componentPassingMode,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => draft!.componentPassingMode = value);
+                    },
+                    child: Column(
+                      children: [
+                        RadioListTile<_ComponentPassingMode>(
+                          value: _ComponentPassingMode.combined,
+                          title: const Text('Combined Subject Passing'),
+                          subtitle: Text(
+                            'All component marks are added and compared with '
+                            '${subject.name} passing marks.',
+                          ),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        RadioListTile<_ComponentPassingMode>(
+                          value: _ComponentPassingMode.componentWise,
+                          title: const Text('Every Component Must Pass'),
+                          subtitle: const Text(
+                            'Separate passing marks are required for every '
+                            'component.',
+                          ),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 20),
                   for (final component in components)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -929,20 +976,23 @@ class _ExamFormViewState extends State<_ExamFormView> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 120,
-                            child: TextFormField(
-                              controller: draft
-                                  .componentPassingControllers[component.id],
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Passing',
-                                border: OutlineInputBorder(),
-                                isDense: true,
+                          if (draft.componentPassingMode ==
+                              _ComponentPassingMode.componentWise) ...[
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 120,
+                              child: TextFormField(
+                                controller: draft
+                                    .componentPassingControllers[component.id],
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Passing',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -970,6 +1020,7 @@ class _SubjectDraft {
     required this.components,
     required Map<String, double> componentTotalMarks,
     required Map<String, double> componentPassingMarks,
+    required this.componentPassingMode,
     this.existing,
   }) : totalController = TextEditingController(text: _marksText(totalMarks)),
        passingController = TextEditingController(
@@ -987,10 +1038,9 @@ class _SubjectDraft {
        componentPassingControllers = {
          for (final component in components)
            component.id: TextEditingController(
-             text: _marksText(
-               componentPassingMarks[component.id] ??
-                   passingMarks / components.length,
-             ),
+             text: componentPassingMarks.containsKey(component.id)
+                 ? _marksText(componentPassingMarks[component.id]!)
+                 : '',
            ),
        };
 
@@ -1003,6 +1053,7 @@ class _SubjectDraft {
   final TextEditingController passingController;
   final Map<String, TextEditingController> componentTotalControllers;
   final Map<String, TextEditingController> componentPassingControllers;
+  _ComponentPassingMode componentPassingMode;
   bool selected;
 
   void dispose() {

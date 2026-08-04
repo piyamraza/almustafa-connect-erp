@@ -271,7 +271,7 @@ class GenerateExamResults {
     required DateTime generatedAt,
     required String generatedBy,
   }) {
-    final subjectResults = <SubjectResultEntity>[];
+    final rawSubjectResults = <SubjectResultEntity>[];
 
     for (final setup in setups) {
       final mark =
@@ -301,7 +301,7 @@ class GenerateExamResults {
         );
       }
 
-      subjectResults.add(
+      rawSubjectResults.add(
         SubjectResultEntity(
           subjectId: setup.subjectId,
           subjectName: setup.subjectName,
@@ -313,6 +313,11 @@ class GenerateExamResults {
         ),
       );
     }
+
+    final subjectResults = _applyComponentPassingRules(
+      setups: setups,
+      results: rawSubjectResults,
+    );
 
     final grandTotal = subjectResults.fold<double>(
       0,
@@ -397,6 +402,81 @@ class GenerateExamResults {
       unlockReason: existingResult?.unlockReason ?? '',
       principalRemarks: existingResult?.principalRemarks ?? '',
     );
+  }
+
+  List<SubjectResultEntity> _applyComponentPassingRules({
+    required List<ExamSubjectSetupEntity> setups,
+    required List<SubjectResultEntity> results,
+  }) {
+    final setupBySubjectId = {
+      for (final setup in setups) setup.subjectId: setup,
+    };
+
+    final groupedSubjectIds = <String, List<String>>{};
+
+    for (final setup in setups) {
+      final parentId = SubjectComponentExamService.parentId(setup.subjectId);
+      if (parentId == null) continue;
+      (groupedSubjectIds[parentId] ??= []).add(setup.subjectId);
+    }
+
+    if (groupedSubjectIds.isEmpty) return results;
+
+    final passOverrides = <String, bool>{};
+
+    for (final entry in groupedSubjectIds.entries) {
+      final subjectIds = entry.value;
+      final componentSetups = subjectIds
+          .map((id) => setupBySubjectId[id])
+          .whereType<ExamSubjectSetupEntity>()
+          .toList(growable: false);
+      final componentResults = results
+          .where((result) => subjectIds.contains(result.subjectId))
+          .toList(growable: false);
+
+      if (componentSetups.isEmpty ||
+          componentResults.length != componentSetups.length) {
+        continue;
+      }
+
+      final componentWise = componentSetups.any(
+        (setup) => setup.componentPassingMarks.isNotEmpty,
+      );
+
+      if (componentWise) {
+        for (final result in componentResults) {
+          passOverrides[result.subjectId] = result.isPassed;
+        }
+        continue;
+      }
+
+      final parentPassingMarks = componentSetups.first.passingMarks;
+      final combinedObtained = componentResults.fold<double>(
+        0,
+        (sum, result) => sum + result.obtainedMarks,
+      );
+      final combinedPass = combinedObtained >= parentPassingMarks;
+
+      for (final result in componentResults) {
+        passOverrides[result.subjectId] = combinedPass;
+      }
+    }
+
+    return results
+        .map(
+          (result) => passOverrides.containsKey(result.subjectId)
+              ? SubjectResultEntity(
+                  subjectId: result.subjectId,
+                  subjectName: result.subjectName,
+                  totalMarks: result.totalMarks,
+                  obtainedMarks: result.obtainedMarks,
+                  isAbsent: result.isAbsent,
+                  isPassed: passOverrides[result.subjectId]!,
+                  remarks: result.remarks,
+                )
+              : result,
+        )
+        .toList(growable: false);
   }
 
   List<ExamResultEntity> _applyRanks(List<ExamResultEntity> results) {
