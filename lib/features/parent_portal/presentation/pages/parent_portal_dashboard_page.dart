@@ -10,11 +10,15 @@ import '../bloc/parent_portal_bloc.dart';
 import 'parent_account_form_page.dart';
 
 import 'parent_academic_dashboard_page.dart';
+import 'parent_attendance_page.dart';
+import 'parent_homework_page.dart';
+import 'parent_results_page.dart';
 
 import 'parent_communication_dashboard_page.dart';
 
 import 'parent_notification_center_page.dart';
-import 'parent_timeline_page.dart';
+import '../../../timeline/presentation/pages/timeline_page.dart';
+import '../../../timeline/presentation/widgets/recent_timeline_card.dart';
 
 class ParentPortalDashboardPage extends StatelessWidget {
   const ParentPortalDashboardPage({super.key});
@@ -312,9 +316,13 @@ class _ParentDashboardState extends State<_ParentDashboard> {
             ),
           ),
           const SizedBox(height: 18),
-          if (selectedStudent != null) _StudentHeader(student: selectedStudent),
-          const SizedBox(height: 18),
-          _PortalModulesGrid(parent: widget.parent, student: selectedStudent!),
+          if (selectedStudent case final student?) ...[
+            _StudentHeader(student: student),
+            const SizedBox(height: 18),
+            RecentTimelineCard(studentId: student.id),
+            const SizedBox(height: 18),
+            _PortalModulesGrid(parent: widget.parent, student: student),
+          ],
         ],
       ],
     );
@@ -424,13 +432,34 @@ class _PortalModulesGrid extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  if ([
-                    'Attendance',
-                    'Timetable',
-                    'Homework',
-                    'Date Sheet',
-                    'Results',
-                  ].contains(module.$1)) {
+                  if (module.$1 == 'Attendance') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ParentAttendancePage(student: student),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (module.$1 == 'Homework') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ParentHomeworkPage(student: student),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (module.$1 == 'Results') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ParentResultsPage(student: student),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (['Timetable', 'Date Sheet'].contains(module.$1)) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) =>
@@ -463,9 +492,9 @@ class _PortalModulesGrid extends StatelessWidget {
                   if (module.$1 == 'Timeline') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
-                        builder: (_) => ParentTimelinePage(
-                          parent: parent,
-                          student: student,
+                        builder: (_) => TimelinePage(
+                          studentId: student.id,
+                          title: '${student.fullName} Timeline',
                         ),
                       ),
                     );

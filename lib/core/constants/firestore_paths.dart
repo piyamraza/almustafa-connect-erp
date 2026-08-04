@@ -2,6 +2,7 @@ class FirestorePaths {
   FirestorePaths._();
 
   static const String auditLogs = 'audit_logs';
+  static const String timelineEvents = 'timeline_events';
 
   static const String storeItems = 'store_items';
   static const String storeSuppliers = 'store_suppliers';

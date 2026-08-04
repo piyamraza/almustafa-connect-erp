@@ -1,7 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../students/domain/entities/student_entity.dart';
+import '../../../students/domain/repositories/student_repository.dart';
 import '../../../students/domain/usecases/get_students_by_class_and_section.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/services/subject_component_exam_service.dart';
 import '../../domain/entities/exam_mark_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
@@ -24,6 +28,8 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
     required this._saveExamMarks,
     required this._deleteExamMark,
     required this.componentService,
+    required this.studentRepository,
+    required this.academicStructureRepository,
   }) : super(const ExamMarksInitial()) {
     on<LoadMarksEntry>(_onLoad);
     on<RefreshMarksEntry>(_onRefresh);
@@ -44,6 +50,8 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
   final SaveExamMarks _saveExamMarks;
   final DeleteExamMark _deleteExamMark;
   final SubjectComponentExamService componentService;
+  final StudentRepository studentRepository;
+  final AcademicStructureRepository academicStructureRepository;
 
   Future<void> _onLoad(
     LoadMarksEntry event,
@@ -332,20 +340,39 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
       sectionId: setup.sectionId,
       subjectId: setup.subjectId,
     );
-    final response = await Future.wait([
-      _getStudentsByClassAndSection(
-        classId: setup.classId,
-        sectionId: setup.sectionId,
+    final locations = _studentLocations(state, setup);
+    final response = await Future.wait<Object>([
+      Future.wait(
+        locations.map(
+          (location) => _getStudentsByClassAndSection(
+            classId: location.classId,
+            sectionId: location.sectionId,
+          ),
+        ),
       ),
       _getExamMarks(entryKey),
     ]);
-    final students = (response[0] as List<StudentEntity>)
-        .where((student) => student.isActive)
-        .toList(growable: false);
-    students.sort(_compareStudents);
+    final studentLists = response[0] as List<List<StudentEntity>>;
+    final studentsById = <String, StudentEntity>{};
+    for (final students in studentLists) {
+      for (final student in students.where((student) => student.isActive)) {
+        studentsById[student.id] = student;
+      }
+    }
+    if (studentsById.isEmpty) {
+      final fallbackStudents = await _loadStudentsByAcademicReferences(
+        setup,
+        locations,
+      );
+      for (final student in fallbackStudents) {
+        studentsById[student.id] = student;
+      }
+    }
+    final activeStudents = studentsById.values.toList(growable: false);
+    activeStudents.sort(_compareStudents);
     final marks = response[1] as List<ExamMarkEntity>;
     return state.copyWith(
-      students: students,
+      students: activeStudents,
       marks: marks,
       isLoading: false,
       isSaving: false,
@@ -353,6 +380,92 @@ class ExamMarksBloc extends Bloc<ExamMarksEvent, ExamMarksState> {
       clearMessages: successMessage == null,
     );
   }
+
+  Future<List<StudentEntity>> _loadStudentsByAcademicReferences(
+    ExamSubjectSetupEntity selectedSetup,
+    List<({String classId, String sectionId})> locations,
+  ) async {
+    final response = await Future.wait<Object>([
+      studentRepository.getStudents(),
+      academicStructureRepository.getClasses(),
+      academicStructureRepository.getSections(),
+    ]);
+    final students = response[0] as List<StudentEntity>;
+    final classes = response[1] as List<AcademicClassEntity>;
+    final sections = response[2] as List<SectionEntity>;
+
+    final classReferences = <String>{
+      _normalise(selectedSetup.className),
+      for (final location in locations) _normalise(location.classId),
+    };
+    for (final academicClass in classes) {
+      final id = _normalise(academicClass.id);
+      final name = _normalise(academicClass.name);
+      if (classReferences.contains(id) || classReferences.contains(name)) {
+        classReferences.addAll([id, name]);
+      }
+    }
+
+    final sectionReferences = <String>{
+      _normalise(selectedSetup.sectionName),
+      for (final location in locations) _normalise(location.sectionId),
+    };
+    for (final section in sections) {
+      final classId = _normalise(section.classId);
+      final id = _normalise(section.id);
+      final name = _normalise(section.name);
+      if (classReferences.contains(classId) &&
+          (sectionReferences.contains(id) ||
+              sectionReferences.contains(name))) {
+        sectionReferences.addAll([id, name]);
+      }
+    }
+
+    return students
+        .where(
+          (student) =>
+              student.isActive &&
+              classReferences.contains(_normalise(student.classId)) &&
+              sectionReferences.contains(_normalise(student.sectionId)),
+        )
+        .toList(growable: false);
+  }
+
+  List<({String classId, String sectionId})> _studentLocations(
+    ExamMarksLoaded state,
+    ExamSubjectSetupEntity selectedSetup,
+  ) {
+    final locations = <String, ({String classId, String sectionId})>{};
+
+    void add(String? classId, String? sectionId) {
+      if (classId == null || sectionId == null) return;
+      final cleanClassId = classId.trim();
+      final cleanSectionId = sectionId.trim();
+      if (cleanClassId.isEmpty || cleanSectionId.isEmpty) return;
+      locations['$cleanClassId|$cleanSectionId'] = (
+        classId: cleanClassId,
+        sectionId: cleanSectionId,
+      );
+    }
+
+    add(selectedSetup.classId, selectedSetup.sectionId);
+    add(state.selectedClassId, state.selectedSectionId);
+
+    final className = _normalise(selectedSetup.className);
+    final sectionName = _normalise(selectedSetup.sectionName);
+    for (final setup in state.subjectSetups) {
+      if (setup.isActive &&
+          _normalise(setup.className) == className &&
+          _normalise(setup.sectionName) == sectionName) {
+        add(setup.classId, setup.sectionId);
+      }
+    }
+
+    return locations.values.toList(growable: false);
+  }
+
+  String _normalise(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   String? _validateMarks(ExamMarksLoaded state, List<ExamMarkEntity> marks) {
     final setup = state.selectedSubjectSetup;

@@ -1,3 +1,9 @@
+import '../../features/parent_portal/parent_results_di.dart';
+import '../../features/parent_portal/parent_homework_di.dart';
+import '../../features/parent_portal/parent_attendance_di.dart';
+import '../../features/timeline/timeline_di.dart';
+import '../../features/parent_portal/data/services/parent_context_service_impl.dart';
+import '../../features/parent_portal/domain/services/parent_context_service.dart';
 import '../audit/data/datasources/audit_remote_datasource.dart';
 import '../audit/data/repositories/audit_repository_impl.dart';
 import '../audit/data/services/audit_service_impl.dart';
@@ -400,6 +406,10 @@ import '../../features/access_control/domain/services/access_control_service.dar
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
+  registerParentResultsDependencies(sl);
+  registerParentHomeworkDependencies(sl);
+  registerParentAttendanceDependencies(sl);
+  registerTimelineDependencies(sl);
   sl.registerLazySingleton<AuditRemoteDataSource>(
     () => AuditRemoteDataSource(),
   );
@@ -920,6 +930,12 @@ Future<void> setupServiceLocator() async {
     () => ParentPortalRepositoryImpl(
       sl<FirebaseFirestoreService>(),
       sl<StudentRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ParentContextService>(
+    () => ParentContextServiceImpl(
+      sl<FirebaseAuth>(),
+      sl<ParentPortalRepository>(),
     ),
   );
   sl.registerLazySingleton<NoticeReceiptRepository>(
@@ -1842,6 +1858,8 @@ Future<void> setupServiceLocator() async {
       saveExamMarks: sl<SaveExamMarks>(),
       deleteExamMark: sl<DeleteExamMark>(),
       componentService: sl<SubjectComponentExamService>(),
+      studentRepository: sl<StudentRepository>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 

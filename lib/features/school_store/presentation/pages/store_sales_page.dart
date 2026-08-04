@@ -177,6 +177,7 @@ class _StoreSalesView extends StatelessWidget {
     StoreSaleLoaded data,
   ) async {
     var student = data.students.first;
+    final studentController = TextEditingController(text: student.name);
     final availableItems = data.items
         .where((item) => item.currentStock > 0 && item.isActive)
         .toList();
@@ -199,24 +200,24 @@ class _StoreSalesView extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  DropdownButtonFormField<StoreStudentOptionEntity>(
-                    initialValue: student,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Student'),
-                    items: data.students
-                        .map(
-                          (value) => DropdownMenuItem(
-                            value: value,
-                            child: Text(
-                              value.displayName,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => student = value);
+                  TextField(
+                    controller: studentController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Student',
+                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    ),
+                    onTap: () async {
+                      final selected = await _selectStudent(
+                        dialogContext,
+                        data.students,
+                        selected: student,
+                      );
+                      if (selected != null) {
+                        setDialogState(() {
+                          student = selected;
+                          studentController.text = selected.name;
+                        });
                       }
                     },
                   ),
@@ -324,9 +325,91 @@ class _StoreSalesView extends StatelessWidget {
     }
 
     quantityController.dispose();
+    studentController.dispose();
     priceController.dispose();
     discountController.dispose();
     paidController.dispose();
+  }
+
+  static Future<StoreStudentOptionEntity?> _selectStudent(
+    BuildContext context,
+    List<StoreStudentOptionEntity> students, {
+    required StoreStudentOptionEntity selected,
+  }) {
+    final searchController = TextEditingController();
+    var query = '';
+    return showDialog<StoreStudentOptionEntity>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final normalizedQuery = query.trim().toLowerCase();
+          final filtered = students
+              .where((student) {
+                final searchable = [
+                  student.name,
+                  student.fatherName,
+                  student.className,
+                  student.rollNumber,
+                ].join(' ').toLowerCase();
+                return searchable.contains(normalizedQuery);
+              })
+              .toList(growable: false);
+
+          return AlertDialog(
+            title: const Text('Select Student'),
+            content: SizedBox(
+              width: 600,
+              height: 500,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Search by student name',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => setDialogState(() => query = value),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('No student found.'))
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final student = filtered[index];
+                              return ListTile(
+                                selected: student.id == selected.id,
+                                title: Text(student.name),
+                                subtitle: Text(
+                                  'Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}\n'
+                                  'Class: ${student.className.isEmpty ? '-' : student.className}    '
+                                  'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
+                                ),
+                                isThreeLine: true,
+                                onTap: () =>
+                                    Navigator.pop(dialogContext, student),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    ).whenComplete(searchController.dispose);
   }
 }
 

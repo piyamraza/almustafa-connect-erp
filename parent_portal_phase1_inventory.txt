@@ -1,0 +1,3455 @@
+ALMUSTA CONNECT ERP - Parent Portal Phase 1 Inventory
+Generated: 2026-08-04 16:25:06
+
+=== FILES ===
+lib\features\parent_portal\data\models\parent_account_model.dart
+lib\features\parent_portal\data\models\parent_notification_model.dart
+lib\features\parent_portal\data\repositories\parent_notification_repository_impl.dart
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart
+lib\features\parent_portal\data\services\parent_academic_service_impl.dart
+lib\features\parent_portal\data\services\parent_communication_service_impl.dart
+lib\features\parent_portal\data\services\parent_timeline_service_impl.dart
+lib\features\parent_portal\domain\entities\parent_academic_dashboard_entity.dart
+lib\features\parent_portal\domain\entities\parent_academic_item_entity.dart
+lib\features\parent_portal\domain\entities\parent_account_entity.dart
+lib\features\parent_portal\domain\entities\parent_communication_dashboard_entity.dart
+lib\features\parent_portal\domain\entities\parent_notification_entity.dart
+lib\features\parent_portal\domain\entities\parent_student_link_entity.dart
+lib\features\parent_portal\domain\entities\parent_timeline_item_entity.dart
+lib\features\parent_portal\domain\repositories\parent_notification_repository.dart
+lib\features\parent_portal\domain\repositories\parent_portal_repository.dart
+lib\features\parent_portal\domain\services\parent_academic_service.dart
+lib\features\parent_portal\domain\services\parent_communication_service.dart
+lib\features\parent_portal\domain\services\parent_timeline_service.dart
+lib\features\parent_portal\presentation\bloc\parent_academic_bloc.dart
+lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart
+lib\features\parent_portal\presentation\bloc\parent_notification_bloc.dart
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart
+lib\features\parent_portal\presentation\pages\parent_academic_dashboard_page.dart
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart
+lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart
+lib\features\parent_portal\presentation\pages\parent_notification_center_page.dart
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart
+lib\features\parent_portal\presentation\pages\parent_timeline_page.dart
+
+=== MATCHES ===
+lib\core\audit\data\datasources\audit_remote_datasource.dart:23
+String? userId,
+
+lib\core\audit\data\datasources\audit_remote_datasource.dart:37
+if (userId != null && item.userId != userId) return false;
+
+lib\core\audit\data\models\audit_log_model.dart:11
+required super.userId,
+
+lib\core\audit\data\models\audit_log_model.dart:34
+userId: value.userId,
+
+lib\core\audit\data\models\audit_log_model.dart:60
+userId: map['userId'] as String? ?? '',
+
+lib\core\audit\data\models\audit_log_model.dart:86
+'userId': userId,
+
+lib\core\audit\data\repositories\audit_repository_impl.dart:22
+String? userId,
+
+lib\core\audit\data\repositories\audit_repository_impl.dart:29
+userId: userId,
+
+lib\core\audit\data\services\audit_service_impl.dart:11
+class AuditServiceImpl implements AuditService {
+
+lib\core\audit\data\services\audit_service_impl.dart:12
+AuditServiceImpl(this._repository, this._accessControlService)
+
+lib\core\audit\data\services\audit_service_impl.dart:32
+userId: _accessControlService.currentUserId ?? '',
+
+lib\core\audit\data\services\audit_service_impl.dart:74
+userId: context.userId,
+
+lib\core\audit\domain\entities\audit_context.dart:5
+required this.userId,
+
+lib\core\audit\domain\entities\audit_context.dart:17
+final String userId;
+
+lib\core\audit\domain\entities\audit_context.dart:33
+userId,
+
+lib\core\audit\domain\entities\audit_log_entity.dart:26
+required this.userId,
+
+lib\core\audit\domain\entities\audit_log_entity.dart:47
+final String userId;
+
+lib\core\audit\domain\entities\audit_log_entity.dart:68
+userId,
+
+lib\core\audit\domain\repositories\audit_repository.dart:10
+String? userId,
+
+lib\core\audit\domain\services\audit_service.dart:4
+abstract class AuditService {
+
+lib\core\constants\firestore_paths.dart:81
+static const String parentAccounts = 'parent_accounts';
+
+lib\core\di\service_locator.dart:411
+sl.registerLazySingleton<AuditService>(
+
+lib\core\di\service_locator.dart:412
+() => AuditServiceImpl(sl<AuditRepository>(), sl<AccessControlService>()),
+
+lib\core\di\service_locator.dart:419
+sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
+
+lib\core\di\service_locator.dart:420
+sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+
+lib\core\di\service_locator.dart:437
+authService: sl<FirebaseAuthService>(),
+
+lib\core\di\service_locator.dart:592
+sl<FirebaseAuth>(),
+
+lib\core\di\service_locator.dart:617
+sl<FirebaseAuth>(),
+
+lib\core\di\service_locator.dart:749
+auditService: sl<AuditService>(),
+
+lib\core\di\service_locator.dart:756
+auditService: sl<AuditService>(),
+
+lib\core\di\service_locator.dart:889
+sl<FirebaseAuth>(),
+
+lib\core\di\service_locator.dart:1335
+sl.registerLazySingleton<GetCurrentUserUseCase>(
+
+lib\core\di\service_locator.dart:1336
+() => GetCurrentUserUseCase(sl<AuthenticationRepository>()),
+
+lib\core\di\service_locator.dart:1692
+getCurrentUserUseCase: sl<GetCurrentUserUseCase>(),
+
+lib\core\services\firebase_auth_service.dart:3
+class FirebaseAuthService {
+
+lib\core\services\firebase_auth_service.dart:4
+FirebaseAuthService({
+
+lib\core\services\firebase_auth_service.dart:5
+FirebaseAuth? firebaseAuth,
+
+lib\core\services\firebase_auth_service.dart:6
+}) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+
+lib\core\services\firebase_auth_service.dart:8
+final FirebaseAuth _firebaseAuth;
+
+lib\core\services\firebase_auth_service.dart:10
+FirebaseAuth get instance => _firebaseAuth;
+
+lib\core\services\firebase_auth_service.dart:12
+User? get currentUser => _firebaseAuth.currentUser;
+
+lib\core\services\firebase_auth_service.dart:15
+return _firebaseAuth.authStateChanges();
+
+lib\core\services\firebase_auth_service.dart:19
+await _firebaseAuth.signOut();
+
+lib\features\academic_calendar\data\models\academic_calendar_event_model.dart:20
+required super.isActive,
+
+lib\features\academic_calendar\data\models\academic_calendar_event_model.dart:42
+isActive: entity.isActive,
+
+lib\features\academic_calendar\data\models\academic_calendar_event_model.dart:71
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\academic_calendar\data\models\academic_calendar_event_model.dart:90
+'isActive': isActive,
+
+lib\features\academic_calendar\data\models\academic_year_config_model.dart:23
+required super.isActive,
+
+lib\features\academic_calendar\data\models\academic_year_config_model.dart:46
+isActive: entity.isActive,
+
+lib\features\academic_calendar\data\models\academic_year_config_model.dart:81
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\academic_calendar\data\models\academic_year_config_model.dart:121
+'isActive': isActive,
+
+lib\features\academic_calendar\data\repositories\academic_calendar_repository_impl.dart:17
+bool? isActive,
+
+lib\features\academic_calendar\data\repositories\academic_calendar_repository_impl.dart:34
+(isActive == null || item.isActive == isActive) &&
+
+lib\features\academic_calendar\data\services\academic_calendar_policy_service_impl.dart:265
+isActive: true,
+
+lib\features\academic_calendar\data\services\academic_calendar_policy_service_impl.dart:297
+isActive: true,
+
+lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart:36
+required this.isActive,
+
+lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart:54
+final bool isActive;
+
+lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart:78
+bool? isActive,
+
+lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart:95
+isActive: isActive ?? this.isActive,
+
+lib\features\academic_calendar\domain\entities\academic_calendar_event_entity.dart:116
+isActive,
+
+lib\features\academic_calendar\domain\entities\academic_year_config_entity.dart:38
+required this.isActive,
+
+lib\features\academic_calendar\domain\entities\academic_year_config_entity.dart:62
+final bool isActive;
+
+lib\features\academic_calendar\domain\entities\academic_year_config_entity.dart:151
+isActive,
+
+lib\features\academic_calendar\domain\repositories\academic_calendar_repository.dart:8
+bool? isActive,
+
+lib\features\academic_calendar\domain\usecases\save_academic_year_wizard.dart:34
+isActive: true,
+
+lib\features\academic_calendar\domain\usecases\save_academic_year_wizard.dart:57
+isActive: true,
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:65
+_classes = values.where((item) => item.isActive).toList()
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:586
+late bool _isActive;
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:601
+_isActive = existing?.isActive ?? true;
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:815
+value: _isActive,
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:816
+onChanged: (value) => setState(() => _isActive = value),
+
+lib\features\academic_calendar\presentation\pages\academic_calendar_page.dart:866
+isActive: _isActive,
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:63
+bool _isActive = true;
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:112
+_isActive = config.isActive;
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:174
+isActive: _isActive,
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:201
+isActive: _isActive,
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:276
+value: _isActive,
+
+lib\features\academic_calendar\presentation\pages\academic_year_wizard_page.dart:280
+setState(() => _isActive = value),
+
+lib\features\academic_structure\data\datasources\academic_structure_remote_datasource.dart:296
+isActive: value.isActive,
+
+lib\features\academic_structure\data\datasources\academic_structure_remote_datasource.dart:347
+isActive: component.isActive,
+
+lib\features\academic_structure\data\models\academic_class_model.dart:3
+class AcademicClassModel extends AcademicClassEntity { const AcademicClassModel({required super.id,required super.name,required super.isActive,required super.createdAt,required super.updatedAt}); factory AcademicClassModel.fromEntity(AcademicClassEntity value)=>AcademicClassModel(id:value.id,name:value.name,isActive:value.isActive,createdAt:value.createdAt,updatedAt:value.updatedAt); factory AcademicClassModel.fromMap(Map<String,dynamic> map){final now=DateTime.now();return AcademicClassModel(id:map['id']??'',name:map['name']??'',isActive:map['isActive']??true,createdAt:_date(map['createdAt'])??now,updatedAt:_date(map['updatedAt'])??now);}Map<String,dynamic> toMap()=>{'id':id,'name':name,'nameKey':name.trim().toLowerCase(),'isActive':isActive,'createdAt':createdAt.toIso8601String(),'updatedAt':updatedAt.toIso8601String()};static DateTime? _date(dynamic value)=>value is Timestamp?value.toDate():value is String?DateTime.tryParse(value):value is DateTime?value:null;}
+
+lib\features\academic_structure\data\models\academic_subject_model.dart:11
+required super.isActive,
+
+lib\features\academic_structure\data\models\academic_subject_model.dart:27
+isActive: value.isActive,
+
+lib\features\academic_structure\data\models\academic_subject_model.dart:45
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\academic_structure\data\models\academic_subject_model.dart:64
+'isActive': isActive,
+
+lib\features\academic_structure\data\models\section_model.dart:10
+required super.isActive,
+
+lib\features\academic_structure\data\models\section_model.dart:21
+isActive: value.isActive,
+
+lib\features\academic_structure\data\models\section_model.dart:32
+isActive: map['isActive'] ?? true,
+
+lib\features\academic_structure\data\models\section_model.dart:44
+'isActive': isActive,
+
+lib\features\academic_structure\data\models\subject_component_model.dart:5
+const SubjectComponentModel({required super.id,required super.parentSubjectId,required super.parentSubjectName,required super.componentName,required super.displayOrder,required super.isActive,required super.createdAt,required super.updatedAt});
+
+lib\features\academic_structure\data\models\subject_component_model.dart:6
+factory SubjectComponentModel.fromEntity(SubjectComponentEntity value)=>SubjectComponentModel(id:value.id,parentSubjectId:value.parentSubjectId,parentSubjectName:value.parentSubjectName,componentName:value.componentName,displayOrder:value.displayOrder,isActive:value.isActive,createdAt:value.createdAt,updatedAt:value.updatedAt);
+
+lib\features\academic_structure\data\models\subject_component_model.dart:7
+factory SubjectComponentModel.fromFirestore(DocumentSnapshot<Map<String,dynamic>> document){final map=document.data()??const <String,dynamic>{};return SubjectComponentModel(id:document.id,parentSubjectId:map['parentSubjectId'] as String? ?? '',parentSubjectName:map['parentSubjectName'] as String? ?? '',componentName:map['componentName'] as String? ?? '',displayOrder:(map['displayOrder'] as num?)?.toInt()??0,isActive:map['isActive'] as bool? ?? true,createdAt:_date(map['createdAt']),updatedAt:_date(map['updatedAt']));}
+
+lib\features\academic_structure\data\models\subject_component_model.dart:8
+Map<String,dynamic> toFirestore()=>{'parentSubjectId':parentSubjectId,'parentSubjectName':parentSubjectName,'componentName':componentName,'displayOrder':displayOrder,'isActive':isActive,'createdAt':Timestamp.fromDate(createdAt),'updatedAt':Timestamp.fromDate(updatedAt)};
+
+lib\features\academic_structure\data\models\subject_component_model.dart:10
+SubjectComponentModel copyWith({String? id,String? parentSubjectId,String? parentSubjectName,String? componentName,int? displayOrder,bool? isActive,DateTime? createdAt,DateTime? updatedAt})=>SubjectComponentModel(id:id??this.id,parentSubjectId:parentSubjectId??this.parentSubjectId,parentSubjectName:parentSubjectName??this.parentSubjectName,componentName:componentName??this.componentName,displayOrder:displayOrder??this.displayOrder,isActive:isActive??this.isActive,createdAt:createdAt??this.createdAt,updatedAt:updatedAt??this.updatedAt);
+
+lib\features\academic_structure\data\repositories\subject_component_repository_impl.dart:11
+@override Future<List<SubjectComponentEntity>> getComponentsForSubject(String parentSubjectId,{bool activeOnly=false})async{final values=(await getComponents()).where((item)=>item.parentSubjectId==parentSubjectId&&(!activeOnly||item.isActive)).toList()..sort(_compare);return List.unmodifiable(values);}
+
+lib\features\academic_structure\domain\entities\academic_class_entity.dart:2
+class AcademicClassEntity extends Equatable { const AcademicClassEntity({required this.id,required this.name,required this.isActive,required this.createdAt,required this.updatedAt}); final String id,name; final bool isActive; final DateTime createdAt,updatedAt; AcademicClassEntity copyWith({String? id,String? name,bool? isActive,DateTime? createdAt,DateTime? updatedAt})=>AcademicClassEntity(id:id??this.id,name:name??this.name,isActive:isActive??this.isActive,createdAt:createdAt??this.createdAt,updatedAt:updatedAt??this.updatedAt); @override List<Object?> get props=>[id,name,isActive,createdAt,updatedAt]; }
+
+lib\features\academic_structure\domain\entities\academic_subject_entity.dart:9
+required this.isActive,
+
+lib\features\academic_structure\domain\entities\academic_subject_entity.dart:24
+final bool isActive;
+
+lib\features\academic_structure\domain\entities\academic_subject_entity.dart:41
+bool? isActive,
+
+lib\features\academic_structure\domain\entities\academic_subject_entity.dart:55
+isActive: isActive ?? this.isActive,
+
+lib\features\academic_structure\domain\entities\academic_subject_entity.dart:72
+isActive,
+
+lib\features\academic_structure\domain\entities\section_entity.dart:2
+class SectionEntity extends Equatable { const SectionEntity({required this.id,required this.classId,required this.name,required this.isActive,required this.createdAt,required this.updatedAt}); final String id,classId,name; final bool isActive; final DateTime createdAt,updatedAt; SectionEntity copyWith({String? id,String? classId,String? name,bool? isActive,DateTime? createdAt,DateTime? updatedAt})=>SectionEntity(id:id??this.id,classId:classId??this.classId,name:name??this.name,isActive:isActive??this.isActive,createdAt:createdAt??this.createdAt,updatedAt:updatedAt??this.updatedAt); @override List<Object?> get props=>[id,classId,name,isActive,createdAt,updatedAt]; }
+
+lib\features\academic_structure\domain\entities\subject_component_entity.dart:4
+const SubjectComponentEntity({required this.id,required this.parentSubjectId,required this.parentSubjectName,required this.componentName,required this.displayOrder,required this.isActive,required this.createdAt,required this.updatedAt});
+
+lib\features\academic_structure\domain\entities\subject_component_entity.dart:7
+final bool isActive;
+
+lib\features\academic_structure\domain\entities\subject_component_entity.dart:9
+SubjectComponentEntity copyWith({String? id,String? parentSubjectId,String? parentSubjectName,String? componentName,int? displayOrder,bool? isActive,DateTime? createdAt,DateTime? updatedAt})=>SubjectComponentEntity(id:id??this.id,parentSubjectId:parentSubjectId??this.parentSubjectId,parentSubjectName:parentSubjectName??this.parentSubjectName,componentName:componentName??this.componentName,displayOrder:displayOrder??this.displayOrder,isActive:isActive??this.isActive,createdAt:createdAt??this.createdAt,updatedAt:updatedAt??this.updatedAt);
+
+lib\features\academic_structure\domain\entities\subject_component_entity.dart:10
+@override List<Object> get props=>[id,parentSubjectId,parentSubjectName,componentName,displayOrder,isActive,createdAt,updatedAt];
+
+lib\features\academic_structure\domain\services\subject_component_exam_service.dart:10
+Future<List<ExamSubjectSetupEntity>> expandSetups(List<ExamSubjectSetupEntity> setups)async{final subjects=await _academicRepository.getSubjects();final components=await _componentRepository.getComponents();final subjectsById={for(final item in subjects)item.id:item};final output=<ExamSubjectSetupEntity>[];for(final setup in setups){final parent=subjectsById[setup.subjectId];final active=components.where((item)=>item.parentSubjectId==setup.subjectId&&item.isActive).toList()..sort((a,b)=>a.displayOrder.compareTo(b.displayOrder));if(parent==null||!parent.useComponentsInExamination||active.isEmpty){output.add(setup);continue;}final total=setup.totalMarks/active.length;final passing=setup.passingMarks/active.length;for(final component in active){final encodedParent=base64Url.encode(utf8.encode(parent.name)).replaceAll('=','');final reportFlag=parent.useComponentsInReportCard?'1':'0';output.add(setup.copyWith(id:'${setup.id}::${component.id}',subjectId:'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}',subjectName:component.componentName,totalMarks:total,passingMarks:passing));}}return List.unmodifiable(output);}
+
+lib\features\academic_structure\presentation\bloc\subject_component_bloc.dart:10
+class SaveSubjectComponent extends SubjectComponentEvent{const SaveSubjectComponent({this.existing,required this.name,required this.isActive});final SubjectComponentEntity? existing;final String name;final bool isActive;@override List<Object?> get props=>[existing,name,isActive];}
+
+lib\features\academic_structure\presentation\bloc\subject_component_bloc.dart:18
+class SubjectComponentBloc extends Bloc<SubjectComponentEvent,SubjectComponentState>{SubjectComponentBloc(this._components,this._academic):super(const SubjectComponentLoading()){on<LoadSubjectComponents>(_load);on<SaveSubjectComponent>(_save);on<DeleteSubjectComponent>(_delete);on<ReorderSubjectComponents>(_reorder);on<SaveSubjectComponentSettings>(_settings);}final SubjectComponentRepository _components;final AcademicStructureRepository _academic;Future<void> _load(LoadSubjectComponents event,Emitter<SubjectComponentState> emit)async{emit(const SubjectComponentLoading());try{emit(SubjectComponentLoaded(subject:event.subject,components:await _components.getComponentsForSubject(event.subject.id)));}catch(error){emit(SubjectComponentFailure(_message(error)));}}Future<void> _save(SaveSubjectComponent event,Emitter<SubjectComponentState> emit)async{final current=state;if(current is! SubjectComponentLoaded)return;final name=event.name.trim();if(name.isEmpty){emit(current.copyWith(message:'Component name is required.'));return;}if(current.components.any((item)=>item.id!=event.existing?.id&&item.componentName.toLowerCase()==name.toLowerCase())){emit(current.copyWith(message:'A component with this name already exists.'));return;}emit(current.copyWith(busy:true));try{final now=DateTime.now();await _components.saveComponent(SubjectComponentEntity(id:event.existing?.id??_components.generateId(),parentSubjectId:current.subject.id,parentSubjectName:current.subject.name,componentName:name,displayOrder:event.existing?.displayOrder??current.components.length,isActive:event.isActive,createdAt:event.existing?.createdAt??now,updatedAt:now));await _reload(current.subject,emit,'Component saved.');}catch(error){emit(current.copyWith(busy:false,message:_message(error)));}}Future<void> _delete(DeleteSubjectComponent event,Emitter<SubjectComponentState> emit)async{final current=state;if(current is! SubjectComponentLoaded)return;emit(current.copyWith(busy:true));try{await _components.deleteComponent(event.component.id);await _reload(current.subject,emit,'Component deleted.');}catch(error){emit(current.copyWith(busy:false,message:_message(error)));}}Future<void> _reorder(ReorderSubjectComponents event,Emitter<SubjectComponentState> emit)async{final current=state;if(current is! SubjectComponentLoaded)return;final items=[...current.components];var target=event.newIndex;if(target>event.oldIndex)target--;final moved=items.removeAt(event.oldIndex);items.insert(target,moved);final now=DateTime.now();final ordered=[for(var i=0;i<items.length;i++)items[i].copyWith(displayOrder:i,updatedAt:now)];emit(current.copyWith(components:ordered,busy:true));try{await _components.saveOrder(ordered);emit(current.copyWith(components:ordered,busy:false,message:'Component order saved.'));}catch(error){emit(current.copyWith(busy:false,message:_message(error)));}}Future<void> _settings(SaveSubjectComponentSettings event,Emitter<SubjectComponentState> emit)async{final current=state;if(current is! SubjectComponentLoaded)return;emit(current.copyWith(busy:true));try{await _academic.saveSubject(event.subject);emit(current.copyWith(subject:event.subject,busy:false,message:'Subject settings saved.'));}catch(error){emit(current.copyWith(busy:false,message:_message(error)));}}Future<void> _reload(AcademicSubjectEntity subject,Emitter<SubjectComponentState> emit,String message)async=>emit(SubjectComponentLoaded(subject:subject,components:await _components.getComponentsForSubject(subject.id),message:message));String _message(Object error)=>error.toString().replaceFirst('StateError: ','');}
+
+lib\features\academic_structure\presentation\pages\class_section_management_page.dart:56
+isActive: existing?.isActive ?? true,
+
+lib\features\academic_structure\presentation\pages\class_section_management_page.dart:175
+final statusLabel = academicClass.isActive ? 'Active' : 'Inactive';
+
+lib\features\academic_structure\presentation\pages\class_section_management_page.dart:185
+color: academicClass.isActive
+
+lib\features\academic_structure\presentation\pages\class_section_management_page.dart:207
+backgroundColor: section.isActive
+
+lib\features\academic_structure\presentation\pages\class_section_management_page.dart:349
+isActive: existing?.isActive ?? true,
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:57
+.where((academicClass) => academicClass.isActive)
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:66
+section.isActive,
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:84
+var isActive = existing?.isActive ?? true;
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:105
+value: isActive,
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:106
+onChanged: (value) => setDialogState(() => isActive = value),
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:135
+isActive: isActive,
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:330
+section.isActive && section.classId == sourceClassId,
+
+lib\features\academic_structure\presentation\pages\class_subjects_page.dart:526
+subject.isActive
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:33
+var active = item?.isActive ?? true;
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:82
+isActive: result.$2,
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:255
+subtitle: Text(item.isActive ? 'Enabled' : 'Disabled'),
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:259
+tooltip: item.isActive ? 'Disable' : 'Enable',
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:268
+isActive: !item.isActive,
+
+lib\features\academic_structure\presentation\pages\subject_components_page.dart:272
+item.isActive
+
+lib\features\access_control\data\models\app_role_model.dart:13
+required super.isActive,
+
+lib\features\access_control\data\models\app_role_model.dart:25
+isActive: value.isActive,
+
+lib\features\access_control\data\models\app_role_model.dart:49
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\access_control\data\models\app_role_model.dart:62
+'isActive': isActive,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:8
+required super.userId,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:14
+required super.isActive,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:26
+userId: value.userId,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:32
+isActive: value.isActive,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:45
+userId: map['userId'] as String? ?? '',
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:51
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:63
+'userId': userId,
+
+lib\features\access_control\data\models\user_role_assignment_model.dart:69
+'isActive': isActive,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:78
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:90
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:120
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:142
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:159
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:178
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:198
+isActive: true,
+
+lib\features\access_control\data\repositories\app_role_repository_impl.dart:216
+isActive: true,
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:15
+bool? isActive,
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:35
+(isActive == null || item.isActive == isActive) &&
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:39
+item.userId.toLowerCase().contains(query)),
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:43
+if (a.userId == b.userId && a.isPrimary != b.isPrimary) {
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:54
+Future<List<UserRoleAssignmentEntity>> getAssignmentsByUserId(
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:55
+String userId,
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:60
+assignments.where((item) => item.userId == userId.trim()).toList()
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:73
+Future<UserRoleAssignmentEntity?> getAssignmentByUserId(String userId) async {
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:74
+final assignments = await getAssignmentsByUserId(userId);
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:91
+final userId = assignment.userId.trim();
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:95
+if (userId.isEmpty) {
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:113
+final existing = await getAssignmentsByUserId(userId);
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:144
+userId: userId,
+
+lib\features\access_control\data\repositories\user_role_assignment_repository_impl.dart:152
+isActive: assignment.isActive,
+
+lib\features\access_control\data\services\access_control_migration_service.dart:33
+final userId = data['userId']?.toString().trim() ?? '';
+
+lib\features\access_control\data\services\access_control_migration_service.dart:35
+if (userId.isEmpty) {
+
+lib\features\access_control\data\services\access_control_migration_service.dart:40
+if (document.id == userId) {
+
+lib\features\access_control\data\services\access_control_migration_service.dart:46
+final canonical = collection.doc(userId);
+
+lib\features\access_control\data\services\access_control_migration_service.dart:86
+final userId = data['userId']?.toString().trim() ?? '';
+
+lib\features\access_control\data\services\access_control_migration_service.dart:89
+if (userId.isEmpty) {
+
+lib\features\access_control\data\services\access_control_migration_service.dart:90
+issues.add('Assignment ${document.id} has no Firebase userId.');
+
+lib\features\access_control\data\services\access_control_migration_service.dart:91
+} else if (document.id != userId) {
+
+lib\features\access_control\data\services\access_control_migration_service.dart:93
+'Assignment ${document.id} is not stored as user_roles/$userId.',
+
+lib\features\access_control\data\services\access_control_migration_service.dart:111
+return data['roleId'] == 'super_admin' && data['isActive'] == true;
+
+lib\features\access_control\data\services\access_control_service_impl.dart:17
+final FirebaseAuth _auth;
+
+lib\features\access_control\data\services\access_control_service_impl.dart:44
+String? get currentUserId => _auth.currentUser?.uid;
+
+lib\features\access_control\data\services\access_control_service_impl.dart:168
+final allAssignments = await _assignmentRepository.getAssignmentsByUserId(
+
+lib\features\access_control\data\services\access_control_service_impl.dart:207
+.where((item) => item.isActive && assignedRoleIds.contains(item.id))
+
+lib\features\access_control\domain\entities\app_role_entity.dart:12
+required this.isActive,
+
+lib\features\access_control\domain\entities\app_role_entity.dart:22
+final bool isActive;
+
+lib\features\access_control\domain\entities\app_role_entity.dart:32
+bool? isActive,
+
+lib\features\access_control\domain\entities\app_role_entity.dart:41
+isActive: isActive ?? this.isActive,
+
+lib\features\access_control\domain\entities\app_role_entity.dart:54
+isActive,
+
+lib\features\access_control\domain\entities\user_account_entity.dart:16
+required this.isActive,
+
+lib\features\access_control\domain\entities\user_account_entity.dart:32
+final bool isActive;
+
+lib\features\access_control\domain\entities\user_account_entity.dart:49
+isActive: map['isActive'] != false,
+
+lib\features\access_control\domain\entities\user_account_entity.dart:68
+isActive,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:6
+required this.userId,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:12
+required this.isActive,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:22
+final String userId;
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:29
+final bool isActive;
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:40
+if (!isActive) {
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:71
+bool? isActive,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:82
+userId: userId,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:88
+isActive: isActive ?? this.isActive,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:101
+userId,
+
+lib\features\access_control\domain\entities\user_role_assignment_entity.dart:107
+isActive,
+
+lib\features\access_control\domain\repositories\user_role_assignment_repository.dart:6
+bool? isActive,
+
+lib\features\access_control\domain\repositories\user_role_assignment_repository.dart:11
+Future<List<UserRoleAssignmentEntity>> getAssignmentsByUserId(String userId);
+
+lib\features\access_control\domain\repositories\user_role_assignment_repository.dart:14
+Future<UserRoleAssignmentEntity?> getAssignmentByUserId(String userId);
+
+lib\features\access_control\domain\services\access_control_service.dart:13
+String? get currentUserId;
+
+lib\features\access_control\presentation\bloc\user_role_assignment_bloc.dart:11
+const LoadUserRoleAssignments({this.roleId, this.isActive, this.searchText});
+
+lib\features\access_control\presentation\bloc\user_role_assignment_bloc.dart:14
+final bool? isActive;
+
+lib\features\access_control\presentation\bloc\user_role_assignment_bloc.dart:118
+isActive: _lastLoad.isActive,
+
+lib\features\access_control\presentation\pages\app_role_form_page.dart:23
+bool _isActive = true;
+
+lib\features\access_control\presentation\pages\app_role_form_page.dart:33
+_isActive = widget.existing?.isActive ?? true;
+
+lib\features\access_control\presentation\pages\app_role_form_page.dart:61
+isActive: _isActive,
+
+lib\features\access_control\presentation\pages\app_role_form_page.dart:113
+value: _isActive,
+
+lib\features\access_control\presentation\pages\app_role_form_page.dart:114
+onChanged: (value) => setState(() => _isActive = value),
+
+lib\features\access_control\presentation\pages\roles_permissions_page.dart:129
+'Active: ${roles.where((role) => role.isActive).length}',
+
+lib\features\access_control\presentation\pages\roles_permissions_page.dart:187
+role.isActive ? 'ACTIVE' : 'INACTIVE',
+
+lib\features\access_control\presentation\pages\user_accounts_management_page.dart:51
+if (!roles.any((role) => role.isActive)) {
+
+lib\features\access_control\presentation\pages\user_accounts_management_page.dart:60
+return roles.where((role) => role.isActive).toList(growable: false);
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:24
+late final TextEditingController _userId;
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:32
+bool _isActive = true;
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:46
+_userId = TextEditingController(text: existing?.userId ?? '');
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:52
+_isActive = existing?.isActive ?? true;
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:63
+_userId.dispose();
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:81
+(role) => role.isActive || role.id == widget.existing?.roleId,
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:143
+userId: _userId.text.trim(),
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:151
+isActive: _isActive,
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:259
+controller: _userId,
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:351
+value: _isActive,
+
+lib\features\access_control\presentation\pages\user_role_assignment_form_page.dart:353
+setState(() => _isActive = value);
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:37
+bool? _isActive;
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:62
+isActive: _isActive,
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:161
+initialValue: _isActive,
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:181
+setState(() => _isActive = value),
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:201
+'Active: ${assignments.where((item) => item.isActive).length}',
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:206
+'Inactive: ${assignments.where((item) => !item.isActive).length}',
+
+lib\features\access_control\presentation\pages\user_role_assignments_page.dart:241
+assignment.isActive ? 'ACTIVE' : 'INACTIVE',
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:21
+required bool isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:35
+required bool isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:92
+isActive: category.isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:106
+required bool isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:112
+'isActive': isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:199
+required bool isActive,
+
+lib\features\accounts\data\datasources\accounts_remote_datasource.dart:205
+'isActive': isActive,
+
+lib\features\accounts\data\models\accounts_models.dart:26
+required super.isActive,
+
+lib\features\accounts\data\models\accounts_models.dart:37
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\accounts\data\models\accounts_models.dart:47
+'isActive': isActive,
+
+lib\features\accounts\data\models\accounts_payroll_models.dart:34
+required super.isActive,
+
+lib\features\accounts\data\models\accounts_payroll_models.dart:53
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\accounts\data\models\accounts_payroll_models.dart:68
+isActive: entity.isActive,
+
+lib\features\accounts\data\models\accounts_payroll_models.dart:82
+'isActive': isActive,
+
+lib\features\accounts\data\repositories\accounts_repository_impl.dart:27
+required bool isActive,
+
+lib\features\accounts\data\repositories\accounts_repository_impl.dart:30
+isActive: isActive,
+
+lib\features\accounts\data\repositories\accounts_repository_impl.dart:62
+required bool isActive,
+
+lib\features\accounts\data\repositories\accounts_repository_impl.dart:64
+_source.setPayrollProfileActive(profileId: profileId, isActive: isActive);
+
+lib\features\accounts\data\services\accounts_report_service_impl.dart:168
+.where((entry) => entry.isActive)
+
+lib\features\accounts\domain\entities\expense_category_entity.dart:8
+required this.isActive,
+
+lib\features\accounts\domain\entities\expense_category_entity.dart:17
+final bool isActive;
+
+lib\features\accounts\domain\entities\expense_category_entity.dart:27
+isActive,
+
+lib\features\accounts\domain\entities\income_entry_entity.dart:60
+bool get isActive => status == IncomeEntryStatus.active;
+
+lib\features\accounts\domain\entities\payroll_profile_entity.dart:15
+required this.isActive,
+
+lib\features\accounts\domain\entities\payroll_profile_entity.dart:28
+final bool isActive;
+
+lib\features\accounts\domain\entities\payroll_profile_entity.dart:42
+isActive,
+
+lib\features\accounts\domain\repositories\accounts_repository.dart:14
+required bool isActive,
+
+lib\features\accounts\domain\repositories\accounts_repository.dart:29
+required bool isActive,
+
+lib\features\accounts\domain\usecases\manage_cashbook.dart:45
+for (final income in incomes.where((entry) => entry.isActive)) {
+
+lib\features\accounts\domain\usecases\manage_expenses.dart:53
+Future<void> call({required String categoryId, required bool isActive}) {
+
+lib\features\accounts\domain\usecases\manage_expenses.dart:59
+isActive: isActive,
+
+lib\features\accounts\domain\usecases\manage_income.dart:88
+if (existing != null && existing.isActive) {
+
+lib\features\accounts\domain\usecases\manage_payroll.dart:53
+Future<void> call({required String profileId, required bool isActive}) =>
+
+lib\features\accounts\domain\usecases\manage_payroll.dart:56
+isActive: isActive,
+
+lib\features\accounts\domain\usecases\manage_payroll.dart:75
+for (final profile in profiles.where((item) => item.isActive)) {
+
+lib\features\accounts\domain\usecases\manage_profit_loss.dart:47
+entry.isActive &&
+
+lib\features\accounts\presentation\bloc\expense_bloc.dart:72
+isActive: event.isActive,
+
+lib\features\accounts\presentation\bloc\expense_event.dart:29
+required this.isActive,
+
+lib\features\accounts\presentation\bloc\expense_event.dart:33
+final bool isActive;
+
+lib\features\accounts\presentation\bloc\expense_event.dart:36
+List<Object?> get props => [categoryId, isActive];
+
+lib\features\accounts\presentation\bloc\expense_state.dart:37
+categories.where((item) => item.isActive).toList();
+
+lib\features\accounts\presentation\bloc\income_state.dart:34
+.where((entry) => entry.isActive)
+
+lib\features\accounts\presentation\pages\cashbook_page.dart:105
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\expenses_page.dart:237
+value: item.isActive,
+
+lib\features\accounts\presentation\pages\expenses_page.dart:244
+isActive: value,
+
+lib\features\accounts\presentation\pages\expenses_page.dart:286
+isActive: true,
+
+lib\features\accounts\presentation\pages\expenses_page.dart:435
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\expenses_page.dart:480
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\income_page.dart:95
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\income_page.dart:195
+decoration: entry.isActive
+
+lib\features\accounts\presentation\pages\income_page.dart:200
+if (entry.isActive &&
+
+lib\features\accounts\presentation\pages\income_page.dart:229
+(sum, entry) => sum + (entry.isActive ? entry.amount : 0),
+
+lib\features\accounts\presentation\pages\income_page.dart:266
+(sum, entry) => sum + (entry.isActive ? entry.amount : 0),
+
+lib\features\accounts\presentation\pages\income_page.dart:299
+decoration: entry.isActive
+
+lib\features\accounts\presentation\pages\income_page.dart:456
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\payroll_page.dart:94
+onPressed: data.profiles.where((p) => p.isActive).isEmpty
+
+lib\features\accounts\presentation\pages\payroll_page.dart:97
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\payroll_page.dart:203
+.where((item) => item.isActive)
+
+lib\features\accounts\presentation\pages\payroll_page.dart:214
+.where((item) => item.isActive)
+
+lib\features\accounts\presentation\pages\payroll_page.dart:361
+isActive: true,
+
+lib\features\accounts\presentation\pages\payroll_page.dart:379
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\pages\profit_loss_page.dart:84
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\accounts\presentation\widgets\accounts_analytics_widgets.dart:40
+.where((entry) => entry.isActive)
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:10
+required AuditService auditService,
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:12
+_auditService = auditService;
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:15
+final AuditService _auditService;
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:28
+await _auditService.logCreate(
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:43
+await _auditService.logUpdate(
+
+lib\features\attendance\data\repositories\attendance_repository_impl.dart:60
+await _auditService.logDelete(
+
+lib\features\attendance\presentation\pages\mark_attendance_page.dart:534
+final studentIds = classStudents
+
+lib\features\attendance\presentation\pages\mark_attendance_page.dart:537
+final markedStudentIds = attendanceRecords
+
+lib\features\attendance\presentation\pages\mark_attendance_page.dart:541
+studentIds.contains(record.studentId),
+
+lib\features\attendance\presentation\pages\mark_attendance_page.dart:547
+count > 0 && markedStudentIds.length == count;
+
+lib\features\attendance\presentation\pages\mark_attendance_page.dart:549
+markedStudentIds.isNotEmpty && !isComplete;
+
+lib\features\attendance\presentation\widgets\attendance_academic_structure.dart:19
+.where((item) => item.isActive && item.name.trim().isNotEmpty)
+
+lib\features\attendance\presentation\widgets\attendance_academic_structure.dart:28
+.where((item) => item.isActive && item.classId == classId)
+
+lib\features\authentication\data\datasources\authentication_remote_datasource.dart:15
+User? getCurrentUser();
+
+lib\features\authentication\data\datasources\authentication_remote_datasource.dart:24
+final FirebaseAuthService _authService;
+
+lib\features\authentication\data\datasources\authentication_remote_datasource.dart:49
+User? getCurrentUser() {
+
+lib\features\authentication\data\repositories\authentication_repository_impl.dart:30
+User? getCurrentUser() {
+
+lib\features\authentication\data\repositories\authentication_repository_impl.dart:31
+return _remoteDataSource.getCurrentUser();
+
+lib\features\authentication\domain\repositories\authentication_repository.dart:15
+User? getCurrentUser();
+
+lib\features\authentication\domain\usecases\get_current_user_usecase.dart:5
+class GetCurrentUserUseCase {
+
+lib\features\authentication\domain\usecases\get_current_user_usecase.dart:6
+GetCurrentUserUseCase(this._repository);
+
+lib\features\authentication\domain\usecases\get_current_user_usecase.dart:11
+return _repository.getCurrentUser();
+
+lib\features\authentication\presentation\bloc\authentication_bloc.dart:19
+required this._getCurrentUserUseCase,
+
+lib\features\authentication\presentation\bloc\authentication_bloc.dart:31
+final GetCurrentUserUseCase _getCurrentUserUseCase;
+
+lib\features\authentication\presentation\bloc\authentication_bloc.dart:53
+} on FirebaseAuthException catch (error) {
+
+lib\features\authentication\presentation\bloc\authentication_bloc.dart:66
+String _loginError(FirebaseAuthException error) {
+
+lib\features\authentication\presentation\bloc\authentication_bloc.dart:117
+final user = _getCurrentUserUseCase();
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:9
+Future<List<ChatThreadEntity>> getThreadsForUser(String userId);
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:19
+required String userId,
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:29
+Future<List<ChatThreadEntity>> getThreadsForUser(String userId) async {
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:32
+.where('participantIds', arrayContains: userId)
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:93
+required String userId,
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:98
+if (message.senderId == userId || message.readBy.contains(userId)) {
+
+lib\features\communication\data\datasources\chat_remote_datasource.dart:106
+'readBy': [...message.readBy, userId],
+
+lib\features\communication\data\datasources\push_device_token_remote_datasource.dart:8
+Future<List<PushDeviceTokenEntity>> getUserTokens(String userId);
+
+lib\features\communication\data\datasources\push_device_token_remote_datasource.dart:21
+Future<List<PushDeviceTokenEntity>> getUserTokens(String userId) async {
+
+lib\features\communication\data\datasources\push_device_token_remote_datasource.dart:24
+.where('userId', isEqualTo: userId)
+
+lib\features\communication\data\models\push_device_token_model.dart:7
+required super.userId,
+
+lib\features\communication\data\models\push_device_token_model.dart:10
+required super.isActive,
+
+lib\features\communication\data\models\push_device_token_model.dart:19
+userId: e.userId,
+
+lib\features\communication\data\models\push_device_token_model.dart:22
+isActive: e.isActive,
+
+lib\features\communication\data\models\push_device_token_model.dart:36
+userId: map['userId'] as String? ?? '',
+
+lib\features\communication\data\models\push_device_token_model.dart:42
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\communication\data\models\push_device_token_model.dart:51
+'userId': userId,
+
+lib\features\communication\data\models\push_device_token_model.dart:54
+'isActive': isActive,
+
+lib\features\communication\data\repositories\chat_repository_impl.dart:12
+Future<List<ChatThreadEntity>> getThreadsForUser(String userId) {
+
+lib\features\communication\data\repositories\chat_repository_impl.dart:13
+return _source.getThreadsForUser(userId);
+
+lib\features\communication\data\repositories\chat_repository_impl.dart:34
+required String userId,
+
+lib\features\communication\data\repositories\chat_repository_impl.dart:36
+return _source.markThreadRead(threadId: threadId, userId: userId);
+
+lib\features\communication\data\repositories\push_device_token_repository_impl.dart:12
+Future<List<PushDeviceTokenEntity>> getUserTokens(String userId) =>
+
+lib\features\communication\data\repositories\push_device_token_repository_impl.dart:13
+_source.getUserTokens(userId);
+
+lib\features\communication\domain\entities\chat_message_entity.dart:34
+bool isReadBy(String userId) => readBy.contains(userId);
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:8
+required this.userId,
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:11
+required this.isActive,
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:18
+final String userId;
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:21
+final bool isActive;
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:29
+userId,
+
+lib\features\communication\domain\entities\push_device_token_entity.dart:32
+isActive,
+
+lib\features\communication\domain\repositories\chat_repository.dart:5
+Future<List<ChatThreadEntity>> getThreadsForUser(String userId);
+
+lib\features\communication\domain\repositories\chat_repository.dart:15
+required String userId,
+
+lib\features\communication\domain\repositories\push_device_token_repository.dart:5
+Future<List<PushDeviceTokenEntity>> getUserTokens(String userId);
+
+lib\features\communication\domain\usecases\manage_chat.dart:10
+Future<List<ChatThreadEntity>> call(String userId) {
+
+lib\features\communication\domain\usecases\manage_chat.dart:11
+if (userId.trim().isEmpty) {
+
+lib\features\communication\domain\usecases\manage_chat.dart:14
+return _repository.getThreadsForUser(userId);
+
+lib\features\communication\domain\usecases\manage_chat.dart:66
+Future<void> call({required String threadId, required String userId}) {
+
+lib\features\communication\domain\usecases\manage_chat.dart:67
+return _repository.markThreadRead(threadId: threadId, userId: userId);
+
+lib\features\communication\domain\usecases\register_push_device.dart:11
+required String userId,
+
+lib\features\communication\domain\usecases\register_push_device.dart:14
+if (userId.trim().isEmpty) {
+
+lib\features\communication\domain\usecases\register_push_device.dart:27
+id: '${userId}_$safe',
+
+lib\features\communication\domain\usecases\register_push_device.dart:28
+userId: userId,
+
+lib\features\communication\domain\usecases\register_push_device.dart:31
+isActive: true,
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:34
+emit(ChatThreadsLoaded(threads: await _getThreads(event.userId)));
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:47
+await _markRead(threadId: event.thread.id, userId: event.userId);
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:53
+userId: event.userId,
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:89
+userId: current.userId,
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:101
+userId: current.userId,
+
+lib\features\communication\presentation\bloc\chat_bloc.dart:110
+userId: current.userId,
+
+lib\features\communication\presentation\bloc\chat_event.dart:14
+const LoadChatThreads(this.userId);
+
+lib\features\communication\presentation\bloc\chat_event.dart:16
+final String userId;
+
+lib\features\communication\presentation\bloc\chat_event.dart:19
+List<Object?> get props => [userId];
+
+lib\features\communication\presentation\bloc\chat_event.dart:23
+const OpenChatThread({required this.thread, required this.userId});
+
+lib\features\communication\presentation\bloc\chat_event.dart:26
+final String userId;
+
+lib\features\communication\presentation\bloc\chat_event.dart:29
+List<Object?> get props => [thread, userId];
+
+lib\features\communication\presentation\bloc\chat_state.dart:42
+required this.userId,
+
+lib\features\communication\presentation\bloc\chat_state.dart:50
+final String userId;
+
+lib\features\communication\presentation\bloc\chat_state.dart:59
+userId,
+
+lib\features\communication\presentation\pages\announcements_page.dart:388
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\communication_broadcast_page.dart:330
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:20
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:106
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:111
+userId: user?.uid ?? '',
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:125
+final currentUser = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:126
+final currentUserId = currentUser?.uid ?? '';
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:134
+account.uid != currentUserId &&
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:135
+account.isActive &&
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:341
+currentUserId,
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:345
+currentUserId: currentUser?.displayName?.trim().isNotEmpty == true
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:350
+createdBy: currentUserId,
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:404
+final mine = message.senderId == state.userId;
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:509
+senderId: widget.state.userId,
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:511
+widget.state.thread.participantNames[widget.state.userId] ??
+
+lib\features\communication\presentation\pages\in_app_chat_page.dart:516
+readBy: [widget.state.userId],
+
+lib\features\communication\presentation\pages\whatsapp_broadcast_page.dart:321
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\communication\presentation\pages\whatsapp_dashboard_page.dart:213
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:349
+value: '${data.classes.where((item) => item.isActive).length}',
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:419
+int get activeStudents => students.where((student) => student.isActive).length;
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:464
+.where((student) => student.isActive && days(student) <= 30)
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:495
+final activeClasses = classes.where((item) => item.isActive).toList();
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:496
+final activeSections = sections.where((item) => item.isActive).toList();
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:499
+for (final student in students.where((item) => item.isActive)) {
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:520
+builder.studentIds.add(student.id);
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:539
+builder.recordedStudentIds.add(record.studentId);
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:550
+totalStudents: builder.studentIds.length,
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:551
+markedStudents: builder.recordedStudentIds
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:552
+.intersection(builder.studentIds)
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:674
+final Set<String> studentIds = <String>{};
+
+lib\features\dashboard\presentation\widgets\dashboard_layout.dart:675
+final Set<String> recordedStudentIds = <String>{};
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:11
+bool? isActive,
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:24
+required bool isActive,
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:42
+bool? isActive,
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:54
+if (isActive != null) {
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:55
+query = query.where('isActive', isEqualTo: isActive);
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:146
+required bool isActive,
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:157
+'status': isActive
+
+lib\features\exams\data\datasources\exam_remote_datasource.dart:160
+'isActive': isActive,
+
+lib\features\exams\data\datasources\exam_subject_setup_remote_datasource.dart:152
+'isActive': false,
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:26
+.where((rule) => rule.isActive)
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:32
+GradeRuleModel(id: 'a_plus', grade: 'A+', minimumPercentage: 90, maximumPercentage: 100, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:33
+GradeRuleModel(id: 'a', grade: 'A', minimumPercentage: 80, maximumPercentage: 89.999, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:34
+GradeRuleModel(id: 'b', grade: 'B', minimumPercentage: 70, maximumPercentage: 79.999, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:35
+GradeRuleModel(id: 'c', grade: 'C', minimumPercentage: 60, maximumPercentage: 69.999, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:36
+GradeRuleModel(id: 'd', grade: 'D', minimumPercentage: 50, maximumPercentage: 59.999, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:37
+GradeRuleModel(id: 'e', grade: 'E', minimumPercentage: 40, maximumPercentage: 49.999, isPassing: true, isActive: true),
+
+lib\features\exams\data\datasources\grading_rule_remote_datasource.dart:38
+GradeRuleModel(id: 'f', grade: 'F', minimumPercentage: 0, maximumPercentage: 39.999, isPassing: false, isActive: true),
+
+lib\features\exams\data\models\exam_model.dart:19
+super.isActive,
+
+lib\features\exams\data\models\exam_model.dart:95
+'isActive': isActive,
+
+lib\features\exams\data\models\exam_model.dart:120
+return (map['isActive'] as bool? ?? true)
+
+lib\features\exams\data\models\exam_subject_setup_model.dart:19
+required super.isActive,
+
+lib\features\exams\data\models\exam_subject_setup_model.dart:50
+isActive: entity.isActive,
+
+lib\features\exams\data\models\exam_subject_setup_model.dart:80
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\exams\data\models\exam_subject_setup_model.dart:106
+'isActive': isActive,
+
+lib\features\exams\data\models\grade_rule_model.dart:10
+required super.isActive,
+
+lib\features\exams\data\models\grade_rule_model.dart:20
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\exams\data\models\grade_rule_model.dart:31
+isActive: value.isActive,
+
+lib\features\exams\data\models\grade_rule_model.dart:42
+'isActive': isActive,
+
+lib\features\exams\data\repositories\exam_repository_impl.dart:14
+bool? isActive,
+
+lib\features\exams\data\repositories\exam_repository_impl.dart:18
+isActive: isActive,
+
+lib\features\exams\data\repositories\exam_repository_impl.dart:41
+required bool isActive,
+
+lib\features\exams\data\repositories\exam_repository_impl.dart:43
+return _source.setExamActiveStatus(id: id, isActive: isActive);
+
+lib\features\exams\domain\entities\exam_entity.dart:25
+bool? isActive,
+
+lib\features\exams\domain\entities\exam_entity.dart:36
+((isActive ?? true)
+
+lib\features\exams\domain\entities\exam_entity.dart:71
+bool get isActive => status == ExamWorkflowStatus.active;
+
+lib\features\exams\domain\entities\exam_entity.dart:89
+bool? isActive,
+
+lib\features\exams\domain\entities\exam_entity.dart:100
+(isActive == null
+
+lib\features\exams\domain\entities\exam_entity.dart:102
+: isActive
+
+lib\features\exams\domain\entities\exam_subject_setup_entity.dart:21
+required this.isActive,
+
+lib\features\exams\domain\entities\exam_subject_setup_entity.dart:72
+final bool isActive;
+
+lib\features\exams\domain\entities\exam_subject_setup_entity.dart:109
+bool? isActive,
+
+lib\features\exams\domain\entities\exam_subject_setup_entity.dart:132
+isActive: isActive ?? this.isActive,
+
+lib\features\exams\domain\entities\exam_subject_setup_entity.dart:157
+isActive,
+
+lib\features\exams\domain\entities\grade_rule_entity.dart:10
+required this.isActive,
+
+lib\features\exams\domain\entities\grade_rule_entity.dart:18
+final bool isActive;
+
+lib\features\exams\domain\entities\grade_rule_entity.dart:31
+isActive,
+
+lib\features\exams\domain\repositories\exam_repository.dart:6
+bool? isActive,
+
+lib\features\exams\domain\repositories\exam_repository.dart:19
+required bool isActive,
+
+lib\features\exams\domain\usecases\generate_exam_date_sheet_options.dart:44
+.where((item) => item.isActive)
+
+lib\features\exams\domain\usecases\generate_exam_date_sheet_options.dart:49
+.where((item) => item.isActive)
+
+lib\features\exams\domain\usecases\generate_exam_date_sheet_options.dart:54
+.where((item) => item.isActive)
+
+lib\features\exams\domain\usecases\generate_exam_results.dart:61
+.where((setup) => setup.isActive)
+
+lib\features\exams\domain\usecases\generate_exam_results.dart:68
+.where((rule) => rule.isActive)
+
+lib\features\exams\domain\usecases\generate_exam_results.dart:184
+in students.where((student) => student.isActive)) {
+
+lib\features\exams\domain\usecases\get_exams.dart:11
+bool? isActive,
+
+lib\features\exams\domain\usecases\get_exams.dart:15
+isActive: isActive,
+
+lib\features\exams\domain\usecases\set_exam_active_status.dart:8
+Future<void> call({required String id, required bool isActive}) {
+
+lib\features\exams\domain\usecases\set_exam_active_status.dart:15
+isActive: isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:42
+isActive: event.isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:55
+isActive: event.isActive ??
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:56
+(currentState is ExamLoaded ? currentState.isActive : null),
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:125
+isActive: event.isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:130
+successMessage: event.isActive
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:152
+isActive: currentState.isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:170
+isActive: previousState is ExamLoaded ? previousState.isActive : null,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:181
+bool? isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:193
+isActive: isActive,
+
+lib\features\exams\presentation\bloc\exam_bloc.dart:202
+isActive: isActive,
+
+lib\features\exams\presentation\bloc\exam_event.dart:13
+const LoadExams({this.academicSession, this.isActive});
+
+lib\features\exams\presentation\bloc\exam_event.dart:16
+final bool? isActive;
+
+lib\features\exams\presentation\bloc\exam_event.dart:19
+List<Object?> get props => [academicSession, isActive];
+
+lib\features\exams\presentation\bloc\exam_event.dart:23
+const RefreshExams({this.academicSession, this.isActive, this.searchQuery});
+
+lib\features\exams\presentation\bloc\exam_event.dart:26
+final bool? isActive;
+
+lib\features\exams\presentation\bloc\exam_event.dart:30
+List<Object?> get props => [academicSession, isActive, searchQuery];
+
+lib\features\exams\presentation\bloc\exam_event.dart:63
+required this.isActive,
+
+lib\features\exams\presentation\bloc\exam_event.dart:67
+final bool isActive;
+
+lib\features\exams\presentation\bloc\exam_event.dart:70
+List<Object?> get props => [examId, isActive];
+
+lib\features\exams\presentation\bloc\exam_marks_bloc.dart:343
+.where((student) => student.isActive)
+
+lib\features\exams\presentation\bloc\exam_marks_bloc.dart:366
+final studentIds = <String>{};
+
+lib\features\exams\presentation\bloc\exam_marks_bloc.dart:374
+if (!studentIds.add(mark.studentId)) {
+
+lib\features\exams\presentation\bloc\exam_marks_state.dart:64
+final values = exams.where((exam) => exam.isActive).toList(growable: false);
+
+lib\features\exams\presentation\bloc\exam_marks_state.dart:70
+for (final setup in subjectSetups.where((value) => value.isActive)) {
+
+lib\features\exams\presentation\bloc\exam_marks_state.dart:87
+value.isActive &&
+
+lib\features\exams\presentation\bloc\exam_marks_state.dart:112
+setup.isActive &&
+
+lib\features\exams\presentation\bloc\exam_results_state.dart:123
+for (final setup in subjectSetups.where((setup) => setup.isActive)) {
+
+lib\features\exams\presentation\bloc\exam_results_state.dart:135
+(setup) => setup.isActive && setup.classId == selectedClassId,
+
+lib\features\exams\presentation\bloc\exam_state.dart:26
+this.isActive,
+
+lib\features\exams\presentation\bloc\exam_state.dart:37
+final bool? isActive;
+
+lib\features\exams\presentation\bloc\exam_state.dart:46
+isActive,
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:87
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:90
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:93
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:120
+(item) => item.isActive && !selectedKeys.contains(item.uniqueKey),
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:293
+.where((value) => value.isActive)
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:348
+setup.isActive ? 'active' : 'inactive',
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:373
+for (final section in sections.where((value) => value.isActive)) {
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:392
+for (final subject in subjects.where((value) => value.isActive)) {
+
+lib\features\exams\presentation\bloc\exam_subject_setup_bloc.dart:411
+for (final section in sections.where((value) => value.isActive)) {
+
+lib\features\exams\presentation\pages\auto_exam_date_sheet_generator_page.dart:72
+final exams = allExams.where((exam) => exam.isActive).toList();
+
+lib\features\exams\presentation\pages\auto_exam_date_sheet_generator_page.dart:229
+isActive: true,
+
+lib\features\exams\presentation\pages\exam_form_page.dart:95
+final active = data.existingSetups.where((item) => item.isActive);
+
+lib\features\exams\presentation\pages\exam_form_page.dart:318
+isActive: true,
+
+lib\features\exams\presentation\pages\exam_subject_setup_form_page.dart:38
+bool _isActive = true;
+
+lib\features\exams\presentation\pages\exam_subject_setup_form_page.dart:54
+_isActive = setup.isActive;
+
+lib\features\exams\presentation\pages\exam_subject_setup_form_page.dart:90
+isActive: _isActive,
+
+lib\features\exams\presentation\pages\exam_subject_setup_form_page.dart:244
+value: _isActive,
+
+lib\features\exams\presentation\pages\exam_subject_setup_form_page.dart:245
+onChanged: (value) => setState(() => _isActive = value),
+
+lib\features\exams\presentation\pages\exam_subject_setup_page.dart:209
+Chip(label: Text(setup.isActive ? 'Active' : 'Inactive')),
+
+lib\features\exams\presentation\pages\exams_page.dart:263
+onStatusChanged: (isActive) =>
+
+lib\features\exams\presentation\pages\exams_page.dart:267
+isActive: isActive,
+
+lib\features\exams\presentation\pages\exams_page.dart:347
+Switch(value: exam.isActive, onChanged: onStatusChanged),
+
+lib\features\exams\presentation\pages\exams_page.dart:405
+final isActive = status == ExamWorkflowStatus.active;
+
+lib\features\exams\presentation\pages\exams_page.dart:411
+backgroundColor: isActive
+
+lib\features\exams\presentation\pages\exams_page.dart:415
+color: isActive ? colors.onPrimaryContainer : colors.onSurfaceVariant,
+
+lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart:105
+.where((exam) => exam.isActive)
+
+lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart:109
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart:114
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart:119
+.where((item) => item.isActive)
+
+lib\features\exams\presentation\pages\manual_exam_date_sheet_builder_page.dart:168
+isActive: true,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:35
+final Set<String> _absentStudentIds = {};
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:70
+_absentStudentIds.clear();
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:81
+_absentStudentIds.add(student.id);
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:92
+_absentStudentIds.add(studentId);
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:95
+_absentStudentIds.remove(studentId);
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:109
+final isAbsent = _absentStudentIds.contains(student.id);
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:290
+absentStudentIds: _absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:437
+required this.absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:445
+final Set<String> absentStudentIds;
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:458
+absentStudentIds: absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:467
+absentStudentIds: absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:481
+required this.absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:489
+final Set<String> absentStudentIds;
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:579
+final isAbsent = absentStudentIds.contains(student.id);
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:669
+required this.absentStudentIds,
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:677
+final Set<String> absentStudentIds;
+
+lib\features\exams\presentation\pages\marks_entry_page.dart:690
+final isAbsent = absentStudentIds.contains(student.id);
+
+lib\features\exams\presentation\pages\result_summary_page.dart:91
+final actorId = sl<GetCurrentUserUseCase>()()?.uid ?? '';
+
+lib\features\fees\data\models\additional_charge_model.dart:18
+required super.selectedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:19
+required super.excludedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:24
+required super.isActive,
+
+lib\features\fees\data\models\additional_charge_model.dart:45
+selectedStudentIds: e.selectedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:46
+excludedStudentIds: e.excludedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:51
+isActive: e.isActive,
+
+lib\features\fees\data\models\additional_charge_model.dart:80
+selectedStudentIds: List<String>.from(
+
+lib\features\fees\data\models\additional_charge_model.dart:81
+map['selectedStudentIds'] as List? ?? const [],
+
+lib\features\fees\data\models\additional_charge_model.dart:83
+excludedStudentIds: List<String>.from(
+
+lib\features\fees\data\models\additional_charge_model.dart:84
+map['excludedStudentIds'] as List? ?? const [],
+
+lib\features\fees\data\models\additional_charge_model.dart:94
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\fees\data\models\additional_charge_model.dart:114
+'selectedStudentIds': selectedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:115
+'excludedStudentIds': excludedStudentIds,
+
+lib\features\fees\data\models\additional_charge_model.dart:120
+'isActive': isActive,
+
+lib\features\fees\data\models\fee_structure_model.dart:19
+required super.isActive,
+
+lib\features\fees\data\models\fee_structure_model.dart:38
+isActive: entity.isActive,
+
+lib\features\fees\data\models\fee_structure_model.dart:59
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\fees\data\models\fee_structure_model.dart:77
+'isActive': isActive,
+
+lib\features\fees\data\models\student_fee_assignment_model.dart:29
+required super.isActive,
+
+lib\features\fees\data\models\student_fee_assignment_model.dart:60
+isActive: entity.isActive,
+
+lib\features\fees\data\models\student_fee_assignment_model.dart:97
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\fees\data\models\student_fee_assignment_model.dart:125
+'isActive': isActive,
+
+lib\features\fees\data\repositories\additional_charge_repository_impl.dart:18
+bool? isActive,
+
+lib\features\fees\data\repositories\additional_charge_repository_impl.dart:33
+(isActive == null || e.isActive == isActive),
+
+lib\features\fees\data\repositories\fee_structure_repository_impl.dart:17
+bool? isActive,
+
+lib\features\fees\data\repositories\fee_structure_repository_impl.dart:37
+(isActive == null || item.isActive == isActive),
+
+lib\features\fees\data\repositories\student_fee_assignment_repository_impl.dart:17
+bool? isActive,
+
+lib\features\fees\data\repositories\student_fee_assignment_repository_impl.dart:36
+(isActive == null || item.isActive == isActive),
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:39
+required this.selectedStudentIds,
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:40
+required this.excludedStudentIds,
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:45
+required this.isActive,
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:58
+final List<String> selectedStudentIds, excludedStudentIds;
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:60
+final bool mandatory, refundable, isActive, generated;
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:95
+selectedStudentIds,
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:96
+excludedStudentIds,
+
+lib\features\fees\domain\entities\additional_charge_entity.dart:101
+isActive,
+
+lib\features\fees\domain\entities\fee_structure_entity.dart:17
+required this.isActive,
+
+lib\features\fees\domain\entities\fee_structure_entity.dart:34
+final bool isActive;
+
+lib\features\fees\domain\entities\fee_structure_entity.dart:55
+bool? isActive,
+
+lib\features\fees\domain\entities\fee_structure_entity.dart:71
+isActive: isActive ?? this.isActive,
+
+lib\features\fees\domain\entities\fee_structure_entity.dart:91
+isActive,
+
+lib\features\fees\domain\entities\student_fee_assignment_entity.dart:29
+required this.isActive,
+
+lib\features\fees\domain\entities\student_fee_assignment_entity.dart:56
+final bool isActive;
+
+lib\features\fees\domain\entities\student_fee_assignment_entity.dart:109
+isActive,
+
+lib\features\fees\domain\repositories\additional_charge_repository.dart:8
+bool? isActive,
+
+lib\features\fees\domain\repositories\fee_structure_repository.dart:8
+bool? isActive,
+
+lib\features\fees\domain\repositories\student_fee_assignment_repository.dart:7
+bool? isActive,
+
+lib\features\fees\domain\services\additional_charge_generation_service.dart:45
+if (!charge.isActive) {
+
+lib\features\fees\domain\services\additional_charge_generation_service.dart:57
+.where((s) => s.isActive)
+
+lib\features\fees\domain\services\additional_charge_generation_service.dart:75
+charge.selectedStudentIds.contains(student.id),
+
+lib\features\fees\domain\services\additional_charge_generation_service.dart:81
+.where((s) => charge.excludedStudentIds.contains(s.id))
+
+lib\features\fees\domain\services\additional_charge_generation_service.dart:84
+.where((s) => !charge.excludedStudentIds.contains(s.id))
+
+lib\features\fees\domain\usecases\generate_monthly_fees.dart:18
+isActive: true,
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:107
+(_status == 'active' && c.isActive) ||
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:108
+(_status == 'inactive' && !c.isActive) ||
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:309
+'${charges.where((e) => e.isActive).length}',
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:395
+'${charge.isActive ? 'Active' : 'Inactive'} • '
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:410
+onPressed: busy || !charge.isActive
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:640
+_active = e?.isActive ?? true;
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:641
+_selected = {...?e?.selectedStudentIds};
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:642
+_excluded = {...?e?.excludedStudentIds};
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:660
+s.isActive &&
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:989
+selectedStudentIds: _selected.toList(),
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:990
+excludedStudentIds: _excluded.toList(),
+
+lib\features\fees\presentation\pages\additional_charges_management_page.dart:995
+isActive: _active,
+
+lib\features\fees\presentation\pages\fee_collection_page.dart:95
+.where((item) => item.isActive)
+
+lib\features\fees\presentation\pages\fee_collection_page.dart:104
+.where((item) => item.isActive)
+
+lib\features\fees\presentation\pages\fee_collection_page.dart:110
+.where((item) => item.isActive)
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:65
+.where((item) => item.isActive)
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:70
+.where((item) => item.isActive)
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:327
+value: structure.isActive,
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:331
+isActive: value,
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:418
+bool _isActive = true;
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:434
+_isActive = existing?.isActive ?? true;
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:575
+value: _isActive,
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:576
+onChanged: (value) => setState(() => _isActive = value),
+
+lib\features\fees\presentation\pages\fee_structure_page.dart:614
+isActive: _isActive,
+
+lib\features\fees\presentation\pages\monthly_fee_generation_page.dart:85
+isActive: true,
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:136
+isActive: true,
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:146
+.where((student) => student.isActive)
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:457
+isActive: true,
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:903
+if (!assignment.isActive) const Chip(label: Text('INACTIVE')),
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:961
+bool _isActive = true;
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:988
+_isActive = existing?.isActive ?? true;
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:1164
+value: _isActive,
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:1165
+onChanged: (value) => setState(() => _isActive = value),
+
+lib\features\fees\presentation\pages\student_fee_assignment_page.dart:1261
+isActive: _isActive,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:5
+class ParentAccountModel extends ParentAccountEntity {
+
+lib\features\parent_portal\data\models\parent_account_model.dart:6
+ParentAccountModel({
+
+lib\features\parent_portal\data\models\parent_account_model.dart:13
+required super.studentIds,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:14
+required super.isActive,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:19
+factory ParentAccountModel.fromEntity(ParentAccountEntity value) {
+
+lib\features\parent_portal\data\models\parent_account_model.dart:20
+return ParentAccountModel(
+
+lib\features\parent_portal\data\models\parent_account_model.dart:27
+studentIds: value.studentIds,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:28
+isActive: value.isActive,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:34
+factory ParentAccountModel.fromMap(Map<String, dynamic> map) {
+
+lib\features\parent_portal\data\models\parent_account_model.dart:35
+return ParentAccountModel(
+
+lib\features\parent_portal\data\models\parent_account_model.dart:45
+studentIds: (map['studentIds'] as List<dynamic>? ?? const [])
+
+lib\features\parent_portal\data\models\parent_account_model.dart:48
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:60
+'studentIds': studentIds,
+
+lib\features\parent_portal\data\models\parent_account_model.dart:61
+'isActive': isActive,
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:19
+Future<List<ParentAccountEntity>> getParents() async {
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:21
+.collection(FirestorePaths.parentAccounts)
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:28
+ParentAccountModel.fromMap({...doc.data(), 'id': doc.id}),
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:40
+Future<ParentAccountEntity?> getParentById(String id) async {
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:42
+.collection(FirestorePaths.parentAccounts)
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:48
+return ParentAccountModel.fromMap({...snapshot.data()!, 'id': snapshot.id});
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:53
+ParentAccountEntity parent,
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:60
+parent.studentIds.contains(student.id) && student.isActive,
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:87
+return student.isActive && (matchesPhone || matchesEmail);
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:106
+Future<void> saveParent(ParentAccountEntity parent) async {
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:115
+if (parent.studentIds.isEmpty) {
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:120
+.collection(FirestorePaths.parentAccounts)
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:122
+.set(ParentAccountModel.fromEntity(parent).toMap());
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:128
+.collection(FirestorePaths.parentAccounts)
+
+lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart:135
+return _firestoreService.collection(FirestorePaths.parentAccounts).doc().id;
+
+lib\features\parent_portal\data\services\parent_communication_service_impl.dart:19
+required ParentAccountEntity parent,
+
+lib\features\parent_portal\data\services\parent_communication_service_impl.dart:225
+ParentAccountEntity parent,
+
+lib\features\parent_portal\data\services\parent_timeline_service_impl.dart:15
+required ParentAccountEntity parent,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:3
+class ParentAccountEntity extends Equatable {
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:4
+ParentAccountEntity({
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:11
+required List<String> studentIds,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:12
+required this.isActive,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:15
+}) : studentIds = List<String>.unmodifiable(studentIds);
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:23
+final List<String> studentIds;
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:24
+final bool isActive;
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:28
+ParentAccountEntity copyWith({
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:34
+List<String>? studentIds,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:35
+bool? isActive,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:38
+return ParentAccountEntity(
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:45
+studentIds: studentIds ?? this.studentIds,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:46
+isActive: isActive ?? this.isActive,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:60
+studentIds,
+
+lib\features\parent_portal\domain\entities\parent_account_entity.dart:61
+isActive,
+
+lib\features\parent_portal\domain\repositories\parent_portal_repository.dart:5
+Future<List<ParentAccountEntity>> getParents();
+
+lib\features\parent_portal\domain\repositories\parent_portal_repository.dart:7
+Future<ParentAccountEntity?> getParentById(String id);
+
+lib\features\parent_portal\domain\repositories\parent_portal_repository.dart:9
+Future<List<StudentEntity>> getLinkedStudents(ParentAccountEntity parent);
+
+lib\features\parent_portal\domain\repositories\parent_portal_repository.dart:16
+Future<void> saveParent(ParentAccountEntity parent);
+
+lib\features\parent_portal\domain\services\parent_communication_service.dart:7
+required ParentAccountEntity parent,
+
+lib\features\parent_portal\domain\services\parent_timeline_service.dart:7
+required ParentAccountEntity parent,
+
+lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart:19
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart:32
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart:46
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:11
+class LoadParentAccounts extends ParentPortalEvent {
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:12
+const LoadParentAccounts();
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:15
+class SelectParentAccount extends ParentPortalEvent {
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:16
+const SelectParentAccount(this.parent);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:18
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:21
+class SaveParentAccount extends ParentPortalEvent {
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:22
+const SaveParentAccount(this.parent);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:24
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:27
+class DeleteParentAccount extends ParentPortalEvent {
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:28
+const DeleteParentAccount(this.id);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:53
+final List<ParentAccountEntity> parents;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:54
+final ParentAccountEntity? selectedParent;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:67
+on<LoadParentAccounts>(_load);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:68
+on<SelectParentAccount>(_select);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:69
+on<SaveParentAccount>(_save);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:70
+on<DeleteParentAccount>(_delete);
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:74
+ParentAccountEntity? _selected;
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:77
+LoadParentAccounts event,
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:84
+SelectParentAccount event,
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:92
+SaveParentAccount event,
+
+lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart:106
+DeleteParentAccount event,
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:12
+class ParentAccountFormPage extends StatefulWidget {
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:13
+const ParentAccountFormPage({super.key, this.existing});
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:15
+final ParentAccountEntity? existing;
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:18
+State<ParentAccountFormPage> createState() => _ParentAccountFormPageState();
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:21
+class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:30
+final Set<String> _selectedStudentIds = {};
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:50
+_selectedStudentIds.addAll(existing?.studentIds ?? const []);
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:66
+Future<void> _loadExistingStudents(ParentAccountEntity parent) async {
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:98
+_selectedStudentIds.add(values.first.id);
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:115
+if (_selectedStudentIds.isEmpty) {
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:125
+ParentAccountEntity(
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:132
+studentIds: _selectedStudentIds.toList(),
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:133
+isActive: old?.isActive ?? true,
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:239
+value: _selectedStudentIds.contains(student.id),
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:255
+_selectedStudentIds.add(student.id);
+
+lib\features\parent_portal\presentation\pages\parent_account_form_page.dart:257
+_selectedStudentIds.remove(student.id);
+
+lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart:20
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart:51
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart:88
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart:269
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_notification_center_page.dart:17
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_notification_center_page.dart:35
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:25
+create: (_) => sl<ParentPortalBloc>()..add(const LoadParentAccounts()),
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:36
+ParentAccountEntity? existing,
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:38
+final value = await Navigator.of(context).push<ParentAccountEntity>(
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:40
+builder: (_) => ParentAccountFormPage(existing: existing),
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:45
+context.read<ParentPortalBloc>().add(SaveParentAccount(value));
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:121
+SelectParentAccount(parent),
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:152
+final List<ParentAccountEntity> parents;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:153
+final ParentAccountEntity? selected;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:154
+final ValueChanged<ParentAccountEntity> onSelect;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:155
+final ValueChanged<ParentAccountEntity> onEdit;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:235
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:372
+Chip(label: Text(student.isActive ? 'ACTIVE' : 'INACTIVE')),
+
+lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart:383
+final ParentAccountEntity parent;
+
+lib\features\parent_portal\presentation\pages\parent_timeline_page.dart:18
+final ParentAccountEntity parent;
+
+lib\features\results\presentation\bloc\teacher_results_state.dart:77
+.where((teacher) => teacher.isActive && assignedIds.contains(teacher.id))
+
+lib\features\results\presentation\pages\results_dashboard_page.dart:68
+final uniqueStudentIds = results.map((result) => result.studentId).toSet();
+
+lib\features\results\presentation\pages\results_dashboard_page.dart:87
+value: '${uniqueStudentIds.length}',
+
+lib\features\school_store\data\datasources\store_purchase_remote_datasource.dart:84
+isActive: item.isActive,
+
+lib\features\school_store\data\datasources\store_sale_remote_datasource.dart:83
+isActive: item.isActive,
+
+lib\features\school_store\data\models\store_item_model.dart:15
+required super.isActive,
+
+lib\features\school_store\data\models\store_item_model.dart:31
+isActive: e.isActive,
+
+lib\features\school_store\data\models\store_item_model.dart:57
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\school_store\data\models\store_item_model.dart:74
+'isActive': isActive,
+
+lib\features\school_store\data\models\store_supplier_model.dart:15
+super.isActive,
+
+lib\features\school_store\data\models\store_supplier_model.dart:26
+isActive: entity.isActive,
+
+lib\features\school_store\data\models\store_supplier_model.dart:49
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\school_store\data\models\store_supplier_model.dart:62
+'isActive': isActive,
+
+lib\features\school_store\domain\entities\store_item_entity.dart:16
+required this.isActive,
+
+lib\features\school_store\domain\entities\store_item_entity.dart:31
+final bool isActive;
+
+lib\features\school_store\domain\entities\store_item_entity.dart:52
+isActive,
+
+lib\features\school_store\domain\entities\store_supplier_entity.dart:13
+this.isActive = true,
+
+lib\features\school_store\domain\entities\store_supplier_entity.dart:22
+final bool isActive;
+
+lib\features\school_store\domain\entities\store_supplier_entity.dart:34
+isActive,
+
+lib\features\school_store\presentation\pages\school_store_dashboard_page.dart:296
+isActive: true,
+
+lib\features\school_store\presentation\pages\store_sales_page.dart:87
+item.currentStock > 0 && item.isActive,
+
+lib\features\school_store\presentation\pages\store_sales_page.dart:181
+.where((item) => item.currentStock > 0 && item.isActive)
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:10
+Future<List<SecuritySessionEntity>> getSessions(String userId);
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:12
+Future<List<LoginHistoryEntity>> getLoginHistory(String userId);
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:21
+required String userId,
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:29
+final FirebaseAuth _auth;
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:32
+Future<List<SecuritySessionEntity>> getSessions(String userId) async {
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:41
+.where((item) => item.userId == userId)
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:50
+Future<List<LoginHistoryEntity>> getLoginHistory(String userId) async {
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:57
+.where((item) => item.userId == userId)
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:92
+userId: user.uid,
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:104
+required String userId,
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:122
+userId: session.userId,
+
+lib\features\settings\data\datasources\security_remote_datasource.dart:146
+userId: userId,
+
+lib\features\settings\data\datasources\system_health_remote_datasource.dart:17
+final FirebaseAuth _auth;
+
+lib\features\settings\data\datasources\system_health_remote_datasource.dart:73
+currentUserId: user?.uid ?? '',
+
+lib\features\settings\data\datasources\system_health_remote_datasource.dart:91
+'currentUserId': health.currentUserId,
+
+lib\features\settings\data\datasources\user_preferences_remote_datasource.dart:7
+Future<UserPreferencesEntity> getPreferences(String userId);
+
+lib\features\settings\data\datasources\user_preferences_remote_datasource.dart:19
+Future<UserPreferencesEntity> getPreferences(String userId) async {
+
+lib\features\settings\data\datasources\user_preferences_remote_datasource.dart:20
+final id = userId.trim().isEmpty ? 'default' : userId;
+
+lib\features\settings\data\datasources\user_preferences_remote_datasource.dart:30
+userId: userId,
+
+lib\features\settings\data\models\security_models.dart:15
+required super.userId,
+
+lib\features\settings\data\models\security_models.dart:29
+userId: map['userId'] as String? ?? '',
+
+lib\features\settings\data\models\security_models.dart:43
+'userId': userId,
+
+lib\features\settings\data\models\security_models.dart:59
+required super.userId,
+
+lib\features\settings\data\models\security_models.dart:72
+userId: map['userId'] as String? ?? '',
+
+lib\features\settings\data\models\security_models.dart:88
+'userId': userId,
+
+lib\features\settings\data\models\user_preferences_model.dart:8
+required super.userId,
+
+lib\features\settings\data\models\user_preferences_model.dart:27
+userId: entity.userId,
+
+lib\features\settings\data\models\user_preferences_model.dart:53
+userId: map['userId'] as String? ?? '',
+
+lib\features\settings\data\models\user_preferences_model.dart:75
+'userId': userId,
+
+lib\features\settings\data\repositories\security_repository_impl.dart:12
+Future<List<SecuritySessionEntity>> getSessions(String userId) {
+
+lib\features\settings\data\repositories\security_repository_impl.dart:13
+return _source.getSessions(userId);
+
+lib\features\settings\data\repositories\security_repository_impl.dart:17
+Future<List<LoginHistoryEntity>> getLoginHistory(String userId) {
+
+lib\features\settings\data\repositories\security_repository_impl.dart:18
+return _source.getLoginHistory(userId);
+
+lib\features\settings\data\repositories\security_repository_impl.dart:35
+required String userId,
+
+lib\features\settings\data\repositories\security_repository_impl.dart:37
+return _source.revokeSession(sessionId: sessionId, userId: userId);
+
+lib\features\settings\data\repositories\user_preferences_repository_impl.dart:11
+Future<UserPreferencesEntity> getPreferences(String userId) {
+
+lib\features\settings\data\repositories\user_preferences_repository_impl.dart:12
+return _source.getPreferences(userId);
+
+lib\features\settings\domain\entities\login_history_entity.dart:14
+required this.userId,
+
+lib\features\settings\domain\entities\login_history_entity.dart:25
+final String userId;
+
+lib\features\settings\domain\entities\login_history_entity.dart:37
+userId,
+
+lib\features\settings\domain\entities\security_session_entity.dart:6
+required this.userId,
+
+lib\features\settings\domain\entities\security_session_entity.dart:18
+final String userId;
+
+lib\features\settings\domain\entities\security_session_entity.dart:31
+userId,
+
+lib\features\settings\domain\entities\system_health_entity.dart:25
+required this.currentUserId,
+
+lib\features\settings\domain\entities\system_health_entity.dart:36
+final String currentUserId;
+
+lib\features\settings\domain\entities\system_health_entity.dart:54
+currentUserId,
+
+lib\features\settings\domain\entities\user_preferences_entity.dart:8
+required this.userId,
+
+lib\features\settings\domain\entities\user_preferences_entity.dart:25
+final String userId;
+
+lib\features\settings\domain\entities\user_preferences_entity.dart:43
+userId,
+
+lib\features\settings\domain\repositories\security_repository.dart:5
+Future<List<SecuritySessionEntity>> getSessions(String userId);
+
+lib\features\settings\domain\repositories\security_repository.dart:7
+Future<List<LoginHistoryEntity>> getLoginHistory(String userId);
+
+lib\features\settings\domain\repositories\security_repository.dart:16
+required String userId,
+
+lib\features\settings\domain\repositories\user_preferences_repository.dart:4
+Future<UserPreferencesEntity> getPreferences(String userId);
+
+lib\features\settings\domain\usecases\manage_security.dart:17
+Future<SecurityData> call(String userId) async {
+
+lib\features\settings\domain\usecases\manage_security.dart:19
+_repository.getSessions(userId),
+
+lib\features\settings\domain\usecases\manage_security.dart:20
+_repository.getLoginHistory(userId),
+
+lib\features\settings\domain\usecases\manage_security.dart:64
+Future<void> call({required String sessionId, required String userId}) {
+
+lib\features\settings\domain\usecases\manage_security.dart:69
+return _repository.revokeSession(sessionId: sessionId, userId: userId);
+
+lib\features\settings\domain\usecases\manage_user_preferences.dart:9
+Future<UserPreferencesEntity> call(String userId) {
+
+lib\features\settings\domain\usecases\manage_user_preferences.dart:10
+return _repository.getPreferences(userId);
+
+lib\features\settings\presentation\bloc\security_bloc.dart:27
+await _reload(emit, event.userId);
+
+lib\features\settings\presentation\bloc\security_bloc.dart:49
+current.userId,
+
+lib\features\settings\presentation\bloc\security_bloc.dart:62
+await _revokeSession(sessionId: event.sessionId, userId: event.userId);
+
+lib\features\settings\presentation\bloc\security_bloc.dart:66
+event.userId,
+
+lib\features\settings\presentation\bloc\security_bloc.dart:76
+String userId, {
+
+lib\features\settings\presentation\bloc\security_bloc.dart:80
+final data = await _getData(userId);
+
+lib\features\settings\presentation\bloc\security_bloc.dart:86
+userId: userId,
+
+lib\features\settings\presentation\bloc\security_event.dart:11
+const LoadSecurityData(this.userId);
+
+lib\features\settings\presentation\bloc\security_event.dart:13
+final String userId;
+
+lib\features\settings\presentation\bloc\security_event.dart:16
+List<Object?> get props => [userId];
+
+lib\features\settings\presentation\bloc\security_event.dart:35
+const RevokeSessionRequested({required this.sessionId, required this.userId});
+
+lib\features\settings\presentation\bloc\security_event.dart:38
+final String userId;
+
+lib\features\settings\presentation\bloc\security_event.dart:41
+List<Object?> get props => [sessionId, userId];
+
+lib\features\settings\presentation\bloc\security_state.dart:25
+required this.userId,
+
+lib\features\settings\presentation\bloc\security_state.dart:32
+final String userId;
+
+lib\features\settings\presentation\bloc\security_state.dart:40
+userId,
+
+lib\features\settings\presentation\bloc\user_preferences_bloc.dart:28
+UserPreferencesLoaded(preferences: await _getPreferences(event.userId)),
+
+lib\features\settings\presentation\bloc\user_preferences_event.dart:13
+const LoadUserPreferences(this.userId);
+
+lib\features\settings\presentation\bloc\user_preferences_event.dart:15
+final String userId;
+
+lib\features\settings\presentation\bloc\user_preferences_event.dart:18
+List<Object?> get props => [userId];
+
+lib\features\settings\presentation\pages\backup_restore_page.dart:149
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\settings\presentation\pages\backup_restore_page.dart:222
+final user = sl<GetCurrentUserUseCase>()();
+
+lib\features\settings\presentation\pages\security_sessions_page.dart:16
+final userId = sl<GetCurrentUserUseCase>()()?.uid ?? '';
+
+lib\features\settings\presentation\pages\security_sessions_page.dart:19
+create: (_) => sl<SecurityBloc>()..add(LoadSecurityData(userId)),
+
+lib\features\settings\presentation\pages\security_sessions_page.dart:99
+userId: data.userId,
+
+lib\features\settings\presentation\pages\user_preferences_page.dart:17
+final userId = sl<GetCurrentUserUseCase>()()?.uid ?? '';
+
+lib\features\settings\presentation\pages\user_preferences_page.dart:21
+sl<UserPreferencesBloc>()..add(LoadUserPreferences(userId)),
+
+lib\features\settings\presentation\pages\user_preferences_page.dart:363
+userId: current.userId,
+
+lib\features\staff\data\models\staff_model.dart:18
+required super.isActive,
+
+lib\features\staff\data\models\staff_model.dart:41
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\staff\data\models\staff_model.dart:66
+isActive: entity.isActive,
+
+lib\features\staff\data\models\staff_model.dart:87
+'isActive': isActive,
+
+lib\features\staff\domain\entities\staff_entity.dart:18
+required this.isActive,
+
+lib\features\staff\domain\entities\staff_entity.dart:36
+final bool isActive;
+
+lib\features\staff\domain\entities\staff_entity.dart:56
+bool? isActive,
+
+lib\features\staff\domain\entities\staff_entity.dart:74
+isActive: isActive ?? this.isActive,
+
+lib\features\staff\domain\entities\staff_entity.dart:95
+isActive,
+
+lib\features\staff\domain\usecases\generate_staff_monthly_salaries.dart:102
+(staffMember.isActive || existingSalary != null);
+
+lib\features\staff\domain\usecases\toggle_staff_status.dart:11
+required bool isActive,
+
+lib\features\staff\domain\usecases\toggle_staff_status.dart:14
+isActive: isActive,
+
+lib\features\staff\presentation\bloc\staff_bloc.dart:132
+isActive: event.isActive,
+
+lib\features\staff\presentation\bloc\staff_bloc.dart:141
+successMessage: event.isActive
+
+lib\features\staff\presentation\bloc\staff_event.dart:46
+required this.isActive,
+
+lib\features\staff\presentation\bloc\staff_event.dart:50
+final bool isActive;
+
+lib\features\staff\presentation\bloc\staff_event.dart:53
+List<Object> get props => [staff, isActive];
+
+lib\features\staff\presentation\pages\add_staff_leave_page.dart:49
+.where((staffMember) => staffMember.isActive)
+
+lib\features\staff\presentation\pages\add_staff_page.dart:66
+isActive: data.isActive,
+
+lib\features\staff\presentation\pages\add_teacher_leave_page.dart:46
+final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
+
+lib\features\staff\presentation\pages\edit_staff_page.dart:61
+isActive: data.isActive,
+
+lib\features\staff\presentation\pages\edit_staff_page.dart:115
+isActive: widget.staff.isActive,
+
+lib\features\staff\presentation\pages\staff_attendance_page.dart:275
+.where((staff) => staff.isActive)
+
+lib\features\staff\presentation\pages\staff_details_page.dart:125
+icon: staff.isActive
+
+lib\features\staff\presentation\pages\staff_details_page.dart:129
+value: staff.isActive ? 'Active' : 'Inactive',
+
+lib\features\staff\presentation\pages\staff_details_page.dart:130
+valueColor: staff.isActive
+
+lib\features\staff\presentation\pages\staff_details_page.dart:281
+staff.isActive
+
+lib\features\staff\presentation\pages\staff_details_page.dart:286
+label: Text(staff.isActive ? 'Active' : 'Inactive'),
+
+lib\features\staff\presentation\pages\staff_list_page.dart:184
+bool isActive,
+
+lib\features\staff\presentation\pages\staff_list_page.dart:189
+isActive: isActive,
+
+lib\features\staff\presentation\pages\staff_list_page.dart:343
+onStatusChanged: (isActive) {
+
+lib\features\staff\presentation\pages\staff_list_page.dart:346
+isActive,
+
+lib\features\staff\presentation\pages\staff_monthly_attendance_page.dart:196
+.where((staffMember) => staffMember.isActive)
+
+lib\features\staff\presentation\pages\teacher_leave_history_page.dart:50
+final activeTeachers = teachers.where((teacher) => teacher.isActive).toList();
+
+lib\features\staff\presentation\services\staff_reports_pdf_service.dart:66
+if (!staffMember.isActive && staffRecords.isEmpty) {
+
+lib\features\staff\presentation\widgets\staff_form.dart:20
+required this.isActive,
+
+lib\features\staff\presentation\widgets\staff_form.dart:34
+final bool isActive;
+
+lib\features\staff\presentation\widgets\staff_form.dart:70
+bool _isActive = true;
+
+lib\features\staff\presentation\widgets\staff_form.dart:119
+_isActive = initialData?.isActive ?? true;
+
+lib\features\staff\presentation\widgets\staff_form.dart:257
+isActive: _isActive,
+
+lib\features\staff\presentation\widgets\staff_form.dart:479
+value: _isActive,
+
+lib\features\staff\presentation\widgets\staff_form.dart:484
+_isActive = value;
+
+lib\features\staff\presentation\widgets\staff_form.dart:489
+_isActive
+
+lib\features\staff\presentation\widgets\staff_form.dart:494
+_isActive
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:164
+_StatusLabel(isActive: staff.isActive),
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:171
+value: staff.isActive,
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:176
+staff.isActive
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:188
+_StatusLabel(isActive: staff.isActive),
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:192
+staff.isActive ? 'Active' : 'Inactive',
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:197
+value: staff.isActive,
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:300
+required this.isActive,
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:303
+final bool isActive;
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:308
+final backgroundColor = isActive
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:312
+isActive ? Colors.green.shade800 : theme.colorScheme.onErrorContainer;
+
+lib\features\staff\presentation\widgets\staff_list_item.dart:324
+isActive ? 'Active' : 'Inactive',
+
+lib\features\students\data\models\student_model.dart:31
+required super.isActive,
+
+lib\features\students\data\models\student_model.dart:64
+isActive: map['isActive'] ?? true,
+
+lib\features\students\data\models\student_model.dart:98
+'isActive': isActive,
+
+lib\features\students\data\models\student_model.dart:132
+isActive: entity.isActive,
+
+lib\features\students\data\repositories\student_repository_impl.dart:12
+required AuditService auditService,
+
+lib\features\students\data\repositories\student_repository_impl.dart:14
+_auditService = auditService;
+
+lib\features\students\data\repositories\student_repository_impl.dart:17
+final AuditService _auditService;
+
+lib\features\students\data\repositories\student_repository_impl.dart:46
+await _auditService.logCreate(
+
+lib\features\students\data\repositories\student_repository_impl.dart:61
+await _auditService.logUpdate(
+
+lib\features\students\data\repositories\student_repository_impl.dart:78
+await _auditService.logDelete(
+
+lib\features\students\data\repositories\student_repository_impl.dart:108
+await _auditService.logUpdate(
+
+lib\features\students\domain\entities\student_entity.dart:35
+final bool isActive;
+
+lib\features\students\domain\entities\student_entity.dart:67
+required this.isActive,
+
+lib\features\students\domain\entities\student_entity.dart:101
+bool? isActive,
+
+lib\features\students\domain\entities\student_entity.dart:132
+isActive: isActive ?? this.isActive,
+
+lib\features\students\presentation\pages\add_student_page.dart:92
+.where((value) => value.isActive)
+
+lib\features\students\presentation\pages\add_student_page.dart:109
+.where((value) => value.isActive && value.classId == academicClass!.id)
+
+lib\features\students\presentation\pages\add_student_page.dart:231
+_academicClasses.where((item) => item.isActive).toList()
+
+lib\features\students\presentation\pages\add_student_page.dart:503
+isActive: widget.isEdit ? widget.student!.isActive : true,
+
+lib\features\students\presentation\pages\student_details_page.dart:554
+_StatusChip(active: student.isActive),
+
+lib\features\students\presentation\pages\students_page.dart:126
+student.isActive == _selectedActiveStatus);
+
+lib\features\students\presentation\pages\students_page.dart:431
+UpdateStudentEvent(student.copyWith(isActive: !student.isActive)),
+
+lib\features\students\presentation\pages\students_page.dart:442
+final active = students.where((student) => student.isActive).length;
+
+lib\features\students\presentation\pages\students_page.dart:743
+item.isActive &&
+
+lib\features\students\presentation\pages\students_page.dart:853
+.where((item) => item.isActive)
+
+lib\features\students\presentation\pages\students_page.dart:1098
+DataCell(_StatusChip(active: student.isActive)),
+
+lib\features\students\presentation\pages\students_page.dart:1134
+icon: student.isActive
+
+lib\features\students\presentation\pages\students_page.dart:1137
+label: student.isActive
+
+lib\features\students\presentation\pages\students_page.dart:1140
+color: student.isActive
+
+lib\features\teacher_portal\data\repositories\teacher_duty_repository.dart:94
+return emailMatches && dateMatches && item.isActive;
+
+lib\features\teacher_portal\data\repositories\teacher_duty_repository.dart:114
+'isActive': duty.isActive,
+
+lib\features\teacher_portal\data\repositories\teacher_duty_repository.dart:121
+'isActive': false,
+
+lib\features\teacher_portal\data\repositories\teacher_duty_repository.dart:161
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\teacher_portal\domain\entities\teacher_duty_entities.dart:52
+required this.isActive,
+
+lib\features\teacher_portal\domain\entities\teacher_duty_entities.dart:66
+final bool isActive;
+
+lib\features\teacher_portal\domain\entities\teacher_duty_entities.dart:81
+isActive,
+
+lib\features\teacher_portal\presentation\pages\substitute_duty_management_page.dart:364
+isActive: true,
+
+lib\features\teachers\data\models\teacher_model.dart:21
+required super.isActive,
+
+lib\features\teachers\data\models\teacher_model.dart:43
+isActive: map['isActive'] ?? true,
+
+lib\features\teachers\data\models\teacher_model.dart:65
+isActive: entity.isActive,
+
+lib\features\teachers\data\models\teacher_model.dart:87
+'isActive': isActive,
+
+lib\features\teachers\domain\entities\teacher_entity.dart:21
+required this.isActive,
+
+lib\features\teachers\domain\entities\teacher_entity.dart:42
+final bool isActive;
+
+lib\features\teachers\domain\entities\teacher_entity.dart:66
+isActive,
+
+lib\features\teachers\presentation\pages\teacher_assignments_page.dart:66
+.where((item) => item.isActive)
+
+lib\features\teachers\presentation\pages\teacher_assignments_page.dart:71
+.where((item) => item.isActive)
+
+lib\features\teachers\presentation\pages\teacher_assignments_page.dart:76
+.where((item) => item.isActive)
+
+lib\features\teachers\presentation\pages\teacher_assignments_page.dart:81
+.where((item) => item.isActive)
+
+lib\features\teachers\presentation\pages\teachers_page.dart:31
+final text = [teacher.employeeId, teacher.fullName, teacher.phone, teacher.email, teacher.gender, teacher.address, teacher.designation, teacher.qualification, teacher.specialization, teacher.isActive ? 'active' : 'inactive'].join(' ').toLowerCase();
+
+lib\features\teachers\presentation\pages\teachers_page.dart:32
+return (_search.isEmpty || text.contains(_search)) && (_designation == null || teacher.designation == _designation) && (_active == null || teacher.isActive == _active);
+
+lib\features\teachers\presentation\pages\teachers_page.dart:81
+Expanded(child: Card(child: teachers.isEmpty ? const Center(child: Text('No teachers found.')) : ListView.separated(itemCount: teachers.length, separatorBuilder: (_, _) => const Divider(height: 1), itemBuilder: (context, index) { final teacher = teachers[index]; return ListTile(leading: CircleAvatar(child: Text(teacher.firstName.isEmpty ? '?' : teacher.firstName[0].toUpperCase())), title: Text(teacher.fullName), subtitle: Text('${teacher.employeeId} • ${teacher.designation}${teacher.specialization.isEmpty ? '' : ' • ${teacher.specialization}'}'), trailing: Row(mainAxisSize: MainAxisSize.min, children: [_TeacherStatus(active: teacher.isActive), IconButton(icon: const Icon(Icons.edit), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<TeacherBloc>(), child: UpsertTeacherPage(teacher: teacher)))))])); }))),
+
+lib\features\teachers\presentation\pages\upsert_teacher_page.dart:63
+_active = teacher?.isActive ?? true;
+
+lib\features\teachers\presentation\pages\upsert_teacher_page.dart:111
+isActive: _active,
+
+lib\features\timetable\data\models\teacher_availability_model.dart:16
+required super.isActive,
+
+lib\features\timetable\data\models\teacher_availability_model.dart:34
+isActive: entity.isActive,
+
+lib\features\timetable\data\models\teacher_availability_model.dart:64
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\timetable\data\models\teacher_availability_model.dart:81
+'isActive': isActive,
+
+lib\features\timetable\data\models\timetable_configuration_model.dart:14
+required super.isActive,
+
+lib\features\timetable\data\models\timetable_configuration_model.dart:40
+isActive: map['isActive'] as bool? ?? true,
+
+lib\features\timetable\data\models\timetable_configuration_model.dart:59
+isActive: value.isActive,
+
+lib\features\timetable\data\models\timetable_configuration_model.dart:75
+'isActive': isActive,
+
+lib\features\timetable\domain\entities\teacher_availability_entity.dart:26
+required this.isActive,
+
+lib\features\timetable\domain\entities\teacher_availability_entity.dart:43
+final bool isActive;
+
+lib\features\timetable\domain\entities\teacher_availability_entity.dart:53
+if (!isActive) return true;
+
+lib\features\timetable\domain\entities\teacher_availability_entity.dart:80
+isActive,
+
+lib\features\timetable\domain\entities\timetable_configuration_entity.dart:14
+required this.isActive,
+
+lib\features\timetable\domain\entities\timetable_configuration_entity.dart:33
+final bool isActive;
+
+lib\features\timetable\domain\entities\timetable_configuration_entity.dart:126
+bool? isActive,
+
+lib\features\timetable\domain\entities\timetable_configuration_entity.dart:138
+isActive: isActive ?? this.isActive,
+
+lib\features\timetable\domain\entities\timetable_configuration_entity.dart:153
+isActive,
+
+lib\features\timetable\domain\usecases\generate_auto_timetable.dart:52
+.where((item) => item.isActive)
+
+lib\features\timetable\domain\usecases\generate_auto_timetable.dart:55
+.where((item) => item.isActive)
+
+lib\features\timetable\domain\usecases\generate_auto_timetable.dart:58
+.where((item) => item.isActive)
+
+lib\features\timetable\domain\usecases\get_teacher_workloads.dart:57
+.where((teacher) => teacher.isActive)
+
+lib\features\timetable\presentation\pages\class_timetable_page.dart:106
+.where((value) => value.isActive)
+
+lib\features\timetable\presentation\pages\class_timetable_page.dart:111
+.where((value) => value.isActive)
+
+lib\features\timetable\presentation\pages\class_timetable_page.dart:116
+.where((value) => value.isActive)
+
+lib\features\timetable\presentation\pages\manual_timetable_editor_page.dart:108
+.where((item) => item.isActive)
+
+lib\features\timetable\presentation\pages\manual_timetable_editor_page.dart:113
+.where((item) => item.isActive)
+
+lib\features\timetable\presentation\pages\manual_timetable_editor_page.dart:118
+.where((item) => item.isActive)
+
+lib\features\timetable\presentation\pages\teacher_availability_page.dart:79
+.where((item) => item.isActive)
+
+lib\features\timetable\presentation\pages\teacher_availability_page.dart:583
+isActive: true,
+
+lib\features\timetable\presentation\pages\teacher_timetable_page.dart:94
+.where((teacher) => teacher.isActive)
+
+lib\features\timetable\presentation\pages\timetable_configuration_page.dart:204
+isActive: existing?.isActive ?? true,
+
+lib\features\timetable\presentation\pages\timetable_reports_page.dart:89
+.where((value) => value.isActive)
+
+lib\features\timetable\presentation\pages\timetable_reports_page.dart:94
+.where((value) => value.isActive)
+
+lib\features\timetable\presentation\pages\timetable_reports_page.dart:99
+.where((value) => value.isActive)
+
+
+=== FULL PARENT ACCOUNT FILES ===
+----- FILE: lib\features\parent_portal\data\models\parent_account_model.dart -----
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../domain/entities/parent_account_entity.dart';
+
+class ParentAccountModel extends ParentAccountEntity {
+  ParentAccountModel({
+    required super.id,
+    required super.fullName,
+    required super.mobileNumber,
+    super.whatsappNumber,
+    required super.email,
+    required super.relationship,
+    required super.studentIds,
+    required super.isActive,
+    required super.createdAt,
+    required super.updatedAt,
+  });
+
+  factory ParentAccountModel.fromEntity(ParentAccountEntity value) {
+    return ParentAccountModel(
+      id: value.id,
+      fullName: value.fullName,
+      mobileNumber: value.mobileNumber,
+      whatsappNumber: value.whatsappNumber,
+      email: value.email,
+      relationship: value.relationship,
+      studentIds: value.studentIds,
+      isActive: value.isActive,
+      createdAt: value.createdAt,
+      updatedAt: value.updatedAt,
+    );
+  }
+
+  factory ParentAccountModel.fromMap(Map<String, dynamic> map) {
+    return ParentAccountModel(
+      id: map['id'] as String? ?? '',
+      fullName: map['fullName'] as String? ?? '',
+      mobileNumber: map['mobileNumber'] as String? ?? '',
+      whatsappNumber:
+          map['whatsappNumber'] as String? ??
+          map['mobileNumber'] as String? ??
+          '',
+      email: map['email'] as String? ?? '',
+      relationship: map['relationship'] as String? ?? 'Guardian',
+      studentIds: (map['studentIds'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      isActive: map['isActive'] as bool? ?? true,
+      createdAt: _date(map['createdAt']),
+      updatedAt: _date(map['updatedAt']),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'fullName': fullName,
+    'mobileNumber': mobileNumber,
+    'whatsappNumber': whatsappNumber,
+    'email': email,
+    'relationship': relationship,
+    'studentIds': studentIds,
+    'isActive': isActive,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'updatedAt': Timestamp.fromDate(updatedAt),
+  };
+
+  static DateTime _date(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+}
+
+----- END FILE: lib\features\parent_portal\data\models\parent_account_model.dart -----
+----- FILE: lib\features\parent_portal\domain\entities\parent_account_entity.dart -----
+import 'package:equatable/equatable.dart';
+
+class ParentAccountEntity extends Equatable {
+  ParentAccountEntity({
+    required this.id,
+    required this.fullName,
+    required this.mobileNumber,
+    this.whatsappNumber = '',
+    required this.email,
+    required this.relationship,
+    required List<String> studentIds,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+  }) : studentIds = List<String>.unmodifiable(studentIds);
+
+  final String id;
+  final String fullName;
+  final String mobileNumber;
+  final String whatsappNumber;
+  final String email;
+  final String relationship;
+  final List<String> studentIds;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  ParentAccountEntity copyWith({
+    String? fullName,
+    String? mobileNumber,
+    String? whatsappNumber,
+    String? email,
+    String? relationship,
+    List<String>? studentIds,
+    bool? isActive,
+    DateTime? updatedAt,
+  }) {
+    return ParentAccountEntity(
+      id: id,
+      fullName: fullName ?? this.fullName,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
+      email: email ?? this.email,
+      relationship: relationship ?? this.relationship,
+      studentIds: studentIds ?? this.studentIds,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  List<Object> get props => [
+    id,
+    fullName,
+    mobileNumber,
+    whatsappNumber,
+    email,
+    relationship,
+    studentIds,
+    isActive,
+    updatedAt,
+  ];
+}
+
+----- END FILE: lib\features\parent_portal\domain\entities\parent_account_entity.dart -----
+----- FILE: lib\features\parent_portal\presentation\pages\parent_account_form_page.dart -----
+import 'package:flutter/material.dart';
+import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
+import 'package:almustafa_connect_erp/core/contact/contact_number_helper.dart';
+import 'package:almustafa_connect_erp/core/widgets/contact_info_field.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../../students/domain/entities/student_entity.dart';
+import '../../domain/entities/parent_account_entity.dart';
+import '../../domain/repositories/parent_portal_repository.dart';
+
+class ParentAccountFormPage extends StatefulWidget {
+  const ParentAccountFormPage({super.key, this.existing});
+
+  final ParentAccountEntity? existing;
+
+  @override
+  State<ParentAccountFormPage> createState() => _ParentAccountFormPageState();
+}
+
+class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _name;
+  late final TextEditingController _mobile;
+  late final TextEditingController _whatsapp;
+  late final TextEditingController _email;
+  late final TextEditingController _relationship;
+
+  List<StudentEntity> _matchedStudents = const [];
+  final Set<String> _selectedStudentIds = {};
+  bool _searching = false;
+  bool _sameAsMobile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _name = TextEditingController(text: existing?.fullName ?? '');
+    _mobile = TextEditingController(text: existing?.mobileNumber ?? '');
+    _whatsapp = TextEditingController(
+      text: existing?.whatsappNumber ?? existing?.mobileNumber ?? '',
+    );
+    _sameAsMobile =
+        existing == null ||
+        ContactNumberHelper.areSameNumbers(_mobile.text, _whatsapp.text);
+    _email = TextEditingController(text: existing?.email ?? '');
+    _relationship = TextEditingController(
+      text: existing?.relationship ?? 'Guardian',
+    );
+    _selectedStudentIds.addAll(existing?.studentIds ?? const []);
+    if (existing != null) {
+      _loadExistingStudents(existing);
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _mobile.dispose();
+    _whatsapp.dispose();
+    _email.dispose();
+    _relationship.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadExistingStudents(ParentAccountEntity parent) async {
+    setState(() => _searching = true);
+    try {
+      final values = await sl<ParentPortalRepository>().getLinkedStudents(
+        parent,
+      );
+      if (!mounted) return;
+      setState(() => _matchedStudents = values);
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  Future<void> _findStudents() async {
+    if (_mobile.text.trim().isEmpty && _email.text.trim().isEmpty) {
+      _show('Enter mobile number or email address.');
+      return;
+    }
+
+    setState(() => _searching = true);
+
+    try {
+      final values = await sl<ParentPortalRepository>().findStudentsByGuardian(
+        mobileNumber: _mobile.text,
+        email: _email.text,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _matchedStudents = values;
+        if (values.length == 1) {
+          _selectedStudentIds.add(values.first.id);
+        }
+      });
+
+      if (values.isEmpty) {
+        _show('No active student found with this guardian phone/email.');
+      }
+    } catch (error) {
+      _show(error.toString());
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedStudentIds.isEmpty) {
+      _show('Select at least one student.');
+      return;
+    }
+
+    final old = widget.existing;
+    final now = DateTime.now();
+
+    Navigator.pop(
+      context,
+      ParentAccountEntity(
+        id: old?.id ?? sl<ParentPortalRepository>().generateId(),
+        fullName: _name.text.trim(),
+        mobileNumber: _mobile.text.trim(),
+        whatsappNumber: _whatsapp.text.trim(),
+        email: _email.text.trim(),
+        relationship: _relationship.text.trim(),
+        studentIds: _selectedStudentIds.toList(),
+        isActive: old?.isActive ?? true,
+        createdAt: old?.createdAt ?? now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  void _show(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: Text(
+          widget.existing == null
+              ? 'Create Parent Account'
+              : 'Edit Parent Account',
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            TextFormField(
+              controller: _name,
+              decoration: const InputDecoration(
+                labelText: 'Parent / Guardian Name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Name is required'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            ContactInfoField(
+              mobileController: _mobile,
+              whatsappController: _whatsapp,
+              sameAsMobile: _sameAsMobile,
+              onSameAsMobileChanged: (value) =>
+                  setState(() => _sameAsMobile = value),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: 300,
+                  child: TextFormField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email Address',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 220,
+                  child: TextFormField(
+                    controller: _relationship,
+                    decoration: const InputDecoration(
+                      labelText: 'Relationship',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: _searching ? null : _findStudents,
+                icon: _searching
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.person_search),
+                label: const Text('Find Linked Students'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_matchedStudents.isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Linked Children',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final student in _matchedStudents)
+                        CheckboxListTile(
+                          value: _selectedStudentIds.contains(student.id),
+                          title: Text(student.fullName),
+                          subtitle: Row(
+                            children: [
+                              Text('${student.admissionNo} • '),
+                              Expanded(
+                                child: AcademicReferenceLabel(
+                                  classReference: student.classId,
+                                  sectionReference: student.sectionId,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onChanged: (selected) {
+                            setState(() {
+                              if (selected ?? false) {
+                                _selectedStudentIds.add(student.id);
+                              } else {
+                                _selectedStudentIds.remove(student.id);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save),
+                label: const Text('Save Parent Account'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+----- END FILE: lib\features\parent_portal\presentation\pages\parent_account_form_page.dart -----

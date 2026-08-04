@@ -8,10 +8,9 @@ import '../models/student_model.dart';
 
 class StudentRepositoryImpl implements StudentRepository {
   StudentRepositoryImpl({
-    required StudentRemoteDataSource remoteDataSource,
-    required AuditService auditService,
-  }) : _remoteDataSource = remoteDataSource,
-       _auditService = auditService;
+    required this._remoteDataSource,
+    required this._auditService,
+  });
 
   final StudentRemoteDataSource _remoteDataSource;
   final AuditService _auditService;

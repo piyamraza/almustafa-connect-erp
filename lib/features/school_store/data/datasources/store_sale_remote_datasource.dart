@@ -19,19 +19,36 @@ class StoreSaleRemoteDataSourceImpl implements StoreSaleRemoteDataSource {
 
   @override
   Future<List<StoreStudentOptionEntity>> getStudents() async {
-    final snapshot = await _service.collection(FirestorePaths.students).get();
+    final response = await Future.wait([
+      _service.collection(FirestorePaths.students).get(),
+      _service.collection(FirestorePaths.classes).get(),
+    ]);
+    final snapshot = response[0];
+    final classSnapshot = response[1];
+    final classNames = <String, String>{};
+    for (final doc in classSnapshot.docs) {
+      final map = doc.data();
+      final name = map['name'] as String? ?? '';
+      classNames[doc.id] = name;
+      final storedId = map['id'] as String? ?? '';
+      if (storedId.isNotEmpty) classNames[storedId] = name;
+    }
 
     final students = snapshot.docs.map((doc) {
       final map = doc.data();
       final firstName = map['firstName'] as String? ?? '';
       final lastName = map['lastName'] as String? ?? '';
       final name = '$firstName $lastName'.trim();
+      final classId = map['classId'] as String? ?? '';
 
       return StoreStudentOptionEntity(
         id: doc.id,
         admissionNo: map['admissionNo'] as String? ?? '',
         name: name.isEmpty ? 'Unnamed Student' : name,
-        classId: map['classId'] as String? ?? '',
+        fatherName: map['fatherName'] as String? ?? '',
+        rollNumber: map['rollNumber'] as String? ?? '',
+        classId: classId,
+        className: classNames[classId] ?? classId,
         sectionId: map['sectionId'] as String? ?? '',
       );
     }).toList();

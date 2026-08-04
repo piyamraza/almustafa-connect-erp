@@ -6,10 +6,9 @@ import '../models/attendance_model.dart';
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
   AttendanceRepositoryImpl({
-    required AttendanceRemoteDataSource remoteDataSource,
-    required AuditService auditService,
-  }) : _remoteDataSource = remoteDataSource,
-       _auditService = auditService;
+    required this._remoteDataSource,
+    required this._auditService,
+  });
 
   final AttendanceRemoteDataSource _remoteDataSource;
   final AuditService _auditService;

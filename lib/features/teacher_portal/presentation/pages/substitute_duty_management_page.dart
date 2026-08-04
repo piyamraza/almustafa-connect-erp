@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/di/service_locator.dart';
+import '../../../teachers/domain/entities/teacher_entity.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../../data/repositories/teacher_duty_repository.dart';
 import '../../domain/entities/teacher_duty_entities.dart';
 
-class SubstituteDutyManagementPage
-    extends StatefulWidget {
+class SubstituteDutyManagementPage extends StatefulWidget {
   const SubstituteDutyManagementPage({super.key});
 
   @override
@@ -14,8 +16,7 @@ class SubstituteDutyManagementPage
 
 class _SubstituteDutyManagementPageState
     extends State<SubstituteDutyManagementPage> {
-  final TeacherDutyRepository _repository =
-      TeacherDutyRepository();
+  final TeacherDutyRepository _repository = TeacherDutyRepository();
 
   late Future<_AdminDutyData> _future;
 
@@ -32,8 +33,7 @@ class _SubstituteDutyManagementPageState
     ]);
 
     return _AdminDutyData(
-      leaves:
-          values[0] as List<TeacherLeaveRequestEntity>,
+      leaves: values[0] as List<TeacherLeaveRequestEntity>,
       duties: values[1] as List<SubstituteDutyEntity>,
     );
   }
@@ -46,8 +46,7 @@ class _SubstituteDutyManagementPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: const Text('Substitute Duties')),
+      appBar: AppBar(title: const Text('Substitute Duties')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignDialog,
         icon: const Icon(Icons.add),
@@ -57,9 +56,7 @@ class _SubstituteDutyManagementPageState
         future: _future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!;
@@ -67,21 +64,16 @@ class _SubstituteDutyManagementPageState
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 Text(
                   'Leave Requests',
-                  style:
-                      Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 if (data.leaves.isEmpty)
                   const Card(
-                    child: ListTile(
-                      title:
-                          Text('No leave requests found.'),
-                    ),
+                    child: ListTile(title: Text('No leave requests found.')),
                   ),
                 ...data.leaves.map(
                   (leave) => Card(
@@ -93,65 +85,48 @@ class _SubstituteDutyManagementPageState
                         '${leave.reason}',
                       ),
                       isThreeLine: true,
-                      trailing: leave.status ==
-                              TeacherLeaveStatus.pending
+                      trailing: leave.status == TeacherLeaveStatus.pending
                           ? Wrap(
                               spacing: 4,
                               children: [
                                 IconButton(
                                   tooltip: 'Approve',
                                   onPressed: () async {
-                                    await _repository
-                                        .updateLeaveStatus(
+                                    await _repository.updateLeaveStatus(
                                       id: leave.id,
-                                      status:
-                                          TeacherLeaveStatus
-                                              .approved,
+                                      status: TeacherLeaveStatus.approved,
                                     );
                                     await _refresh();
                                   },
-                                  icon: const Icon(
-                                    Icons.check_circle_outline,
-                                  ),
+                                  icon: const Icon(Icons.check_circle_outline),
                                 ),
                                 IconButton(
                                   tooltip: 'Reject',
                                   onPressed: () async {
-                                    await _repository
-                                        .updateLeaveStatus(
+                                    await _repository.updateLeaveStatus(
                                       id: leave.id,
-                                      status:
-                                          TeacherLeaveStatus
-                                              .rejected,
+                                      status: TeacherLeaveStatus.rejected,
                                     );
                                     await _refresh();
                                   },
-                                  icon: const Icon(
-                                    Icons.cancel_outlined,
-                                  ),
+                                  icon: const Icon(Icons.cancel_outlined),
                                 ),
                               ],
                             )
-                          : Chip(
-                              label:
-                                  Text(leave.status.name),
-                            ),
+                          : Chip(label: Text(leave.status.name)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'Assigned Substitute Duties',
-                  style:
-                      Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 if (data.duties.isEmpty)
                   const Card(
                     child: ListTile(
-                      title: Text(
-                        'No substitute duties assigned.',
-                      ),
+                      title: Text('No substitute duties assigned.'),
                     ),
                   ),
                 ...data.duties.map(
@@ -174,13 +149,10 @@ class _SubstituteDutyManagementPageState
                       trailing: IconButton(
                         tooltip: 'Cancel Duty',
                         onPressed: () async {
-                          await _repository
-                              .cancelDuty(duty.id);
+                          await _repository.cancelDuty(duty.id);
                           await _refresh();
                         },
-                        icon: const Icon(
-                          Icons.delete_outline,
-                        ),
+                        icon: const Icon(Icons.delete_outline),
                       ),
                     ),
                   ),
@@ -194,26 +166,40 @@ class _SubstituteDutyManagementPageState
   }
 
   Future<void> _showAssignDialog() async {
-    final originalController =
-        TextEditingController();
-    final substituteController =
-        TextEditingController();
-    final periodController =
-        TextEditingController();
+    List<TeacherEntity> teachers;
+    try {
+      teachers = await sl<TeacherRepository>().getTeachers();
+      teachers = teachers.where((teacher) => teacher.isActive).toList()
+        ..sort(
+          (first, second) => first.fullName.toLowerCase().compareTo(
+            second.fullName.toLowerCase(),
+          ),
+        );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Teachers could not be loaded: $error')),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    final originalController = TextEditingController();
+    final substituteController = TextEditingController();
+    final periodController = TextEditingController();
     final classController = TextEditingController();
-    final sectionController =
-        TextEditingController();
-    final subjectController =
-        TextEditingController();
+    final sectionController = TextEditingController();
+    final subjectController = TextEditingController();
     final roomController = TextEditingController();
     final notesController = TextEditingController();
+    TeacherEntity? originalTeacher;
+    TeacherEntity? substituteTeacher;
     var date = DateTime.now();
 
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) =>
-            AlertDialog(
+        builder: (context, setDialogState) => AlertDialog(
           title: const Text('Assign Substitute Duty'),
           content: SizedBox(
             width: 560,
@@ -223,75 +209,94 @@ class _SubstituteDutyManagementPageState
                 children: [
                   TextField(
                     controller: originalController,
+                    readOnly: true,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Absent Teacher Email',
+                      labelText: 'Absent Teacher',
+                      suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
+                    onTap: () async {
+                      final selected = await _selectTeacher(
+                        dialogContext,
+                        teachers,
+                        title: 'Select Absent Teacher',
+                        selected: originalTeacher,
+                      );
+                      if (selected != null) {
+                        setDialogState(() {
+                          originalTeacher = selected;
+                          originalController.text = selected.fullName;
+                          if (substituteTeacher?.id == selected.id) {
+                            substituteTeacher = null;
+                            substituteController.clear();
+                          }
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 10),
                   TextField(
-                    controller:
-                        substituteController,
+                    controller: substituteController,
+                    readOnly: true,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Substitute Teacher Email',
+                      labelText: 'Substitute Teacher',
+                      suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
+                    onTap: () async {
+                      final selected = await _selectTeacher(
+                        dialogContext,
+                        teachers,
+                        title: 'Select Substitute Teacher',
+                        selected: substituteTeacher,
+                        excludedTeacherId: originalTeacher?.id,
+                      );
+                      if (selected != null) {
+                        setDialogState(() {
+                          substituteTeacher = selected;
+                          substituteController.text = selected.fullName;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 10),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Duty Date'),
                     subtitle: Text(_date(date)),
-                    trailing: const Icon(
-                      Icons.calendar_today,
-                    ),
+                    trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
-                      final selected =
-                          await showDatePicker(
+                      final selected = await showDatePicker(
                         context: context,
-                        firstDate: DateTime.now()
-                            .subtract(
+                        firstDate: DateTime.now().subtract(
                           const Duration(days: 30),
                         ),
-                        lastDate: DateTime.now().add(
-                          const Duration(days: 365),
-                        ),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
                         initialDate: date,
                       );
                       if (selected != null) {
-                        setDialogState(
-                          () => date = selected,
-                        );
+                        setDialogState(() => date = selected);
                       }
                     },
                   ),
                   TextField(
                     controller: periodController,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Period / Time',
+                      labelText: 'Period / Time',
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: classController,
-                    decoration: const InputDecoration(
-                      labelText: 'Class',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Class'),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: sectionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Section',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Section'),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: subjectController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subject',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Subject'),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -314,13 +319,11 @@ class _SubstituteDutyManagementPageState
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Assign'),
             ),
           ],
@@ -329,15 +332,15 @@ class _SubstituteDutyManagementPageState
     );
 
     if (save == true && mounted) {
-      if (originalController.text.trim().isEmpty ||
-          substituteController.text.trim().isEmpty ||
+      if (originalTeacher == null ||
+          substituteTeacher == null ||
           periodController.text.trim().isEmpty ||
           classController.text.trim().isEmpty ||
           subjectController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Teacher emails, period, class and subject are required.',
+              'Absent teacher, substitute teacher, period, class and subject are required.',
             ),
           ),
         );
@@ -347,18 +350,13 @@ class _SubstituteDutyManagementPageState
         await _repository.assignDuty(
           SubstituteDutyEntity(
             id: 'duty_${now.microsecondsSinceEpoch}',
-            originalTeacherEmail:
-                originalController.text.trim(),
-            substituteTeacherEmail:
-                substituteController.text.trim(),
+            originalTeacherEmail: _teacherIdentifier(originalTeacher!),
+            substituteTeacherEmail: _teacherIdentifier(substituteTeacher!),
             dutyDate: date,
-            periodLabel:
-                periodController.text.trim(),
+            periodLabel: periodController.text.trim(),
             className: classController.text.trim(),
-            sectionName:
-                sectionController.text.trim(),
-            subjectName:
-                subjectController.text.trim(),
+            sectionName: sectionController.text.trim(),
+            subjectName: subjectController.text.trim(),
             room: roomController.text.trim(),
             notes: notesController.text.trim(),
             isActive: true,
@@ -380,6 +378,94 @@ class _SubstituteDutyManagementPageState
     notesController.dispose();
   }
 
+  Future<TeacherEntity?> _selectTeacher(
+    BuildContext context,
+    List<TeacherEntity> teachers, {
+    required String title,
+    TeacherEntity? selected,
+    String? excludedTeacherId,
+  }) {
+    final searchController = TextEditingController();
+    var query = '';
+    return showDialog<TeacherEntity>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final filtered = teachers
+              .where((teacher) {
+                if (teacher.id == excludedTeacherId) return false;
+                final searchText = [
+                  teacher.fullName,
+                  teacher.employeeId,
+                  teacher.email,
+                  teacher.designation,
+                ].join(' ').toLowerCase();
+                return searchText.contains(query.trim().toLowerCase());
+              })
+              .toList(growable: false);
+
+          return AlertDialog(
+            title: Text(title),
+            content: SizedBox(
+              width: 480,
+              height: 460,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Search teacher by name',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => setDialogState(() => query = value),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('No teacher found.'))
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final teacher = filtered[index];
+                              return ListTile(
+                                selected: teacher.id == selected?.id,
+                                leading: const CircleAvatar(
+                                  child: Icon(Icons.person_outline),
+                                ),
+                                title: Text(teacher.fullName),
+                                subtitle: Text(
+                                  teacher.email.trim().isNotEmpty
+                                      ? '${teacher.employeeId} • ${teacher.email}'
+                                      : '${teacher.employeeId} • Email missing',
+                                ),
+                                onTap: () =>
+                                    Navigator.pop(dialogContext, teacher),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    ).whenComplete(searchController.dispose);
+  }
+
+  static String _teacherIdentifier(TeacherEntity teacher) {
+    final email = teacher.email.trim();
+    return email.isNotEmpty ? email : teacher.id;
+  }
+
   static String _date(DateTime value) {
     return '${value.day.toString().padLeft(2, '0')}-'
         '${value.month.toString().padLeft(2, '0')}-'
@@ -388,10 +474,7 @@ class _SubstituteDutyManagementPageState
 }
 
 class _AdminDutyData {
-  const _AdminDutyData({
-    required this.leaves,
-    required this.duties,
-  });
+  const _AdminDutyData({required this.leaves, required this.duties});
 
   final List<TeacherLeaveRequestEntity> leaves;
   final List<SubstituteDutyEntity> duties;
