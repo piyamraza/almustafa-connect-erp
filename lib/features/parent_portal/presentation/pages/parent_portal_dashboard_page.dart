@@ -14,6 +14,7 @@ import 'parent_attendance_page.dart';
 import 'parent_homework_page.dart';
 import 'parent_results_page.dart';
 import 'parent_fee_page.dart';
+import 'parent_chat_page.dart';
 
 import 'parent_communication_dashboard_page.dart';
 
@@ -403,6 +404,7 @@ class _PortalModulesGrid extends StatelessWidget {
       ('Fee Status', Icons.payments_outlined),
       ('Academic Calendar', Icons.event_outlined),
       ('Notices', Icons.campaign_outlined),
+      ('Messages', Icons.chat_bubble_outline),
       ('Teacher Remarks', Icons.comment_outlined),
       ('Timeline', Icons.timeline),
       ('Medical Alert', Icons.medical_information_outlined),
@@ -490,6 +492,16 @@ class _PortalModulesGrid extends StatelessWidget {
                       ),
                     );
 
+                    return;
+                  }
+
+                  if (module.$1 == 'Messages') {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            ParentChatPage(parent: parent, student: student),
+                      ),
+                    );
                     return;
                   }
 
