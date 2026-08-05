@@ -4,6 +4,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../access_control/domain/entities/app_permission.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../access_control/presentation/pages/roles_permissions_page.dart';
+import '../../../../core/audit/presentation/pages/audit_logs_page.dart';
 import '../../../access_control/presentation/pages/unauthorized_access_page.dart';
 import '../../../authentication/domain/usecases/logout_usecase.dart';
 import '../../../authentication/presentation/pages/login_page.dart';
@@ -512,6 +513,18 @@ class _SidebarState extends State<Sidebar> {
                           permission: AppPermission.rolesManage,
                           moduleName: 'Roles & Permissions',
                           page: const RolesPermissionsPage(),
+                        ),
+                      ),
+                    if (_access.hasPermission(AppPermission.auditLogsView))
+                      _menuTile(
+                        context,
+                        icon: Icons.history_outlined,
+                        title: 'Audit Logs',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.auditLogsView,
+                          moduleName: 'Audit Logs',
+                          page: const AuditLogsPage(),
                         ),
                       ),
                     if (_access.hasPermission(AppPermission.settingsView))
