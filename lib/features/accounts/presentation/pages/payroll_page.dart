@@ -93,7 +93,7 @@ class _PayrollViewState extends State<_PayrollView> {
                         );
                       },
                       icon: const Icon(Icons.account_balance_wallet_outlined),
-                      label: const Text('Advances & Loans'),
+                      label: const Text('Employee Finance'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _pickMonth(context),
@@ -140,9 +140,10 @@ class _PayrollViewState extends State<_PayrollView> {
                               ),
                               title: Text(record.employeeName),
                               subtitle: Text(
-                                '${record.paymentStatus.name.toUpperCase()} • '
-                                'Gross Rs. ${record.grossSalary}',
+                                '${record.paymentStatus.name.toUpperCase()} • Gross Rs. ${record.grossSalary}\n'
+                                'Advance Rs. ${record.advanceDeduction} • Loan Rs. ${record.loanDeduction} • Bonus/Additions Rs. ${record.bonus}',
                               ),
+                              isThreeLine: true,
                               trailing: Wrap(
                                 spacing: 8,
                                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -157,6 +158,10 @@ class _PayrollViewState extends State<_PayrollView> {
                                     onSelected: (value) =>
                                         _handleAction(context, record, value),
                                     itemBuilder: (_) => [
+                                      const PopupMenuItem(
+                                        value: 'details',
+                                        child: Text('View Details'),
+                                      ),
                                       if (record.paymentStatus ==
                                           PayrollPaymentStatus.generated)
                                         const PopupMenuItem(
@@ -390,6 +395,11 @@ class _PayrollViewState extends State<_PayrollView> {
     PayrollRecordEntity record,
     String action,
   ) async {
+    if (action == 'details') {
+      await _showPayrollDetails(context, record);
+      return;
+    }
+
     final user = sl<GetCurrentUserUseCase>()();
     if (action == 'approve') {
       context.read<PayrollBloc>().add(
@@ -456,10 +466,6 @@ class _PayrollViewState extends State<_PayrollView> {
       final absence = TextEditingController(
         text: record.absenceDeduction.toString(),
       );
-      final advance = TextEditingController(
-        text: record.advanceDeduction.toString(),
-      );
-      final loan = TextEditingController(text: record.loanDeduction.toString());
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -479,17 +485,24 @@ class _PayrollViewState extends State<_PayrollView> {
                   labelText: 'Absence Deduction',
                 ),
               ),
-              TextField(
-                controller: advance,
-                keyboardType: TextInputType.number,
+              InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Advance Deduction',
+                  labelText: 'Advance Deduction (Automatic)',
+                  border: OutlineInputBorder(),
                 ),
+                child: Text('Rs. ${record.advanceDeduction}'),
               ),
-              TextField(
-                controller: loan,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Loan Deduction'),
+              const SizedBox(height: 12),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Loan Deduction (Automatic)',
+                  border: OutlineInputBorder(),
+                ),
+                child: Text('Rs. ${record.loanDeduction}'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Advance and Loan deductions are controlled by Employee Finance and cannot be edited here.',
               ),
             ],
           ),
@@ -508,11 +521,12 @@ class _PayrollViewState extends State<_PayrollView> {
       if (confirmed == true && context.mounted) {
         final bonusValue = int.tryParse(bonus.text) ?? 0;
         final absenceValue = int.tryParse(absence.text) ?? 0;
-        final advanceValue = int.tryParse(advance.text) ?? 0;
-        final loanValue = int.tryParse(loan.text) ?? 0;
         final gross = record.basicSalary + record.allowances + bonusValue;
         final totalDeductions =
-            record.deductions + absenceValue + advanceValue + loanValue;
+            record.deductions +
+            absenceValue +
+            record.advanceDeduction +
+            record.loanDeduction;
         context.read<PayrollBloc>().add(
           SavePayrollRecordRequested(
             PayrollRecordEntity(
@@ -524,8 +538,8 @@ class _PayrollViewState extends State<_PayrollView> {
               allowances: record.allowances,
               deductions: record.deductions,
               absenceDeduction: absenceValue,
-              advanceDeduction: advanceValue,
-              loanDeduction: loanValue,
+              advanceDeduction: record.advanceDeduction,
+              loanDeduction: record.loanDeduction,
               bonus: bonusValue,
               grossSalary: gross,
               netSalary: gross - totalDeductions,
@@ -546,9 +560,108 @@ class _PayrollViewState extends State<_PayrollView> {
       }
       bonus.dispose();
       absence.dispose();
-      advance.dispose();
-      loan.dispose();
     }
+  }
+
+  Future<void> _showPayrollDetails(
+    BuildContext context,
+    PayrollRecordEntity record,
+  ) async {
+    final totalDeductions =
+        record.deductions +
+        record.absenceDeduction +
+        record.advanceDeduction +
+        record.loanDeduction;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(record.employeeName),
+        content: SizedBox(
+          width: 560,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _detailRow('Employee ID', record.employeeId),
+                _detailRow(
+                  'Payroll Month',
+                  '${record.payrollMonth.month.toString().padLeft(2, '0')}-${record.payrollMonth.year}',
+                ),
+                _detailRow('Status', record.paymentStatus.name.toUpperCase()),
+                const Divider(height: 28),
+                _detailRow('Basic Salary', 'Rs. ${record.basicSalary}'),
+                _detailRow('Fixed Allowances', 'Rs. ${record.allowances}'),
+                _detailRow('Bonus / Additions', 'Rs. ${record.bonus}'),
+                _detailRow(
+                  'Gross Salary',
+                  'Rs. ${record.grossSalary}',
+                  bold: true,
+                ),
+                const Divider(height: 28),
+                _detailRow(
+                  'Fixed / Other Deductions',
+                  'Rs. ${record.deductions}',
+                ),
+                _detailRow(
+                  'Absence Deduction',
+                  'Rs. ${record.absenceDeduction}',
+                ),
+                _detailRow(
+                  'Advance Recovery',
+                  'Rs. ${record.advanceDeduction}',
+                ),
+                _detailRow('Loan Recovery', 'Rs. ${record.loanDeduction}'),
+                _detailRow(
+                  'Total Deductions',
+                  'Rs. $totalDeductions',
+                  bold: true,
+                ),
+                const Divider(height: 28),
+                _detailRow('Net Salary', 'Rs. ${record.netSalary}', bold: true),
+                if (record.remarks.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Automatic Employee Finance Details',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(record.remarks),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, {bool bold = false}) {
+    final style = TextStyle(
+      fontWeight: bold ? FontWeight.w700 : FontWeight.normal,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          const SizedBox(width: 16),
+          Text(value, style: style),
+        ],
+      ),
+    );
   }
 }
 
