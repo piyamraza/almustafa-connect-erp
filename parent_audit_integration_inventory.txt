@@ -1,0 +1,581 @@
+﻿PARENT PORTAL + AUDIT INTEGRATION INVENTORY
+Generated: 08/05/2026 12:03:41
+
+FILE: lib\core\audit\data\datasources\audit_remote_datasource.dart
+  Line 4: import '../models/audit_log_model.dart';
+  Line 6: class AuditRemoteDataSource {
+  Line 7: AuditRemoteDataSource({FirebaseFirestore? firestore})
+  Line 13: _firestore.collection(FirestorePaths.auditLogs);
+  Line 17: Future<void> save(AuditLogModel log) {
+  Line 21: Future<List<AuditLogModel>> getLogs({
+  Line 34: .map((doc) => AuditLogModel.fromMap(doc.id, doc.data()))
+
+FILE: lib\core\audit\data\models\audit_log_model.dart
+  Line 3: import '../../domain/entities/audit_log_entity.dart';
+  Line 5: class AuditLogModel extends AuditLogEntity {
+  Line 6: const AuditLogModel({
+  Line 27: factory AuditLogModel.fromEntity(AuditLogEntity value) {
+  Line 28: return AuditLogModel(
+  Line 50: factory AuditLogModel.fromMap(String id, Map<String, dynamic> map) {
+  Line 51: return AuditLogModel(
+  Line 54: action: AuditAction.values.firstWhere(
+  Line 56: orElse: () => AuditAction.other,
+
+FILE: lib\core\audit\data\repositories\audit_repository_impl.dart
+  Line 1: import '../../domain/entities/audit_log_entity.dart';
+  Line 2: import '../../domain/repositories/audit_repository.dart';
+  Line 3: import '../datasources/audit_remote_datasource.dart';
+  Line 4: import '../models/audit_log_model.dart';
+  Line 6: class AuditRepositoryImpl implements AuditRepository {
+  Line 7: const AuditRepositoryImpl(this._remoteDataSource);
+  Line 9: final AuditRemoteDataSource _remoteDataSource;
+  Line 15: Future<void> saveLog(AuditLogEntity log) {
+  Line 16: return _remoteDataSource.save(AuditLogModel.fromEntity(log));
+  Line 20: Future<List<AuditLogEntity>> getLogs({
+
+FILE: lib\core\audit\data\services\audit_service_impl.dart
+  Line 6: import '../../domain/entities/audit_context.dart';
+  Line 7: import '../../domain/entities/audit_log_entity.dart';
+  Line 8: import '../../domain/repositories/audit_repository.dart';
+  Line 9: import '../../domain/services/audit_service.dart';
+  Line 11: class AuditServiceImpl implements AuditService {
+  Line 12: AuditServiceImpl(this._repository, this._accessControlService)
+  Line 15: final AuditRepository _repository;
+  Line 23: AuditContext buildContext({String? roleId, String? roleName}) {
+  Line 31: return AuditContext(
+  Line 54: required AuditAction action,
+  Line 68: AuditLogEntity(
+  Line 106: action: AuditAction.create,
+  Line 127: action: AuditAction.update,
+  Line 148: action: AuditAction.delete,
+  Line 168: action: AuditAction.restore,
+
+FILE: lib\core\audit\domain\entities\audit_context.dart
+  Line 3: class AuditContext extends Equatable {
+  Line 4: const AuditContext({
+
+FILE: lib\core\audit\domain\entities\audit_log_entity.dart
+  Line 3: enum AuditAction {
+  Line 20: class AuditLogEntity extends Equatable {
+  Line 21: const AuditLogEntity({
+  Line 44: final AuditAction action;
+
+FILE: lib\core\audit\domain\repositories\audit_repository.dart
+  Line 1: import '../entities/audit_log_entity.dart';
+  Line 3: abstract class AuditRepository {
+  Line 6: Future<void> saveLog(AuditLogEntity log);
+  Line 8: Future<List<AuditLogEntity>> getLogs({
+
+FILE: lib\core\audit\domain\services\audit_service.dart
+  Line 1: import '../entities/audit_context.dart';
+  Line 2: import '../entities/audit_log_entity.dart';
+  Line 4: abstract class AuditService {
+  Line 7: AuditContext buildContext({String? roleId, String? roleName});
+  Line 11: required AuditAction action,
+
+FILE: lib\core\constants\app_colors.dart
+  Line 5: static const Color sidebar = Color(0xFF263238);
+
+FILE: lib\core\constants\firestore_paths.dart
+  Line 4: static const String auditLogs = 'audit_logs';
+  Line 79: static const String communicationAuditLogs = 'communication_audit_logs';
+  Line 82: static const String parentAccounts = 'parent_accounts';
+
+FILE: lib\core\di\service_locator.dart
+  Line 1: import '../../features/parent_portal/parent_fee_di.dart';
+  Line 2: import '../../features/parent_portal/parent_results_di.dart';
+  Line 3: import '../../features/parent_portal/parent_homework_di.dart';
+  Line 4: import '../../features/parent_portal/parent_attendance_di.dart';
+  Line 6: import '../../features/parent_portal/data/services/parent_context_service_impl.dart';
+  Line 7: import '../../features/parent_portal/domain/services/parent_context_service.dart';
+  Line 8: import '../audit/data/datasources/audit_remote_datasource.dart';
+  Line 9: import '../audit/data/repositories/audit_repository_impl.dart';
+  Line 10: import '../audit/data/services/audit_service_impl.dart';
+  Line 11: import '../audit/domain/repositories/audit_repository.dart';
+  Line 12: import '../audit/domain/services/audit_service.dart';
+  Line 85: import '../../features/communication/data/datasources/communication_audit_remote_datasource.dart';
+  Line 86: import '../../features/communication/data/repositories/communication_audit_repository_impl.dart';
+  Line 87: import '../../features/communication/domain/repositories/communication_audit_repository.dart';
+  Line 90: import '../../features/communication/domain/usecases/get_communication_delivery_audit.dart';
+  Line 91: import '../../features/communication/presentation/bloc/communication_audit_bloc.dart';
+  Line 377: import '../../features/parent_portal/data/repositories/parent_portal_repository_impl.dart';
+  Line 378: import '../../features/parent_portal/domain/repositories/parent_portal_repository.dart';
+  Line 379: import '../../features/parent_portal/presentation/bloc/parent_portal_bloc.dart';
+  Line 381: import '../../features/parent_portal/data/services/parent_academic_service_impl.dart';
+  Line 382: import '../../features/parent_portal/domain/services/parent_academic_service.dart';
+  Line 383: import '../../features/parent_portal/presentation/bloc/parent_academic_bloc.dart';
+  Line 385: import '../../features/parent_portal/data/services/parent_communication_service_impl.dart';
+  Line 386: import '../../features/parent_portal/domain/services/parent_communication_service.dart';
+  Line 387: import '../../features/parent_portal/presentation/bloc/parent_communication_bloc.dart';
+  Line 389: import '../../features/parent_portal/data/repositories/parent_notification_repository_impl.dart';
+  Line 390: import '../../features/parent_portal/domain/repositories/parent_notification_repository.dart';
+  Line 391: import '../../features/parent_portal/data/services/parent_timeline_service_impl.dart';
+  Line 392: import '../../features/parent_portal/domain/services/parent_timeline_service.dart';
+  Line 393: import '../../features/parent_portal/presentation/bloc/parent_notification_bloc.dart';
+  Line 415: sl.registerLazySingleton<AuditRemoteDataSource>(
+  Line 416: () => AuditRemoteDataSource(),
+  Line 419: sl.registerLazySingleton<AuditRepository>(
+  Line 420: () => AuditRepositoryImpl(sl<AuditRemoteDataSource>()),
+  Line 423: sl.registerLazySingleton<AuditService>(
+  Line 424: () => AuditServiceImpl(sl<AuditRepository>(), sl<AccessControlService>()),
+  Line 761: auditService: sl<AuditService>(),
+  Line 768: auditService: sl<AuditService>(),
+  Line 1163: sl.registerLazySingleton<CommunicationAuditRemoteDataSource>(
+  Line 1165: CommunicationAuditRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  Line 1167: sl.registerLazySingleton<CommunicationAuditRepository>(
+  Line 1168: () => CommunicationAuditRepositoryImpl(
+  Line 1169: sl<CommunicationAuditRemoteDataSource>(),
+  Line 1173: () => GetCommunicationAnalytics(sl<GetCommunicationDeliveryAudit>()),
+  Line 1178: sl.registerLazySingleton<GetCommunicationDeliveryAudit>(
+  Line 1179: () => GetCommunicationDeliveryAudit(
+  Line 1183: auditRepository: sl<CommunicationAuditRepository>(),
+  Line 1186: sl.registerFactory<CommunicationAuditBloc>(
+  Line 1187: () => CommunicationAuditBloc(sl<GetCommunicationDeliveryAudit>()),
+
+FILE: lib\features\authentication\presentation\pages\login_page.dart
+  Line 15: class LoginPage extends StatelessWidget {
+  Line 16: const LoginPage({super.key});
+  Line 74: MaterialPageRoute(builder: (_) => const DashboardPage()),
+
+FILE: lib\features\authentication\presentation\pages\splash_page.dart
+  Line 44: builder: (_) => const DashboardPage(),
+  Line 52: builder: (_) => const LoginPage(),
+
+FILE: lib\features\access_control\data\models\app_role_model.dart
+  Line 41: (name) => AppPermission.values.where(
+
+FILE: lib\features\access_control\data\repositories\app_role_repository_impl.dart
+  Line 76: permissions: AppPermission.values,
+  Line 86: permissions: AppPermission.values
+  Line 87: .where((permission) => permission != AppPermission.auditLogsView)
+  Line 99: AppPermission.studentsView,
+  Line 100: AppPermission.teachersView,
+  Line 101: AppPermission.staffView,
+  Line 102: AppPermission.classesView,
+  Line 103: AppPermission.attendanceView,
+  Line 104: AppPermission.feesView,
+  Line 105: AppPermission.feesReports,
+  Line 106: AppPermission.examsView,
+  Line 107: AppPermission.dateSheetsView,
+  Line 108: AppPermission.resultsView,
+  Line 109: AppPermission.resultsPublish,
+  Line 110: AppPermission.timetableView,
+  Line 111: AppPermission.homeworkView,
+  Line 112: AppPermission.noticesView,
+  Line 113: AppPermission.noticesManage,
+  Line 114: AppPermission.calendarView,
+  Line 115: AppPermission.parentsView,
+  Line 116: AppPermission.reportsView,
+  Line 117: AppPermission.reportsExport,
+  Line 129: AppPermission.studentsView,
+  Line 130: AppPermission.attendanceView,
+  Line 131: AppPermission.attendanceMark,
+  Line 132: AppPermission.resultsView,
+  Line 133: AppPermission.resultsEnter,
+  Line 134: AppPermission.timetableView,
+  Line 135: AppPermission.homeworkView,
+  Line 136: AppPermission.homeworkCreate,
+  Line 137: AppPermission.homeworkReview,
+  Line 138: AppPermission.noticesView,
+  Line 139: AppPermission.calendarView,
+  Line 151: AppPermission.studentsView,
+  Line 152: AppPermission.feesView,
+  Line 153: AppPermission.feesCollect,
+  Line 154: AppPermission.feesReports,
+  Line 155: AppPermission.reportsView,
+  Line 156: AppPermission.reportsExport,
+  Line 168: AppPermission.studentsView,
+  Line 169: AppPermission.studentsCreate,
+  Line 170: AppPermission.studentsEdit,
+  Line 171: AppPermission.attendanceView,
+  Line 172: AppPermission.parentsView,
+  Line 173: AppPermission.parentsManage,
+  Line 174: AppPermission.noticesView,
+  Line 175: AppPermission.calendarView,
+  Line 187: AppPermission.attendanceView,
+  Line 188: AppPermission.feesView,
+  Line 189: AppPermission.dateSheetsView,
+  Line 190: AppPermission.resultsView,
+  Line 191: AppPermission.timetableView,
+  Line 192: AppPermission.homeworkView,
+  Line 193: AppPermission.noticesView,
+  Line 194: AppPermission.calendarView,
+  Line 195: AppPermission.parentsView,
+  Line 207: AppPermission.attendanceView,
+  Line 208: AppPermission.dateSheetsView,
+  Line 209: AppPermission.resultsView,
+  Line 210: AppPermission.timetableView,
+  Line 211: AppPermission.homeworkView,
+  Line 212: AppPermission.noticesView,
+  Line 213: AppPermission.calendarView,
+
+FILE: lib\features\access_control\data\services\access_control_service_impl.dart
+  Line 27: Set<AppPermission> _permissions = const {};
+  Line 91: Set<AppPermission> get permissions => Set.unmodifiable(_permissions);
+  Line 97: bool hasPermission(AppPermission permission) {
+  Line 110: bool hasAnyPermission(Iterable<AppPermission> permissions) {
+  Line 115: bool hasAllPermissions(Iterable<AppPermission> permissions) {
+  Line 226: final mergedPermissions = <AppPermission>{};
+
+FILE: lib\features\access_control\domain\entities\app_permission.dart
+  Line 1: enum AppPermission {
+  Line 39: parentsView,
+  Line 47: auditLogsView,
+  Line 50: extension AppPermissionX on AppPermission {
+  Line 52: AppPermission.studentsView ||
+  Line 53: AppPermission.studentsCreate ||
+  Line 54: AppPermission.studentsEdit ||
+  Line 55: AppPermission.studentsDelete => 'Students',
+  Line 56: AppPermission.teachersView ||
+  Line 57: AppPermission.teachersCreate ||
+  Line 58: AppPermission.teachersEdit ||
+  Line 59: AppPermission.teachersDelete => 'Teachers',
+  Line 60: AppPermission.staffView ||
+  Line 61: AppPermission.staffCreate ||
+  Line 62: AppPermission.staffEdit ||
+  Line 63: AppPermission.staffDelete => 'Staff',
+  Line 64: AppPermission.classesView || AppPermission.classesManage => 'Classes',
+  Line 65: AppPermission.attendanceView ||
+  Line 66: AppPermission.attendanceMark ||
+  Line 67: AppPermission.attendanceEdit => 'Attendance',
+  Line 68: AppPermission.feesView ||
+  Line 69: AppPermission.feesCollect ||
+  Line 70: AppPermission.feesManage ||
+  Line 71: AppPermission.feesReports => 'Fee Management',
+  Line 72: AppPermission.examsView || AppPermission.examsManage => 'Examinations',
+  Line 73: AppPermission.dateSheetsView ||
+  Line 74: AppPermission.dateSheetsManage => 'Date Sheets',
+  Line 75: AppPermission.resultsView ||
+  Line 76: AppPermission.resultsEnter ||
+  Line 77: AppPermission.resultsPublish => 'Results',
+  Line 78: AppPermission.timetableView || AppPermission.timetableManage => 'Timetable',
+  Line 79: AppPermission.homeworkView ||
+  Line 80: AppPermission.homeworkCreate ||
+  Line 81: AppPermission.homeworkReview => 'Homework',
+  Line 82: AppPermission.noticesView ||
+  Line 83: AppPermission.noticesManage => 'Notices & Circulars',
+  Line 84: AppPermission.calendarView ||
+  Line 85: AppPermission.calendarManage => 'Academic Calendar',
+  Line 86: AppPermission.parentsView || AppPermission.parentsManage => 'Parent Portal',
+  Line 87: AppPermission.reportsView || AppPermission.reportsExport => 'Reports',
+  Line 88: AppPermission.settingsView || AppPermission.settingsManage => 'Settings',
+  Line 89: AppPermission.usersManage => 'Users',
+  Line 90: AppPermission.rolesManage => 'Roles & Permissions',
+  Line 91: AppPermission.auditLogsView => 'Audit Logs',
+
+FILE: lib\features\access_control\domain\entities\app_role_entity.dart
+  Line 10: required List<AppPermission> permissions,
+  Line 15: }) : permissions = List<AppPermission>.unmodifiable(permissions);
+  Line 20: final List<AppPermission> permissions;
+  Line 26: bool allows(AppPermission permission) => permissions.contains(permission);
+  Line 31: List<AppPermission>? permissions,
+
+FILE: lib\features\access_control\domain\services\access_control_service.dart
+  Line 22: Set<AppPermission> get permissions;
+  Line 26: bool hasPermission(AppPermission permission);
+  Line 28: bool hasAnyPermission(Iterable<AppPermission> permissions);
+  Line 30: bool hasAllPermissions(Iterable<AppPermission> permissions);
+
+FILE: lib\features\access_control\presentation\pages\app_role_form_page.dart
+  Line 22: final Set<AppPermission> _permissions = {};
+  Line 76: final grouped = <String, List<AppPermission>>{};
+  Line 77: for (final permission in AppPermission.values) {
+
+FILE: lib\features\access_control\presentation\widgets\permission_guard.dart
+  Line 18: final AppPermission permission;
+  Line 73: final AppPermission permission;
+
+FILE: lib\features\dashboard\presentation\pages\dashboard_page.dart
+  Line 8: class DashboardPage extends StatefulWidget {
+  Line 9: const DashboardPage({super.key});
+  Line 12: State<DashboardPage> createState() => _DashboardPageState();
+  Line 15: class _DashboardPageState extends State<DashboardPage> {
+  Line 54: return const TeacherPortalDashboardPage();
+
+FILE: lib\features\dashboard\presentation\widgets\dashboard_layout.dart
+  Line 30: import 'sidebar.dart';
+  Line 132: const SizedBox(width: 250, child: Sidebar()),
+  Line 1085: builder: (_) => const FeeManagementDashboardPage(),
+  Line 1094: builder: (_) => const NoticesDashboardPage(),
+
+FILE: lib\features\dashboard\presentation\widgets\sidebar.dart
+  Line 20: import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
+  Line 36: class Sidebar extends StatefulWidget {
+  Line 37: const Sidebar({super.key});
+  Line 40: State<Sidebar> createState() => _SidebarState();
+  Line 43: class _SidebarState extends State<Sidebar> {
+  Line 117: MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+  Line 135: required AppPermission permission,
+  Line 211: if (_access.hasPermission(AppPermission.studentsView))
+  Line 218: permission: AppPermission.studentsView,
+  Line 223: if (_access.hasPermission(AppPermission.teachersView))
+  Line 230: permission: AppPermission.teachersView,
+  Line 235: if (_access.hasPermission(AppPermission.staffView))
+  Line 242: permission: AppPermission.staffView,
+  Line 247: if (_access.hasPermission(AppPermission.staffView))
+  Line 253: if (!_access.hasPermission(AppPermission.staffView)) {
+  Line 256: permission: AppPermission.staffView,
+  Line 267: return StaffDashboardPage(
+  Line 299: AppPermission.staffCreate,
+  Line 325: if (_access.hasPermission(AppPermission.classesView))
+  Line 332: permission: AppPermission.classesView,
+  Line 337: if (_access.hasPermission(AppPermission.attendanceView))
+  Line 344: permission: AppPermission.attendanceView,
+  Line 349: if (_access.hasPermission(AppPermission.feesView))
+  Line 356: permission: AppPermission.feesView,
+  Line 358: page: const FeeManagementDashboardPage(),
+  Line 361: if (_access.hasPermission(AppPermission.examsView))
+  Line 368: permission: AppPermission.examsView,
+  Line 370: page: const ExaminationDashboardPage(),
+  Line 373: if (_access.hasPermission(AppPermission.dateSheetsView))
+  Line 380: permission: AppPermission.dateSheetsView,
+  Line 382: page: const ExamDateSheetDashboardPage(),
+  Line 385: if (_access.hasPermission(AppPermission.resultsView))
+  Line 392: permission: AppPermission.resultsView,
+  Line 397: if (_access.hasPermission(AppPermission.timetableView))
+  Line 404: permission: AppPermission.timetableView,
+  Line 406: page: const TimetableDashboardPage(),
+  Line 409: if (_access.hasPermission(AppPermission.homeworkView))
+  Line 416: permission: AppPermission.homeworkView,
+  Line 418: page: const HomeworkDashboardPage(),
+  Line 421: if (_access.hasPermission(AppPermission.calendarView))
+  Line 428: permission: AppPermission.calendarView,
+  Line 433: if (_access.hasPermission(AppPermission.noticesView))
+  Line 440: permission: AppPermission.noticesView,
+  Line 442: page: const CommunicationDashboardPage(),
+  Line 445: if (_access.hasPermission(AppPermission.noticesView))
+  Line 452: permission: AppPermission.noticesView,
+  Line 454: page: const NoticesDashboardPage(),
+  Line 457: if (_access.hasPermission(AppPermission.parentsView))
+  Line 464: permission: AppPermission.parentsView,
+  Line 466: page: const ParentPortalDashboardPage(),
+  Line 469: if (_access.hasPermission(AppPermission.reportsView))
+  Line 476: permission: AppPermission.reportsView,
+  Line 478: page: const AccountsDashboardPage(),
+  Line 481: if (_access.hasPermission(AppPermission.reportsView))
+  Line 488: permission: AppPermission.reportsView,
+  Line 490: page: const SchoolStoreDashboardPage(),
+  Line 493: if (_access.hasPermission(AppPermission.reportsView))
+  Line 500: permission: AppPermission.reportsView,
+  Line 502: page: const ReportsDashboardPage(),
+  Line 505: if (_access.hasPermission(AppPermission.rolesManage))
+  Line 512: permission: AppPermission.rolesManage,
+  Line 517: if (_access.hasPermission(AppPermission.settingsView))
+  Line 524: permission: AppPermission.settingsView,
+  Line 526: page: const SettingsDashboardPage(),
+
+FILE: lib\features\parent_portal\data\models\parent_account_model.dart
+  Line 5: class ParentAccountModel extends ParentAccountEntity {
+  Line 6: ParentAccountModel({
+  Line 26: factory ParentAccountModel.fromEntity(ParentAccountEntity value) {
+  Line 27: return ParentAccountModel(
+  Line 48: factory ParentAccountModel.fromMap(Map<String, dynamic> map) {
+  Line 54: ? ParentAccountEntity.accountStatusActive
+  Line 55: : ParentAccountEntity.accountStatusInactive);
+  Line 63: return ParentAccountModel(
+
+FILE: lib\features\parent_portal\data\repositories\parent_portal_repository_impl.dart
+  Line 6: import '../../domain/repositories/parent_portal_repository.dart';
+  Line 19: Future<List<ParentAccountEntity>> getParents() async {
+  Line 21: .collection(FirestorePaths.parentAccounts)
+  Line 27: (document) => ParentAccountModel.fromMap({
+  Line 39: return List<ParentAccountEntity>.unmodifiable(values);
+  Line 43: Future<ParentAccountEntity?> getParentById(String id) async {
+  Line 51: .collection(FirestorePaths.parentAccounts)
+  Line 59: return ParentAccountModel.fromMap({...snapshot.data()!, 'id': snapshot.id});
+  Line 63: Future<ParentAccountEntity?> getParentByUserId(String userId) async {
+  Line 71: .collection(FirestorePaths.parentAccounts)
+  Line 82: return ParentAccountModel.fromMap({...document.data(), 'id': document.id});
+  Line 87: ParentAccountEntity parent,
+  Line 165: Future<List<ParentAccountEntity>> getParentsForStudent(
+  Line 171: return const <ParentAccountEntity>[];
+  Line 175: .collection(FirestorePaths.parentAccounts)
+  Line 182: (document) => ParentAccountModel.fromMap({
+  Line 198: return List<ParentAccountEntity>.unmodifiable(parents);
+  Line 229: required String parentUserId,
+  Line 232: final normalizedUserId = parentUserId.trim();
+  Line 257: Future<void> saveParent(ParentAccountEntity parent) async {
+  Line 273: final model = ParentAccountModel.fromEntity(parent);
+  Line 276: .collection(FirestorePaths.parentAccounts)
+  Line 292: final normalizedStatus = ParentAccountEntity.normalizeAccountStatus(
+  Line 296: ParentAccountEntity.accountStatusActive,
+  Line 301: isActive: normalizedStatus == ParentAccountEntity.accountStatusActive,
+  Line 317: .collection(FirestorePaths.parentAccounts)
+  Line 324: return _firestoreService.collection(FirestorePaths.parentAccounts).doc().id;
+  Line 327: void _validateParent(ParentAccountEntity parent) {
+  Line 345: ParentAccountEntity.accountStatusActive,
+  Line 346: ParentAccountEntity.accountStatusInactive,
+  Line 347: ParentAccountEntity.accountStatusBlocked,
+
+FILE: lib\features\parent_portal\data\services\parent_communication_service_impl.dart
+  Line 19: required ParentAccountEntity parent,
+  Line 225: ParentAccountEntity parent,
+
+FILE: lib\features\parent_portal\data\services\parent_context_service_impl.dart
+  Line 5: import '../../domain/repositories/parent_portal_repository.dart';
+  Line 17: ParentAccountEntity? _currentParent;
+  Line 30: ParentAccountEntity? get currentParent => _currentParent;
+  Line 43: bool get hasParentAccount => _currentParent != null;
+
+FILE: lib\features\parent_portal\data\services\parent_timeline_service_impl.dart
+  Line 15: required ParentAccountEntity parent,
+
+FILE: lib\features\parent_portal\domain\entities\parent_account_entity.dart
+  Line 3: class ParentAccountEntity extends Equatable {
+  Line 4: ParentAccountEntity({
+  Line 85: ParentAccountEntity copyWith({
+  Line 121: return ParentAccountEntity(
+
+FILE: lib\features\parent_portal\domain\repositories\parent_portal_repository.dart
+  Line 5: Future<List<ParentAccountEntity>> getParents();
+  Line 7: Future<ParentAccountEntity?> getParentById(String id);
+  Line 9: Future<ParentAccountEntity?> getParentByUserId(String userId);
+  Line 11: Future<List<StudentEntity>> getLinkedStudents(ParentAccountEntity parent);
+  Line 18: Future<List<ParentAccountEntity>> getParentsForStudent(String studentId);
+  Line 26: required String parentUserId,
+  Line 30: Future<void> saveParent(ParentAccountEntity parent);
+
+FILE: lib\features\parent_portal\domain\services\parent_communication_service.dart
+  Line 7: required ParentAccountEntity parent,
+
+FILE: lib\features\parent_portal\domain\services\parent_context_service.dart
+  Line 11: ParentAccountEntity? get currentParent;
+  Line 19: bool get hasParentAccount;
+
+FILE: lib\features\parent_portal\domain\services\parent_timeline_service.dart
+  Line 7: required ParentAccountEntity parent,
+
+FILE: lib\features\parent_portal\presentation\bloc\parent_communication_bloc.dart
+  Line 19: final ParentAccountEntity parent;
+  Line 32: final ParentAccountEntity parent;
+  Line 46: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\bloc\parent_portal_bloc.dart
+  Line 5: import '../../domain/repositories/parent_portal_repository.dart';
+  Line 11: class LoadParentAccounts extends ParentPortalEvent {
+  Line 12: const LoadParentAccounts();
+  Line 15: class SelectParentAccount extends ParentPortalEvent {
+  Line 16: const SelectParentAccount(this.parent);
+  Line 18: final ParentAccountEntity parent;
+  Line 21: class SaveParentAccount extends ParentPortalEvent {
+  Line 22: const SaveParentAccount(this.parent);
+  Line 24: final ParentAccountEntity parent;
+  Line 27: class DeleteParentAccount extends ParentPortalEvent {
+  Line 28: const DeleteParentAccount(this.id);
+  Line 53: final List<ParentAccountEntity> parents;
+  Line 54: final ParentAccountEntity? selectedParent;
+  Line 67: on<LoadParentAccounts>(_load);
+  Line 68: on<SelectParentAccount>(_select);
+  Line 69: on<SaveParentAccount>(_save);
+  Line 70: on<DeleteParentAccount>(_delete);
+  Line 74: ParentAccountEntity? _selected;
+  Line 77: LoadParentAccounts event,
+  Line 84: SelectParentAccount event,
+  Line 92: SaveParentAccount event,
+  Line 106: DeleteParentAccount event,
+
+FILE: lib\features\parent_portal\presentation\pages\parent_academic_dashboard_page.dart
+  Line 11: class ParentAcademicDashboardPage extends StatelessWidget {
+  Line 12: const ParentAcademicDashboardPage({
+
+FILE: lib\features\parent_portal\presentation\pages\parent_account_form_page.dart
+  Line 10: import '../../domain/repositories/parent_portal_repository.dart';
+  Line 12: class ParentAccountFormPage extends StatefulWidget {
+  Line 13: const ParentAccountFormPage({super.key, this.existing});
+  Line 15: final ParentAccountEntity? existing;
+  Line 18: State<ParentAccountFormPage> createState() => _ParentAccountFormPageState();
+  Line 21: class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
+  Line 46: String _accountStatus = ParentAccountEntity.accountStatusActive;
+  Line 85: ParentAccountEntity.accountStatusActive;
+  Line 212: final parent = ParentAccountEntity(
+  Line 229: isActive: _accountStatus == ParentAccountEntity.accountStatusActive,
+  Line 368: value: ParentAccountEntity.accountStatusActive,
+  Line 372: value: ParentAccountEntity.accountStatusInactive,
+  Line 376: value: ParentAccountEntity.accountStatusBlocked,
+  Line 383: value ?? ParentAccountEntity.accountStatusActive;
+
+FILE: lib\features\parent_portal\presentation\pages\parent_chat_page.dart
+  Line 23: final ParentAccountEntity parent;
+  Line 28: final parentUserId = parent.userId.trim();
+  Line 30: if (parentUserId.isEmpty) {
+  Line 47: create: (_) => sl<ChatBloc>()..add(LoadChatThreads(parentUserId)),
+  Line 51: parentUserId: parentUserId,
+  Line 61: required this.parentUserId,
+  Line 64: final ParentAccountEntity parent;
+  Line 66: final String parentUserId;
+  Line 195: LoadChatThreads(widget.parentUserId),
+  Line 249: userId: widget.parentUserId,
+  Line 268: if (entry.key != widget.parentUserId && entry.value.trim().isNotEmpty) {
+  Line 285: account.uid != widget.parentUserId &&
+  Line 416: id: 'parent_teacher_${widget.parentUserId}_${teacher.uid}_${widget.student.id}',
+  Line 418: participantIds: [widget.parentUserId, teacher.uid],
+  Line 420: widget.parentUserId: widget.parent.fullName,
+  Line 423: createdBy: widget.parentUserId,
+  Line 441: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\pages\parent_communication_dashboard_page.dart
+  Line 12: class ParentCommunicationDashboardPage extends StatelessWidget {
+  Line 13: const ParentCommunicationDashboardPage({
+  Line 20: final ParentAccountEntity parent;
+  Line 51: final ParentAccountEntity parent;
+  Line 88: final ParentAccountEntity parent;
+  Line 269: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\pages\parent_management_page.dart
+  Line 5: import '../../domain/repositories/parent_portal_repository.dart';
+  Line 19: List<ParentAccountEntity> _parents = const <ParentAccountEntity>[];
+  Line 69: Future<void> _openParentForm([ParentAccountEntity? existing]) async {
+  Line 72: builder: (_) => ParentAccountFormPage(existing: existing),
+  Line 87: List<ParentAccountEntity> get _filteredParents {
+  Line 118: return List<ParentAccountEntity>.unmodifiable(values);
+  Line 169: Widget _buildBody(List<ParentAccountEntity> filtered) {
+  Line 224: active: _countStatus(ParentAccountEntity.accountStatusActive),
+  Line 225: inactive: _countStatus(ParentAccountEntity.accountStatusInactive),
+  Line 226: blocked: _countStatus(ParentAccountEntity.accountStatusBlocked),
+  Line 251: child: _ParentAccountCard(
+  Line 302: value: ParentAccountEntity.accountStatusActive,
+  Line 306: value: ParentAccountEntity.accountStatusInactive,
+  Line 310: value: ParentAccountEntity.accountStatusBlocked,
+  Line 449: class _ParentAccountCard extends StatelessWidget {
+  Line 450: const _ParentAccountCard({
+  Line 456: final ParentAccountEntity parent;
+  Line 585: ParentAccountEntity.accountStatusBlocked => ('BLOCKED', Icons.block),
+  Line 586: ParentAccountEntity.accountStatusInactive => (
+
+FILE: lib\features\parent_portal\presentation\pages\parent_notices_page.dart
+  Line 18: final ParentAccountEntity parent;
+  Line 47: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\pages\parent_notification_center_page.dart
+  Line 17: final ParentAccountEntity parent;
+  Line 35: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\pages\parent_portal_dashboard_page.dart
+  Line 9: import '../bloc/parent_portal_bloc.dart';
+  Line 25: class ParentPortalDashboardPage extends StatelessWidget {
+  Line 26: const ParentPortalDashboardPage({super.key});
+  Line 31: create: (_) => sl<ParentPortalBloc>()..add(const LoadParentAccounts()),
+  Line 42: ParentAccountEntity? existing,
+  Line 44: final value = await Navigator.of(context).push<ParentAccountEntity>(
+  Line 46: builder: (_) => ParentAccountFormPage(existing: existing),
+  Line 51: context.read<ParentPortalBloc>().add(SaveParentAccount(value));
+  Line 127: SelectParentAccount(parent),
+  Line 158: final List<ParentAccountEntity> parents;
+  Line 159: final ParentAccountEntity? selected;
+  Line 160: final ValueChanged<ParentAccountEntity> onSelect;
+  Line 161: final ValueChanged<ParentAccountEntity> onEdit;
+  Line 241: final ParentAccountEntity parent;
+  Line 393: final ParentAccountEntity parent;
+  Line 478: ParentAcademicDashboardPage(student: student),
+  Line 487: builder: (_) => ParentCommunicationDashboardPage(
+
+FILE: lib\features\parent_portal\presentation\pages\parent_timeline_page.dart
+  Line 18: final ParentAccountEntity parent;
+
+FILE: lib\features\parent_portal\presentation\widgets\parent_portal_access_gate.dart
+  Line 52: if (!_parentContext.hasParentAccount || !_parentContext.canAccessPortal) {
+
+FILE: lib\features\settings\presentation\pages\settings_dashboard_page.dart
+  Line 15: class SettingsDashboardPage extends StatelessWidget {
+  Line 16: const SettingsDashboardPage({super.key});
+

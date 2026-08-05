@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
+import '../../../parent_portal/presentation/pages/parent_workspace_page.dart';
 import '../../../teacher_portal/presentation/pages/teacher_portal_dashboard_page.dart';
 import '../widgets/dashboard_layout.dart';
 
@@ -36,11 +37,13 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  bool get _isTeacherWorkspace {
-    if (_access.isBootstrapAccess) {
-      return false;
-    }
+  bool get _isParentWorkspace {
+    if (_access.isBootstrapAccess) return false;
+    return _access.hasRole('parent');
+  }
 
+  bool get _isTeacherWorkspace {
+    if (_access.isBootstrapAccess) return false;
     return _access.hasRole('teacher');
   }
 
@@ -48,6 +51,10 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     if (_access.isLoading || !_access.isLoaded) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_isParentWorkspace) {
+      return const ParentWorkspacePage();
     }
 
     if (_isTeacherWorkspace) {
