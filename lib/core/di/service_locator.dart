@@ -770,8 +770,10 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<TeacherRepository>(
-    () =>
-        TeacherRepositoryImpl(remoteDataSource: sl<TeacherRemoteDataSource>()),
+    () => TeacherRepositoryImpl(
+      remoteDataSource: sl<TeacherRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<StaffRepository>(
@@ -838,7 +840,10 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<FeeReportService>(FeeReportServiceImpl.new);
   sl.registerLazySingleton<FeeDocumentService>(FeeDocumentServiceImpl.new);
   sl.registerLazySingleton<FeePaymentRepository>(
-    () => FeePaymentRepositoryImpl(sl<FirebaseFirestoreService>()),
+    () => FeePaymentRepositoryImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+      auditService: sl<AuditService>(),
+    ),
   );
   sl.registerLazySingleton<MonthlyFeeDueRepository>(
     () => MonthlyFeeDueRepositoryImpl(sl<FirebaseFirestoreService>()),

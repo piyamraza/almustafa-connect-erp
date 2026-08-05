@@ -1,3 +1,5 @@
+import '../../../../core/audit/domain/entities/audit_log_entity.dart';
+import '../../../../core/audit/domain/services/audit_service.dart';
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/fee_payment_entity.dart';
@@ -9,9 +11,14 @@ import '../models/monthly_fee_due_model.dart';
 import '../models/student_additional_charge_due_model.dart';
 
 class FeePaymentRepositoryImpl implements FeePaymentRepository {
-  const FeePaymentRepositoryImpl(this._firestoreService);
+  FeePaymentRepositoryImpl({
+    required FirebaseFirestoreService firestoreService,
+    required AuditService auditService,
+  }) : _firestoreService = firestoreService,
+       _auditService = auditService;
 
   final FirebaseFirestoreService _firestoreService;
+  final AuditService _auditService;
 
   @override
   Future<List<FeePaymentEntity>> getPayments({
@@ -279,6 +286,30 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     );
 
     await batch.commit();
+
+    await _auditService.log(
+      module: 'Fees',
+      action: AuditAction.collectPayment,
+      recordId: payment.id,
+      description:
+          'Fee payment collected: ${payment.receiptNumber} for $studentName',
+      newValues: {
+        'receiptNumber': payment.receiptNumber,
+        'studentId': payment.studentId,
+        'studentName': payment.studentName,
+        'admissionNo': payment.admissionNo,
+        'academicSession': payment.academicSession,
+        'paymentDate': payment.paymentDate.toIso8601String(),
+        'method': payment.method.name,
+        'referenceNumber': payment.referenceNumber,
+        'totalPaid': payment.totalPaid,
+        'advanceAmount': payment.advanceAmount,
+        'monthlyDueIds': dueIds,
+        'additionalChargeDueIds': additionalChargeDueIds,
+        'notes': payment.notes,
+      },
+    );
+
     return payment;
   }
 
@@ -379,6 +410,31 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     });
 
     await batch.commit();
+
+    await _auditService.log(
+      module: 'Fees',
+      action: AuditAction.delete,
+      recordId: payment.id,
+      description:
+          'Fee payment cancelled: ${payment.receiptNumber}. Reason: ${reason.trim()}',
+      oldValues: {
+        'receiptNumber': payment.receiptNumber,
+        'studentId': payment.studentId,
+        'studentName': payment.studentName,
+        'admissionNo': payment.admissionNo,
+        'paymentDate': payment.paymentDate.toIso8601String(),
+        'method': payment.method.name,
+        'referenceNumber': payment.referenceNumber,
+        'totalPaid': payment.totalPaid,
+        'advanceAmount': payment.advanceAmount,
+        'status': payment.status.name,
+      },
+      newValues: {
+        'status': FeePaymentStatus.cancelled.name,
+        'cancellationReason': reason.trim(),
+        'cancelledAt': now.toIso8601String(),
+      },
+    );
   }
 
   @override
