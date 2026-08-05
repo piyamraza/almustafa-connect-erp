@@ -11,6 +11,7 @@ import '../../domain/entities/payroll_record_entity.dart';
 import '../bloc/payroll_bloc.dart';
 import '../bloc/payroll_event.dart';
 import '../bloc/payroll_state.dart';
+import 'teacher_finance_page.dart';
 
 class PayrollPage extends StatelessWidget {
   const PayrollPage({super.key});
@@ -82,6 +83,17 @@ class _PayrollViewState extends State<_PayrollView> {
                       onPressed: () => _showProfileDialog(context),
                       icon: const Icon(Icons.person_add_alt_1),
                       label: const Text('Add Salary Profile'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const TeacherFinancePage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      label: const Text('Advances & Loans'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _pickMonth(context),

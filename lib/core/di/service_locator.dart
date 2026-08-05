@@ -77,6 +77,8 @@ import '../../features/accounts/data/services/accounts_report_service_impl.dart'
 import '../../features/accounts/domain/services/accounts_report_service.dart';
 import '../../features/accounts/domain/usecases/get_accounts_report_data.dart';
 import '../../features/accounts/presentation/bloc/accounts_reports_bloc.dart';
+import '../../features/accounts/data/repositories/teacher_finance_repository_impl.dart';
+import '../../features/accounts/domain/repositories/teacher_finance_repository.dart';
 import '../../features/communication/data/datasources/chat_remote_datasource.dart';
 import '../../features/communication/data/repositories/chat_repository_impl.dart';
 import '../../features/communication/domain/repositories/chat_repository.dart';
@@ -772,6 +774,12 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<TeacherRepository>(
     () => TeacherRepositoryImpl(
       remoteDataSource: sl<TeacherRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
+  );
+  sl.registerLazySingleton<TeacherFinanceRepository>(
+    () => TeacherFinanceRepositoryImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
       auditService: sl<AuditService>(),
     ),
   );
