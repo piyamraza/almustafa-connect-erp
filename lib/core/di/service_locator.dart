@@ -13,6 +13,7 @@ import '../audit/data/services/audit_service_impl.dart';
 import '../audit/domain/repositories/audit_configuration_repository.dart';
 import '../audit/domain/repositories/audit_repository.dart';
 import '../audit/domain/services/audit_service.dart';
+import '../audit/presentation/bloc/audit_configuration_bloc.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../features/communication/data/datasources/push_delivery_log_remote_datasource.dart';
@@ -442,7 +443,12 @@ Future<void> setupServiceLocator() async {
       sl<AuditConfigurationRepository>(),
     ),
   );
-
+  sl.registerFactory<AuditConfigurationBloc>(
+    () => AuditConfigurationBloc(
+      sl<AuditConfigurationRepository>(),
+      sl<AuditRepository>(),
+    ),
+  );
   // =========================================================
   // Services
   // =========================================================

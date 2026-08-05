@@ -21,3 +21,6 @@ final class ChangeAuditLogLevel extends AuditConfigurationEvent {
   @override
   List<Object?> get props => [level];
 }
+final class DeleteAllAuditLogs extends AuditConfigurationEvent {
+  const DeleteAllAuditLogs();
+}

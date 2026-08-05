@@ -35,16 +35,42 @@ class AuditRemoteDataSource {
         .where((item) {
           if (module != null && item.module != module) return false;
           if (userId != null && item.userId != userId) return false;
+
           if (fromDate != null && item.createdAt.isBefore(fromDate)) {
             return false;
           }
+
           if (toDate != null && item.createdAt.isAfter(toDate)) {
             return false;
           }
+
           return true;
         })
         .toList();
 
     return List.unmodifiable(values);
+  }
+
+  Future<int> deleteAllLogs() async {
+    var deletedCount = 0;
+
+    while (true) {
+      final snapshot = await _collection.limit(400).get();
+
+      if (snapshot.docs.isEmpty) {
+        break;
+      }
+
+      final batch = _firestore.batch();
+
+      for (final document in snapshot.docs) {
+        batch.delete(document.reference);
+      }
+
+      await batch.commit();
+      deletedCount += snapshot.docs.length;
+    }
+
+    return deletedCount;
   }
 }

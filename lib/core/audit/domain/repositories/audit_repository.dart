@@ -12,4 +12,6 @@ abstract class AuditRepository {
     DateTime? toDate,
     int limit = 200,
   });
+
+  Future<int> deleteAllLogs();
 }

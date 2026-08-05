@@ -32,4 +32,9 @@ class AuditRepositoryImpl implements AuditRepository {
       limit: limit,
     );
   }
+
+  @override
+  Future<int> deleteAllLogs() {
+    return _remoteDataSource.deleteAllLogs();
+  }
 }

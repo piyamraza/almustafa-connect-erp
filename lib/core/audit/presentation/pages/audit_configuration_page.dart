@@ -106,9 +106,83 @@ class _AuditConfigurationView extends StatelessWidget {
                         ),
                       ),
                       if (loaded.isSaving) ...[
-                        const SizedBox(height: 8),
-                        const LinearProgressIndicator(),
-                      ],
+  const SizedBox(height: 8),
+  const LinearProgressIndicator(),
+],
+const SizedBox(height: 24),
+const Divider(),
+const SizedBox(height: 16),
+Text(
+  'Audit Log Maintenance',
+  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+),
+const SizedBox(height: 8),
+const Text(
+  'This will permanently delete all existing audit log entries.',
+),
+const SizedBox(height: 14),
+FilledButton.icon(
+  style: FilledButton.styleFrom(
+    backgroundColor: Theme.of(context).colorScheme.error,
+    foregroundColor: Theme.of(context).colorScheme.onError,
+  ),
+  onPressed: loaded.isDeleting
+      ? null
+      : () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                title: const Text('Delete All Audit Logs?'),
+                content: const Text(
+                  'All existing audit log entries will be permanently deleted. '
+                  'This action cannot be undone.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop(false);
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(dialogContext).colorScheme.error,
+                      foregroundColor:
+                          Theme.of(dialogContext).colorScheme.onError,
+                    ),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop(true);
+                    },
+                    child: const Text('Delete All'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (confirmed == true && context.mounted) {
+            context.read<AuditConfigurationBloc>().add(
+                  const DeleteAllAuditLogs(),
+                );
+          }
+        },
+  icon: loaded.isDeleting
+      ? const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : const Icon(Icons.delete_forever_outlined),
+  label: Text(
+    loaded.isDeleting
+        ? 'Deleting Audit Logs...'
+        : 'Delete All Audit Logs',
+  ),
+),
                     ],
                   ),
                 ),
