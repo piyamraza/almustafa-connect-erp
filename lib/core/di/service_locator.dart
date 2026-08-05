@@ -878,7 +878,10 @@ Future<void> setupServiceLocator() async {
     () => FeeStructureRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<ExamRepository>(
-    () => ExamRepositoryImpl(source: sl<ExamRemoteDataSource>()),
+    () => ExamRepositoryImpl(
+      source: sl<ExamRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<ExamSubjectSetupRepository>(
