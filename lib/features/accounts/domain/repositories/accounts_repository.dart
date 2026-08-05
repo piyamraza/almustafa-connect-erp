@@ -37,6 +37,15 @@ abstract class AccountsRepository {
     String paymentMethod,
     String referenceNumber,
   });
+  // ===============================
+  // Teacher Advance / Loan Payroll
+  // ===============================
+
+  Future<int> getAdvanceDeductionForPayroll({required String employeeId});
+
+  Future<int> getLoanDeductionForPayroll({required String employeeId});
+
+  Future<int> getOtherPayrollDeductions({required String employeeId});
 
   Future<List<IncomeEntryEntity>> getIncomeEntries();
   Future<void> saveIncomeEntry(IncomeEntryEntity entry);

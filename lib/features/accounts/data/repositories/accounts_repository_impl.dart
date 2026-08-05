@@ -182,6 +182,34 @@ class AccountsRepositoryImpl implements AccountsRepository {
       },
     );
   }
+  // =====================================================
+  // Payroll Automatic Deductions
+  // =====================================================
+
+  @override
+  Future<int> getAdvanceDeductionForPayroll({
+    required String employeeId,
+  }) async {
+    // Phase 3:
+    // This will read active Advance accounts and return
+    // the monthly recovery amount.
+    return 0;
+  }
+
+  @override
+  Future<int> getLoanDeductionForPayroll({required String employeeId}) async {
+    // Phase 3:
+    // This will read active Loan accounts and return
+    // the monthly recovery amount.
+    return 0;
+  }
+
+  @override
+  Future<int> getOtherPayrollDeductions({required String employeeId}) async {
+    // Reserved for future deductions
+    // (Income Tax, EOBI, PF, Insurance etc.)
+    return 0;
+  }
 
   @override
   Future<List<IncomeEntryEntity>> getIncomeEntries() =>
