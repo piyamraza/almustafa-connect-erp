@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import '../../../../features/access_control/domain/entities/app_role_entity.dart';
@@ -28,7 +26,6 @@ class AuditServiceImpl implements AuditService {
   final String _sessionId;
 
   late AuditConfigurationEntity _configuration;
-  StreamSubscription<AuditConfigurationEntity>? _configurationSubscription;
 
   @override
   String get sessionId => _sessionId;
@@ -40,7 +37,7 @@ class AuditServiceImpl implements AuditService {
       return;
     }
 
-    _configurationSubscription = repository.watchConfiguration().listen(
+    repository.watchConfiguration().listen(
       (configuration) {
         _configuration = configuration;
       },
@@ -92,21 +89,16 @@ class AuditServiceImpl implements AuditService {
     String? roleId,
     String? roleName,
   }) async {
-    final normalizedModule = module.trim();
-
-    if (!_shouldRecordLog(module: normalizedModule, action: action)) {
+    if (!_shouldRecordLog(module: module, action: action)) {
       return;
     }
 
     final context = buildContext(roleId: roleId, roleName: roleName);
 
-    final now = DateTime.now();
-    final id = _repository.generateId();
-
     await _repository.saveLog(
       AuditLogEntity(
-        id: id,
-        module: normalizedModule,
+        id: _repository.generateId(),
+        module: module.trim(),
         action: action,
         recordId: recordId.trim(),
         description: description.trim(),
@@ -126,7 +118,7 @@ class AuditServiceImpl implements AuditService {
         deviceName: context.deviceName,
         platform: context.platform,
         ipAddress: context.ipAddress,
-        createdAt: now,
+        createdAt: DateTime.now(),
       ),
     );
   }
@@ -136,32 +128,9 @@ class AuditServiceImpl implements AuditService {
       return false;
     }
 
-    if (!_isModuleEnabled(module)) {
-      return false;
-    }
-
-    final requiredLevel = _requiredLevel(module: module, action: action);
-
-    return _configuration.allowsLevel(requiredLevel);
-  }
-
-  bool _isModuleEnabled(String module) {
-    final normalizedModule = _normalizeValue(module);
-
-    for (final enabledModule in _configuration.enabledModules) {
-      final normalizedEnabledModule = _normalizeValue(enabledModule);
-
-      if (normalizedModule == normalizedEnabledModule) {
-        return true;
-      }
-
-      if (normalizedModule.contains(normalizedEnabledModule) ||
-          normalizedEnabledModule.contains(normalizedModule)) {
-        return true;
-      }
-    }
-
-    return false;
+    return _configuration.allowsLevel(
+      _requiredLevel(module: module, action: action),
+    );
   }
 
   AuditLogLevel _requiredLevel({
@@ -172,11 +141,7 @@ class AuditServiceImpl implements AuditService {
       return AuditLogLevel.detailed;
     }
 
-    if (_isCriticalAction(action)) {
-      return AuditLogLevel.critical;
-    }
-
-    if (_isCriticalModule(module)) {
+    if (_isCriticalAction(action) || _isCriticalModule(module)) {
       return AuditLogLevel.critical;
     }
 
@@ -206,16 +171,13 @@ class AuditServiceImpl implements AuditService {
   bool _isCriticalModule(String module) {
     final value = _normalizeValue(module);
 
-    const criticalModuleKeywords = <String>[
+    const keywords = <String>[
       'authentication',
-      'login',
       'accesscontrol',
       'permission',
       'role',
-      'fees',
       'fee',
       'payment',
-      'accounts',
       'account',
       'cashbook',
       'income',
@@ -231,15 +193,13 @@ class AuditServiceImpl implements AuditService {
       'penalty',
       'bonus',
       'allowance',
-      'schoolstore',
       'store',
       'settings',
       'audit',
       'backup',
-      'restore',
     ];
 
-    return criticalModuleKeywords.any(value.contains);
+    return keywords.any(value.contains);
   }
 
   static String _normalizeValue(String value) {
@@ -380,9 +340,7 @@ class AuditServiceImpl implements AuditService {
   }
 
   static String _generateSessionId() {
-    final now = DateTime.now();
-
-    return 'session_${now.microsecondsSinceEpoch}';
+    return 'session_${DateTime.now().microsecondsSinceEpoch}';
   }
 
   static String _platformName() {

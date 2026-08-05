@@ -5,9 +5,12 @@ import '../../features/parent_portal/parent_attendance_di.dart';
 import '../../features/timeline/timeline_di.dart';
 import '../../features/parent_portal/data/services/parent_context_service_impl.dart';
 import '../../features/parent_portal/domain/services/parent_context_service.dart';
+import '../audit/data/datasources/audit_configuration_remote_datasource.dart';
 import '../audit/data/datasources/audit_remote_datasource.dart';
+import '../audit/data/repositories/audit_configuration_repository_impl.dart';
 import '../audit/data/repositories/audit_repository_impl.dart';
 import '../audit/data/services/audit_service_impl.dart';
+import '../audit/domain/repositories/audit_configuration_repository.dart';
 import '../audit/domain/repositories/audit_repository.dart';
 import '../audit/domain/services/audit_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -414,6 +417,16 @@ Future<void> setupServiceLocator() async {
   registerParentHomeworkDependencies(sl);
   registerParentAttendanceDependencies(sl);
   registerTimelineDependencies(sl);
+  sl.registerLazySingleton<AuditConfigurationRemoteDataSource>(
+    () => AuditConfigurationRemoteDataSourceImpl(sl<FirebaseFirestore>()),
+  );
+
+  sl.registerLazySingleton<AuditConfigurationRepository>(
+    () => AuditConfigurationRepositoryImpl(
+      sl<AuditConfigurationRemoteDataSource>(),
+    ),
+  );
+
   sl.registerLazySingleton<AuditRemoteDataSource>(
     () => AuditRemoteDataSource(),
   );
@@ -423,7 +436,11 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<AuditService>(
-    () => AuditServiceImpl(sl<AuditRepository>(), sl<AccessControlService>()),
+    () => AuditServiceImpl(
+      sl<AuditRepository>(),
+      sl<AccessControlService>(),
+      sl<AuditConfigurationRepository>(),
+    ),
   );
 
   // =========================================================
@@ -1006,12 +1023,12 @@ Future<void> setupServiceLocator() async {
     () => AccountsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AccountsRepository>(
-  () => AccountsRepositoryImpl(
-    source: sl<AccountsRemoteDataSource>(),
-    auditService: sl<AuditService>(),
-    teacherFinanceRepository: sl<TeacherFinanceRepository>(),
-  ),
-);
+    () => AccountsRepositoryImpl(
+      source: sl<AccountsRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+      teacherFinanceRepository: sl<TeacherFinanceRepository>(),
+    ),
+  );
 
   sl.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
   sl.registerLazySingleton<WhatsAppBroadcastRemoteDataSource>(
