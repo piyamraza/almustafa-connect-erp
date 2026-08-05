@@ -998,7 +998,10 @@ Future<void> setupServiceLocator() async {
     () => AccountsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AccountsRepository>(
-    () => AccountsRepositoryImpl(sl<AccountsRemoteDataSource>()),
+    () => AccountsRepositoryImpl(
+      source: sl<AccountsRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);

@@ -75,8 +75,8 @@ class _IncomeViewState extends State<_IncomeView> {
           final otherEntries = entries
               .where((entry) => entry.sourceType != IncomeSourceType.feePayment)
               .toList();
-          final visibleRowCount = otherEntries.length +
-              (feeEntries.isEmpty ? 0 : 1);
+          final visibleRowCount =
+              otherEntries.length + (feeEntries.isEmpty ? 0 : 1);
 
           return Column(
             children: [
@@ -165,9 +165,9 @@ class _IncomeViewState extends State<_IncomeView> {
                             return _feeCollectionSummary(context, feeEntries);
                           }
 
-                          final entry = otherEntries[
-                            index - (feeEntries.isEmpty ? 0 : 1)
-                          ];
+                          final entry =
+                              otherEntries[index -
+                                  (feeEntries.isEmpty ? 0 : 1)];
                           return Card(
                             child: ListTile(
                               leading: CircleAvatar(
@@ -336,83 +336,86 @@ class _IncomeViewState extends State<_IncomeView> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                  DropdownButtonFormField<IncomeType>(
-                    initialValue: incomeType,
-                    decoration: const InputDecoration(labelText: 'Income Type'),
-                    items: IncomeType.values
-                        .map(
-                          (item) => DropdownMenuItem(
-                            value: item,
-                            child: Text(_label(item.name)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => incomeType = value);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount (Rs.)',
+                    DropdownButtonFormField<IncomeType>(
+                      initialValue: incomeType,
+                      decoration: const InputDecoration(
+                        labelText: 'Income Type',
+                      ),
+                      items: IncomeType.values
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text(_label(item.name)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => incomeType = value);
+                        }
+                      },
                     ),
-                    validator: (value) {
-                      final amount = int.tryParse(value?.trim() ?? '');
-                      if (amount == null || amount <= 0) {
-                        return 'Enter an amount greater than zero.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      hintText: 'e.g. Donation or hall rent',
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount (Rs.)',
+                      ),
+                      validator: (value) {
+                        final amount = int.tryParse(value?.trim() ?? '');
+                        if (amount == null || amount <= 0) {
+                          return 'Enter an amount greater than zero.';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Description is required.'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: paymentMethodController,
-                    decoration: const InputDecoration(
-                      labelText: 'Payment Method',
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        hintText: 'e.g. Donation or hall rent',
+                      ),
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Description is required.'
+                          : null,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: referenceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Reference Number',
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: paymentMethodController,
+                      decoration: const InputDecoration(
+                        labelText: 'Payment Method',
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Income Date'),
-                    subtitle: Text(
-                      '${incomeDate.day}-${incomeDate.month}-${incomeDate.year}',
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: referenceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Reference Number',
+                      ),
                     ),
-                    trailing: const Icon(Icons.calendar_month_outlined),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: dialogContext,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                        initialDate: incomeDate,
-                      );
-                      if (picked != null) {
-                        setDialogState(() => incomeDate = picked);
-                      }
-                    },
-                  ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Income Date'),
+                      subtitle: Text(
+                        '${incomeDate.day}-${incomeDate.month}-${incomeDate.year}',
+                      ),
+                      trailing: const Icon(Icons.calendar_month_outlined),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: dialogContext,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                          initialDate: incomeDate,
+                        );
+                        if (picked != null) {
+                          setDialogState(() => incomeDate = picked);
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),

@@ -5,10 +5,8 @@ import 'cashbook_event.dart';
 import 'cashbook_state.dart';
 
 class CashbookBloc extends Bloc<CashbookEvent, CashbookState> {
-  CashbookBloc({
-    required this._getEntries,
-    required this._syncCashbook,
-  }) : super(const CashbookInitial()) {
+  CashbookBloc({required this._getEntries, required this._syncCashbook})
+    : super(const CashbookInitial()) {
     on<LoadCashbook>(_load);
     on<SyncCashbookRequested>(_sync);
   }

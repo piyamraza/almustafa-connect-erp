@@ -5,10 +5,8 @@ import 'profit_loss_event.dart';
 import 'profit_loss_state.dart';
 
 class ProfitLossBloc extends Bloc<ProfitLossEvent, ProfitLossState> {
-  ProfitLossBloc({
-    required this._getSnapshots,
-    required this._generateMonthly,
-  }) : super(const ProfitLossInitial()) {
+  ProfitLossBloc({required this._getSnapshots, required this._generateMonthly})
+    : super(const ProfitLossInitial()) {
     on<LoadProfitLoss>(_load);
     on<GenerateProfitLossRequested>(_generate);
   }

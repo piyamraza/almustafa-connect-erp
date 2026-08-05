@@ -117,9 +117,8 @@ class IncomeBloc extends Bloc<IncomeEvent, IncomeState> {
     }
   }
 
-  String _message(Object error) =>
-      error
-          .toString()
-          .replaceFirst('Exception: ', '')
-          .replaceFirst('Invalid argument(s): ', '');
+  String _message(Object error) => error
+      .toString()
+      .replaceFirst('Exception: ', '')
+      .replaceFirst('Invalid argument(s): ', '');
 }

@@ -199,28 +199,30 @@ class _PayrollViewState extends State<_PayrollView> {
     try {
       final teacherRecords = await sl<TeacherRepository>().getTeachers();
       final staffRecords = await sl<StaffRepository>().getStaff();
-      teachers = teacherRecords
-          .where((item) => item.isActive)
-          .map(
-            (item) => _PayrollEmployeeOption(
-              id: item.id,
-              employeeId: item.employeeId,
-              name: item.fullName,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
-      staff = staffRecords
-          .where((item) => item.isActive)
-          .map(
-            (item) => _PayrollEmployeeOption(
-              id: item.id,
-              employeeId: item.staffId,
-              name: item.fullName,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+      teachers =
+          teacherRecords
+              .where((item) => item.isActive)
+              .map(
+                (item) => _PayrollEmployeeOption(
+                  id: item.id,
+                  employeeId: item.employeeId,
+                  name: item.fullName,
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
+      staff =
+          staffRecords
+              .where((item) => item.isActive)
+              .map(
+                (item) => _PayrollEmployeeOption(
+                  id: item.id,
+                  employeeId: item.staffId,
+                  name: item.fullName,
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

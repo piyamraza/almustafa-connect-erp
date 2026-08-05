@@ -1,3 +1,54 @@
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$root = (Get-Location).Path
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$backup = Join-Path (Split-Path $root -Parent) "almustafa-connect-erp_backups\payroll_audit_integration_$stamp"
+
+function Full([string]$path) {
+  Join-Path $root $path
+}
+
+function BackupFile([string]$path) {
+  $source = Full $path
+  if (-not (Test-Path $source)) {
+    throw "Required file not found: $path"
+  }
+
+  $target = Join-Path $backup $path
+  New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
+  Copy-Item $source $target -Force
+}
+
+function WriteFile([string]$path, [string]$text) {
+  $target = Full $path
+  $temp = "$target.audit_tmp"
+
+  [IO.File]::WriteAllText(
+    $temp,
+    $text.Replace("`r`n", "`n"),
+    $utf8
+  )
+
+  Copy-Item $temp $target -Force
+  Remove-Item $temp -Force
+}
+
+if (-not (Test-Path (Full 'pubspec.yaml'))) {
+  throw 'Run this script from the project root.'
+}
+
+$repository = 'lib/features/accounts/data/repositories/accounts_repository_impl.dart'
+$serviceLocator = 'lib/core/di/service_locator.dart'
+
+BackupFile $repository
+BackupFile $serviceLocator
+
+WriteFile $repository @'
 import '../../../../core/audit/domain/entities/audit_log_entity.dart';
 import '../../../../core/audit/domain/services/audit_service.dart';
 import '../../domain/entities/cashbook_entry_entity.dart';
@@ -14,8 +65,8 @@ class AccountsRepositoryImpl implements AccountsRepository {
   AccountsRepositoryImpl({
     required AccountsRemoteDataSource source,
     required AuditService auditService,
-  }) : _source = source,
-       _auditService = auditService;
+  })  : _source = source,
+        _auditService = auditService;
 
   final AccountsRemoteDataSource _source;
   final AuditService _auditService;
@@ -32,28 +83,29 @@ class AccountsRepositoryImpl implements AccountsRepository {
   Future<void> setExpenseCategoryActive({
     required String categoryId,
     required bool isActive,
-  }) => _source.setExpenseCategoryActive(
-    categoryId: categoryId,
-    isActive: isActive,
-  );
+  }) =>
+      _source.setExpenseCategoryActive(
+        categoryId: categoryId,
+        isActive: isActive,
+      );
 
   @override
   Future<List<ExpenseEntity>> getExpenses() => _source.getExpenses();
 
   @override
-  Future<void> saveExpense(ExpenseEntity expense) =>
-      _source.saveExpense(expense);
+  Future<void> saveExpense(ExpenseEntity expense) => _source.saveExpense(expense);
 
   @override
   Future<void> updateExpenseStatus({
     required String expenseId,
     required ExpenseStatus status,
     required String actorId,
-  }) => _source.updateExpenseStatus(
-    expenseId: expenseId,
-    status: status,
-    actorId: actorId,
-  );
+  }) =>
+      _source.updateExpenseStatus(
+        expenseId: expenseId,
+        status: status,
+        actorId: actorId,
+      );
 
   @override
   Future<List<PayrollProfileEntity>> getPayrollProfiles() =>
@@ -101,10 +153,11 @@ class AccountsRepositoryImpl implements AccountsRepository {
     await _auditService.logUpdate(
       module: 'Payroll',
       recordId: profileId,
-      description: isActive
-          ? 'Salary profile activated'
-          : 'Salary profile deactivated',
-      oldValues: {if (previous != null) ..._profileValues(previous)},
+      description:
+          isActive ? 'Salary profile activated' : 'Salary profile deactivated',
+      oldValues: {
+        if (previous != null) ..._profileValues(previous),
+      },
       newValues: {'isActive': isActive},
     );
   }
@@ -196,7 +249,10 @@ class AccountsRepositoryImpl implements AccountsRepository {
     required String incomeEntryId,
     required String reason,
   }) =>
-      _source.reverseIncomeEntry(incomeEntryId: incomeEntryId, reason: reason);
+      _source.reverseIncomeEntry(
+        incomeEntryId: incomeEntryId,
+        reason: reason,
+      );
 
   @override
   Future<List<MonthlyProfitLossEntity>> getMonthlyProfitLoss() =>
@@ -235,41 +291,41 @@ class AccountsRepositoryImpl implements AccountsRepository {
   }
 
   Map<String, dynamic> _profileValues(PayrollProfileEntity profile) => {
-    'employeeId': profile.employeeId,
-    'employeeName': profile.employeeName,
-    'basicSalary': profile.basicSalary,
-    'fixedAllowances': profile.fixedAllowances,
-    'fixedDeductions': profile.fixedDeductions,
-    'isActive': profile.isActive,
-    'createdAt': profile.createdAt.toIso8601String(),
-    'updatedAt': profile.updatedAt.toIso8601String(),
-  };
+        'employeeId': profile.employeeId,
+        'employeeName': profile.employeeName,
+        'basicSalary': profile.basicSalary,
+        'fixedAllowances': profile.fixedAllowances,
+        'fixedDeductions': profile.fixedDeductions,
+        'isActive': profile.isActive,
+        'createdAt': profile.createdAt.toIso8601String(),
+        'updatedAt': profile.updatedAt.toIso8601String(),
+      };
 
   Map<String, dynamic> _recordValues(PayrollRecordEntity record) => {
-    'employeeId': record.employeeId,
-    'employeeName': record.employeeName,
-    'payrollMonth': record.payrollMonth.toIso8601String(),
-    'basicSalary': record.basicSalary,
-    'allowances': record.allowances,
-    'deductions': record.deductions,
-    'absenceDeduction': record.absenceDeduction,
-    'advanceDeduction': record.advanceDeduction,
-    'loanDeduction': record.loanDeduction,
-    'bonus': record.bonus,
-    'grossSalary': record.grossSalary,
-    'netSalary': record.netSalary,
-    'paymentStatus': record.paymentStatus.name,
-    'paymentDate': record.paymentDate?.toIso8601String(),
-    'paymentMethod': record.paymentMethod,
-    'referenceNumber': record.referenceNumber,
-    'remarks': record.remarks,
-    'generatedBy': record.generatedBy,
-    'approvedBy': record.approvedBy,
-    'approvedAt': record.approvedAt?.toIso8601String(),
-    'paidBy': record.paidBy,
-    'createdAt': record.createdAt.toIso8601String(),
-    'updatedAt': record.updatedAt.toIso8601String(),
-  };
+        'employeeId': record.employeeId,
+        'employeeName': record.employeeName,
+        'payrollMonth': record.payrollMonth.toIso8601String(),
+        'basicSalary': record.basicSalary,
+        'allowances': record.allowances,
+        'deductions': record.deductions,
+        'absenceDeduction': record.absenceDeduction,
+        'advanceDeduction': record.advanceDeduction,
+        'loanDeduction': record.loanDeduction,
+        'bonus': record.bonus,
+        'grossSalary': record.grossSalary,
+        'netSalary': record.netSalary,
+        'paymentStatus': record.paymentStatus.name,
+        'paymentDate': record.paymentDate?.toIso8601String(),
+        'paymentMethod': record.paymentMethod,
+        'referenceNumber': record.referenceNumber,
+        'remarks': record.remarks,
+        'generatedBy': record.generatedBy,
+        'approvedBy': record.approvedBy,
+        'approvedAt': record.approvedAt?.toIso8601String(),
+        'paidBy': record.paidBy,
+        'createdAt': record.createdAt.toIso8601String(),
+        'updatedAt': record.updatedAt.toIso8601String(),
+      };
 
   String _statusDescription(
     PayrollPaymentStatus status,
@@ -292,3 +348,38 @@ class AccountsRepositoryImpl implements AccountsRepository {
     return '${month.year}-$monthValue';
   }
 }
+'@
+
+$di = [IO.File]::ReadAllText((Full $serviceLocator)).Replace("`r`n", "`n")
+
+$oldBlock = @'
+  sl.registerLazySingleton<AccountsRepository>(
+    () => AccountsRepositoryImpl(sl<AccountsRemoteDataSource>()),
+  );
+'@
+
+$newBlock = @'
+  sl.registerLazySingleton<AccountsRepository>(
+    () => AccountsRepositoryImpl(
+      source: sl<AccountsRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
+  );
+'@
+
+if ($di.Contains($oldBlock)) {
+  $di = $di.Replace($oldBlock, $newBlock)
+  WriteFile $serviceLocator $di
+} elseif (-not $di.Contains('AccountsRepositoryImpl(') -or
+        -not $di.Contains('auditService: sl<AuditService>()')) {
+  throw 'AccountsRepository DI registration block was not found.'
+}
+
+Write-Host ''
+Write-Host 'Payroll Audit Integration completed successfully.' -ForegroundColor Green
+Write-Host 'Salary profile, generation, update, approval, payment and cancellation are now audited.' -ForegroundColor Green
+Write-Host "Backup: $backup" -ForegroundColor Cyan
+Write-Host ''
+Write-Host 'Now run:' -ForegroundColor Yellow
+Write-Host 'dart format .\lib\features\accounts\data\repositories\accounts_repository_impl.dart .\lib\core\di\service_locator.dart'
+Write-Host 'flutter analyze lib\features\accounts lib\core\audit lib\core\di --no-fatal-infos --no-fatal-warnings'
