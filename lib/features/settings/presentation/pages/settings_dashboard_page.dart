@@ -327,21 +327,21 @@ class _SettingsDashboardViewState extends State<_SettingsDashboardView> {
                     icon: const Icon(Icons.monitor_heart_outlined),
                     label: const Text('System Health and Diagnostics'),
                   ),
-const SizedBox(height: 10),
-Align(
-  alignment: Alignment.centerLeft,
-  child: FilledButton.tonalIcon(
-    onPressed: () {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const AuditConfigurationPage(),
-        ),
-      );
-    },
-    icon: const Icon(Icons.history_outlined),
-    label: const Text('Audit Logging'),
-  ),
-),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AuditConfigurationPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history_outlined),
+                    label: const Text('Audit Logging'),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Align(
