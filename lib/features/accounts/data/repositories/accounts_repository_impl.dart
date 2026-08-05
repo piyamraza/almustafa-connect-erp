@@ -12,10 +12,9 @@ import '../datasources/accounts_remote_datasource.dart';
 
 class AccountsRepositoryImpl implements AccountsRepository {
   AccountsRepositoryImpl({
-    required AccountsRemoteDataSource source,
+    required this._source,
     required AuditService auditService,
-  }) : _source = source,
-       _auditService = auditService;
+  }) : _auditService = auditService;
 
   final AccountsRemoteDataSource _source;
   final AuditService _auditService;

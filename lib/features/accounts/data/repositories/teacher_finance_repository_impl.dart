@@ -8,10 +8,9 @@ import '../models/teacher_finance_models.dart';
 
 class TeacherFinanceRepositoryImpl implements TeacherFinanceRepository {
   TeacherFinanceRepositoryImpl({
-    required FirebaseFirestoreService firestoreService,
+    required this._firestoreService,
     required AuditService auditService,
-  }) : _firestoreService = firestoreService,
-       _auditService = auditService;
+  }) : _auditService = auditService;
 
   static const _accountsCollection = 'teacher_finance_accounts';
   static const _transactionsCollection = 'teacher_finance_transactions';

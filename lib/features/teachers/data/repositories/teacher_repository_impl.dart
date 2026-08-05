@@ -7,8 +7,8 @@ import '../models/teacher_model.dart';
 class TeacherRepositoryImpl implements TeacherRepository {
   TeacherRepositoryImpl({
     required this._remoteDataSource,
-    required AuditService auditService,
-  }) : _auditService = auditService;
+    required this._auditService,
+  });
 
   final TeacherRemoteDataSource _remoteDataSource;
   final AuditService _auditService;

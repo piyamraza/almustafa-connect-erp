@@ -12,10 +12,9 @@ import '../models/student_additional_charge_due_model.dart';
 
 class FeePaymentRepositoryImpl implements FeePaymentRepository {
   FeePaymentRepositoryImpl({
-    required FirebaseFirestoreService firestoreService,
+    required this._firestoreService,
     required AuditService auditService,
-  }) : _firestoreService = firestoreService,
-       _auditService = auditService;
+  }) : _auditService = auditService;
 
   final FirebaseFirestoreService _firestoreService;
   final AuditService _auditService;
