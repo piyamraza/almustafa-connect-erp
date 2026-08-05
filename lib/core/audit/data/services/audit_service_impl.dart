@@ -1,23 +1,56 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../features/access_control/domain/entities/app_role_entity.dart';
 import '../../../../features/access_control/domain/entities/user_role_assignment_entity.dart';
 import '../../../../features/access_control/domain/services/access_control_service.dart';
+import '../../domain/entities/audit_configuration_entity.dart';
 import '../../domain/entities/audit_context.dart';
 import '../../domain/entities/audit_log_entity.dart';
+import '../../domain/repositories/audit_configuration_repository.dart';
 import '../../domain/repositories/audit_repository.dart';
 import '../../domain/services/audit_service.dart';
 
 class AuditServiceImpl implements AuditService {
-  AuditServiceImpl(this._repository, this._accessControlService)
-    : _sessionId = _generateSessionId();
+  AuditServiceImpl(
+    this._repository,
+    this._accessControlService, [
+    this._configurationRepository,
+  ]) : _sessionId = _generateSessionId() {
+    _configuration = AuditConfigurationEntity.defaultConfiguration();
+    _startConfigurationListener();
+  }
 
   final AuditRepository _repository;
   final AccessControlService _accessControlService;
+  final AuditConfigurationRepository? _configurationRepository;
   final String _sessionId;
+
+  late AuditConfigurationEntity _configuration;
+  StreamSubscription<AuditConfigurationEntity>? _configurationSubscription;
 
   @override
   String get sessionId => _sessionId;
+
+  void _startConfigurationListener() {
+    final repository = _configurationRepository;
+
+    if (repository == null) {
+      return;
+    }
+
+    _configurationSubscription = repository.watchConfiguration().listen(
+      (configuration) {
+        _configuration = configuration;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (kDebugMode) {
+          debugPrint('Audit configuration listener error: $error');
+        }
+      },
+    );
+  }
 
   @override
   AuditContext buildContext({String? roleId, String? roleName}) {
@@ -59,6 +92,12 @@ class AuditServiceImpl implements AuditService {
     String? roleId,
     String? roleName,
   }) async {
+    final normalizedModule = module.trim();
+
+    if (!_shouldRecordLog(module: normalizedModule, action: action)) {
+      return;
+    }
+
     final context = buildContext(roleId: roleId, roleName: roleName);
 
     final now = DateTime.now();
@@ -67,7 +106,7 @@ class AuditServiceImpl implements AuditService {
     await _repository.saveLog(
       AuditLogEntity(
         id: id,
-        module: module.trim(),
+        module: normalizedModule,
         action: action,
         recordId: recordId.trim(),
         description: description.trim(),
@@ -90,6 +129,121 @@ class AuditServiceImpl implements AuditService {
         createdAt: now,
       ),
     );
+  }
+
+  bool _shouldRecordLog({required String module, required AuditAction action}) {
+    if (!_configuration.isLoggingEnabled) {
+      return false;
+    }
+
+    if (!_isModuleEnabled(module)) {
+      return false;
+    }
+
+    final requiredLevel = _requiredLevel(module: module, action: action);
+
+    return _configuration.allowsLevel(requiredLevel);
+  }
+
+  bool _isModuleEnabled(String module) {
+    final normalizedModule = _normalizeValue(module);
+
+    for (final enabledModule in _configuration.enabledModules) {
+      final normalizedEnabledModule = _normalizeValue(enabledModule);
+
+      if (normalizedModule == normalizedEnabledModule) {
+        return true;
+      }
+
+      if (normalizedModule.contains(normalizedEnabledModule) ||
+          normalizedEnabledModule.contains(normalizedModule)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  AuditLogLevel _requiredLevel({
+    required String module,
+    required AuditAction action,
+  }) {
+    if (_isDetailedAction(action)) {
+      return AuditLogLevel.detailed;
+    }
+
+    if (_isCriticalAction(action)) {
+      return AuditLogLevel.critical;
+    }
+
+    if (_isCriticalModule(module)) {
+      return AuditLogLevel.critical;
+    }
+
+    return AuditLogLevel.standard;
+  }
+
+  bool _isDetailedAction(AuditAction action) {
+    return switch (action) {
+      AuditAction.view || AuditAction.print || AuditAction.export => true,
+      _ => false,
+    };
+  }
+
+  bool _isCriticalAction(AuditAction action) {
+    return switch (action) {
+      AuditAction.delete ||
+      AuditAction.restore ||
+      AuditAction.approve ||
+      AuditAction.reject ||
+      AuditAction.login ||
+      AuditAction.logout ||
+      AuditAction.collectPayment => true,
+      _ => false,
+    };
+  }
+
+  bool _isCriticalModule(String module) {
+    final value = _normalizeValue(module);
+
+    const criticalModuleKeywords = <String>[
+      'authentication',
+      'login',
+      'accesscontrol',
+      'permission',
+      'role',
+      'fees',
+      'fee',
+      'payment',
+      'accounts',
+      'account',
+      'cashbook',
+      'income',
+      'expense',
+      'profitloss',
+      'payroll',
+      'salary',
+      'teacherfinance',
+      'employeefinance',
+      'loan',
+      'advance',
+      'deduction',
+      'penalty',
+      'bonus',
+      'allowance',
+      'schoolstore',
+      'store',
+      'settings',
+      'audit',
+      'backup',
+      'restore',
+    ];
+
+    return criticalModuleKeywords.any(value.contains);
+  }
+
+  static String _normalizeValue(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   @override
@@ -182,7 +336,9 @@ class AuditServiceImpl implements AuditService {
 
     if (roleId != null && roleId.trim().isNotEmpty) {
       for (final item in assignments) {
-        if (item.roleId == roleId) return item;
+        if (item.roleId == roleId) {
+          return item;
+        }
       }
     }
 
@@ -204,7 +360,9 @@ class AuditServiceImpl implements AuditService {
 
     if (roleId != null && roleId.trim().isNotEmpty) {
       for (final item in roles) {
-        if (item.id == roleId) return item;
+        if (item.id == roleId) {
+          return item;
+        }
       }
     }
 
@@ -228,7 +386,9 @@ class AuditServiceImpl implements AuditService {
   }
 
   static String _platformName() {
-    if (kIsWeb) return 'web';
+    if (kIsWeb) {
+      return 'web';
+    }
 
     return switch (defaultTargetPlatform) {
       TargetPlatform.android => 'android',
