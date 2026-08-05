@@ -1006,11 +1006,12 @@ Future<void> setupServiceLocator() async {
     () => AccountsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AccountsRepository>(
-    () => AccountsRepositoryImpl(
-      source: sl<AccountsRemoteDataSource>(),
-      auditService: sl<AuditService>(),
-    ),
-  );
+  () => AccountsRepositoryImpl(
+    source: sl<AccountsRemoteDataSource>(),
+    auditService: sl<AuditService>(),
+    teacherFinanceRepository: sl<TeacherFinanceRepository>(),
+  ),
+);
 
   sl.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
   sl.registerLazySingleton<WhatsAppBroadcastRemoteDataSource>(

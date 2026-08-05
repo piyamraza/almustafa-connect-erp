@@ -20,6 +20,7 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
     required super.notes,
     required super.createdAt,
     required super.updatedAt,
+    super.recoveryMode,
     super.closedAt,
   });
 
@@ -37,6 +38,7 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
       outstandingAmount: entity.outstandingAmount,
       issueDate: entity.issueDate,
       recoveryStartMonth: entity.recoveryStartMonth,
+      recoveryMode: entity.recoveryMode,
       status: entity.status,
       approvedBy: entity.approvedBy,
       notes: entity.notes,
@@ -47,20 +49,27 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
   }
 
   factory TeacherFinanceAccountModel.fromMap(Map<String, dynamic> map) {
+    final financeType = TeacherFinanceType.values.firstWhere(
+      (value) => value.name == map['financeType'],
+      orElse: () => TeacherFinanceType.advance,
+    );
+
     return TeacherFinanceAccountModel(
       id: map['id'] as String? ?? '',
       employeeId: map['employeeId'] as String? ?? '',
       employeeName: map['employeeName'] as String? ?? '',
-      financeType: TeacherFinanceType.values.firstWhere(
-        (value) => value.name == map['financeType'],
-        orElse: () => TeacherFinanceType.advance,
-      ),
+      financeType: financeType,
       principalAmount: _int(map['principalAmount']),
       monthlyRecoveryAmount: _int(map['monthlyRecoveryAmount']),
       recoveredAmount: _int(map['recoveredAmount']),
       outstandingAmount: _int(map['outstandingAmount']),
       issueDate: _date(map['issueDate']) ?? DateTime.now(),
       recoveryStartMonth: _date(map['recoveryStartMonth']) ?? DateTime.now(),
+      recoveryMode: _recoveryMode(
+        map['recoveryMode'],
+        financeType: financeType,
+        monthlyRecoveryAmount: _int(map['monthlyRecoveryAmount']),
+      ),
       status: TeacherFinanceStatus.values.firstWhere(
         (value) => value.name == map['status'],
         orElse: () => TeacherFinanceStatus.active,
@@ -73,24 +82,27 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'employeeId': employeeId,
-    'employeeName': employeeName,
-    'financeType': financeType.name,
-    'principalAmount': principalAmount,
-    'monthlyRecoveryAmount': monthlyRecoveryAmount,
-    'recoveredAmount': recoveredAmount,
-    'outstandingAmount': outstandingAmount,
-    'issueDate': issueDate.toIso8601String(),
-    'recoveryStartMonth': recoveryStartMonth.toIso8601String(),
-    'status': status.name,
-    'approvedBy': approvedBy,
-    'notes': notes,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-    'closedAt': closedAt?.toIso8601String(),
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'employeeId': employeeId,
+      'employeeName': employeeName,
+      'financeType': financeType.name,
+      'principalAmount': principalAmount,
+      'monthlyRecoveryAmount': monthlyRecoveryAmount,
+      'recoveredAmount': recoveredAmount,
+      'outstandingAmount': outstandingAmount,
+      'issueDate': issueDate.toIso8601String(),
+      'recoveryStartMonth': recoveryStartMonth.toIso8601String(),
+      'recoveryMode': recoveryMode.name,
+      'status': status.name,
+      'approvedBy': approvedBy,
+      'notes': notes,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'closedAt': closedAt?.toIso8601String(),
+    };
+  }
 }
 
 class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
@@ -107,6 +119,12 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
     required super.notes,
     required super.createdBy,
     required super.createdAt,
+    super.payrollMonth,
+    super.isPostedToPayroll,
+    super.isReversed,
+    super.reversedAt,
+    super.reversedBy,
+    super.reversalReason,
   });
 
   factory TeacherFinanceTransactionModel.fromEntity(
@@ -121,10 +139,16 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
       amount: entity.amount,
       transactionDate: entity.transactionDate,
       payrollId: entity.payrollId,
+      payrollMonth: entity.payrollMonth,
       referenceNumber: entity.referenceNumber,
       notes: entity.notes,
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
+      isPostedToPayroll: entity.isPostedToPayroll,
+      isReversed: entity.isReversed,
+      reversedAt: entity.reversedAt,
+      reversedBy: entity.reversedBy,
+      reversalReason: entity.reversalReason,
     );
   }
 
@@ -141,33 +165,100 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
       amount: _int(map['amount']),
       transactionDate: _date(map['transactionDate']) ?? DateTime.now(),
       payrollId: map['payrollId'] as String? ?? '',
+      payrollMonth: _date(map['payrollMonth']),
       referenceNumber: map['referenceNumber'] as String? ?? '',
       notes: map['notes'] as String? ?? '',
       createdBy: map['createdBy'] as String? ?? '',
       createdAt: _date(map['createdAt']) ?? DateTime.now(),
+      isPostedToPayroll: _bool(map['isPostedToPayroll']),
+      isReversed: _bool(map['isReversed']),
+      reversedAt: _date(map['reversedAt']),
+      reversedBy: map['reversedBy'] as String? ?? '',
+      reversalReason: map['reversalReason'] as String? ?? '',
     );
   }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'accountId': accountId,
-    'employeeId': employeeId,
-    'employeeName': employeeName,
-    'transactionType': transactionType.name,
-    'amount': amount,
-    'transactionDate': transactionDate.toIso8601String(),
-    'payrollId': payrollId,
-    'referenceNumber': referenceNumber,
-    'notes': notes,
-    'createdBy': createdBy,
-    'createdAt': createdAt.toIso8601String(),
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'accountId': accountId,
+      'employeeId': employeeId,
+      'employeeName': employeeName,
+      'transactionType': transactionType.name,
+      'amount': amount,
+      'transactionDate': transactionDate.toIso8601String(),
+      'payrollId': payrollId,
+      'payrollMonth': payrollMonth?.toIso8601String(),
+      'referenceNumber': referenceNumber,
+      'notes': notes,
+      'createdBy': createdBy,
+      'createdAt': createdAt.toIso8601String(),
+      'isPostedToPayroll': isPostedToPayroll,
+      'isReversed': isReversed,
+      'reversedAt': reversedAt?.toIso8601String(),
+      'reversedBy': reversedBy,
+      'reversalReason': reversalReason,
+    };
+  }
+}
+
+TeacherFinanceRecoveryMode _recoveryMode(
+  dynamic value, {
+  required TeacherFinanceType financeType,
+  required int monthlyRecoveryAmount,
+}) {
+  if (value is String) {
+    return TeacherFinanceRecoveryMode.values.firstWhere(
+      (item) => item.name == value,
+      orElse: () => _legacyRecoveryMode(
+        financeType: financeType,
+        monthlyRecoveryAmount: monthlyRecoveryAmount,
+      ),
+    );
+  }
+
+  return _legacyRecoveryMode(
+    financeType: financeType,
+    monthlyRecoveryAmount: monthlyRecoveryAmount,
+  );
+}
+
+TeacherFinanceRecoveryMode _legacyRecoveryMode({
+  required TeacherFinanceType financeType,
+  required int monthlyRecoveryAmount,
+}) {
+  if ((financeType == TeacherFinanceType.advance ||
+          financeType == TeacherFinanceType.loan) &&
+      monthlyRecoveryAmount > 0) {
+    return TeacherFinanceRecoveryMode.monthly;
+  }
+
+  if (financeType == TeacherFinanceType.penalty ||
+      financeType == TeacherFinanceType.otherDeduction) {
+    return TeacherFinanceRecoveryMode.oneTime;
+  }
+
+  return TeacherFinanceRecoveryMode.none;
 }
 
 int _int(dynamic value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+bool _bool(dynamic value) {
+  if (value is bool) return value;
+
+  if (value is num) {
+    return value != 0;
+  }
+
+  if (value is String) {
+    return value.toLowerCase() == 'true';
+  }
+
+  return false;
 }
 
 DateTime? _date(dynamic value) {

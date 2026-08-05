@@ -7,8 +7,8 @@ import '../models/exam_model.dart';
 class ExamRepositoryImpl implements ExamRepository {
   ExamRepositoryImpl({
     required this._source,
-    required AuditService auditService,
-  }) : _auditService = auditService;
+    required this._auditService,
+  });
 
   final ExamRemoteDataSource _source;
   final AuditService _auditService;

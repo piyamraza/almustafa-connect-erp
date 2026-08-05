@@ -5,19 +5,25 @@ import '../../domain/entities/expense_category_entity.dart';
 import '../../domain/entities/expense_entity.dart';
 import '../../domain/entities/income_entry_entity.dart';
 import '../../domain/entities/monthly_profit_loss_entity.dart';
+import '../../domain/entities/payroll_auto_deductions_entity.dart';
 import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
+import '../../domain/entities/teacher_finance_account_entity.dart';
+import '../../domain/entities/teacher_finance_transaction_entity.dart';
 import '../../domain/repositories/accounts_repository.dart';
+import '../../domain/repositories/teacher_finance_repository.dart';
 import '../datasources/accounts_remote_datasource.dart';
 
 class AccountsRepositoryImpl implements AccountsRepository {
   AccountsRepositoryImpl({
     required this._source,
-    required AuditService auditService,
-  }) : _auditService = auditService;
+    required this._auditService,
+    required this._teacherFinanceRepository,
+  });
 
   final AccountsRemoteDataSource _source;
   final AuditService _auditService;
+  final TeacherFinanceRepository _teacherFinanceRepository;
 
   @override
   Future<List<ExpenseCategoryEntity>> getExpenseCategories() =>
@@ -124,7 +130,8 @@ class AccountsRepositoryImpl implements AccountsRepository {
         module: 'Payroll',
         recordId: record.id,
         description:
-            'Monthly payroll generated for ${record.employeeName} (${_monthKey(record.payrollMonth)})',
+            'Monthly payroll generated for ${record.employeeName} '
+            '(${_monthKey(record.payrollMonth)})',
         newValues: _recordValues(record),
       );
       return;
@@ -134,7 +141,8 @@ class AccountsRepositoryImpl implements AccountsRepository {
       module: 'Payroll',
       recordId: record.id,
       description:
-          'Payroll record updated for ${record.employeeName} (${_monthKey(record.payrollMonth)})',
+          'Payroll record updated for ${record.employeeName} '
+          '(${_monthKey(record.payrollMonth)})',
       oldValues: _recordValues(previous),
       newValues: _recordValues(record),
     );
@@ -151,6 +159,14 @@ class AccountsRepositoryImpl implements AccountsRepository {
     final records = await _source.getPayrollRecords();
     final previous = _findRecord(records, payrollId);
 
+    if (previous == null) {
+      throw StateError('Payroll record was not found.');
+    }
+
+    if (previous.paymentStatus == status) {
+      return;
+    }
+
     await _source.updatePayrollStatus(
       payrollId: payrollId,
       status: status,
@@ -158,6 +174,26 @@ class AccountsRepositoryImpl implements AccountsRepository {
       paymentMethod: paymentMethod,
       referenceNumber: referenceNumber,
     );
+
+    if (status == PayrollPaymentStatus.paid) {
+      await _teacherFinanceRepository.postPayrollRecoveries(
+        payrollId: payrollId,
+        employeeId: previous.employeeId,
+        advanceAmount: previous.advanceDeduction,
+        loanAmount: previous.loanDeduction,
+        actorId: actorId,
+        referenceNumber: referenceNumber,
+      );
+    }
+
+    if (status == PayrollPaymentStatus.cancelled &&
+        previous.paymentStatus == PayrollPaymentStatus.paid) {
+      await _teacherFinanceRepository.reversePayrollPosting(
+        payrollId: payrollId,
+        actorId: actorId,
+        reason: 'Paid payroll was cancelled.',
+      );
+    }
 
     final action = switch (status) {
       PayrollPaymentStatus.approved => AuditAction.approve,
@@ -171,7 +207,7 @@ class AccountsRepositoryImpl implements AccountsRepository {
       action: action,
       recordId: payrollId,
       description: _statusDescription(status, previous),
-      oldValues: previous == null ? const {} : _recordValues(previous),
+      oldValues: _recordValues(previous),
       newValues: {
         'paymentStatus': status.name,
         'actorId': actorId,
@@ -181,33 +217,122 @@ class AccountsRepositoryImpl implements AccountsRepository {
       },
     );
   }
-  // =====================================================
-  // Payroll Automatic Deductions
-  // =====================================================
 
   @override
-  Future<int> getAdvanceDeductionForPayroll({
+  Future<PayrollAutoDeductionsEntity> getPayrollAutoDeductions({
     required String employeeId,
+    required DateTime payrollMonth,
   }) async {
-    // Phase 3:
-    // This will read active Advance accounts and return
-    // the monthly recovery amount.
-    return 0;
+    if (employeeId.trim().isEmpty) {
+      throw ArgumentError('Employee ID is required.');
+    }
+
+    final monthStart = DateTime(payrollMonth.year, payrollMonth.month);
+
+    final responses = await Future.wait<Object>([
+      _teacherFinanceRepository.getRecoverableAccounts(
+        employeeId: employeeId,
+        payrollMonth: monthStart,
+      ),
+      _teacherFinanceRepository.getPendingPayrollTransactions(
+        employeeId: employeeId,
+        payrollMonth: monthStart,
+      ),
+    ]);
+
+    final accounts = responses[0] as List<TeacherFinanceAccountEntity>;
+    final transactions = responses[1] as List<TeacherFinanceTransactionEntity>;
+
+    var advanceDeduction = 0;
+    var loanDeduction = 0;
+    var otherDeductions = 0;
+    var otherAdditions = 0;
+
+    for (final account in accounts) {
+      final amount = account.deductionForPayrollMonth(monthStart);
+
+      switch (account.financeType) {
+        case TeacherFinanceType.advance:
+          advanceDeduction += amount;
+        case TeacherFinanceType.loan:
+          loanDeduction += amount;
+        case TeacherFinanceType.salaryAdjustment:
+        case TeacherFinanceType.bonus:
+        case TeacherFinanceType.penalty:
+        case TeacherFinanceType.allowance:
+        case TeacherFinanceType.otherDeduction:
+        case TeacherFinanceType.otherPayment:
+          break;
+      }
+    }
+
+    for (final transaction in transactions) {
+      if (!transaction.appliesToPayrollMonth(monthStart)) {
+        continue;
+      }
+
+      if (transaction.decreasesSalary) {
+        otherDeductions += transaction.amount;
+      } else if (transaction.increasesSalary) {
+        otherAdditions += transaction.amount;
+      }
+    }
+
+    return PayrollAutoDeductionsEntity(
+      advanceDeduction: advanceDeduction,
+      loanDeduction: loanDeduction,
+      otherDeductions: otherDeductions - otherAdditions,
+    );
   }
 
   @override
-  Future<int> getLoanDeductionForPayroll({required String employeeId}) async {
-    // Phase 3:
-    // This will read active Loan accounts and return
-    // the monthly recovery amount.
-    return 0;
+  Future<void> markEmployeeFinancePosted({
+    required String payrollId,
+    required String employeeId,
+    required DateTime payrollMonth,
+    required String actorId,
+  }) async {
+    if (payrollId.trim().isEmpty) {
+      throw ArgumentError('Payroll ID is required.');
+    }
+
+    if (employeeId.trim().isEmpty) {
+      throw ArgumentError('Employee ID is required.');
+    }
+
+    if (actorId.trim().isEmpty) {
+      throw ArgumentError('Current user could not be identified.');
+    }
+
+    final pending = await _teacherFinanceRepository
+        .getPendingPayrollTransactions(
+          employeeId: employeeId,
+          payrollMonth: payrollMonth,
+        );
+
+    if (pending.isEmpty) {
+      return;
+    }
+
+    await _teacherFinanceRepository.markTransactionsPostedToPayroll(
+      transactionIds: pending.map((item) => item.id).toList(),
+      payrollId: payrollId,
+      payrollMonth: payrollMonth,
+      actorId: actorId,
+    );
   }
 
   @override
-  Future<int> getOtherPayrollDeductions({required String employeeId}) async {
-    // Reserved for future deductions
-    // (Income Tax, EOBI, PF, Insurance etc.)
-    return 0;
+  Future<void> reverseEmployeeFinancePosting({
+    required String payrollId,
+    required String actorId,
+    required String reason,
+  }) {
+    return _teacherFinanceRepository.reversePayrollPosting(
+      payrollId: payrollId,
+      actorId: actorId,
+      reason: reason,
+    );
   }
 
   @override

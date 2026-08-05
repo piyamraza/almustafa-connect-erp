@@ -37,13 +37,16 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
 
     try {
       final accounts = await _repository.getAccounts(status: _statusFilter);
+
       if (!mounted) return;
+
       setState(() {
         _accounts = accounts;
         _loading = false;
       });
     } catch (error) {
       if (!mounted) return;
+
       setState(() {
         _loading = false;
         _errorMessage = error.toString();
@@ -156,6 +159,7 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final account = _accounts[index];
+
         return Card(
           child: ListTile(
             leading: CircleAvatar(
@@ -175,8 +179,9 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
             ),
             isThreeLine: true,
             trailing: PopupMenuButton<String>(
-              onSelected: (value) =>
-                  _handleAction(account: account, action: value),
+              onSelected: (value) {
+                _handleAction(account: account, action: value);
+              },
               itemBuilder: (_) => [
                 const PopupMenuItem(
                   value: 'ledger',
@@ -203,6 +208,7 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
 
   Future<void> _showCreateDialog() async {
     final teachers = await sl<TeacherRepository>().getTeachers();
+
     if (!mounted) return;
 
     final activeTeachers = teachers.where((item) => item.isActive).toList()
@@ -215,9 +221,11 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
 
     TeacherFinanceType type = TeacherFinanceType.advance;
     dynamic selectedTeacher;
+
     final amountController = TextEditingController();
     final recoveryController = TextEditingController();
     final notesController = TextEditingController();
+
     DateTime recoveryStart = DateTime(
       DateTime.now().year,
       DateTime.now().month + 1,
@@ -225,132 +233,148 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('New Advance / Loan'),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  DropdownButtonFormField<dynamic>(
-                    initialValue: selectedTeacher,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Teacher',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: activeTeachers
-                        .map(
-                          (teacher) => DropdownMenuItem<dynamic>(
-                            value: teacher,
-                            child: Text(
-                              '${teacher.fullName} (${teacher.employeeId})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        setDialogState(() => selectedTeacher = value),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<TeacherFinanceType>(
-                    initialValue: type,
-                    decoration: const InputDecoration(
-                      labelText: 'Type',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: TeacherFinanceType.advance,
-                        child: Text('Advance'),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('New Advance / Loan'),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<dynamic>(
+                        initialValue: selectedTeacher,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Teacher',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: activeTeachers
+                            .map(
+                              (teacher) => DropdownMenuItem<dynamic>(
+                                value: teacher,
+                                child: Text(
+                                  '${teacher.fullName} '
+                                  '(${teacher.employeeId})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedTeacher = value;
+                          });
+                        },
                       ),
-                      DropdownMenuItem(
-                        value: TeacherFinanceType.loan,
-                        child: Text('Loan'),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<TeacherFinanceType>(
+                        initialValue: type,
+                        decoration: const InputDecoration(
+                          labelText: 'Type',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: TeacherFinanceType.advance,
+                            child: Text('Advance'),
+                          ),
+                          DropdownMenuItem(
+                            value: TeacherFinanceType.loan,
+                            child: Text('Loan'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              type = value;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Approved Amount',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: recoveryController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Monthly Recovery',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Recovery Start Month'),
+                        subtitle: Text(
+                          '${recoveryStart.month.toString().padLeft(2, '0')}'
+                          '-${recoveryStart.year}',
+                        ),
+                        trailing: const Icon(Icons.calendar_month),
+                        onTap: () async {
+                          final value = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: recoveryStart,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+
+                          if (value != null) {
+                            setDialogState(() {
+                              recoveryStart = DateTime(value.year, value.month);
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: notesController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Notes',
+                          border: OutlineInputBorder(),
+                        ),
                       ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => type = value);
-                      }
-                    },
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Approved Amount',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: recoveryController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Monthly Recovery',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Recovery Start Month'),
-                    subtitle: Text(
-                      '${recoveryStart.month.toString().padLeft(2, '0')}-'
-                      '${recoveryStart.year}',
-                    ),
-                    trailing: const Icon(Icons.calendar_month),
-                    onTap: () async {
-                      final value = await showDatePicker(
-                        context: dialogContext,
-                        initialDate: recoveryStart,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (value != null) {
-                        setDialogState(
-                          () =>
-                              recoveryStart = DateTime(value.year, value.month),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: selectedTeacher == null
-                  ? null
-                  : () => Navigator.pop(dialogContext, true),
-              child: const Text('Approve'),
-            ),
-          ],
-        ),
-      ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext, false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: selectedTeacher == null
+                      ? null
+                      : () {
+                          Navigator.pop(dialogContext, true);
+                        },
+                  child: const Text('Approve'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
       final amount = int.tryParse(amountController.text.trim()) ?? 0;
+
       final monthlyRecovery = int.tryParse(recoveryController.text.trim()) ?? 0;
+
       final user = sl<GetCurrentUserUseCase>()();
       final now = DateTime.now();
 
@@ -367,6 +391,7 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
             outstandingAmount: amount,
             issueDate: now,
             recoveryStartMonth: recoveryStart,
+            recoveryMode: TeacherFinanceRecoveryMode.monthly,
             status: TeacherFinanceStatus.active,
             approvedBy: user?.uid ?? '',
             notes: notesController.text.trim(),
@@ -374,11 +399,15 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
             updatedAt: now,
           ),
         );
+
         if (!mounted) return;
+
         _message('${_typeLabel(type)} approved successfully.');
+
         await _load();
       } catch (error) {
         if (!mounted) return;
+
         _message(error.toString());
       }
     }
@@ -411,44 +440,50 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
     final transactions = await _repository.getTransactions(
       accountId: account.id,
     );
+
     if (!mounted) return;
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('${account.employeeName} Ledger'),
-        content: SizedBox(
-          width: 650,
-          height: 420,
-          child: transactions.isEmpty
-              ? const Center(child: Text('No transactions found.'))
-              : ListView.separated(
-                  itemCount: transactions.length,
-                  separatorBuilder: (_, _) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final item = transactions[index];
-                    return ListTile(
-                      leading: Icon(_transactionIcon(item.transactionType)),
-                      title: Text(_transactionLabel(item.transactionType)),
-                      subtitle: Text(
-                        '${_date(item.transactionDate)}'
-                        '${item.notes.isEmpty ? '' : '\n${item.notes}'}',
-                      ),
-                      trailing: Text(
-                        'Rs. ${item.amount}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('${account.employeeName} Ledger'),
+          content: SizedBox(
+            width: 650,
+            height: 420,
+            child: transactions.isEmpty
+                ? const Center(child: Text('No transactions found.'))
+                : ListView.separated(
+                    itemCount: transactions.length,
+                    separatorBuilder: (_, _) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final item = transactions[index];
+
+                      return ListTile(
+                        leading: Icon(_transactionIcon(item.transactionType)),
+                        title: Text(_transactionLabel(item.transactionType)),
+                        subtitle: Text(
+                          '${_date(item.transactionDate)}'
+                          '${item.notes.isEmpty ? '' : '\n${item.notes}'}',
+                        ),
+                        trailing: Text(
+                          'Rs. ${item.amount}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    },
+                  ),
           ),
-        ],
-      ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -456,63 +491,71 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
     final amountController = TextEditingController(
       text: account.monthlyRecoveryAmount.toString(),
     );
+
     final referenceController = TextEditingController();
     final notesController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Manual Recovery - ${account.employeeName}'),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Outstanding: Rs. ${account.outstandingAmount}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Recovery Amount',
-                  border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('Manual Recovery - ${account.employeeName}'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Outstanding: Rs. ${account.outstandingAmount}'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Recovery Amount',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: referenceController,
-                decoration: const InputDecoration(
-                  labelText: 'Reference Number',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: referenceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reference Number',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: notesController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Save Recovery'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Save Recovery'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
       final user = sl<GetCurrentUserUseCase>()();
+
       try {
         await _repository.applyRecovery(
           accountId: account.id,
@@ -522,11 +565,15 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
           referenceNumber: referenceController.text.trim(),
           notes: notesController.text.trim(),
         );
+
         if (!mounted) return;
+
         _message('Recovery saved successfully.');
+
         await _load();
       } catch (error) {
         if (!mounted) return;
+
         _message(error.toString());
       }
     }
@@ -541,42 +588,53 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancel Advance / Loan'),
-        content: TextField(
-          controller: reasonController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Cancellation Reason',
-            border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Cancel Advance / Loan'),
+          content: TextField(
+            controller: reasonController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Cancellation Reason',
+              border: OutlineInputBorder(),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Cancel Account'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Cancel Account'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
       final user = sl<GetCurrentUserUseCase>()();
+
       try {
         await _repository.cancelAccount(
           accountId: account.id,
           actorId: user?.uid ?? '',
           reason: reasonController.text.trim(),
         );
+
         if (!mounted) return;
+
         _message('Account cancelled.');
+
         await _load();
       } catch (error) {
         if (!mounted) return;
+
         _message(error.toString());
       }
     }
@@ -594,6 +652,12 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
     return switch (value) {
       TeacherFinanceType.advance => 'Advance',
       TeacherFinanceType.loan => 'Loan',
+      TeacherFinanceType.salaryAdjustment => 'Salary Adjustment',
+      TeacherFinanceType.bonus => 'Bonus',
+      TeacherFinanceType.penalty => 'Penalty',
+      TeacherFinanceType.allowance => 'Allowance',
+      TeacherFinanceType.otherDeduction => 'Other Deduction',
+      TeacherFinanceType.otherPayment => 'Other Payment',
     };
   }
 
@@ -612,22 +676,36 @@ class _TeacherFinancePageState extends State<TeacherFinancePage> {
       TeacherFinanceTransactionType.manualRecovery => 'Manual Recovery',
       TeacherFinanceTransactionType.adjustment => 'Adjustment',
       TeacherFinanceTransactionType.cancellation => 'Cancellation',
+      TeacherFinanceTransactionType.bonus => 'Bonus',
+      TeacherFinanceTransactionType.allowance => 'Allowance',
+      TeacherFinanceTransactionType.penalty => 'Penalty',
+      TeacherFinanceTransactionType.otherDeduction => 'Other Deduction',
+      TeacherFinanceTransactionType.otherPayment => 'Other Payment',
+      TeacherFinanceTransactionType.salaryAdjustment => 'Salary Adjustment',
     };
   }
 
   IconData _transactionIcon(TeacherFinanceTransactionType value) {
     return switch (value) {
-      TeacherFinanceTransactionType.disbursement => Icons.arrow_outward,
-      TeacherFinanceTransactionType.payrollRecovery => Icons.payments_outlined,
-      TeacherFinanceTransactionType.manualRecovery => Icons.receipt_long,
+      TeacherFinanceTransactionType.disbursement =>
+        Icons.account_balance_wallet,
+      TeacherFinanceTransactionType.payrollRecovery => Icons.payments,
+      TeacherFinanceTransactionType.manualRecovery => Icons.point_of_sale,
       TeacherFinanceTransactionType.adjustment => Icons.tune,
-      TeacherFinanceTransactionType.cancellation => Icons.cancel_outlined,
+      TeacherFinanceTransactionType.cancellation => Icons.cancel,
+      TeacherFinanceTransactionType.bonus => Icons.card_giftcard,
+      TeacherFinanceTransactionType.allowance => Icons.add_circle,
+      TeacherFinanceTransactionType.penalty => Icons.gpp_bad,
+      TeacherFinanceTransactionType.otherDeduction => Icons.remove_circle,
+      TeacherFinanceTransactionType.otherPayment => Icons.attach_money,
+      TeacherFinanceTransactionType.salaryAdjustment => Icons.calculate,
     };
   }
 
   String _date(DateTime value) {
     final day = value.day.toString().padLeft(2, '0');
     final month = value.month.toString().padLeft(2, '0');
+
     return '$day/$month/${value.year}';
   }
 }
