@@ -34,6 +34,7 @@ abstract class AccountsRemoteDataSource {
     required String profileId,
     required bool isActive,
   });
+  Future<void> deletePayrollProfile(String profileId);
   Future<List<PayrollRecordEntity>> getPayrollRecords();
   Future<void> savePayrollRecord(PayrollRecordEntity record);
   Future<void> updatePayrollStatus({
@@ -205,6 +206,14 @@ class AccountsRemoteDataSourceImpl implements AccountsRemoteDataSource {
           'isActive': isActive,
           'updatedAt': DateTime.now().toIso8601String(),
         });
+  }
+
+  @override
+  Future<void> deletePayrollProfile(String profileId) {
+    return _service
+        .collection(FirestorePaths.payrollProfiles)
+        .doc(profileId)
+        .delete();
   }
 
   @override

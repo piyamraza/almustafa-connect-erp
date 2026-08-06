@@ -36,6 +36,15 @@ class SetPayrollProfileActiveRequested extends PayrollEvent {
   List<Object?> get props => [profileId, isActive];
 }
 
+class DeletePayrollProfileRequested extends PayrollEvent {
+  const DeletePayrollProfileRequested(this.profileId);
+
+  final String profileId;
+
+  @override
+  List<Object?> get props => [profileId];
+}
+
 class GeneratePayrollRequested extends PayrollEvent {
   const GeneratePayrollRequested({required this.month, required this.actorId});
 

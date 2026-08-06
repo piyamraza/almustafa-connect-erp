@@ -284,6 +284,11 @@ class _PayrollViewState extends State<_PayrollView> {
 
                             if (action == 'toggle') {
                               _confirmProfileStatusChange(context, profile);
+                              return;
+                            }
+
+                            if (action == 'delete') {
+                              _confirmProfileDelete(context, profile);
                             }
                           },
                           itemBuilder: (_) => [
@@ -309,6 +314,15 @@ class _PayrollViewState extends State<_PayrollView> {
                                 ),
                               ),
                             ),
+                            const PopupMenuDivider(),
+                            const PopupMenuItem<String>(
+                              value: 'delete',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.delete_outline),
+                                title: Text('Delete'),
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -324,6 +338,44 @@ class _PayrollViewState extends State<_PayrollView> {
         );
       },
     );
+  }
+
+  Future<void> _confirmProfileDelete(
+    BuildContext context,
+    PayrollProfileEntity profile,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Salary Profile?'),
+        content: Text(
+          'Delete the salary profile for ${profile.employeeName}?\n\n'
+          'The profile will only be deleted if it has never been used in '
+          'payroll history. Otherwise, the system will ask you to deactivate '
+          'it instead.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<PayrollBloc>().add(
+        DeletePayrollProfileRequested(profile.id),
+      );
+    }
   }
 
   Future<void> _confirmProfileStatusChange(

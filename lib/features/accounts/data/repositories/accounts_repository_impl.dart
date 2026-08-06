@@ -115,6 +115,38 @@ class AccountsRepositoryImpl implements AccountsRepository {
   }
 
   @override
+  Future<void> deletePayrollProfile(String profileId) async {
+    final profiles = await _source.getPayrollProfiles();
+    final profile = _findProfile(profiles, profileId);
+
+    if (profile == null) {
+      throw StateError('Salary profile was not found.');
+    }
+
+    final records = await _source.getPayrollRecords();
+
+    final hasPayrollHistory = records.any(
+      (record) => record.employeeId == profile.employeeId,
+    );
+
+    if (hasPayrollHistory) {
+      throw StateError(
+        'This salary profile has been used in payroll history and cannot '
+        'be deleted. Deactivate it instead.',
+      );
+    }
+
+    await _source.deletePayrollProfile(profileId);
+
+    await _auditService.logDelete(
+      module: 'Payroll',
+      recordId: profileId,
+      description: 'Salary profile deleted for ${profile.employeeName}',
+      oldValues: _profileValues(profile),
+    );
+  }
+
+  @override
   Future<List<PayrollRecordEntity>> getPayrollRecords() =>
       _source.getPayrollRecords();
 

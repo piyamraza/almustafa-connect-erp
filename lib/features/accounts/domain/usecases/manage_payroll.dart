@@ -74,6 +74,20 @@ class SetPayrollProfileActive {
   }
 }
 
+class DeletePayrollProfile {
+  const DeletePayrollProfile(this._repository);
+
+  final AccountsRepository _repository;
+
+  Future<void> call(String profileId) {
+    if (profileId.trim().isEmpty) {
+      throw ArgumentError('Payroll profile ID is required.');
+    }
+
+    return _repository.deletePayrollProfile(profileId.trim());
+  }
+}
+
 class GenerateMonthlyPayroll {
   const GenerateMonthlyPayroll(this._repository);
 

@@ -48,6 +48,8 @@ abstract class AccountsRepository {
     required bool isActive,
   });
 
+  Future<void> deletePayrollProfile(String profileId);
+
   // ============================================================
   // Payroll Records
   // ============================================================

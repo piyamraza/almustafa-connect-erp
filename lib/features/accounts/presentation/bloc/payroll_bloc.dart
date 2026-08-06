@@ -9,6 +9,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
     required this._getData,
     required this._saveProfile,
     required this._setProfileActive,
+    required this._deleteProfile,
     required this._generatePayroll,
     required this._saveRecord,
     required this._updateStatus,
@@ -16,6 +17,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
     on<LoadPayroll>(_load);
     on<SavePayrollProfileRequested>(_saveProfileRequested);
     on<SetPayrollProfileActiveRequested>(_setProfileActiveRequested);
+    on<DeletePayrollProfileRequested>(_deleteProfileRequested);
     on<GeneratePayrollRequested>(_generateRequested);
     on<SavePayrollRecordRequested>(_saveRecordRequested);
     on<UpdatePayrollStatusRequested>(_updateStatusRequested);
@@ -24,6 +26,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
   final GetPayrollManagementData _getData;
   final SavePayrollProfile _saveProfile;
   final SetPayrollProfileActive _setProfileActive;
+  final DeletePayrollProfile _deleteProfile;
   final GenerateMonthlyPayroll _generatePayroll;
   final SavePayrollRecord _saveRecord;
   final UpdatePayrollStatus _updateStatus;
@@ -57,6 +60,17 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
       event.isActive
           ? 'Salary profile activated.'
           : 'Salary profile deactivated.',
+    );
+  }
+
+  Future<void> _deleteProfileRequested(
+    DeletePayrollProfileRequested event,
+    Emitter<PayrollState> emit,
+  ) async {
+    await _execute(
+      emit,
+      () => _deleteProfile(event.profileId),
+      'Salary profile deleted.',
     );
   }
 
