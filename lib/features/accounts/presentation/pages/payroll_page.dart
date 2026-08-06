@@ -60,6 +60,7 @@ class _PayrollViewState extends State<_PayrollView> {
           if (state is PayrollFailure) {
             return Center(child: Text(state.message));
           }
+
           final data = state as PayrollLoaded;
           final records = data.records
               .where(
@@ -83,6 +84,16 @@ class _PayrollViewState extends State<_PayrollView> {
                       onPressed: () => _showProfileDialog(context),
                       icon: const Icon(Icons.person_add_alt_1),
                       label: const Text('Add Salary Profile'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: data.profiles.isEmpty
+                          ? null
+                          : () => _showSalaryProfilesDialog(
+                              context,
+                              data.profiles,
+                            ),
+                      icon: const Icon(Icons.badge_outlined),
+                      label: const Text('Salary Profiles'),
                     ),
                     FilledButton.tonalIcon(
                       onPressed: () {
@@ -133,6 +144,7 @@ class _PayrollViewState extends State<_PayrollView> {
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final record = records[index];
+
                           return Card(
                             child: ListTile(
                               leading: const CircleAvatar(
@@ -204,18 +216,97 @@ class _PayrollViewState extends State<_PayrollView> {
       lastDate: DateTime(2100),
       helpText: 'Select any date in the payroll month',
     );
+
     if (picked != null) {
       setState(() => _selectedMonth = DateTime(picked.year, picked.month));
     }
   }
 
-  Future<void> _showProfileDialog(BuildContext context) async {
+  Future<void> _showSalaryProfilesDialog(
+    BuildContext context,
+    List<PayrollProfileEntity> profiles,
+  ) async {
+    final sortedProfiles = List<PayrollProfileEntity>.from(profiles)
+      ..sort(
+        (a, b) => a.employeeName.toLowerCase().compareTo(
+          b.employeeName.toLowerCase(),
+        ),
+      );
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Salary Profiles'),
+          content: SizedBox(
+            width: 700,
+            height: 480,
+            child: sortedProfiles.isEmpty
+                ? const Center(child: Text('No salary profiles found.'))
+                : ListView.separated(
+                    itemCount: sortedProfiles.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final profile = sortedProfiles[index];
+                      final typeLabel =
+                          profile.employeeType == PayrollEmployeeType.teacher
+                          ? 'Teacher'
+                          : 'Staff';
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Icon(
+                            profile.isActive
+                                ? Icons.person_outline
+                                : Icons.person_off_outlined,
+                          ),
+                        ),
+                        title: Text(profile.employeeName),
+                        subtitle: Text(
+                          '$typeLabel • ${profile.employeeId}\n'
+                          'Basic Rs. ${profile.basicSalary} • '
+                          'Allowances Rs. ${profile.fixedAllowances} • '
+                          'Deductions Rs. ${profile.fixedDeductions}',
+                        ),
+                        isThreeLine: true,
+                        trailing: IconButton(
+                          tooltip: 'Edit Salary Profile',
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+
+                            _showProfileDialog(
+                              context,
+                              existingProfile: profile,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showProfileDialog(
+    BuildContext context, {
+    PayrollProfileEntity? existingProfile,
+  }) async {
     final List<_PayrollEmployeeOption> teachers;
     final List<_PayrollEmployeeOption> staff;
 
     try {
       final teacherRecords = await sl<TeacherRepository>().getTeachers();
       final staffRecords = await sl<StaffRepository>().getStaff();
+
       teachers =
           teacherRecords
               .where((item) => item.isActive)
@@ -228,6 +319,7 @@ class _PayrollViewState extends State<_PayrollView> {
               )
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
+
       staff =
           staffRecords
               .where((item) => item.isActive)
@@ -251,17 +343,50 @@ class _PayrollViewState extends State<_PayrollView> {
 
     if (!context.mounted) return;
 
-    final basic = TextEditingController();
-    final allowances = TextEditingController(text: '0');
-    final deductions = TextEditingController(text: '0');
-    var employeeType = PayrollEmployeeType.teacher;
+    final basic = TextEditingController(
+      text: existingProfile?.basicSalary.toString() ?? '',
+    );
+    final allowances = TextEditingController(
+      text: existingProfile?.fixedAllowances.toString() ?? '0',
+    );
+    final deductions = TextEditingController(
+      text: existingProfile?.fixedDeductions.toString() ?? '0',
+    );
+
+    var employeeType =
+        existingProfile?.employeeType ?? PayrollEmployeeType.teacher;
+
+    final availableEmployees = employeeType == PayrollEmployeeType.teacher
+        ? teachers
+        : staff;
+
     _PayrollEmployeeOption? selectedEmployee;
+
+    if (existingProfile != null) {
+      for (final employee in availableEmployees) {
+        if (employee.id == existingProfile.id ||
+            employee.employeeId == existingProfile.employeeId) {
+          selectedEmployee = employee;
+          break;
+        }
+      }
+
+      selectedEmployee ??= _PayrollEmployeeOption(
+        id: existingProfile.id,
+        employeeId: existingProfile.employeeId,
+        name: existingProfile.employeeName,
+      );
+    }
 
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Salary Profile'),
+          title: Text(
+            existingProfile == null
+                ? 'Add Salary Profile'
+                : 'Edit Salary Profile',
+          ),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -282,14 +407,16 @@ class _PayrollViewState extends State<_PayrollView> {
                         child: Text('Staff'),
                       ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          employeeType = value;
-                          selectedEmployee = null;
-                        });
-                      }
-                    },
+                    onChanged: existingProfile != null
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setState(() {
+                                employeeType = value;
+                                selectedEmployee = null;
+                              });
+                            }
+                          },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<_PayrollEmployeeOption>(
@@ -315,9 +442,11 @@ class _PayrollViewState extends State<_PayrollView> {
                               ),
                             )
                             .toList(),
-                    onChanged: (value) {
-                      setState(() => selectedEmployee = value);
-                    },
+                    onChanged: existingProfile != null
+                        ? null
+                        : (value) {
+                            setState(() => selectedEmployee = value);
+                          },
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -356,7 +485,7 @@ class _PayrollViewState extends State<_PayrollView> {
               onPressed: selectedEmployee == null
                   ? null
                   : () => Navigator.pop(dialogContext, true),
-              child: const Text('Save'),
+              child: Text(existingProfile == null ? 'Save' : 'Update'),
             ),
           ],
         ),
@@ -366,19 +495,20 @@ class _PayrollViewState extends State<_PayrollView> {
     if (save == true && context.mounted) {
       final now = DateTime.now();
       final employee = selectedEmployee!;
+
       context.read<PayrollBloc>().add(
         SavePayrollProfileRequested(
           PayrollProfileEntity(
-            id: employee.id,
-            employeeId: employee.employeeId,
-            employeeName: employee.name,
-            employeeType: employeeType,
+            id: existingProfile?.id ?? employee.id,
+            employeeId: existingProfile?.employeeId ?? employee.employeeId,
+            employeeName: existingProfile?.employeeName ?? employee.name,
+            employeeType: existingProfile?.employeeType ?? employeeType,
             basicSalary: int.tryParse(basic.text.trim()) ?? 0,
             fixedAllowances: int.tryParse(allowances.text.trim()) ?? 0,
             fixedDeductions: int.tryParse(deductions.text.trim()) ?? 0,
-            effectiveFrom: now,
-            isActive: true,
-            createdAt: now,
+            effectiveFrom: existingProfile?.effectiveFrom ?? now,
+            isActive: existingProfile?.isActive ?? true,
+            createdAt: existingProfile?.createdAt ?? now,
             updatedAt: now,
           ),
         ),
@@ -401,6 +531,7 @@ class _PayrollViewState extends State<_PayrollView> {
     }
 
     final user = sl<GetCurrentUserUseCase>()();
+
     if (action == 'approve') {
       context.read<PayrollBloc>().add(
         UpdatePayrollStatusRequested(
@@ -411,9 +542,11 @@ class _PayrollViewState extends State<_PayrollView> {
       );
       return;
     }
+
     if (action == 'pay') {
       final method = TextEditingController(text: 'Cash');
       final reference = TextEditingController();
+
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -446,6 +579,7 @@ class _PayrollViewState extends State<_PayrollView> {
           ],
         ),
       );
+
       if (confirmed == true && context.mounted) {
         context.read<PayrollBloc>().add(
           UpdatePayrollStatusRequested(
@@ -457,15 +591,18 @@ class _PayrollViewState extends State<_PayrollView> {
           ),
         );
       }
+
       method.dispose();
       reference.dispose();
       return;
     }
+
     if (action == 'edit') {
       final bonus = TextEditingController(text: record.bonus.toString());
       final absence = TextEditingController(
         text: record.absenceDeduction.toString(),
       );
+
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -518,6 +655,7 @@ class _PayrollViewState extends State<_PayrollView> {
           ],
         ),
       );
+
       if (confirmed == true && context.mounted) {
         final bonusValue = int.tryParse(bonus.text) ?? 0;
         final absenceValue = int.tryParse(absence.text) ?? 0;
@@ -527,6 +665,7 @@ class _PayrollViewState extends State<_PayrollView> {
             absenceValue +
             record.advanceDeduction +
             record.loanDeduction;
+
         context.read<PayrollBloc>().add(
           SavePayrollRecordRequested(
             PayrollRecordEntity(
@@ -558,6 +697,7 @@ class _PayrollViewState extends State<_PayrollView> {
           ),
         );
       }
+
       bonus.dispose();
       absence.dispose();
     }
@@ -652,6 +792,7 @@ class _PayrollViewState extends State<_PayrollView> {
     final style = TextStyle(
       fontWeight: bold ? FontWeight.w700 : FontWeight.normal,
     );
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
