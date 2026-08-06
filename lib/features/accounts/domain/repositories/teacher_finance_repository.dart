@@ -43,6 +43,7 @@ abstract class TeacherFinanceRepository {
   Future<List<TeacherFinanceTransactionEntity>> getTransactions({
     String? accountId,
     String? employeeId,
+    TeacherFinanceEmployeeType? employeeType,
     TeacherFinanceTransactionType? transactionType,
     DateTime? payrollMonth,
     bool? isPostedToPayroll,
@@ -91,6 +92,7 @@ abstract class TeacherFinanceRepository {
   /// to the selected payroll month.
   Future<List<TeacherFinanceAccountEntity>> getRecoverableAccounts({
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required DateTime payrollMonth,
   });
 
@@ -103,6 +105,7 @@ abstract class TeacherFinanceRepository {
   Future<List<TeacherFinanceTransactionEntity>>
       getPendingPayrollTransactions({
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required DateTime payrollMonth,
   });
 
@@ -122,6 +125,7 @@ abstract class TeacherFinanceRepository {
   Future<void> postPayrollRecoveries({
     required String payrollId,
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required int advanceAmount,
     required int loanAmount,
     required String actorId,

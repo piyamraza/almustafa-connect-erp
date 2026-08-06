@@ -139,8 +139,9 @@ if (financeType != null && account.financeType != financeType) {
       id: generateTransactionId(),
       accountId: account.id,
       employeeId: account.employeeId,
-      employeeName: account.employeeName,
-      transactionType: TeacherFinanceTransactionType.disbursement,
+employeeName: account.employeeName,
+employeeType: account.employeeType,
+transactionType: TeacherFinanceTransactionType.disbursement,
       amount: account.principalAmount,
       transactionDate: account.issueDate,
       payrollId: '',
@@ -258,8 +259,9 @@ if (financeType != null && account.financeType != financeType) {
       id: generateTransactionId(),
       accountId: account.id,
       employeeId: account.employeeId,
-      employeeName: account.employeeName,
-      transactionType: TeacherFinanceTransactionType.cancellation,
+employeeName: account.employeeName,
+employeeType: account.employeeType,
+transactionType: TeacherFinanceTransactionType.cancellation,
       amount: account.outstandingAmount,
       transactionDate: now,
       payrollId: '',
@@ -312,13 +314,14 @@ if (financeType != null && account.financeType != financeType) {
 
   @override
   Future<List<TeacherFinanceTransactionEntity>> getTransactions({
-    String? accountId,
-    String? employeeId,
-    TeacherFinanceTransactionType? transactionType,
-    DateTime? payrollMonth,
-    bool? isPostedToPayroll,
-    bool includeReversed = false,
-  }) async {
+  String? accountId,
+  String? employeeId,
+  TeacherFinanceEmployeeType? employeeType,
+  TeacherFinanceTransactionType? transactionType,
+  DateTime? payrollMonth,
+  bool? isPostedToPayroll,
+  bool includeReversed = false,
+}) async {
     final snapshot = await _firestoreService
         .collection(_transactionsCollection)
         .get();
@@ -338,14 +341,19 @@ if (financeType != null && account.financeType != financeType) {
               }
 
               if (employeeId != null &&
-                  transaction.employeeId.trim() != employeeId.trim()) {
-                return false;
-              }
+    transaction.employeeId.trim() != employeeId.trim()) {
+  return false;
+}
 
-              if (transactionType != null &&
-                  transaction.transactionType != transactionType) {
-                return false;
-              }
+if (employeeType != null &&
+    transaction.employeeType != employeeType) {
+  return false;
+}
+
+if (transactionType != null &&
+    transaction.transactionType != transactionType) {
+  return false;
+}
 
               if (payrollMonth != null &&
                   !transaction.appliesToPayrollMonth(payrollMonth)) {
@@ -584,8 +592,9 @@ if (financeType != null && account.financeType != financeType) {
       id: generateTransactionId(),
       accountId: account.id,
       employeeId: account.employeeId,
-      employeeName: account.employeeName,
-      transactionType: transactionType,
+employeeName: account.employeeName,
+employeeType: account.employeeType,
+transactionType: transactionType,
       amount: appliedAmount,
       transactionDate: now,
       payrollId: payrollId.trim(),
@@ -649,10 +658,12 @@ if (financeType != null && account.financeType != financeType) {
   @override
   Future<List<TeacherFinanceAccountEntity>> getRecoverableAccounts({
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required DateTime payrollMonth,
   }) async {
     final accounts = await getAccounts(
       employeeId: employeeId,
+      employeeType: employeeType,
       status: TeacherFinanceStatus.active,
     );
 
@@ -676,12 +687,15 @@ if (financeType != null && account.financeType != financeType) {
   // =========================================================
 
   @override
-  Future<List<TeacherFinanceTransactionEntity>> getPendingPayrollTransactions({
+  Future<List<TeacherFinanceTransactionEntity>>
+      getPendingPayrollTransactions({
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required DateTime payrollMonth,
   }) async {
     final transactions = await getTransactions(
       employeeId: employeeId,
+      employeeType: employeeType,
       isPostedToPayroll: false,
       includeReversed: false,
     );
@@ -771,13 +785,14 @@ if (financeType != null && account.financeType != financeType) {
 
   @override
   Future<void> postPayrollRecoveries({
-    required String payrollId,
-    required String employeeId,
-    required int advanceAmount,
-    required int loanAmount,
-    required String actorId,
-    String referenceNumber = '',
-  }) async {
+  required String payrollId,
+  required String employeeId,
+  required TeacherFinanceEmployeeType employeeType,
+  required int advanceAmount,
+  required int loanAmount,
+  required String actorId,
+  String referenceNumber = '',
+}) async {
     if (payrollId.trim().isEmpty) {
       throw StateError('Payroll ID is required.');
     }
@@ -798,6 +813,7 @@ if (financeType != null && account.financeType != financeType) {
       await _postRecoveryByFinanceType(
         payrollId: payrollId,
         employeeId: employeeId,
+        employeeType: employeeType,
         financeType: TeacherFinanceType.advance,
         totalAmount: advanceAmount,
         actorId: actorId,
@@ -809,6 +825,7 @@ if (financeType != null && account.financeType != financeType) {
       await _postRecoveryByFinanceType(
         payrollId: payrollId,
         employeeId: employeeId,
+        employeeType: employeeType,
         financeType: TeacherFinanceType.loan,
         totalAmount: loanAmount,
         actorId: actorId,
@@ -915,6 +932,7 @@ if (financeType != null && account.financeType != financeType) {
   Future<void> _postRecoveryByFinanceType({
     required String payrollId,
     required String employeeId,
+    required TeacherFinanceEmployeeType employeeType,
     required TeacherFinanceType financeType,
     required int totalAmount,
     required String actorId,
@@ -924,6 +942,7 @@ if (financeType != null && account.financeType != financeType) {
 
     final accounts = await getAccounts(
       employeeId: employeeId,
+      employeeType: employeeType,
       financeType: financeType,
       status: TeacherFinanceStatus.active,
     );
