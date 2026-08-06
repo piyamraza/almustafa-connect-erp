@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'teacher_finance_account_entity.dart';
+
 enum TeacherFinanceTransactionType {
   /// Advance or loan amount issued to the employee.
   disbursement,
@@ -57,6 +59,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
     required this.notes,
     required this.createdBy,
     required this.createdAt,
+    this.employeeType = TeacherFinanceEmployeeType.teacher,
     this.payrollMonth,
     this.payrollEffectOverride,
     this.isPostedToPayroll = false,
@@ -76,6 +79,12 @@ class TeacherFinanceTransactionEntity extends Equatable {
 
   final String employeeId;
   final String employeeName;
+
+  /// Identifies whether the transaction belongs to a teacher or staff member.
+  ///
+  /// Old records remain backward compatible because the default is teacher.
+  final TeacherFinanceEmployeeType employeeType;
+
   final TeacherFinanceTransactionType transactionType;
 
   /// Always store the amount as a positive value.
@@ -94,12 +103,8 @@ class TeacherFinanceTransactionEntity extends Equatable {
 
   /// Optional explicit payroll direction.
   ///
-  /// This is primarily used for Salary Adjustment entries, because a salary
-  /// adjustment may either increase or decrease salary.
-  ///
-  /// Existing records remain backward compatible because this field is
-  /// optional. When it is null, the payroll effect is determined from
-  /// [transactionType].
+  /// This is mainly used for Salary Adjustment because it may increase or
+  /// decrease salary.
   final TeacherFinancePayrollEffect? payrollEffectOverride;
 
   final String referenceNumber;
@@ -117,6 +122,11 @@ class TeacherFinanceTransactionEntity extends Equatable {
   final String reversalReason;
 
   bool get isValidAmount => amount > 0;
+
+  bool get isTeacher =>
+      employeeType == TeacherFinanceEmployeeType.teacher;
+
+  bool get isStaff => employeeType == TeacherFinanceEmployeeType.staff;
 
   bool get canBePostedToPayroll =>
       !isReversed &&
@@ -219,6 +229,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
     String? accountId,
     String? employeeId,
     String? employeeName,
+    TeacherFinanceEmployeeType? employeeType,
     TeacherFinanceTransactionType? transactionType,
     int? amount,
     DateTime? transactionDate,
@@ -243,6 +254,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
       accountId: accountId ?? this.accountId,
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
+      employeeType: employeeType ?? this.employeeType,
       transactionType: transactionType ?? this.transactionType,
       amount: amount ?? this.amount,
       transactionDate: transactionDate ?? this.transactionDate,
@@ -271,6 +283,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
     accountId,
     employeeId,
     employeeName,
+    employeeType,
     transactionType,
     amount,
     transactionDate,

@@ -125,6 +125,7 @@ class TeacherFinanceTransactionModel
     required super.notes,
     required super.createdBy,
     required super.createdAt,
+    super.employeeType,
     super.payrollMonth,
     super.payrollEffectOverride,
     super.isPostedToPayroll,
@@ -142,6 +143,7 @@ class TeacherFinanceTransactionModel
       accountId: entity.accountId,
       employeeId: entity.employeeId,
       employeeName: entity.employeeName,
+      employeeType: entity.employeeType,
       transactionType: entity.transactionType,
       amount: entity.amount,
       transactionDate: entity.transactionDate,
@@ -168,6 +170,7 @@ class TeacherFinanceTransactionModel
       accountId: map['accountId'] as String? ?? '',
       employeeId: map['employeeId'] as String? ?? '',
       employeeName: map['employeeName'] as String? ?? '',
+      employeeType: _employeeType(map['employeeType']),
       transactionType:
           TeacherFinanceTransactionType.values.firstWhere(
         (value) => value.name == map['transactionType'],
@@ -198,6 +201,7 @@ class TeacherFinanceTransactionModel
       'accountId': accountId,
       'employeeId': employeeId,
       'employeeName': employeeName,
+      'employeeType': employeeType.name,
       'transactionType': transactionType.name,
       'amount': amount,
       'transactionDate': transactionDate.toIso8601String(),
