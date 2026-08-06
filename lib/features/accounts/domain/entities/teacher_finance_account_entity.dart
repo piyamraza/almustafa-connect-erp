@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+enum TeacherFinanceEmployeeType { teacher, staff }
+
 enum TeacherFinanceType {
   advance,
   loan,
@@ -32,6 +34,7 @@ class TeacherFinanceAccountEntity extends Equatable {
     required this.notes,
     required this.createdAt,
     required this.updatedAt,
+    this.employeeType = TeacherFinanceEmployeeType.teacher,
     this.recoveryMode = TeacherFinanceRecoveryMode.none,
     this.closedAt,
   });
@@ -39,6 +42,12 @@ class TeacherFinanceAccountEntity extends Equatable {
   final String id;
   final String employeeId;
   final String employeeName;
+
+  /// Identifies whether the finance entry belongs to a teacher or staff member.
+  ///
+  /// The default remains [TeacherFinanceEmployeeType.teacher] so existing
+  /// records and existing constructor calls remain backward compatible.
+  final TeacherFinanceEmployeeType employeeType;
 
   /// Advance, loan, bonus, allowance, penalty,
   /// salary adjustment, other deduction or other payment.
@@ -79,6 +88,11 @@ class TeacherFinanceAccountEntity extends Equatable {
   final DateTime? closedAt;
 
   bool get isActive => status == TeacherFinanceStatus.active;
+
+  bool get isTeacher =>
+      employeeType == TeacherFinanceEmployeeType.teacher;
+
+  bool get isStaff => employeeType == TeacherFinanceEmployeeType.staff;
 
   bool get isRecoverable =>
       recoveryMode != TeacherFinanceRecoveryMode.none && outstandingAmount > 0;
@@ -159,6 +173,7 @@ class TeacherFinanceAccountEntity extends Equatable {
     String? id,
     String? employeeId,
     String? employeeName,
+    TeacherFinanceEmployeeType? employeeType,
     TeacherFinanceType? financeType,
     int? principalAmount,
     int? monthlyRecoveryAmount,
@@ -179,6 +194,7 @@ class TeacherFinanceAccountEntity extends Equatable {
       id: id ?? this.id,
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
+      employeeType: employeeType ?? this.employeeType,
       financeType: financeType ?? this.financeType,
       principalAmount: principalAmount ?? this.principalAmount,
       monthlyRecoveryAmount:
@@ -202,6 +218,7 @@ class TeacherFinanceAccountEntity extends Equatable {
     id,
     employeeId,
     employeeName,
+    employeeType,
     financeType,
     principalAmount,
     monthlyRecoveryAmount,

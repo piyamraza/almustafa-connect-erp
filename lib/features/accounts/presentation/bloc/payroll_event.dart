@@ -23,6 +23,19 @@ class SavePayrollProfileRequested extends PayrollEvent {
   List<Object?> get props => [profile];
 }
 
+class SetPayrollProfileActiveRequested extends PayrollEvent {
+  const SetPayrollProfileActiveRequested({
+    required this.profileId,
+    required this.isActive,
+  });
+
+  final String profileId;
+  final bool isActive;
+
+  @override
+  List<Object?> get props => [profileId, isActive];
+}
+
 class GeneratePayrollRequested extends PayrollEvent {
   const GeneratePayrollRequested({required this.month, required this.actorId});
 

@@ -8,12 +8,14 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
   PayrollBloc({
     required this._getData,
     required this._saveProfile,
+    required this._setProfileActive,
     required this._generatePayroll,
     required this._saveRecord,
     required this._updateStatus,
   }) : super(const PayrollInitial()) {
     on<LoadPayroll>(_load);
     on<SavePayrollProfileRequested>(_saveProfileRequested);
+    on<SetPayrollProfileActiveRequested>(_setProfileActiveRequested);
     on<GeneratePayrollRequested>(_generateRequested);
     on<SavePayrollRecordRequested>(_saveRecordRequested);
     on<UpdatePayrollStatusRequested>(_updateStatusRequested);
@@ -21,6 +23,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
 
   final GetPayrollManagementData _getData;
   final SavePayrollProfile _saveProfile;
+  final SetPayrollProfileActive _setProfileActive;
   final GenerateMonthlyPayroll _generatePayroll;
   final SavePayrollRecord _saveRecord;
   final UpdatePayrollStatus _updateStatus;
@@ -38,6 +41,22 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
       emit,
       () => _saveProfile(event.profile),
       'Salary profile saved.',
+    );
+  }
+
+  Future<void> _setProfileActiveRequested(
+    SetPayrollProfileActiveRequested event,
+    Emitter<PayrollState> emit,
+  ) async {
+    await _execute(
+      emit,
+      () => _setProfileActive(
+        profileId: event.profileId,
+        isActive: event.isActive,
+      ),
+      event.isActive
+          ? 'Salary profile activated.'
+          : 'Salary profile deactivated.',
     );
   }
 
@@ -86,9 +105,11 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
     String success,
   ) async {
     final current = state;
+
     if (current is PayrollLoaded) {
       emit(current.copyWith(isProcessing: true, clearMessages: true));
     }
+
     try {
       await action();
       await _reload(emit, message: success);
@@ -110,6 +131,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
   Future<void> _reload(Emitter<PayrollState> emit, {String? message}) async {
     try {
       final data = await _getData();
+
       emit(
         PayrollLoaded(
           profiles: data.profiles,

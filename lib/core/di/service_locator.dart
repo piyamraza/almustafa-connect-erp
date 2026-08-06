@@ -1340,6 +1340,9 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<SetPayrollProfileActive>(
     () => SetPayrollProfileActive(sl<AccountsRepository>()),
   );
+  sl.registerLazySingleton<SetPayrollProfileActive>(
+    () => SetPayrollProfileActive(sl<AccountsRepository>()),
+  );
   sl.registerLazySingleton<GenerateMonthlyPayroll>(
     () => GenerateMonthlyPayroll(sl<AccountsRepository>()),
   );
@@ -1718,6 +1721,7 @@ Future<void> setupServiceLocator() async {
     () => PayrollBloc(
       getData: sl<GetPayrollManagementData>(),
       saveProfile: sl<SavePayrollProfile>(),
+      setProfileActive: sl<SetPayrollProfileActive>(),
       generatePayroll: sl<GenerateMonthlyPayroll>(),
       saveRecord: sl<SavePayrollRecord>(),
       updateStatus: sl<UpdatePayrollStatus>(),

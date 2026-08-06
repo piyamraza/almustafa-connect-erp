@@ -269,17 +269,47 @@ class _PayrollViewState extends State<_PayrollView> {
                           'Deductions Rs. ${profile.fixedDeductions}',
                         ),
                         isThreeLine: true,
-                        trailing: IconButton(
-                          tooltip: 'Edit Salary Profile',
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () {
+                        trailing: PopupMenuButton<String>(
+                          tooltip: 'Profile Actions',
+                          onSelected: (action) {
                             Navigator.of(dialogContext).pop();
 
-                            _showProfileDialog(
-                              context,
-                              existingProfile: profile,
-                            );
+                            if (action == 'edit') {
+                              _showProfileDialog(
+                                context,
+                                existingProfile: profile,
+                              );
+                              return;
+                            }
+
+                            if (action == 'toggle') {
+                              _confirmProfileStatusChange(context, profile);
+                            }
                           },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem<String>(
+                              value: 'edit',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.edit_outlined),
+                                title: Text('Edit'),
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'toggle',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  profile.isActive
+                                      ? Icons.pause_circle_outline
+                                      : Icons.play_circle_outline,
+                                ),
+                                title: Text(
+                                  profile.isActive ? 'Deactivate' : 'Activate',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -294,6 +324,46 @@ class _PayrollViewState extends State<_PayrollView> {
         );
       },
     );
+  }
+
+  Future<void> _confirmProfileStatusChange(
+    BuildContext context,
+    PayrollProfileEntity profile,
+  ) async {
+    final nextStatus = !profile.isActive;
+    final actionText = nextStatus ? 'Activate' : 'Deactivate';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('$actionText Salary Profile?'),
+        content: Text(
+          nextStatus
+              ? 'This profile will be included in future payroll generation.'
+              : 'This profile will be excluded from future payroll generation. '
+                    'Existing payroll records will not be changed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(actionText),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<PayrollBloc>().add(
+        SetPayrollProfileActiveRequested(
+          profileId: profile.id,
+          isActive: nextStatus,
+        ),
+      );
+    }
   }
 
   Future<void> _showProfileDialog(
