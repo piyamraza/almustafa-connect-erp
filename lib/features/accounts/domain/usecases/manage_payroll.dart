@@ -3,7 +3,10 @@ import '../entities/payroll_record_entity.dart';
 import '../repositories/accounts_repository.dart';
 
 class PayrollManagementData {
-  const PayrollManagementData({required this.profiles, required this.records});
+  const PayrollManagementData({
+    required this.profiles,
+    required this.records,
+  });
 
   final List<PayrollProfileEntity> profiles;
   final List<PayrollRecordEntity> records;
@@ -62,7 +65,10 @@ class SetPayrollProfileActive {
 
   final AccountsRepository _repository;
 
-  Future<void> call({required String profileId, required bool isActive}) {
+  Future<void> call({
+    required String profileId,
+    required bool isActive,
+  }) {
     if (profileId.trim().isEmpty) {
       throw ArgumentError('Payroll profile ID is required.');
     }
@@ -93,7 +99,10 @@ class GenerateMonthlyPayroll {
 
   final AccountsRepository _repository;
 
-  Future<void> call({required DateTime month, required String actorId}) async {
+  Future<void> call({
+    required DateTime month,
+    required String actorId,
+  }) async {
     if (actorId.trim().isEmpty) {
       throw ArgumentError('Current user could not be identified.');
     }
@@ -101,13 +110,18 @@ class GenerateMonthlyPayroll {
     final profiles = await _repository.getPayrollProfiles();
     final records = await _repository.getPayrollRecords();
 
-    final monthStart = DateTime(month.year, month.month);
+    final monthStart = DateTime(
+      month.year,
+      month.month,
+    );
 
     final monthKey =
         '${monthStart.year.toString().padLeft(4, '0')}-'
         '${monthStart.month.toString().padLeft(2, '0')}';
 
-    final existingRecordIds = records.map((record) => record.id).toSet();
+    final existingRecordIds = records
+        .map((record) => record.id)
+        .toSet();
 
     for (final profile in profiles.where((item) => item.isActive)) {
       final payrollId = '${profile.employeeId}_$monthKey';
@@ -116,28 +130,36 @@ class GenerateMonthlyPayroll {
         continue;
       }
 
-      final employeeFinance = await _repository.getPayrollAutoDeductions(
+      final employeeFinance =
+          await _repository.getPayrollAutoDeductions(
         employeeId: profile.employeeId,
+        employeeType: profile.employeeType,
         payrollMonth: monthStart,
       );
 
-      final employeeFinanceValue = employeeFinance.otherDeductions;
+      final employeeFinanceValue =
+          employeeFinance.otherDeductions;
 
-      final employeeFinanceAdditions = employeeFinanceValue < 0
-          ? employeeFinanceValue.abs()
-          : 0;
+      final employeeFinanceAdditions =
+          employeeFinanceValue < 0
+              ? employeeFinanceValue.abs()
+              : 0;
 
-      final employeeFinanceDeductions = employeeFinanceValue > 0
-          ? employeeFinanceValue
-          : 0;
+      final employeeFinanceDeductions =
+          employeeFinanceValue > 0
+              ? employeeFinanceValue
+              : 0;
 
       final automaticBonus = employeeFinanceAdditions;
 
       final totalFixedAndOtherDeductions =
-          profile.fixedDeductions + employeeFinanceDeductions;
+          profile.fixedDeductions +
+          employeeFinanceDeductions;
 
       final grossSalary =
-          profile.basicSalary + profile.fixedAllowances + automaticBonus;
+          profile.basicSalary +
+          profile.fixedAllowances +
+          automaticBonus;
 
       final totalDeductions =
           totalFixedAndOtherDeductions +
@@ -165,20 +187,27 @@ class GenerateMonthlyPayroll {
         allowances: profile.fixedAllowances,
         deductions: totalFixedAndOtherDeductions,
         absenceDeduction: 0,
-        advanceDeduction: employeeFinance.advanceDeduction,
-        loanDeduction: employeeFinance.loanDeduction,
+        advanceDeduction:
+            employeeFinance.advanceDeduction,
+        loanDeduction:
+            employeeFinance.loanDeduction,
         bonus: automaticBonus,
         grossSalary: grossSalary,
         netSalary: netSalary,
-        paymentStatus: PayrollPaymentStatus.generated,
+        paymentStatus:
+            PayrollPaymentStatus.generated,
         paymentDate: null,
         paymentMethod: '',
         referenceNumber: '',
         remarks: _buildAutomaticRemarks(
-          advanceDeduction: employeeFinance.advanceDeduction,
-          loanDeduction: employeeFinance.loanDeduction,
-          otherDeductions: employeeFinanceDeductions,
-          otherAdditions: employeeFinanceAdditions,
+          advanceDeduction:
+              employeeFinance.advanceDeduction,
+          loanDeduction:
+              employeeFinance.loanDeduction,
+          otherDeductions:
+              employeeFinanceDeductions,
+          otherAdditions:
+              employeeFinanceAdditions,
         ),
         generatedBy: actorId,
         approvedBy: '',
@@ -188,11 +217,14 @@ class GenerateMonthlyPayroll {
         updatedAt: now,
       );
 
-      await _repository.savePayrollRecord(payrollRecord);
+      await _repository.savePayrollRecord(
+        payrollRecord,
+      );
 
       await _repository.markEmployeeFinancePosted(
         payrollId: payrollId,
         employeeId: profile.employeeId,
+        employeeType: profile.employeeType,
         payrollMonth: monthStart,
         actorId: actorId,
       );
@@ -210,11 +242,15 @@ class GenerateMonthlyPayroll {
     final values = <String>[];
 
     if (advanceDeduction > 0) {
-      values.add('Advance recovery: Rs. $advanceDeduction');
+      values.add(
+        'Advance recovery: Rs. $advanceDeduction',
+      );
     }
 
     if (loanDeduction > 0) {
-      values.add('Loan recovery: Rs. $loanDeduction');
+      values.add(
+        'Loan recovery: Rs. $loanDeduction',
+      );
     }
 
     if (otherDeductions > 0) {
@@ -246,34 +282,48 @@ class SavePayrollRecord {
 
   Future<void> call(PayrollRecordEntity record) {
     if (record.id.trim().isEmpty) {
-      throw ArgumentError('Payroll record ID is required.');
+      throw ArgumentError(
+        'Payroll record ID is required.',
+      );
     }
 
     if (record.employeeId.trim().isEmpty) {
-      throw ArgumentError('Employee ID is required.');
+      throw ArgumentError(
+        'Employee ID is required.',
+      );
     }
 
     if (record.employeeName.trim().isEmpty) {
-      throw ArgumentError('Employee name is required.');
+      throw ArgumentError(
+        'Employee name is required.',
+      );
     }
 
     if (record.basicSalary < 0) {
-      throw ArgumentError('Basic salary cannot be negative.');
+      throw ArgumentError(
+        'Basic salary cannot be negative.',
+      );
     }
 
     if (record.grossSalary < 0) {
-      throw ArgumentError('Gross salary cannot be negative.');
+      throw ArgumentError(
+        'Gross salary cannot be negative.',
+      );
     }
 
     if (record.netSalary < 0) {
-      throw ArgumentError('Net salary cannot be negative.');
+      throw ArgumentError(
+        'Net salary cannot be negative.',
+      );
     }
 
     if (record.advanceDeduction < 0 ||
         record.loanDeduction < 0 ||
         record.absenceDeduction < 0 ||
         record.deductions < 0) {
-      throw ArgumentError('Payroll deductions cannot be negative.');
+      throw ArgumentError(
+        'Payroll deductions cannot be negative.',
+      );
     }
 
     return _repository.savePayrollRecord(record);
@@ -293,15 +343,22 @@ class UpdatePayrollStatus {
     String referenceNumber = '',
   }) {
     if (payrollId.trim().isEmpty) {
-      throw ArgumentError('Payroll ID is required.');
+      throw ArgumentError(
+        'Payroll ID is required.',
+      );
     }
 
     if (actorId.trim().isEmpty) {
-      throw ArgumentError('Current user could not be identified.');
+      throw ArgumentError(
+        'Current user could not be identified.',
+      );
     }
 
-    if (status == PayrollPaymentStatus.paid && paymentMethod.trim().isEmpty) {
-      throw ArgumentError('Payment method is required.');
+    if (status == PayrollPaymentStatus.paid &&
+        paymentMethod.trim().isEmpty) {
+      throw ArgumentError(
+        'Payment method is required.',
+      );
     }
 
     return _repository.updatePayrollStatus(

@@ -794,6 +794,7 @@ class _PayrollViewState extends State<_PayrollView> {
               id: record.id,
               employeeId: record.employeeId,
               employeeName: record.employeeName,
+              employeeType: record.employeeType,
               payrollMonth: record.payrollMonth,
               basicSalary: record.basicSalary,
               allowances: record.allowances,
