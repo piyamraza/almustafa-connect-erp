@@ -1343,9 +1343,7 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<DeletePayrollProfile>(
     () => DeletePayrollProfile(sl<AccountsRepository>()),
   );
-  sl.registerLazySingleton<SetPayrollProfileActive>(
-    () => SetPayrollProfileActive(sl<AccountsRepository>()),
-  );
+
   sl.registerLazySingleton<GenerateMonthlyPayroll>(
     () => GenerateMonthlyPayroll(sl<AccountsRepository>()),
   );
