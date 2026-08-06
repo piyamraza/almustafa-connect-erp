@@ -38,6 +38,7 @@ class FeePaymentEntity extends Equatable {
     required this.referenceNumber,
     required this.totalPaid,
     required this.advanceAmount,
+    this.advanceUsed = 0,
     required List<FeePaymentAllocationEntity> allocations,
     required this.status,
     required this.notes,
@@ -56,8 +57,16 @@ class FeePaymentEntity extends Equatable {
   final DateTime paymentDate;
   final FeePaymentMethod method;
   final String referenceNumber;
+
+  /// New cash/bank/mobile-wallet amount received in this transaction.
   final double totalPaid;
+
+  /// Excess amount from this transaction retained as student advance.
   final double advanceAmount;
+
+  /// Existing student advance consumed by this transaction.
+  final double advanceUsed;
+
   final List<FeePaymentAllocationEntity> allocations;
   final FeePaymentStatus status;
   final String notes;
@@ -68,6 +77,11 @@ class FeePaymentEntity extends Equatable {
 
   double get allocatedAmount =>
       allocations.fold<double>(0, (sum, item) => sum + item.amount);
+
+  double get totalApplied => totalPaid + advanceUsed;
+
+  bool get isAdvanceOnlyAdjustment =>
+      totalPaid <= 0 && advanceUsed > 0 && advanceAmount <= 0;
 
   @override
   List<Object?> get props => [
@@ -82,6 +96,7 @@ class FeePaymentEntity extends Equatable {
     referenceNumber,
     totalPaid,
     advanceAmount,
+    advanceUsed,
     allocations,
     status,
     notes,

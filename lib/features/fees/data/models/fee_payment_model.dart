@@ -15,6 +15,7 @@ class FeePaymentModel extends FeePaymentEntity {
     required super.referenceNumber,
     required super.totalPaid,
     required super.advanceAmount,
+    super.advanceUsed = 0,
     required super.allocations,
     required super.status,
     required super.notes,
@@ -37,6 +38,7 @@ class FeePaymentModel extends FeePaymentEntity {
       referenceNumber: entity.referenceNumber,
       totalPaid: entity.totalPaid,
       advanceAmount: entity.advanceAmount,
+      advanceUsed: entity.advanceUsed,
       allocations: entity.allocations,
       status: entity.status,
       notes: entity.notes,
@@ -66,6 +68,7 @@ class FeePaymentModel extends FeePaymentEntity {
       referenceNumber: map['referenceNumber'] as String? ?? '',
       totalPaid: (map['totalPaid'] as num?)?.toDouble() ?? 0,
       advanceAmount: (map['advanceAmount'] as num?)?.toDouble() ?? 0,
+      advanceUsed: (map['advanceUsed'] as num?)?.toDouble() ?? 0,
       allocations: rawAllocations
           .whereType<Map<String, dynamic>>()
           .map(
@@ -105,6 +108,7 @@ class FeePaymentModel extends FeePaymentEntity {
     'referenceNumber': referenceNumber,
     'totalPaid': totalPaid,
     'advanceAmount': advanceAmount,
+    'advanceUsed': advanceUsed,
     'allocations': allocations
         .map(
           (item) => {
