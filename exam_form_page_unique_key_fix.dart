@@ -451,7 +451,22 @@ class _ExamFormViewState extends State<_ExamFormView> {
       _showMessage('Result date cannot be before the end date.');
       return;
     }
-    final selected = _drafts.values.where((item) => item.selected).toList();
+    final selectedBySetupKey = <String, _SubjectDraft>{};
+
+    for (final draft in _drafts.values.where((item) => item.selected)) {
+      final setupKey =
+          '${draft.academicClass.id}_${draft.section.id}_${draft.subject.id}';
+
+      final existingDraft = selectedBySetupKey[setupKey];
+
+      if (existingDraft == null ||
+          (existingDraft.existing == null && draft.existing != null)) {
+        selectedBySetupKey[setupKey] = draft;
+      }
+    }
+
+    final selected = selectedBySetupKey.values.toList(growable: false);
+
     if (_selectedSectionIds.isEmpty) {
       _showMessage('Select at least one class and section.');
       return;
@@ -570,11 +585,11 @@ class _ExamFormViewState extends State<_ExamFormView> {
           examName: exam.name,
           academicSession: exam.academicSession,
           academicYearId: exam.academicYearId,
-          classId: old?.classId ?? draft.academicClass.id,
+          classId: draft.academicClass.id,
           className: draft.academicClass.name,
-          sectionId: old?.sectionId ?? draft.section.id,
+          sectionId: draft.section.id,
           sectionName: draft.section.name,
-          subjectId: old?.subjectId ?? draft.subject.id,
+          subjectId: draft.subject.id,
           subjectName: draft.subject.name,
           totalMarks: double.parse(draft.totalController.text.trim()),
           passingMarks: double.parse(draft.passingController.text.trim()),
@@ -601,6 +616,12 @@ class _ExamFormViewState extends State<_ExamFormView> {
         ),
       );
     }
+    final setupsByKey = <String, ExamSubjectSetupEntity>{};
+    for (final setup in setups) {
+      setupsByKey[setup.uniqueKey] = setup;
+    }
+    final uniqueSetups = setupsByKey.values.toList(growable: false);
+
     setState(() => _isSaving = true);
     final bloc = context.read<ExamSubjectSetupBloc>();
     final completion = bloc.stream.firstWhere(
@@ -608,7 +629,11 @@ class _ExamFormViewState extends State<_ExamFormView> {
           state is ExamConfigurationSaved || state is ExamSubjectSetupError,
     );
     bloc.add(
-      SaveExamConfiguration(exam: exam, setups: setups, isEditing: _isEditing),
+      SaveExamConfiguration(
+        exam: exam,
+        setups: uniqueSetups,
+        isEditing: _isEditing,
+      ),
     );
     final result = await completion;
     if (!mounted) return;
