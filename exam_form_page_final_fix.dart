@@ -207,15 +207,19 @@ class _ExamFormViewState extends State<_ExamFormView> {
         double.tryParse(draft.passingController.text.trim())?.truncate() ?? 0;
 
     final totalValues = _splitIntegerMarks(total, draft.components.length);
-    final passingValues = _splitIntegerMarks(passing, draft.components.length);
+    final passingValues = _splitIntegerMarks(
+      passing,
+      draft.components.length,
+    );
 
     for (var index = 0; index < draft.components.length; index++) {
       final component = draft.components[index];
 
-      draft.componentTotalControllers[component.id]!.text = totalValues[index]
-          .toString();
+      draft.componentTotalControllers[component.id]!.text =
+          totalValues[index].toString();
 
-      if (draft.componentPassingMode == _ComponentPassingMode.componentWise) {
+      if (draft.componentPassingMode ==
+          _ComponentPassingMode.componentWise) {
         draft.componentPassingControllers[component.id]!.text =
             passingValues[index].toString();
       }
@@ -242,8 +246,8 @@ class _ExamFormViewState extends State<_ExamFormView> {
 
     for (var index = 0; index < draft.components.length; index++) {
       final component = draft.components[index];
-      draft.componentPassingControllers[component.id]!.text = values[index]
-          .toString();
+      draft.componentPassingControllers[component.id]!.text =
+          values[index].toString();
     }
   }
 
@@ -271,7 +275,8 @@ class _ExamFormViewState extends State<_ExamFormView> {
       }
     }
 
-    if (draft.componentPassingMode == _ComponentPassingMode.componentWise) {
+    if (draft.componentPassingMode ==
+        _ComponentPassingMode.componentWise) {
       final passingValues = [
         for (final component in draft.components)
           double.tryParse(
@@ -280,7 +285,9 @@ class _ExamFormViewState extends State<_ExamFormView> {
               0,
       ];
 
-      if (passingValues.any((value) => value != value.truncateToDouble())) {
+      if (passingValues.any(
+        (value) => value != value.truncateToDouble(),
+      )) {
         final normalized = _normalizeToIntegerTotal(
           passingValues,
           passingTarget,
@@ -307,12 +314,14 @@ class _ExamFormViewState extends State<_ExamFormView> {
     );
   }
 
-  List<int> _normalizeToIntegerTotal(List<double> values, int targetTotal) {
+  List<int> _normalizeToIntegerTotal(
+    List<double> values,
+    int targetTotal,
+  ) {
     if (values.isEmpty) return const [];
 
     final floors = values.map((value) => value.floor()).toList();
-    var remaining =
-        targetTotal - floors.fold<int>(0, (sum, value) => sum + value);
+    var remaining = targetTotal - floors.fold<int>(0, (sum, value) => sum + value);
 
     final indexes = List<int>.generate(values.length, (index) => index)
       ..sort((first, second) {
@@ -475,25 +484,12 @@ class _ExamFormViewState extends State<_ExamFormView> {
       }
 
       if (draft.components.isNotEmpty) {
-        final hasAnyComponentPassingValue = draft.components.any(
-          (component) =>
-              draft.componentPassingControllers[component.id]!.text
-                  .trim()
-                  .isNotEmpty,
-        );
-
-        if (draft.componentPassingMode ==
-                _ComponentPassingMode.componentWise &&
-            !hasAnyComponentPassingValue) {
-          draft.componentPassingMode = _ComponentPassingMode.combined;
-        }
+        _normalizeFractionalComponentMarks(draft);
 
         if (draft.componentPassingMode ==
             _ComponentPassingMode.componentWise) {
           _ensureComponentPassingMarks(draft);
         }
-
-        _normalizeFractionalComponentMarks(draft);
 
         var componentTotal = 0.0;
 
@@ -1087,7 +1083,8 @@ class _ExamFormViewState extends State<_ExamFormView> {
                       setState(() {
                         draft!.componentPassingMode = value;
 
-                        if (value == _ComponentPassingMode.componentWise) {
+                        if (value ==
+                            _ComponentPassingMode.componentWise) {
                           _ensureComponentPassingMarks(draft);
                         }
                       });
