@@ -72,12 +72,14 @@ abstract class AccountsRepository {
 
   Future<PayrollAutoDeductionsEntity> getPayrollAutoDeductions({
     required String employeeId,
+    required PayrollEmployeeType employeeType,
     required DateTime payrollMonth,
   });
 
   Future<void> markEmployeeFinancePosted({
     required String payrollId,
     required String employeeId,
+    required PayrollEmployeeType employeeType,
     required DateTime payrollMonth,
     required String actorId,
   });
@@ -107,7 +109,9 @@ abstract class AccountsRepository {
 
   Future<List<MonthlyProfitLossEntity>> getMonthlyProfitLoss();
 
-  Future<void> saveMonthlyProfitLoss(MonthlyProfitLossEntity snapshot);
+  Future<void> saveMonthlyProfitLoss(
+    MonthlyProfitLossEntity snapshot,
+  );
 
   // ============================================================
   // Cashbook
