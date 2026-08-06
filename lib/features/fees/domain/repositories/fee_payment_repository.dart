@@ -6,6 +6,11 @@ abstract class FeePaymentRepository {
     String? studentId,
   });
 
+  Future<double> getAvailableAdvance({
+    required String academicSession,
+    required String studentId,
+  });
+
   Future<FeePaymentEntity> collectPayment({
     required String academicSession,
     required String studentId,
@@ -17,6 +22,7 @@ abstract class FeePaymentRepository {
     required double amount,
     required List<String> dueIds,
     List<String> additionalChargeDueIds = const [],
+    bool useAdvance = true,
     required String notes,
   });
 

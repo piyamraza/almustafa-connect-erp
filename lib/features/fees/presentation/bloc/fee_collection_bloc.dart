@@ -2,9 +2,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/fee_payment_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
+import '../../domain/entities/student_additional_charge_due_entity.dart';
 import '../../domain/repositories/fee_payment_repository.dart';
 import '../../domain/repositories/monthly_fee_due_repository.dart';
-import '../../domain/entities/student_additional_charge_due_entity.dart';
 import '../../domain/repositories/student_additional_charge_due_repository.dart';
 
 sealed class FeeCollectionEvent {
@@ -30,6 +30,7 @@ class CollectStudentFeePayment extends FeeCollectionEvent {
     required this.amount,
     required this.dueIds,
     this.additionalChargeDueIds = const [],
+    this.useAdvance = true,
     required this.notes,
   });
 
@@ -43,6 +44,7 @@ class CollectStudentFeePayment extends FeeCollectionEvent {
   final double amount;
   final List<String> dueIds;
   final List<String> additionalChargeDueIds;
+  final bool useAdvance;
   final String notes;
 }
 
@@ -77,6 +79,7 @@ class FeeCollectionLoaded extends FeeCollectionState {
     required this.dues,
     required this.payments,
     required this.additionalChargeDues,
+    required this.availableAdvance,
     this.latestPayment,
     this.message,
   });
@@ -84,6 +87,7 @@ class FeeCollectionLoaded extends FeeCollectionState {
   final List<MonthlyFeeDueEntity> dues;
   final List<FeePaymentEntity> payments;
   final List<StudentAdditionalChargeDueEntity> additionalChargeDues;
+  final double availableAdvance;
   final FeePaymentEntity? latestPayment;
   final String? message;
 }
@@ -114,26 +118,38 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
     Emitter<FeeCollectionState> emit,
   ) async {
     emit(const FeeCollectionLoading());
+
     try {
       final dues = await _dueRepository.getMonthlyDues(
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final payments = await _paymentRepository.getPayments(
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final additional = event.studentId == null
           ? <StudentAdditionalChargeDueEntity>[]
           : await _additionalDueRepository.getStudentDues(
               event.studentId!,
               academicSession: event.academicSession,
             );
+
+      final availableAdvance = event.studentId == null
+          ? 0.0
+          : await _paymentRepository.getAvailableAdvance(
+              academicSession: event.academicSession,
+              studentId: event.studentId!,
+            );
+
       emit(
         FeeCollectionLoaded(
           dues: dues,
           payments: payments,
           additionalChargeDues: additional,
+          availableAdvance: availableAdvance,
         ),
       );
     } catch (error) {
@@ -146,6 +162,7 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
     Emitter<FeeCollectionState> emit,
   ) async {
     emit(const FeeCollectionLoading());
+
     try {
       final payment = await _paymentRepository.collectPayment(
         academicSession: event.academicSession,
@@ -158,6 +175,7 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         amount: event.amount,
         dueIds: event.dueIds,
         additionalChargeDueIds: event.additionalChargeDueIds,
+        useAdvance: event.useAdvance,
         notes: event.notes,
       );
 
@@ -165,13 +183,20 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final payments = await _paymentRepository.getPayments(
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final additional = await _additionalDueRepository.getStudentDues(
         event.studentId,
         academicSession: event.academicSession,
+      );
+
+      final availableAdvance = await _paymentRepository.getAvailableAdvance(
+        academicSession: event.academicSession,
+        studentId: event.studentId,
       );
 
       emit(
@@ -179,11 +204,9 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
           dues: dues,
           payments: payments,
           additionalChargeDues: additional,
+          availableAdvance: availableAdvance,
           latestPayment: payment,
-          message: payment.advanceAmount > 0
-              ? 'Payment collected. Rs. ${payment.advanceAmount.toStringAsFixed(0)} '
-                    'recorded as advance. Receipt: ${payment.receiptNumber}'
-              : 'Payment collected. Receipt: ${payment.receiptNumber}',
+          message: _successMessage(payment),
         ),
       );
     } catch (error) {
@@ -196,6 +219,7 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
     Emitter<FeeCollectionState> emit,
   ) async {
     emit(const FeeCollectionLoading());
+
     try {
       await _paymentRepository.cancelPayment(
         paymentId: event.paymentId,
@@ -206,13 +230,20 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final payments = await _paymentRepository.getPayments(
         academicSession: event.academicSession,
         studentId: event.studentId,
       );
+
       final additional = await _additionalDueRepository.getStudentDues(
         event.studentId,
         academicSession: event.academicSession,
+      );
+
+      final availableAdvance = await _paymentRepository.getAvailableAdvance(
+        academicSession: event.academicSession,
+        studentId: event.studentId,
       );
 
       emit(
@@ -220,12 +251,41 @@ class FeeCollectionBloc extends Bloc<FeeCollectionEvent, FeeCollectionState> {
           dues: dues,
           payments: payments,
           additionalChargeDues: additional,
+          availableAdvance: availableAdvance,
           message: 'Payment cancelled successfully.',
         ),
       );
     } catch (error) {
       emit(FeeCollectionError(_message(error)));
     }
+  }
+
+  String _successMessage(FeePaymentEntity payment) {
+    if (payment.isAdvanceOnlyAdjustment) {
+      return 'Rs. ${payment.advanceUsed.toStringAsFixed(0)} adjusted from '
+          'advance. Receipt: ${payment.receiptNumber}';
+    }
+
+    if (payment.advanceUsed > 0 && payment.advanceAmount > 0) {
+      return 'Payment collected with Rs. '
+          '${payment.advanceUsed.toStringAsFixed(0)} advance adjustment. '
+          'Rs. ${payment.advanceAmount.toStringAsFixed(0)} remains as new '
+          'advance. Receipt: ${payment.receiptNumber}';
+    }
+
+    if (payment.advanceUsed > 0) {
+      return 'Payment collected with Rs. '
+          '${payment.advanceUsed.toStringAsFixed(0)} adjusted from advance. '
+          'Receipt: ${payment.receiptNumber}';
+    }
+
+    if (payment.advanceAmount > 0) {
+      return 'Payment collected. Rs. '
+          '${payment.advanceAmount.toStringAsFixed(0)} recorded as advance. '
+          'Receipt: ${payment.receiptNumber}';
+    }
+
+    return 'Payment collected. Receipt: ${payment.receiptNumber}';
   }
 
   String _message(Object error) => error

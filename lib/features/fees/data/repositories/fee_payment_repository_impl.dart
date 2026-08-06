@@ -49,6 +49,32 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
   }
 
   @override
+  Future<double> getAvailableAdvance({
+    required String academicSession,
+    required String studentId,
+  }) async {
+    final payments = await getPayments(
+      academicSession: academicSession,
+      studentId: studentId,
+    );
+
+    var generatedAdvance = 0.0;
+    var consumedAdvance = 0.0;
+
+    for (final payment in payments) {
+      if (payment.status != FeePaymentStatus.completed) {
+        continue;
+      }
+
+      generatedAdvance += payment.advanceAmount;
+      consumedAdvance += payment.advanceUsed;
+    }
+
+    final available = generatedAdvance - consumedAdvance;
+    return available <= 0 ? 0 : available;
+  }
+
+  @override
   Future<FeePaymentEntity> collectPayment({
     required String academicSession,
     required String studentId,
@@ -60,12 +86,16 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     required double amount,
     required List<String> dueIds,
     List<String> additionalChargeDueIds = const [],
+    bool useAdvance = true,
     required String notes,
   }) async {
-    if (amount <= 0) {
-      throw StateError('Payment amount must be greater than zero.');
+    if (amount < 0) {
+      throw StateError('Payment amount cannot be negative.');
     }
-    if (method != FeePaymentMethod.cash && referenceNumber.trim().isEmpty) {
+
+    if (amount > 0 &&
+        method != FeePaymentMethod.cash &&
+        referenceNumber.trim().isEmpty) {
       throw StateError(
         'Transaction/reference number is required for non-cash payment.',
       );
@@ -86,6 +116,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
 
     for (final dueId in dueIds) {
       final document = await dueCollection.doc(dueId).get();
+
       if (!document.exists || document.data() == null) {
         throw StateError('A selected monthly due was not found.');
       }
@@ -98,6 +129,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       if (due.studentId != studentId) {
         throw StateError('Selected dues belong to different students.');
       }
+
       if (due.status == MonthlyFeeDueStatus.cancelled ||
           due.status == MonthlyFeeDueStatus.paid) {
         continue;
@@ -108,21 +140,26 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
 
     for (final dueId in additionalChargeDueIds) {
       final document = await additionalDueCollection.doc(dueId).get();
+
       if (!document.exists || document.data() == null) {
         throw StateError('A selected additional charge due was not found.');
       }
+
       final due = StudentAdditionalChargeDueModel.fromMap({
         ...document.data()!,
         'id': document.id,
       });
+
       if (due.studentId != studentId) {
         throw StateError('Selected dues belong to different students.');
       }
+
       if (due.status == StudentAdditionalChargeDueStatus.cancelled ||
           due.status == StudentAdditionalChargeDueStatus.waived ||
           due.status == StudentAdditionalChargeDueStatus.paid) {
         continue;
       }
+
       additionalDues.add(due);
     }
 
@@ -132,7 +169,35 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       return a.month.compareTo(b.month);
     });
 
-    var remaining = amount;
+    additionalDues.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
+    final selectedOutstanding =
+        dues.fold<double>(0, (sum, due) => sum + due.outstandingAmount) +
+        additionalDues.fold<double>(
+          0,
+          (sum, due) => sum + due.outstandingAmount,
+        );
+
+    final availableAdvance = useAdvance
+        ? await getAvailableAdvance(
+            academicSession: academicSession,
+            studentId: studentId,
+          )
+        : 0.0;
+
+    final advanceUsed = availableAdvance < selectedOutstanding
+        ? availableAdvance
+        : selectedOutstanding;
+
+    if (amount <= 0 && advanceUsed <= 0) {
+      throw StateError(
+        selectedOutstanding <= 0
+            ? 'Payment amount must be greater than zero.'
+            : 'No available advance exists for this student.',
+      );
+    }
+
+    var remaining = amount + advanceUsed;
     final allocations = <FeePaymentAllocationEntity>[];
     final updatedDues = <MonthlyFeeDueEntity>[];
     final updatedAdditionalDues = <StudentAdditionalChargeDueEntity>[];
@@ -181,7 +246,16 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
           scholarshipAmount: due.scholarshipAmount,
           siblingDiscountAmount: due.siblingDiscountAmount,
           previousArrears: due.previousArrears,
-          advanceAdjustment: due.advanceAdjustment,
+          advanceAdjustment:
+              due.advanceAdjustment +
+              allocationFromAdvance(
+                allocation: allocation,
+                remainingAdvance:
+                    advanceUsed -
+                    allocations
+                        .take(allocations.length - 1)
+                        .fold<double>(0, (sum, item) => sum + item.amount),
+              ),
           netPayable: due.netPayable,
           paidAmount: newPaidAmount,
           status: newStatus,
@@ -193,14 +267,17 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       remaining -= allocation;
     }
 
-    additionalDues.sort((a, b) => a.dueDate.compareTo(b.dueDate));
     for (final due in additionalDues) {
       if (remaining <= 0) break;
+
       final allocation = remaining < due.outstandingAmount
           ? remaining
           : due.outstandingAmount;
+
       if (allocation <= 0) continue;
+
       final newPaid = due.paidAmount + allocation;
+
       allocations.add(
         FeePaymentAllocationEntity(
           dueId: due.id,
@@ -210,6 +287,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
           dueType: FeeDueType.additionalCharge,
         ),
       );
+
       updatedAdditionalDues.add(
         StudentAdditionalChargeDueEntity(
           id: due.id,
@@ -236,6 +314,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
           updatedAt: now,
         ),
       );
+
       remaining -= allocation;
     }
 
@@ -254,9 +333,10 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       academicSession: academicSession,
       paymentDate: paymentDate,
       method: method,
-      referenceNumber: referenceNumber.trim(),
+      referenceNumber: amount <= 0 ? '' : referenceNumber.trim(),
       totalPaid: amount,
-      advanceAmount: remaining < 0 ? 0 : remaining,
+      advanceAmount: remaining <= 0 ? 0 : remaining,
+      advanceUsed: advanceUsed,
       allocations: allocations,
       status: FeePaymentStatus.completed,
       notes: notes.trim(),
@@ -272,6 +352,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
         MonthlyFeeDueModel.fromEntity(due).toMap(),
       );
     }
+
     for (final due in updatedAdditionalDues) {
       batch.set(
         additionalDueCollection.doc(due.id),
@@ -290,8 +371,10 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       module: 'Fees',
       action: AuditAction.collectPayment,
       recordId: payment.id,
-      description:
-          'Fee payment collected: ${payment.receiptNumber} for $studentName',
+      description: payment.isAdvanceOnlyAdjustment
+          ? 'Fee adjusted from advance: ${payment.receiptNumber} for '
+                '$studentName'
+          : 'Fee payment collected: ${payment.receiptNumber} for $studentName',
       newValues: {
         'receiptNumber': payment.receiptNumber,
         'studentId': payment.studentId,
@@ -303,6 +386,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
         'referenceNumber': payment.referenceNumber,
         'totalPaid': payment.totalPaid,
         'advanceAmount': payment.advanceAmount,
+        'advanceUsed': payment.advanceUsed,
         'monthlyDueIds': dueIds,
         'additionalChargeDueIds': additionalChargeDueIds,
         'notes': payment.notes,
@@ -310,6 +394,14 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
     );
 
     return payment;
+  }
+
+  double allocationFromAdvance({
+    required double allocation,
+    required double remainingAdvance,
+  }) {
+    if (remainingAdvance <= 0) return 0;
+    return allocation < remainingAdvance ? allocation : remainingAdvance;
   }
 
   @override
@@ -348,33 +440,47 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
 
     final batch = _firestoreService.instance.batch();
     final now = DateTime.now();
+    var advanceToReverse = payment.advanceUsed;
 
     for (final allocation in payment.allocations) {
+      final allocationAdvance = allocationFromAdvance(
+        allocation: allocation.amount,
+        remainingAdvance: advanceToReverse,
+      );
+      advanceToReverse -= allocationAdvance;
+
       if (allocation.dueType == FeeDueType.additionalCharge) {
         final document = await additionalDueCollection
             .doc(allocation.dueId)
             .get();
+
         if (!document.exists || document.data() == null) continue;
+
         final due = StudentAdditionalChargeDueModel.fromMap({
           ...document.data()!,
           'id': document.id,
         });
+
         final paid = (due.paidAmount - allocation.amount).clamp(
           0,
           double.infinity,
         );
+
         final status = paid <= 0
             ? StudentAdditionalChargeDueStatus.unpaid
             : paid >= due.netPayable
             ? StudentAdditionalChargeDueStatus.paid
             : StudentAdditionalChargeDueStatus.partiallyPaid;
+
         batch.update(additionalDueCollection.doc(due.id), {
           'paidAmount': paid,
           'status': status.name,
           'updatedAt': now,
         });
+
         continue;
       }
+
       final dueDocument = await dueCollection.doc(allocation.dueId).get();
 
       if (!dueDocument.exists || dueDocument.data() == null) {
@@ -394,8 +500,14 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
           ? MonthlyFeeDueStatus.paid
           : MonthlyFeeDueStatus.partiallyPaid;
 
+      final correctedAdvanceAdjustment =
+          due.advanceAdjustment - allocationAdvance;
+
       batch.update(dueCollection.doc(due.id), {
         'paidAmount': correctedPaid,
+        'advanceAdjustment': correctedAdvanceAdjustment < 0
+            ? 0.0
+            : correctedAdvanceAdjustment,
         'status': newStatus.name,
         'updatedAt': now,
       });
@@ -415,7 +527,8 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
       action: AuditAction.delete,
       recordId: payment.id,
       description:
-          'Fee payment cancelled: ${payment.receiptNumber}. Reason: ${reason.trim()}',
+          'Fee payment cancelled: ${payment.receiptNumber}. '
+          'Reason: ${reason.trim()}',
       oldValues: {
         'receiptNumber': payment.receiptNumber,
         'studentId': payment.studentId,
@@ -426,6 +539,7 @@ class FeePaymentRepositoryImpl implements FeePaymentRepository {
         'referenceNumber': payment.referenceNumber,
         'totalPaid': payment.totalPaid,
         'advanceAmount': payment.advanceAmount,
+        'advanceUsed': payment.advanceUsed,
         'status': payment.status.name,
       },
       newValues: {

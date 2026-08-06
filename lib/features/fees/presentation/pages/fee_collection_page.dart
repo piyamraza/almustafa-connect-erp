@@ -59,6 +59,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   FeePaymentMethod _method = FeePaymentMethod.cash;
   DateTime _paymentDate = DateTime.now();
   bool _loadingStudents = true;
+  bool _useAdvance = true;
   String _query = '';
 
   @override
@@ -170,6 +171,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
       _selectedDueIds.clear();
       _selectedAdditionalDueIds.clear();
       _amountController.clear();
+      _useAdvance = true;
     });
 
     context.read<FeeCollectionBloc>().add(
@@ -338,20 +340,40 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     if (value != null) setState(() => _paymentDate = value);
   }
 
-  Future<void> _collect() async {
+  Future<void> _collect({
+    required double selectedOutstanding,
+    required double availableAdvance,
+  }) async {
     final student = _selectedStudent;
     if (student == null) {
       _show('Select a student.');
       return;
     }
 
-    final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
+    final rawAmount = _amountController.text.trim();
+    final amount = rawAmount.isEmpty ? 0.0 : double.tryParse(rawAmount);
+    if (amount == null || amount < 0) {
       _show('Enter a valid payment amount.');
       return;
     }
 
+    final advanceUsed = _useAdvance
+        ? (availableAdvance < selectedOutstanding
+              ? availableAdvance
+              : selectedOutstanding)
+        : 0.0;
+
+    if (selectedOutstanding > 0 && amount <= 0 && advanceUsed <= 0) {
+      _show('Enter a payment amount or use available advance.');
+      return;
+    }
+
     if (_selectedDueIds.isEmpty && _selectedAdditionalDueIds.isEmpty) {
+      if (amount <= 0) {
+        _show('Enter an amount to collect as advance fee.');
+        return;
+      }
+
       final confirmed =
           await showDialog<bool>(
             context: context,
@@ -393,6 +415,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
         amount: amount,
         dueIds: _selectedDueIds.toList(),
         additionalChargeDueIds: _selectedAdditionalDueIds.toList(),
+        useAdvance: _useAdvance,
         notes: _notesController.text.trim(),
       ),
     );
@@ -483,6 +506,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
             final additionalDues = state is FeeCollectionLoaded
                 ? state.additionalChargeDues
                 : const <StudentAdditionalChargeDueEntity>[];
+            final availableAdvance = state is FeeCollectionLoaded
+                ? state.availableAdvance
+                : 0.0;
             final payableDues = dues
                 .where(
                   (item) =>
@@ -722,6 +748,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                         _paymentForm(
                                           payableDues,
                                           totalSelectedOutstanding,
+                                          availableAdvance,
                                           busy,
                                         ),
                                         const SizedBox(height: 12),
@@ -968,8 +995,32 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
   Widget _paymentForm(
     List<MonthlyFeeDueEntity> dues,
     double selectedOutstanding,
+    double availableAdvance,
     bool busy,
   ) {
+    final advanceUsed = _useAdvance
+        ? (availableAdvance < selectedOutstanding
+              ? availableAdvance
+              : selectedOutstanding)
+        : 0.0;
+    final cashRequired = selectedOutstanding > advanceUsed
+        ? selectedOutstanding - advanceUsed
+        : 0.0;
+    final enteredCash = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final isAdvanceOnly =
+        selectedOutstanding > 0 && advanceUsed > 0 && cashRequired <= 0;
+
+    String buttonLabel;
+    if (isAdvanceOnly) {
+      buttonLabel = 'Adjust From Advance';
+    } else if (selectedOutstanding > 0 && cashRequired > 0) {
+      buttonLabel = 'Collect Rs. ${cashRequired.toStringAsFixed(0)}';
+    } else if (selectedOutstanding <= 0 && enteredCash > 0) {
+      buttonLabel = 'Collect as Advance';
+    } else {
+      buttonLabel = 'Collect Payment';
+    }
+
     return Card(
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
@@ -995,26 +1046,109 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    selectedOutstanding > 0
-                        ? 'Selected Rs. ${selectedOutstanding.toStringAsFixed(0)}'
-                        : 'No due selected - payment can be saved as advance',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  Expanded(
+                    child: Text(
+                      selectedOutstanding > 0
+                          ? 'Selected Rs. ${selectedOutstanding.toStringAsFixed(0)}'
+                          : 'No due selected - payment can be saved as advance',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
                 ],
               ),
             ),
+            if (_selectedStudent != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: .28),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 22,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _advanceSummaryItem(
+                      'Selected Fee',
+                      selectedOutstanding,
+                      Icons.receipt_long_outlined,
+                    ),
+                    _advanceSummaryItem(
+                      'Available Advance',
+                      availableAdvance,
+                      Icons.account_balance_wallet_outlined,
+                    ),
+                    if (availableAdvance > 0 && selectedOutstanding > 0)
+                      SizedBox(
+                        width: 245,
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: _useAdvance,
+                          title: const Text('Use Available Advance'),
+                          subtitle: const Text('Applied automatically first'),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: busy
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _useAdvance = value ?? true;
+                                    final nextAdvanceUsed = _useAdvance
+                                        ? (availableAdvance <
+                                                  selectedOutstanding
+                                              ? availableAdvance
+                                              : selectedOutstanding)
+                                        : 0.0;
+                                    final nextCash =
+                                        selectedOutstanding > nextAdvanceUsed
+                                        ? selectedOutstanding - nextAdvanceUsed
+                                        : 0.0;
+                                    _amountController.text = nextCash <= 0
+                                        ? ''
+                                        : nextCash.toStringAsFixed(0);
+                                  });
+                                },
+                        ),
+                      ),
+                    _advanceSummaryItem(
+                      'Advance Used',
+                      advanceUsed,
+                      Icons.savings_outlined,
+                    ),
+                    _advanceSummaryItem(
+                      'Cash Required',
+                      cashRequired,
+                      Icons.payments_outlined,
+                      emphasized: true,
+                    ),
+                  ],
+                ),
+              ),
             SizedBox(
               width: 170,
               child: TextFormField(
                 controller: _amountController,
+                enabled: !busy && !isAdvanceOnly,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Payment Amount',
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: isAdvanceOnly
+                      ? 'Cash Amount (Not Required)'
+                      : 'Cash / Payment Amount',
                   prefixText: 'Rs. ',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  helperText: selectedOutstanding > 0
+                      ? 'Required: Rs. ${cashRequired.toStringAsFixed(0)}'
+                      : 'Will be saved as advance',
                 ),
               ),
             ),
@@ -1022,11 +1156,13 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               onPressed: busy || selectedOutstanding <= 0
                   ? null
                   : () {
-                      _amountController.text = selectedOutstanding
-                          .toStringAsFixed(0);
+                      _amountController.text = cashRequired <= 0
+                          ? ''
+                          : cashRequired.toStringAsFixed(0);
+                      setState(() {});
                     },
               icon: const Icon(Icons.done_all),
-              label: const Text('Pay Selected Full'),
+              label: const Text('Set Required Amount'),
             ),
             SizedBox(
               width: 210,
@@ -1044,7 +1180,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                       ),
                     )
                     .toList(),
-                onChanged: busy
+                onChanged: busy || isAdvanceOnly
                     ? null
                     : (value) {
                         if (value != null) {
@@ -1057,6 +1193,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               width: 230,
               child: TextFormField(
                 controller: _referenceController,
+                enabled: !busy && !isAdvanceOnly,
                 decoration: InputDecoration(
                   labelText: _method == FeePaymentMethod.cash
                       ? 'Reference (Optional)'
@@ -1081,12 +1218,55 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
               ),
             ),
             FilledButton.icon(
-              onPressed: busy ? null : _collect,
-              icon: const Icon(Icons.payments_outlined),
-              label: const Text('Collect Payment'),
+              onPressed: busy
+                  ? null
+                  : () => _collect(
+                      selectedOutstanding: selectedOutstanding,
+                      availableAdvance: availableAdvance,
+                    ),
+              icon: Icon(
+                isAdvanceOnly
+                    ? Icons.savings_outlined
+                    : Icons.payments_outlined,
+              ),
+              label: Text(buttonLabel),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _advanceSummaryItem(
+    String label,
+    double amount,
+    IconData icon, {
+    bool emphasized = false,
+  }) {
+    final textStyle = emphasized
+        ? Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)
+        : Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700);
+
+    return SizedBox(
+      width: 160,
+      child: Row(
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+                Text('Rs. ${amount.toStringAsFixed(0)}', style: textStyle),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1194,7 +1374,8 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                   DataColumn(label: Text('Method')),
                   DataColumn(label: Text('Paid')),
                   DataColumn(label: Text('Allocated')),
-                  DataColumn(label: Text('Advance')),
+                  DataColumn(label: Text('Advance Created')),
+                  DataColumn(label: Text('Advance Used')),
                   DataColumn(label: Text('Reference')),
                   DataColumn(label: Text('Status')),
                   DataColumn(label: Text('Action')),
@@ -1218,6 +1399,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                           Text(
                             'Rs. ${payment.advanceAmount.toStringAsFixed(0)}',
                           ),
+                        ),
+                        DataCell(
+                          Text('Rs. ${payment.advanceUsed.toStringAsFixed(0)}'),
                         ),
                         DataCell(Text(payment.referenceNumber)),
                         DataCell(Text(payment.status.name.toUpperCase())),
@@ -1418,172 +1602,370 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     required List<StoreSaleEntity> storeSales,
   }) {
     final student = _selectedStudent!;
-    bool inPeriod(DateTime date) {
-      final month = DateTime(date.year, date.month);
-      return !month.isBefore(period.from) && !month.isAfter(period.to);
-    }
+    final periodStart = DateTime(period.from.year, period.from.month);
+    final periodEndExclusive = DateTime(period.to.year, period.to.month + 1);
 
-    final monthly = dues
-        .where(
-          (due) =>
-              due.status != MonthlyFeeDueStatus.cancelled &&
-              inPeriod(DateTime(due.year, due.month)),
-        )
-        .toList();
-    final extras = additionalDues
-        .where(
-          (due) =>
-              due.status != StudentAdditionalChargeDueStatus.cancelled &&
-              inPeriod(due.dueDate),
-        )
-        .toList();
-    final periodPayments = payments
-        .where(
-          (payment) =>
-              payment.status == FeePaymentStatus.completed &&
-              inPeriod(payment.paymentDate),
-        )
-        .toList();
+    bool beforePeriod(DateTime date) => date.isBefore(periodStart);
 
-    final monthlyIds = monthly.map((due) => due.id).toSet();
-    final extraById = {for (final due in extras) due.id: due};
-    var schoolPaid = 0.0;
-    final extraPaid = <String, double>{};
-    for (final payment in periodPayments) {
-      for (final allocation in payment.allocations) {
-        if (allocation.dueType == FeeDueType.monthly &&
-            monthlyIds.contains(allocation.dueId)) {
-          schoolPaid += allocation.amount;
-        } else {
-          final due = extraById[allocation.dueId];
-          if (due != null) {
-            final label = _label(due.chargeCategory.name);
-            extraPaid[label] = (extraPaid[label] ?? 0) + allocation.amount;
-          }
-        }
+    bool inPeriod(DateTime date) =>
+        !date.isBefore(periodStart) && date.isBefore(periodEndExclusive);
+
+    final activeMonthlyDues = dues
+        .where((due) => due.status != MonthlyFeeDueStatus.cancelled)
+        .toList(growable: false);
+
+    final activeAdditionalDues = additionalDues
+        .where(
+          (due) => due.status != StudentAdditionalChargeDueStatus.cancelled,
+        )
+        .toList(growable: false);
+
+    final completedPayments = payments
+        .where((payment) => payment.status == FeePaymentStatus.completed)
+        .toList(growable: false);
+
+    final studentStoreSales = storeSales
+        .where((sale) => sale.studentId == student.id)
+        .toList(growable: false);
+
+    var openingReceivable = 0.0;
+    var openingAdvance = 0.0;
+
+    for (final due in activeMonthlyDues) {
+      final date = DateTime(due.year, due.month);
+      if (beforePeriod(date)) {
+        openingReceivable += due.netPayable;
       }
     }
 
-    final lines = <_LedgerLine>[
-      _LedgerLine(
-        label: 'School Fee',
-        payable: monthly.fold<double>(0, (sum, due) => sum + due.netPayable),
-        paid: schoolPaid,
-      ),
-    ];
-    final extraPayable = <String, double>{};
-    for (final due in extras) {
-      final label = _label(due.chargeCategory.name);
-      extraPayable[label] = (extraPayable[label] ?? 0) + due.netPayable;
+    for (final due in activeAdditionalDues) {
+      if (beforePeriod(due.dueDate)) {
+        openingReceivable += due.netPayable;
+      }
     }
-    for (final entry in extraPayable.entries) {
-      lines.add(
-        _LedgerLine(
-          label: entry.key,
-          payable: entry.value,
-          paid: extraPaid[entry.key] ?? 0,
+
+    for (final sale in studentStoreSales) {
+      if (beforePeriod(sale.saleDate)) {
+        openingReceivable += sale.netAmount - sale.paidAmount;
+      }
+    }
+
+    for (final payment in completedPayments) {
+      if (!beforePeriod(payment.paymentDate)) continue;
+
+      openingReceivable -= payment.allocatedAmount;
+      openingAdvance += payment.advanceAmount - payment.advanceUsed;
+    }
+
+    if (openingReceivable < 0) {
+      openingReceivable = 0;
+    }
+    if (openingAdvance < 0) {
+      openingAdvance = 0;
+    }
+
+    final transactions = <_LedgerTransaction>[];
+
+    for (final due in activeMonthlyDues) {
+      final date = DateTime(due.year, due.month);
+      if (!inPeriod(date)) continue;
+
+      transactions.add(
+        _LedgerTransaction(
+          date: date,
+          description: '${_monthName(due.month)} ${due.year} Monthly Fee',
+          debit: due.netPayable,
+          credit: 0,
+          advanceChange: 0,
+          sortOrder: 10,
         ),
       );
     }
 
-    final bookSales = storeSales.where(
-      (sale) => sale.studentId == student.id && inPeriod(sale.saleDate),
-    );
-    final booksPayable = bookSales.fold<double>(
-      0,
-      (sum, sale) => sum + sale.netAmount,
-    );
-    final booksPaid = bookSales.fold<double>(
-      0,
-      (sum, sale) => sum + sale.paidAmount,
-    );
-    if (booksPayable > 0 || booksPaid > 0) {
-      lines.add(
-        _LedgerLine(
-          label: 'Books / School Store',
-          payable: booksPayable,
-          paid: booksPaid,
+    for (final due in activeAdditionalDues) {
+      if (!inPeriod(due.dueDate)) continue;
+
+      transactions.add(
+        _LedgerTransaction(
+          date: due.dueDate,
+          description: 'Additional Charge - ${due.chargeTitle}',
+          debit: due.netPayable,
+          credit: 0,
+          advanceChange: 0,
+          sortOrder: 20,
         ),
       );
     }
 
-    final totalPayable = lines.fold<double>(
-      0,
-      (sum, line) => sum + line.payable,
-    );
-    final totalPaid = lines.fold<double>(0, (sum, line) => sum + line.paid);
-    final advance = periodPayments.fold<double>(
-      0,
-      (sum, payment) => sum + payment.advanceAmount,
-    );
+    for (final sale in studentStoreSales) {
+      if (!inPeriod(sale.saleDate)) continue;
+
+      transactions.add(
+        _LedgerTransaction(
+          date: sale.saleDate,
+          description: 'School Store Sale',
+          debit: sale.netAmount,
+          credit: 0,
+          advanceChange: 0,
+          sortOrder: 30,
+        ),
+      );
+
+      if (sale.paidAmount > 0) {
+        transactions.add(
+          _LedgerTransaction(
+            date: sale.saleDate,
+            description: 'School Store Payment',
+            debit: 0,
+            credit: sale.paidAmount,
+            advanceChange: 0,
+            sortOrder: 31,
+          ),
+        );
+      }
+    }
+
+    for (final payment in completedPayments) {
+      if (!inPeriod(payment.paymentDate)) continue;
+
+      final advanceApplied = payment.advanceUsed > payment.allocatedAmount
+          ? payment.allocatedAmount
+          : payment.advanceUsed;
+
+      final cashApplied = payment.allocatedAmount - advanceApplied;
+
+      if (cashApplied > 0) {
+        transactions.add(
+          _LedgerTransaction(
+            date: payment.paymentDate,
+            description:
+                'Fee Payment - ${payment.receiptNumber} (${_methodLabel(payment.method)})',
+            debit: 0,
+            credit: cashApplied,
+            advanceChange: 0,
+            sortOrder: 40,
+          ),
+        );
+      }
+
+      if (advanceApplied > 0) {
+        transactions.add(
+          _LedgerTransaction(
+            date: payment.paymentDate,
+            description: 'Advance Used - ${payment.receiptNumber}',
+            debit: 0,
+            credit: advanceApplied,
+            advanceChange: -advanceApplied,
+            sortOrder: 41,
+          ),
+        );
+      }
+
+      if (payment.advanceAmount > 0) {
+        transactions.add(
+          _LedgerTransaction(
+            date: payment.paymentDate,
+            description: 'Advance Created - ${payment.receiptNumber}',
+            debit: 0,
+            credit: 0,
+            advanceChange: payment.advanceAmount,
+            sortOrder: 42,
+          ),
+        );
+      }
+    }
+
+    transactions.sort((a, b) {
+      final date = a.date.compareTo(b.date);
+      if (date != 0) return date;
+      return a.sortOrder.compareTo(b.sortOrder);
+    });
+
+    var receivableBalance = openingReceivable;
+    var advanceBalance = openingAdvance;
+    var periodDebit = 0.0;
+    var periodCredit = 0.0;
+    var periodAdvanceCreated = 0.0;
+    var periodAdvanceUsed = 0.0;
+
+    final rows = <_LedgerDisplayRow>[];
+
+    if (openingReceivable > 0 || openingAdvance > 0) {
+      rows.add(
+        _LedgerDisplayRow(
+          dateLabel: 'Opening',
+          description: 'Opening Balances',
+          debit: 0,
+          credit: 0,
+          receivableBalance: openingReceivable,
+          advanceBalance: openingAdvance,
+        ),
+      );
+    }
+
+    for (final transaction in transactions) {
+      receivableBalance += transaction.debit - transaction.credit;
+      advanceBalance += transaction.advanceChange;
+
+      if (receivableBalance < 0) receivableBalance = 0;
+      if (advanceBalance < 0) advanceBalance = 0;
+
+      periodDebit += transaction.debit;
+      periodCredit += transaction.credit;
+
+      if (transaction.advanceChange > 0) {
+        periodAdvanceCreated += transaction.advanceChange;
+      } else if (transaction.advanceChange < 0) {
+        periodAdvanceUsed += -transaction.advanceChange;
+      }
+
+      rows.add(
+        _LedgerDisplayRow(
+          dateLabel: _date(transaction.date),
+          description: transaction.description,
+          debit: transaction.debit,
+          credit: transaction.credit,
+          receivableBalance: receivableBalance,
+          advanceBalance: advanceBalance,
+        ),
+      );
+    }
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('${student.fullName} - Student Ledger'),
         content: SizedBox(
-          width: 820,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${_monthName(period.from.month)} ${period.from.year} to '
-                  '${_monthName(period.to.month)} ${period.to.year}',
-                ),
-                const SizedBox(height: 14),
-                DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Category')),
-                    DataColumn(label: Text('Payable'), numeric: true),
-                    DataColumn(label: Text('Paid'), numeric: true),
-                    DataColumn(label: Text('Balance'), numeric: true),
-                  ],
-                  rows: [
-                    for (final line in lines)
-                      DataRow(
-                        cells: [
-                          DataCell(Text(line.label)),
-                          DataCell(
-                            Text('Rs. ${line.payable.toStringAsFixed(0)}'),
-                          ),
-                          DataCell(Text('Rs. ${line.paid.toStringAsFixed(0)}')),
-                          DataCell(
-                            Text(
-                              'Rs. ${(line.payable - line.paid).toStringAsFixed(0)}',
+          width: 1050,
+          height: 620,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_monthName(period.from.month)} ${period.from.year} to '
+                '${_monthName(period.to.month)} ${period.to.year}',
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: rows.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No ledger transactions found for this duration.',
+                        ),
+                      )
+                    : Scrollbar(
+                        child: SingleChildScrollView(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('Date')),
+                                DataColumn(label: Text('Description')),
+                                DataColumn(label: Text('Debit'), numeric: true),
+                                DataColumn(
+                                  label: Text('Credit'),
+                                  numeric: true,
+                                ),
+                                DataColumn(
+                                  label: Text('Receivable Balance'),
+                                  numeric: true,
+                                ),
+                                DataColumn(
+                                  label: Text('Advance Balance'),
+                                  numeric: true,
+                                ),
+                              ],
+                              rows: [
+                                for (final row in rows)
+                                  DataRow(
+                                    cells: [
+                                      DataCell(Text(row.dateLabel)),
+                                      DataCell(
+                                        SizedBox(
+                                          width: 310,
+                                          child: Text(row.description),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          row.debit <= 0
+                                              ? '-'
+                                              : 'Rs. ${row.debit.toStringAsFixed(0)}',
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          row.credit <= 0
+                                              ? '-'
+                                              : 'Rs. ${row.credit.toStringAsFixed(0)}',
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          'Rs. ${row.receivableBalance.toStringAsFixed(0)}',
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          'Rs. ${row.advanceBalance.toStringAsFixed(0)}',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                  ],
-                ),
-                const Divider(height: 24),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      label: Text(
-                        'Total Payable: Rs. ${totalPayable.toStringAsFixed(0)}',
-                      ),
+              ),
+              const Divider(height: 24),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  Chip(
+                    label: Text(
+                      'Opening Receivable: Rs. '
+                      '${openingReceivable.toStringAsFixed(0)}',
                     ),
-                    Chip(
-                      label: Text(
-                        'Total Paid: Rs. ${totalPaid.toStringAsFixed(0)}',
-                      ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Period Debit: Rs. ${periodDebit.toStringAsFixed(0)}',
                     ),
-                    Chip(
-                      label: Text('Advance: Rs. ${advance.toStringAsFixed(0)}'),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Period Credit: Rs. ${periodCredit.toStringAsFixed(0)}',
                     ),
-                    Chip(
-                      label: Text(
-                        'Balance: Rs. ${(totalPayable - totalPaid).toStringAsFixed(0)}',
-                      ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Closing Receivable: Rs. '
+                      '${receivableBalance.toStringAsFixed(0)}',
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Advance Created: Rs. '
+                      '${periodAdvanceCreated.toStringAsFixed(0)}',
+                    ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Advance Used: Rs. '
+                      '${periodAdvanceUsed.toStringAsFixed(0)}',
+                    ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'Closing Advance: Rs. '
+                      '${advanceBalance.toStringAsFixed(0)}',
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         actions: [
@@ -1636,14 +2018,38 @@ class _LedgerPeriod {
   final DateTime to;
 }
 
-class _LedgerLine {
-  const _LedgerLine({
-    required this.label,
-    required this.payable,
-    required this.paid,
+class _LedgerTransaction {
+  const _LedgerTransaction({
+    required this.date,
+    required this.description,
+    required this.debit,
+    required this.credit,
+    required this.advanceChange,
+    required this.sortOrder,
   });
 
-  final String label;
-  final double payable;
-  final double paid;
+  final DateTime date;
+  final String description;
+  final double debit;
+  final double credit;
+  final double advanceChange;
+  final int sortOrder;
+}
+
+class _LedgerDisplayRow {
+  const _LedgerDisplayRow({
+    required this.dateLabel,
+    required this.description,
+    required this.debit,
+    required this.credit,
+    required this.receivableBalance,
+    required this.advanceBalance,
+  });
+
+  final String dateLabel;
+  final String description;
+  final double debit;
+  final double credit;
+  final double receivableBalance;
+  final double advanceBalance;
 }

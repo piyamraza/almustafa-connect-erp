@@ -329,11 +329,14 @@ class FeeDocumentServiceImpl implements FeeDocumentService {
                 _receiptRow('Reference No.', payment.referenceNumber),
               pw.SizedBox(height: 10),
               pw.TableHelper.fromTextArray(
-                headers: const ['Fee Month', 'Allocated Amount'],
+                headers: const ['Fee Type / Month', 'Allocated Amount'],
                 data: payment.allocations
                     .map(
                       (item) => [
-                        '${_monthName(item.month)} ${item.year}',
+                        item.dueType == FeeDueType.additionalCharge
+                            ? 'Additional Charge - '
+                                  '${_monthName(item.month)} ${item.year}'
+                            : '${_monthName(item.month)} ${item.year}',
                         _money(item.amount),
                       ],
                     )
@@ -353,16 +356,37 @@ class FeeDocumentServiceImpl implements FeeDocumentService {
               ),
               pw.SizedBox(height: 12),
               _receiptRow(
-                'Allocated',
+                'Fee Allocated',
                 _money(payment.allocatedAmount),
                 bold: true,
               ),
-              _receiptRow('Advance', _money(payment.advanceAmount)),
               _receiptRow(
-                'Total Received',
+                'Cash / New Payment Received',
                 _money(payment.totalPaid),
+                bold: payment.totalPaid > 0,
+              ),
+              if (payment.advanceUsed > 0)
+                _receiptRow(
+                  'Advance Used',
+                  _money(payment.advanceUsed),
+                  bold: true,
+                ),
+              _receiptRow(
+                'Total Applied to Fee',
+                _money(payment.totalApplied),
                 bold: true,
               ),
+              if (payment.advanceAmount > 0)
+                _receiptRow(
+                  'New Advance Created',
+                  _money(payment.advanceAmount),
+                  bold: true,
+                ),
+              if (payment.isAdvanceOnlyAdjustment)
+                _receiptRow(
+                  'Transaction Type',
+                  'Adjusted from existing advance',
+                ),
               if (payment.notes.trim().isNotEmpty) ...[
                 pw.SizedBox(height: 8),
                 pw.Text(
