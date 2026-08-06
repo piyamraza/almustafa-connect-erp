@@ -20,6 +20,7 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
     required super.notes,
     required super.createdAt,
     required super.updatedAt,
+    super.employeeType,
     super.recoveryMode,
     super.closedAt,
   });
@@ -31,6 +32,7 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
       id: entity.id,
       employeeId: entity.employeeId,
       employeeName: entity.employeeName,
+      employeeType: entity.employeeType,
       financeType: entity.financeType,
       principalAmount: entity.principalAmount,
       monthlyRecoveryAmount: entity.monthlyRecoveryAmount,
@@ -58,13 +60,15 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
       id: map['id'] as String? ?? '',
       employeeId: map['employeeId'] as String? ?? '',
       employeeName: map['employeeName'] as String? ?? '',
+      employeeType: _employeeType(map['employeeType']),
       financeType: financeType,
       principalAmount: _int(map['principalAmount']),
       monthlyRecoveryAmount: _int(map['monthlyRecoveryAmount']),
       recoveredAmount: _int(map['recoveredAmount']),
       outstandingAmount: _int(map['outstandingAmount']),
       issueDate: _date(map['issueDate']) ?? DateTime.now(),
-      recoveryStartMonth: _date(map['recoveryStartMonth']) ?? DateTime.now(),
+      recoveryStartMonth:
+          _date(map['recoveryStartMonth']) ?? DateTime.now(),
       recoveryMode: _recoveryMode(
         map['recoveryMode'],
         financeType: financeType,
@@ -87,6 +91,7 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
       'id': id,
       'employeeId': employeeId,
       'employeeName': employeeName,
+      'employeeType': employeeType.name,
       'financeType': financeType.name,
       'principalAmount': principalAmount,
       'monthlyRecoveryAmount': monthlyRecoveryAmount,
@@ -105,7 +110,8 @@ class TeacherFinanceAccountModel extends TeacherFinanceAccountEntity {
   }
 }
 
-class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
+class TeacherFinanceTransactionModel
+    extends TeacherFinanceTransactionEntity {
   const TeacherFinanceTransactionModel({
     required super.id,
     required super.accountId,
@@ -120,6 +126,7 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
     required super.createdBy,
     required super.createdAt,
     super.payrollMonth,
+    super.payrollEffectOverride,
     super.isPostedToPayroll,
     super.isReversed,
     super.reversedAt,
@@ -140,6 +147,7 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
       transactionDate: entity.transactionDate,
       payrollId: entity.payrollId,
       payrollMonth: entity.payrollMonth,
+      payrollEffectOverride: entity.payrollEffectOverride,
       referenceNumber: entity.referenceNumber,
       notes: entity.notes,
       createdBy: entity.createdBy,
@@ -152,20 +160,26 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
     );
   }
 
-  factory TeacherFinanceTransactionModel.fromMap(Map<String, dynamic> map) {
+  factory TeacherFinanceTransactionModel.fromMap(
+    Map<String, dynamic> map,
+  ) {
     return TeacherFinanceTransactionModel(
       id: map['id'] as String? ?? '',
       accountId: map['accountId'] as String? ?? '',
       employeeId: map['employeeId'] as String? ?? '',
       employeeName: map['employeeName'] as String? ?? '',
-      transactionType: TeacherFinanceTransactionType.values.firstWhere(
+      transactionType:
+          TeacherFinanceTransactionType.values.firstWhere(
         (value) => value.name == map['transactionType'],
         orElse: () => TeacherFinanceTransactionType.adjustment,
       ),
       amount: _int(map['amount']),
-      transactionDate: _date(map['transactionDate']) ?? DateTime.now(),
+      transactionDate:
+          _date(map['transactionDate']) ?? DateTime.now(),
       payrollId: map['payrollId'] as String? ?? '',
       payrollMonth: _date(map['payrollMonth']),
+      payrollEffectOverride:
+          _payrollEffect(map['payrollEffectOverride']),
       referenceNumber: map['referenceNumber'] as String? ?? '',
       notes: map['notes'] as String? ?? '',
       createdBy: map['createdBy'] as String? ?? '',
@@ -189,6 +203,7 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
       'transactionDate': transactionDate.toIso8601String(),
       'payrollId': payrollId,
       'payrollMonth': payrollMonth?.toIso8601String(),
+      'payrollEffectOverride': payrollEffectOverride?.name,
       'referenceNumber': referenceNumber,
       'notes': notes,
       'createdBy': createdBy,
@@ -200,6 +215,31 @@ class TeacherFinanceTransactionModel extends TeacherFinanceTransactionEntity {
       'reversalReason': reversalReason,
     };
   }
+}
+
+TeacherFinanceEmployeeType _employeeType(dynamic value) {
+  if (value is String) {
+    return TeacherFinanceEmployeeType.values.firstWhere(
+      (item) => item.name == value.trim().toLowerCase(),
+      orElse: () => TeacherFinanceEmployeeType.teacher,
+    );
+  }
+
+  return TeacherFinanceEmployeeType.teacher;
+}
+
+TeacherFinancePayrollEffect? _payrollEffect(dynamic value) {
+  if (value is! String || value.trim().isEmpty) {
+    return null;
+  }
+
+  for (final effect in TeacherFinancePayrollEffect.values) {
+    if (effect.name == value.trim()) {
+      return effect;
+    }
+  }
+
+  return null;
 }
 
 TeacherFinanceRecoveryMode _recoveryMode(
@@ -243,7 +283,11 @@ TeacherFinanceRecoveryMode _legacyRecoveryMode({
 
 int _int(dynamic value) {
   if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value) ?? 0;
+
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
+  }
+
   return 0;
 }
 
@@ -263,7 +307,12 @@ bool _bool(dynamic value) {
 
 DateTime? _date(dynamic value) {
   if (value is Timestamp) return value.toDate();
+
   if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
+
+  if (value is String) {
+    return DateTime.tryParse(value);
+  }
+
   return null;
 }

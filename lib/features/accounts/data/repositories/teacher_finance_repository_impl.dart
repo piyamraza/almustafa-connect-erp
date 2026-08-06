@@ -34,11 +34,12 @@ class TeacherFinanceRepositoryImpl implements TeacherFinanceRepository {
 
   @override
   Future<List<TeacherFinanceAccountEntity>> getAccounts({
-    String? employeeId,
-    TeacherFinanceType? financeType,
-    TeacherFinanceRecoveryMode? recoveryMode,
-    TeacherFinanceStatus? status,
-  }) async {
+  String? employeeId,
+  TeacherFinanceEmployeeType? employeeType,
+  TeacherFinanceType? financeType,
+  TeacherFinanceRecoveryMode? recoveryMode,
+  TeacherFinanceStatus? status,
+}) async {
     final snapshot = await _firestoreService
         .collection(_accountsCollection)
         .get();
@@ -53,13 +54,17 @@ class TeacherFinanceRepositoryImpl implements TeacherFinanceRepository {
             )
             .where((account) {
               if (employeeId != null &&
-                  account.employeeId.trim() != employeeId.trim()) {
-                return false;
-              }
+    account.employeeId.trim() != employeeId.trim()) {
+  return false;
+}
 
-              if (financeType != null && account.financeType != financeType) {
-                return false;
-              }
+if (employeeType != null && account.employeeType != employeeType) {
+  return false;
+}
+
+if (financeType != null && account.financeType != financeType) {
+  return false;
+}
 
               if (recoveryMode != null &&
                   account.recoveryMode != recoveryMode) {
@@ -114,10 +119,11 @@ class TeacherFinanceRepositoryImpl implements TeacherFinanceRepository {
 
     if (_requiresUniqueActiveAccount(account.financeType)) {
       final activeAccounts = await getAccounts(
-        employeeId: account.employeeId,
-        financeType: account.financeType,
-        status: TeacherFinanceStatus.active,
-      );
+  employeeId: account.employeeId,
+  employeeType: account.employeeType,
+  financeType: account.financeType,
+  status: TeacherFinanceStatus.active,
+);
 
       if (activeAccounts.isNotEmpty) {
         throw StateError(

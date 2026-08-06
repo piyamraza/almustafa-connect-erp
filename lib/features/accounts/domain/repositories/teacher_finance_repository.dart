@@ -12,6 +12,7 @@ abstract class TeacherFinanceRepository {
 
   Future<List<TeacherFinanceAccountEntity>> getAccounts({
     String? employeeId,
+    TeacherFinanceEmployeeType? employeeType,
     TeacherFinanceType? financeType,
     TeacherFinanceRecoveryMode? recoveryMode,
     TeacherFinanceStatus? status,

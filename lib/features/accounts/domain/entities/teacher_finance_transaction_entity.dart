@@ -58,6 +58,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
     required this.createdBy,
     required this.createdAt,
     this.payrollMonth,
+    this.payrollEffectOverride,
     this.isPostedToPayroll = false,
     this.isReversed = false,
     this.reversedAt,
@@ -90,6 +91,16 @@ class TeacherFinanceTransactionEntity extends Equatable {
 
   /// Optional month for which the transaction applies.
   final DateTime? payrollMonth;
+
+  /// Optional explicit payroll direction.
+  ///
+  /// This is primarily used for Salary Adjustment entries, because a salary
+  /// adjustment may either increase or decrease salary.
+  ///
+  /// Existing records remain backward compatible because this field is
+  /// optional. When it is null, the payroll effect is determined from
+  /// [transactionType].
+  final TeacherFinancePayrollEffect? payrollEffectOverride;
 
   final String referenceNumber;
   final String notes;
@@ -137,14 +148,27 @@ class TeacherFinanceTransactionEntity extends Equatable {
       TeacherFinanceTransactionType.otherDeduction =>
         TeacherFinanceTransactionDirection.debit,
 
+      TeacherFinanceTransactionType.salaryAdjustment =>
+        switch (payrollEffect) {
+          TeacherFinancePayrollEffect.increaseSalary =>
+            TeacherFinanceTransactionDirection.credit,
+          TeacherFinancePayrollEffect.decreaseSalary =>
+            TeacherFinanceTransactionDirection.debit,
+          TeacherFinancePayrollEffect.noPayrollEffect =>
+            TeacherFinanceTransactionDirection.neutral,
+        },
+
       TeacherFinanceTransactionType.adjustment ||
-      TeacherFinanceTransactionType.salaryAdjustment ||
       TeacherFinanceTransactionType.cancellation =>
         TeacherFinanceTransactionDirection.neutral,
     };
   }
 
   TeacherFinancePayrollEffect get payrollEffect {
+    if (payrollEffectOverride != null) {
+      return payrollEffectOverride!;
+    }
+
     return switch (transactionType) {
       TeacherFinanceTransactionType.bonus ||
       TeacherFinanceTransactionType.allowance ||
@@ -201,6 +225,8 @@ class TeacherFinanceTransactionEntity extends Equatable {
     String? payrollId,
     DateTime? payrollMonth,
     bool clearPayrollMonth = false,
+    TeacherFinancePayrollEffect? payrollEffectOverride,
+    bool clearPayrollEffectOverride = false,
     String? referenceNumber,
     String? notes,
     String? createdBy,
@@ -224,6 +250,9 @@ class TeacherFinanceTransactionEntity extends Equatable {
       payrollMonth: clearPayrollMonth
           ? null
           : payrollMonth ?? this.payrollMonth,
+      payrollEffectOverride: clearPayrollEffectOverride
+          ? null
+          : payrollEffectOverride ?? this.payrollEffectOverride,
       referenceNumber: referenceNumber ?? this.referenceNumber,
       notes: notes ?? this.notes,
       createdBy: createdBy ?? this.createdBy,
@@ -247,6 +276,7 @@ class TeacherFinanceTransactionEntity extends Equatable {
     transactionDate,
     payrollId,
     payrollMonth,
+    payrollEffectOverride,
     referenceNumber,
     notes,
     createdBy,
