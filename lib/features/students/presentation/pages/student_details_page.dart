@@ -6,18 +6,19 @@ import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../documents/presentation/pages/bonafide_certificate_preview_page.dart';
 import '../../../documents/presentation/pages/character_certificate_preview_page.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import 'add_student_page.dart';
 
 class StudentDetailsPage extends StatefulWidget {
-  final StudentEntity student;
-
   const StudentDetailsPage({
     super.key,
     required this.student,
   });
+
+  final StudentEntity student;
 
   @override
   State<StudentDetailsPage> createState() =>
@@ -149,10 +150,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
-          value:
-              context.read<StudentBloc>(),
-          child:
-              AddStudentPage(
+          value: context.read<StudentBloc>(),
+          child: AddStudentPage(
             student: student,
           ),
         ),
@@ -173,6 +172,21 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       MaterialPageRoute<void>(
         builder: (_) =>
             CharacterCertificatePreviewPage(
+          student: student,
+          className:
+              _className ?? student.classId,
+          sectionName:
+              _sectionName ?? student.sectionId,
+        ),
+      ),
+    );
+  }
+
+  void _openBonafideCertificate() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            BonafideCertificatePreviewPage(
           student: student,
           className:
               _className ?? student.classId,
@@ -222,6 +236,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                   ),
                   onCharacterCertificate:
                       _openCharacterCertificate,
+                  onBonafideCertificate:
+                      _openBonafideCertificate,
                 ),
 
                 const SizedBox(
@@ -769,11 +785,13 @@ class _Header extends StatelessWidget {
     required this.student,
     required this.onEdit,
     required this.onCharacterCertificate,
+    required this.onBonafideCertificate,
   });
 
   final StudentEntity student;
   final VoidCallback onEdit;
   final VoidCallback onCharacterCertificate;
+  final VoidCallback onBonafideCertificate;
 
   @override
   Widget build(
@@ -803,6 +821,8 @@ class _Header extends StatelessWidget {
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
+                    alignment:
+                        WrapAlignment.end,
                     children: [
                       OutlinedButton.icon(
                         onPressed:
@@ -814,6 +834,18 @@ class _Header extends StatelessWidget {
                         label:
                             const Text(
                           'Character Certificate',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed:
+                            onBonafideCertificate,
+                        icon: const Icon(
+                          Icons
+                              .verified_user_outlined,
+                        ),
+                        label:
+                            const Text(
+                          'Bonafide Certificate',
                         ),
                       ),
                       FilledButton.icon(
@@ -854,6 +886,26 @@ class _Header extends StatelessWidget {
                       label:
                           const Text(
                         'Character Certificate',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width:
+                        double.infinity,
+                    child:
+                        OutlinedButton.icon(
+                      onPressed:
+                          onBonafideCertificate,
+                      icon: const Icon(
+                        Icons
+                            .verified_user_outlined,
+                      ),
+                      label:
+                          const Text(
+                        'Bonafide Certificate',
                       ),
                     ),
                   ),
@@ -909,8 +961,7 @@ class _Header extends StatelessWidget {
       children: [
         Text(
           student.fullName,
-          style:
-              const TextStyle(
+          style: const TextStyle(
             fontSize: 26,
             fontWeight:
                 FontWeight.bold,
@@ -940,8 +991,7 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _StatusChip
-    extends StatelessWidget {
+class _StatusChip extends StatelessWidget {
   const _StatusChip({
     required this.active,
   });
@@ -979,8 +1029,7 @@ class _StatusChip
   }
 }
 
-class _InfoSection
-    extends StatelessWidget {
+class _InfoSection extends StatelessWidget {
   const _InfoSection({
     required this.title,
     required this.icon,
@@ -1038,8 +1087,7 @@ class _InfoSection
   }
 }
 
-class _InfoTile
-    extends StatelessWidget {
+class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.label,
     required this.value,
