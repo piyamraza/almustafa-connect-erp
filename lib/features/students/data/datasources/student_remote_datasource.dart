@@ -123,7 +123,13 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
 
       final ref = storage.ref().child('students/$studentId/profile.jpg');
 
-      final uploadTask = await ref.putData(imageBytes);
+      final uploadTask = await ref.putData(
+  imageBytes,
+  SettableMetadata(
+    contentType: 'image/jpeg',
+    cacheControl: 'public,max-age=3600',
+  ),
+);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
 
       return downloadUrl;

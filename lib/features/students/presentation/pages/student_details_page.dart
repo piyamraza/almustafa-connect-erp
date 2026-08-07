@@ -239,23 +239,18 @@ void _openLeavingCertificate() {
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-                _Header(
-                  student: student,
-                  onEdit: () =>
-                      _editStudent(
-                    context,
-                  ),
-                  onCharacterCertificate:
-                      _openCharacterCertificate,
-                  onBonafideCertificate:
-		onLeavingCertificate:
-  		  _openLeavingCertificate,
-                      _openBonafideCertificate,
-                ),
-
-                const SizedBox(
-                  height: 24,
-                ),
+               _Header(
+  student: student,
+  onEdit: () => _editStudent(
+    context,
+  ),
+  onCharacterCertificate:
+      _openCharacterCertificate,
+  onBonafideCertificate:
+      _openBonafideCertificate,
+  onLeavingCertificate:
+      _openLeavingCertificate,
+),
 
                 if (desktop)
                   Row(

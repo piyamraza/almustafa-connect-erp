@@ -467,11 +467,15 @@ class _AddStudentPageState extends State<AddStudentPage> {
     final admissionNo = _admissionNoController.text.trim().isEmpty
         ? 'ADM-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch}'
         : _admissionNoController.text.trim();
-    String imageUrl = '';
+    String imageUrl =
+    widget.isEdit ? widget.student!.profileImageUrl : '';
 
-    if (_imageBytes != null) {
-      imageUrl = await _repository.uploadStudentPhoto(studentId, _imageBytes!);
-    }
+if (_imageBytes != null) {
+  imageUrl = await _repository.uploadStudentPhoto(
+    studentId,
+    _imageBytes!,
+  );
+}
     if (!mounted) return;
     final student = StudentEntity(
       id: studentId,
