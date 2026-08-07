@@ -236,18 +236,6 @@ class _SidebarState extends State<Sidebar> {
                           );
                         },
                       ),
-                    if (_access.hasPermission(AppPermission.staffView))
-                      _menuTile(
-                        context,
-                        icon: Icons.swap_horiz,
-                        title: 'Substitute Duties',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.staffView,
-                          moduleName: 'Substitute Duties',
-                          page: const SubstituteDutyManagementPage(),
-                        ),
-                      ),
                     if (_access.hasPermission(AppPermission.classesView))
                       _menuTile(
                         context,
@@ -565,5 +553,6 @@ _menuTile(
     };
   }
 }
+
 
 
