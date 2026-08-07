@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
-
+import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
+import '../../../students/presentation/pages/students_page.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../domain/entities/document_type.dart';
 
@@ -75,7 +76,7 @@ class DocumentCenterPage extends StatelessWidget {
             description:
                 'Generate official character certificates with school branding.',
             icon: Icons.workspace_premium_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
           ),
           _DocumentCenterItem(
             type: DocumentType.bonafideCertificate,
@@ -83,7 +84,7 @@ class DocumentCenterPage extends StatelessWidget {
             description:
                 'Create bonafide certificates from student records.',
             icon: Icons.verified_user_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
           ),
           _DocumentCenterItem(
             type: DocumentType.leavingCertificate,
@@ -511,25 +512,43 @@ class _DocumentTypeCard extends StatelessWidget {
   }
 
   void _open(
-    BuildContext context,
-  ) {
-    final message = switch (item.status) {
-      _DocumentStatus.ready =>
-        '${item.title} is connected to the Document Engine. Creation workflow will open from its source module.',
-      _DocumentStatus.foundationReady =>
-        '${item.title} engine foundation is ready. Its template will be added next.',
-    };
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
+  BuildContext context,
+) {
+  switch (item.type) {
+case DocumentType.birthdayCard:
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => const SchoolEngagementPage(),
+    ),
+  );
+  return;
+    case DocumentType.characterCertificate:
+    case DocumentType.bonafideCertificate:
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const StudentsPage(),
         ),
       );
+      return;
+
+    default:
+      final message = switch (item.status) {
+        _DocumentStatus.ready =>
+          '${item.title} is connected to the Document Engine.',
+        _DocumentStatus.foundationReady =>
+          '${item.title} engine foundation is ready. Its template will be added next.',
+      };
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+          ),
+        );
   }
 }
-
+}
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     required this.status,

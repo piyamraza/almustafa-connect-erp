@@ -8,6 +8,7 @@ import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../documents/presentation/pages/bonafide_certificate_preview_page.dart';
 import '../../../documents/presentation/pages/character_certificate_preview_page.dart';
+import '../../../documents/presentation/pages/leaving_certificate_preview_page.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import 'add_student_page.dart';
@@ -196,7 +197,17 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       ),
     );
   }
-
+void _openLeavingCertificate() {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => LeavingCertificatePreviewPage(
+        student: student,
+        className: _className ?? student.classId,
+        sectionName: _sectionName ?? student.sectionId,
+      ),
+    ),
+  );
+}
   @override
   Widget build(
     BuildContext context,
@@ -237,6 +248,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                   onCharacterCertificate:
                       _openCharacterCertificate,
                   onBonafideCertificate:
+		onLeavingCertificate:
+  		  _openLeavingCertificate,
                       _openBonafideCertificate,
                 ),
 
@@ -786,12 +799,14 @@ class _Header extends StatelessWidget {
     required this.onEdit,
     required this.onCharacterCertificate,
     required this.onBonafideCertificate,
+    required this.onLeavingCertificate,
   });
 
   final StudentEntity student;
   final VoidCallback onEdit;
   final VoidCallback onCharacterCertificate;
   final VoidCallback onBonafideCertificate;
+  final VoidCallback onLeavingCertificate;
 
   @override
   Widget build(
@@ -848,6 +863,17 @@ class _Header extends StatelessWidget {
                           'Bonafide Certificate',
                         ),
                       ),
+OutlinedButton.icon(
+  onPressed:
+      onLeavingCertificate,
+  icon: const Icon(
+    Icons.exit_to_app_outlined,
+  ),
+  label:
+      const Text(
+    'Leaving Certificate',
+  ),
+),
                       FilledButton.icon(
                         onPressed: onEdit,
                         icon: const Icon(
