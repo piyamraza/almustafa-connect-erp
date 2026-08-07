@@ -8,11 +8,9 @@ import 'document_renderer_registry.dart';
 
 class FlutterDocumentRenderer {
   const FlutterDocumentRenderer({
-    required DocumentRendererRegistry registry,
-    required DocumentElementVisibilityResolver
-        visibilityResolver,
-  }) : _registry = registry,
-       _visibilityResolver = visibilityResolver;
+    required this._registry,
+    required this._visibilityResolver,
+  });
 
   final DocumentRendererRegistry _registry;
 
