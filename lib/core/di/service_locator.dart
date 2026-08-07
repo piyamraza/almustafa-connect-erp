@@ -55,6 +55,20 @@ import '../../features/communication/domain/usecases/register_push_device.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../features/documents/data/datasources/document_template_remote_datasource.dart';
+import '../../features/documents/data/repositories/document_template_repository_impl.dart';
+import '../../features/documents/domain/repositories/document_template_repository.dart';
+import '../../features/documents/domain/services/default_document_placeholder_resolver.dart';
+import '../../features/documents/domain/services/document_placeholder_resolver.dart';
+import '../../features/documents/domain/services/document_template_validator.dart';
+import '../../features/documents/domain/usecases/delete_document_template.dart';
+import '../../features/documents/domain/usecases/get_default_document_template.dart';
+import '../../features/documents/domain/usecases/get_document_templates.dart';
+import '../../features/documents/domain/usecases/save_document_template.dart';
+import '../../features/documents/domain/usecases/set_default_document_template.dart';
+import '../../features/documents/domain/usecases/seed_birthday_document_template.dart';
+import '../../features/documents/domain/usecases/ensure_default_document_template.dart';
+
 import '../../features/academic_structure/data/datasources/academic_structure_remote_datasource.dart';
 import '../../features/academic_structure/data/repositories/academic_structure_repository_impl.dart';
 import '../../features/academic_structure/data/repositories/subject_component_repository_impl.dart';
@@ -474,6 +488,76 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<FirebaseFirestore>(
     () => sl<FirebaseFirestoreService>().instance,
+  );
+
+
+  // =========================================================
+  // Document Engine
+  // =========================================================
+
+  sl.registerLazySingleton<DocumentPlaceholderResolver>(
+    DefaultDocumentPlaceholderResolver.new,
+  );
+
+  sl.registerLazySingleton<DocumentTemplateValidator>(
+    DocumentTemplateValidator.new,
+  );
+
+  sl.registerLazySingleton<DocumentTemplateRemoteDataSource>(
+    () => DocumentTemplateRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+    ),
+  );
+
+  sl.registerLazySingleton<DocumentTemplateRepository>(
+    () => DocumentTemplateRepositoryImpl(
+      sl<DocumentTemplateRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetDocumentTemplates>(
+    () => GetDocumentTemplates(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetDefaultDocumentTemplate>(
+    () => GetDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<SaveDocumentTemplate>(
+    () => SaveDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+      sl<DocumentTemplateValidator>(),
+    ),
+  );
+
+  sl.registerLazySingleton<DeleteDocumentTemplate>(
+    () => DeleteDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<SetDefaultDocumentTemplate>(
+    () => SetDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+
+  sl.registerLazySingleton<SeedBirthdayDocumentTemplate>(
+    () => SeedBirthdayDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+      sl<DocumentTemplateValidator>(),
+    ),
+  );
+
+  sl.registerLazySingleton<EnsureDefaultDocumentTemplate>(
+    () => EnsureDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
   );
 
   // =========================================================
