@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../../documents/presentation/pages/birthday_document_preview_page.dart';
 import '../../domain/entities/engagement_person_entity.dart';
-import '../pages/birthday_card_preview_page.dart';
 
 const _brandBlue = Color(0xFF0B63CE);
 const _borderColor = Color(0xFFE1E6ED);
@@ -122,7 +122,8 @@ class BirthdayWorkspaceCard extends StatelessWidget {
                       onSubmitted: (_) => onSearch(),
                       decoration: const InputDecoration(
                         labelText: 'Search student',
-                        hintText: 'Enter student name or admission number',
+                        hintText:
+                            'Enter student name or admission number',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(),
                       ),
@@ -130,12 +131,14 @@ class BirthdayWorkspaceCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   FilledButton.icon(
-                    onPressed: searching ? null : onSearch,
+                    onPressed:
+                        searching ? null : onSearch,
                     icon: searching
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
+                            child:
+                                CircularProgressIndicator(
                               strokeWidth: 2,
                             ),
                           )
@@ -291,9 +294,8 @@ class _BirthdayPersonRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 23,
-            backgroundColor: _brandBlue.withValues(
-              alpha: 0.10,
-            ),
+            backgroundColor:
+                _brandBlue.withValues(alpha: 0.10),
             backgroundImage:
                 person.profileImageUrl.trim().isNotEmpty
                     ? NetworkImage(
@@ -330,9 +332,7 @@ class _BirthdayPersonRow extends StatelessWidget {
                     fontSize: 13,
                   ),
                 ),
-                if (person
-                    .classSectionLabel
-                    .isNotEmpty) ...[
+                if (person.classSectionLabel.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     person.classSectionLabel,
@@ -350,17 +350,17 @@ class _BirthdayPersonRow extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) =>
-                      BirthdayCardPreviewPage(
+                      BirthdayDocumentPreviewPage(
                     person: person,
                   ),
                 ),
               );
             },
             icon: const Icon(
-              Icons.card_giftcard,
+              Icons.visibility_outlined,
             ),
             label: const Text(
-              'Create Card',
+              'Preview Card',
             ),
           ),
         ],
