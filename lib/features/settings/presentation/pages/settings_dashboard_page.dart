@@ -1,499 +1,333 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/di/service_locator.dart';
+import '../../../../core/audit/presentation/pages/audit_configuration_page.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
-import '../../domain/entities/school_settings_entity.dart';
-import '../bloc/settings_bloc.dart';
-import '../bloc/settings_event.dart';
-import '../bloc/settings_state.dart';
 import 'backup_restore_page.dart';
-import 'user_preferences_page.dart';
+import 'branding_settings_page.dart';
+import 'academic_settings_page.dart';
+import 'regional_settings_page.dart';
+import 'system_prefixes_settings_page.dart';
+import 'school_profile_settings_page.dart';
 import 'security_sessions_page.dart';
 import 'system_health_page.dart';
-import '../../../../core/audit/presentation/pages/audit_configuration_page.dart';
+import 'user_preferences_page.dart';
+
+const _pageBackground = Color(0xFFF5F7FA);
+const _brandBlue = Color(0xFF0B63CE);
+const _borderColor = Color(0xFFE1E6ED);
+const _textPrimary = Color(0xFF182230);
+const _textSecondary = Color(0xFF667085);
 
 class SettingsDashboardPage extends StatelessWidget {
   const SettingsDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<SettingsBloc>()..add(const LoadSettings()),
-      child: const _SettingsDashboardView(),
-    );
-  }
-}
-
-class _SettingsDashboardView extends StatefulWidget {
-  const _SettingsDashboardView();
-
-  @override
-  State<_SettingsDashboardView> createState() => _SettingsDashboardViewState();
-}
-
-class _SettingsDashboardViewState extends State<_SettingsDashboardView> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _schoolName = TextEditingController();
-  final _schoolCode = TextEditingController();
-  final _session = TextEditingController();
-  final _tagLine = TextEditingController();
-  final _address = TextEditingController();
-  final _city = TextEditingController();
-  final _country = TextEditingController();
-  final _phone = TextEditingController();
-  final _whatsApp = TextEditingController();
-  final _email = TextEditingController();
-  final _website = TextEditingController();
-  final _admissionPrefix = TextEditingController();
-  final _rollPrefix = TextEditingController();
-  final _receiptPrefix = TextEditingController();
-  final _logoUrl = TextEditingController();
-  final _headerUrl = TextEditingController();
-  final _footerUrl = TextEditingController();
-
-  DateTime _sessionStart = DateTime(2026, 4, 1);
-  DateTime _sessionEnd = DateTime(2027, 3, 31);
-  String _currency = 'PKR';
-  String _currencySymbol = 'Rs.';
-  String _dateFormat = 'dd-MM-yyyy';
-  String _timeFormat = '12 Hour';
-  bool _initialized = false;
-
-  @override
-  void dispose() {
-    _schoolName.dispose();
-    _schoolCode.dispose();
-    _session.dispose();
-    _tagLine.dispose();
-    _address.dispose();
-    _city.dispose();
-    _country.dispose();
-    _phone.dispose();
-    _whatsApp.dispose();
-    _email.dispose();
-    _website.dispose();
-    _admissionPrefix.dispose();
-    _rollPrefix.dispose();
-    _receiptPrefix.dispose();
-    _logoUrl.dispose();
-    _headerUrl.dispose();
-    _footerUrl.dispose();
-    super.dispose();
-  }
-
-  void _fill(SchoolSettingsEntity value) {
-    if (_initialized) return;
-
-    _schoolName.text = value.schoolName;
-    _schoolCode.text = value.schoolCode;
-    _session.text = value.currentSession;
-    _tagLine.text = value.tagLine;
-    _address.text = value.address;
-    _city.text = value.city;
-    _country.text = value.country;
-    _phone.text = value.phone;
-    _whatsApp.text = value.whatsApp;
-    _email.text = value.email;
-    _website.text = value.website;
-    _admissionPrefix.text = value.admissionPrefix;
-    _rollPrefix.text = value.rollNumberPrefix;
-    _receiptPrefix.text = value.receiptPrefix;
-    _logoUrl.text = value.logoUrl;
-    _headerUrl.text = value.reportHeaderUrl;
-    _footerUrl.text = value.reportFooterUrl;
-    _sessionStart = value.sessionStartDate;
-    _sessionEnd = value.sessionEndDate;
-    _currency = value.currency;
-    _currencySymbol = value.currencySymbol;
-    _dateFormat = value.dateFormat;
-    _timeFormat = value.timeFormat;
-    _initialized = true;
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        actions: const [DashboardNavigationButton()],
-      ),
-      body: BlocConsumer<SettingsBloc, SettingsState>(
-        listener: (context, state) {
-          if (state is SettingsLoaded && state.message != null) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message!)));
-          }
-        },
-        builder: (context, state) {
-          if (state is SettingsInitial || state is SettingsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      backgroundColor: _pageBackground,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 1050,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SettingsHeader(),
+                  const SizedBox(height: 28),
 
-          if (state is SettingsFailure) {
-            return Center(child: Text(state.message));
-          }
+                  const _SectionTitle(
+                    title: 'School Configuration',
+                  ),
+                  const SizedBox(height: 12),
 
-          final loaded = state as SettingsLoaded;
-          _fill(loaded.settings);
+                  _SettingsTile(
+                    icon: Icons.school_outlined,
+                    title: 'School Profile',
+                    subtitle:
+                        'General school information, address and contact details',
+                    onTap: () => _open(
+                      context,
+                      const SchoolProfileSettingsPage(),
+                    ),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.palette_outlined,
+                    title: 'Branding',
+                    subtitle:
+                        'School logo, principal, signature and official stamp',
+                    onTap: () => _open(
+                      context,
+                      const BrandingSettingsPage(),
+                    ),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.calendar_month_outlined,
+                    title: 'Academic Settings',
+                    subtitle:
+                        'Academic session, start date and end date',
+                    onTap: () => _open(
+  context,
+  const AcademicSettingsPage(),
+),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.public_outlined,
+                    title: 'Regional Settings',
+                    subtitle:
+                        'Currency, date format and time format',
+                    onTap: () => _open(
+  context,
+  const RegionalSettingsPage(),
+),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.tag_outlined,
+                    title: 'System Prefixes',
+                    subtitle:
+                        'Admission, roll number and receipt prefixes',
+                    onTap: () => _open(
+  context,
+  const SystemPrefixesSettingsPage(),
+),
+                  ),
 
-          return Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _section(
-                  context,
-                  title: 'School Profile',
-                  children: [
-                    _field(_schoolName, 'School Name', required: true),
-                    _field(_schoolCode, 'School Code', required: true),
-                    _field(_tagLine, 'Tag Line'),
-                    _field(_address, 'Address'),
-                    _field(_city, 'City'),
-                    _field(_country, 'Country'),
-                    _field(_phone, 'Phone'),
-                    _field(_whatsApp, 'WhatsApp'),
-                    _field(_email, 'Email'),
-                    _field(_website, 'Website'),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _section(
-                  context,
-                  title: 'Academic Settings',
-                  children: [
-                    _field(_session, 'Current Session', required: true),
-                    _dateTile(context, 'Session Start Date', _sessionStart, (
-                      value,
-                    ) {
-                      setState(() => _sessionStart = value);
-                    }),
-                    _dateTile(context, 'Session End Date', _sessionEnd, (
-                      value,
-                    ) {
-                      setState(() => _sessionEnd = value);
-                    }),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _section(
-                  context,
-                  title: 'Regional Settings',
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: _currency,
-                      decoration: const InputDecoration(labelText: 'Currency'),
-                      items: const [
-                        DropdownMenuItem(value: 'PKR', child: Text('PKR')),
-                        DropdownMenuItem(value: 'USD', child: Text('USD')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _currency = value);
-                        }
-                      },
+                  const SizedBox(height: 28),
+                  const _SectionTitle(
+                    title: 'User & Security',
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SettingsTile(
+                    icon: Icons.tune_outlined,
+                    title: 'User Preferences',
+                    subtitle:
+                        'Personal preferences and application behaviour',
+                    onTap: () => _open(
+                      context,
+                      const UserPreferencesPage(),
                     ),
-                    _field(
-                      null,
-                      'Currency Symbol',
-                      externalValue: _currencySymbol,
-                      onChanged: (value) {
-                        _currencySymbol = value;
-                      },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.security_outlined,
+                    title: 'Security & Sessions',
+                    subtitle:
+                        'Manage security settings and active sessions',
+                    onTap: () => _open(
+                      context,
+                      const SecuritySessionsPage(),
                     ),
-                    DropdownButtonFormField<String>(
-                      initialValue: _dateFormat,
-                      decoration: const InputDecoration(
-                        labelText: 'Date Format',
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'dd-MM-yyyy',
-                          child: Text('dd-MM-yyyy'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'dd/MM/yyyy',
-                          child: Text('dd/MM/yyyy'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _dateFormat = value);
-                        }
-                      },
+                  ),
+
+                  const SizedBox(height: 28),
+                  const _SectionTitle(
+                    title: 'System Administration',
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SettingsTile(
+                    icon: Icons.backup_outlined,
+                    title: 'Backup & Restore',
+                    subtitle:
+                        'Backup school data and restore previous backups',
+                    onTap: () => _open(
+                      context,
+                      const BackupRestorePage(),
                     ),
-                    DropdownButtonFormField<String>(
-                      initialValue: _timeFormat,
-                      decoration: const InputDecoration(
-                        labelText: 'Time Format',
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: '12 Hour',
-                          child: Text('12 Hour'),
-                        ),
-                        DropdownMenuItem(
-                          value: '24 Hour',
-                          child: Text('24 Hour'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _timeFormat = value);
-                        }
-                      },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.monitor_heart_outlined,
+                    title: 'System Health',
+                    subtitle:
+                        'Diagnostics and system health information',
+                    onTap: () => _open(
+                      context,
+                      const SystemHealthPage(),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _section(
-                  context,
-                  title: 'System Prefixes',
-                  children: [
-                    _field(_admissionPrefix, 'Admission Prefix'),
-                    _field(_rollPrefix, 'Roll Number Prefix'),
-                    _field(_receiptPrefix, 'Receipt Prefix'),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _section(
-                  context,
-                  title: 'Branding',
-                  children: [
-                    _field(_logoUrl, 'School Logo URL'),
-                    _field(_headerUrl, 'Report Header URL'),
-                    _field(_footerUrl, 'Report Footer URL'),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const BackupRestorePage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.backup_outlined),
-                    label: const Text('Backup and Restore'),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const UserPreferencesPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.tune_outlined),
-                    label: const Text('User Preferences'),
+                  _SettingsTile(
+                    icon: Icons.history_outlined,
+                    title: 'Audit Logging',
+                    subtitle:
+                        'Configure audit tracking and activity logging',
+                    onTap: () => _open(
+                      context,
+                      const AuditConfigurationPage(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const SecuritySessionsPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.security_outlined),
-                    label: const Text('Security and Sessions'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const SystemHealthPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.monitor_heart_outlined),
-                    label: const Text('System Health and Diagnostics'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const AuditConfigurationPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.history_outlined),
-                    label: const Text('Audit Logging'),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.icon(
-                    onPressed: loaded.isSaving
-                        ? null
-                        : () => _save(context, loaded.settings.id),
-                    icon: loaded.isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: const Text('Save Settings'),
-                  ),
-                ),
-                const SizedBox(height: 30),
-              ],
+
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _section(
-    BuildContext context, {
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 14),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth >= 800
-                    ? (constraints.maxWidth - 12) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: children
-                      .map((child) => SizedBox(width: width, child: child))
-                      .toList(),
-                );
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _field(
-    TextEditingController? controller,
-    String label, {
-    bool required = false,
-    String? externalValue,
-    ValueChanged<String>? onChanged,
-  }) {
-    return TextFormField(
-      controller: controller,
-      initialValue: controller == null ? externalValue : null,
-      decoration: InputDecoration(labelText: label),
-      onChanged: onChanged,
-      validator: required
-          ? (value) {
-              if (value == null || value.trim().isEmpty) {
-                return '$label is required.';
-              }
-              return null;
-            }
-          : null,
-    );
-  }
-
-  Widget _dateTile(
+  static void _open(
     BuildContext context,
-    String label,
-    DateTime value,
-    ValueChanged<DateTime> onChanged,
+    Widget page,
   ) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      subtitle: Text(
-        '${value.day.toString().padLeft(2, '0')}-'
-        '${value.month.toString().padLeft(2, '0')}-'
-        '${value.year}',
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => page,
       ),
-      trailing: const Icon(Icons.calendar_month_outlined),
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2100),
-        );
-
-        if (picked != null) {
-          onChanged(picked);
-        }
-      },
     );
   }
 
-  void _save(BuildContext context, String id) {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  }
 
-    context.read<SettingsBloc>().add(
-      SaveSettingsRequested(
-        SchoolSettingsEntity(
-          id: id,
-          schoolName: _schoolName.text.trim(),
-          schoolCode: _schoolCode.text.trim(),
-          currentSession: _session.text.trim(),
-          sessionStartDate: _sessionStart,
-          sessionEndDate: _sessionEnd,
-          currency: _currency,
-          currencySymbol: _currencySymbol.trim(),
-          dateFormat: _dateFormat,
-          timeFormat: _timeFormat,
-          admissionPrefix: _admissionPrefix.text.trim(),
-          rollNumberPrefix: _rollPrefix.text.trim(),
-          receiptPrefix: _receiptPrefix.text.trim(),
-          updatedAt: DateTime.now(),
-          tagLine: _tagLine.text.trim(),
-          address: _address.text.trim(),
-          city: _city.text.trim(),
-          country: _country.text.trim(),
-          phone: _phone.text.trim(),
-          whatsApp: _whatsApp.text.trim(),
-          email: _email.text.trim(),
-          website: _website.text.trim(),
-          logoUrl: _logoUrl.text.trim(),
-          reportHeaderUrl: _headerUrl.text.trim(),
-          reportFooterUrl: _footerUrl.text.trim(),
+class _SettingsHeader extends StatelessWidget {
+  const _SettingsHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DashboardNavigationButton(),
+        SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Manage school configuration, branding, security and system preferences.',
+                style: TextStyle(
+                  color: _textSecondary,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.title,
+  });
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: _textPrimary,
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 10,
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 17,
+            ),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: _borderColor,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _brandBlue.withValues(
+                      alpha: 0.09,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: _brandBlue,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Icon(
+                  Icons.chevron_right,
+                  color: _textSecondary,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

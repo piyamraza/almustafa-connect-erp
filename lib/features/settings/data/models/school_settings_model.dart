@@ -29,6 +29,10 @@ class SchoolSettingsModel extends SchoolSettingsEntity {
     super.logoUrl,
     super.reportHeaderUrl,
     super.reportFooterUrl,
+super.principalName,
+super.principalDesignation,
+super.principalSignatureUrl,
+super.schoolStampUrl,
   });
 
   factory SchoolSettingsModel.fromEntity(SchoolSettingsEntity entity) {
@@ -58,6 +62,10 @@ class SchoolSettingsModel extends SchoolSettingsEntity {
       logoUrl: entity.logoUrl,
       reportHeaderUrl: entity.reportHeaderUrl,
       reportFooterUrl: entity.reportFooterUrl,
+principalName: entity.principalName,
+principalDesignation: entity.principalDesignation,
+principalSignatureUrl: entity.principalSignatureUrl,
+schoolStampUrl: entity.schoolStampUrl,
     );
   }
 
@@ -94,6 +102,13 @@ class SchoolSettingsModel extends SchoolSettingsEntity {
       logoUrl: map['logoUrl'] as String? ?? '',
       reportHeaderUrl: map['reportHeaderUrl'] as String? ?? '',
       reportFooterUrl: map['reportFooterUrl'] as String? ?? '',
+principalName: map['principalName'] as String? ?? '',
+principalDesignation:
+    map['principalDesignation'] as String? ?? 'Principal',
+principalSignatureUrl:
+    map['principalSignatureUrl'] as String? ?? '',
+schoolStampUrl:
+    map['schoolStampUrl'] as String? ?? '',
     );
   }
 
@@ -123,6 +138,10 @@ class SchoolSettingsModel extends SchoolSettingsEntity {
     'logoUrl': logoUrl,
     'reportHeaderUrl': reportHeaderUrl,
     'reportFooterUrl': reportFooterUrl,
+'principalName': principalName,
+'principalDesignation': principalDesignation,
+'principalSignatureUrl': principalSignatureUrl,
+'schoolStampUrl': schoolStampUrl,
     'schemaVersion': 1,
   };
 }
