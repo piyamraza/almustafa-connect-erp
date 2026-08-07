@@ -1,4 +1,4 @@
-import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
+﻿import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,6 +9,7 @@ import '../../../academic_structure/domain/repositories/academic_structure_repos
 import '../../../documents/presentation/pages/bonafide_certificate_preview_page.dart';
 import '../../../documents/presentation/pages/character_certificate_preview_page.dart';
 import '../../../documents/presentation/pages/leaving_certificate_preview_page.dart';
+import '../../../documents/presentation/pages/student_id_card_preview_page.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import 'add_student_page.dart';
@@ -26,7 +27,8 @@ class StudentDetailsPage extends StatefulWidget {
       _StudentDetailsPageState();
 }
 
-class _StudentDetailsPageState extends State<StudentDetailsPage> {
+class _StudentDetailsPageState
+    extends State<StudentDetailsPage> {
   StudentEntity get student => widget.student;
 
   String? _className;
@@ -85,12 +87,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
       setState(() {
         _className =
-            matchingClass?.name ??
-                student.classId;
+            matchingClass?.name ?? student.classId;
 
         _sectionName =
-            matchingSection?.name ??
-                student.sectionId;
+            matchingSection?.name ?? student.sectionId;
       });
     } catch (_) {
       if (!mounted) {
@@ -124,30 +124,20 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     return null;
   }
 
-  String _formatDate(
-    DateTime date,
-  ) {
+  String _formatDate(DateTime date) {
     final day =
-        date.day
-            .toString()
-            .padLeft(2, '0');
+        date.day.toString().padLeft(2, '0');
 
     final month =
-        date.month
-            .toString()
-            .padLeft(2, '0');
+        date.month.toString().padLeft(2, '0');
 
-    final year =
-        date.year.toString();
-
-    return '$day-$month-$year';
+    return '$day-$month-${date.year}';
   }
 
   Future<void> _editStudent(
     BuildContext context,
   ) async {
-    final result =
-        await Navigator.push<bool>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
@@ -197,34 +187,49 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       ),
     );
   }
-void _openLeavingCertificate() {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => LeavingCertificatePreviewPage(
-        student: student,
-        className: _className ?? student.classId,
-        sectionName: _sectionName ?? student.sectionId,
+
+  void _openLeavingCertificate() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            LeavingCertificatePreviewPage(
+          student: student,
+          className:
+              _className ?? student.classId,
+          sectionName:
+              _sectionName ?? student.sectionId,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  void _openStudentIdCard() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            StudentIdCardPreviewPage(
+          student: student,
+          className:
+              _className ?? student.classId,
+          sectionName:
+              _sectionName ?? student.sectionId,
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     final desktop =
-        MediaQuery.of(context)
-                .size
-                .width >=
-            1000;
+        MediaQuery.of(context).size.width >= 1000;
 
     return Scaffold(
       appBar: AppBar(
+        title:
+            const Text('Student Details'),
         actions: const [
           DashboardNavigationButton(),
         ],
-        title:
-            const Text('Student Details'),
       ),
       body: SingleChildScrollView(
         padding:
@@ -239,19 +244,22 @@ void _openLeavingCertificate() {
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-               _Header(
-  student: student,
-  onEdit: () => _editStudent(
-    context,
-  ),
-  onCharacterCertificate:
-      _openCharacterCertificate,
-  onBonafideCertificate:
-      _openBonafideCertificate,
-  onLeavingCertificate:
-      _openLeavingCertificate,
-),
-
+                _Header(
+                  student: student,
+                  onEdit: () =>
+                      _editStudent(context),
+                  onCharacterCertificate:
+                      _openCharacterCertificate,
+                  onBonafideCertificate:
+                      _openBonafideCertificate,
+                  onLeavingCertificate:
+                      _openLeavingCertificate,
+                  onStudentIdCard:
+                      _openStudentIdCard,
+                ),
+                const SizedBox(
+                  height: 24,
+                ),
                 if (desktop)
                   Row(
                     crossAxisAlignment:
@@ -260,271 +268,33 @@ void _openLeavingCertificate() {
                       Expanded(
                         child: Column(
                           children: [
-                            _InfoSection(
-                              title:
-                                  'Personal Information',
-                              icon:
-                                  Icons.person,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Full Name',
-                                  value:
-                                      student.fullName,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Gender',
-                                  value:
-                                      student.gender,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Date of Birth',
-                                  value:
-                                      _formatDate(
-                                    student
-                                        .dateOfBirth,
-                                  ),
-                                ),
-                              ],
-                            ),
-
+                            _personalSection(),
                             const SizedBox(
                               height: 20,
                             ),
-
-                            _InfoSection(
-                              title:
-                                  'Academic Information',
-                              icon:
-                                  Icons.school,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Admission No.',
-                                  value:
-                                      student
-                                          .admissionNo,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Roll Number',
-                                  value:
-                                      student
-                                          .rollNumber,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Class',
-                                  value:
-                                      _className ??
-                                          'Loading...',
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Section',
-                                  value:
-                                      _sectionName ??
-                                          'Loading...',
-                                ),
-                              ],
-                            ),
-
+                            _academicSection(),
                             const SizedBox(
                               height: 20,
                             ),
-
-                            _InfoSection(
-                              title:
-                                  'Parent Information',
-                              icon:
-                                  Icons.family_restroom,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Father Name',
-                                  value:
-                                      student
-                                          .fatherName,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Father CNIC',
-                                  value:
-                                      student
-                                          .fatherCnic,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Father Phone',
-                                  value:
-                                      student
-                                          .fatherPhone,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Father WhatsApp',
-                                  value:
-                                      student
-                                          .fatherWhatsapp,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Mother Name',
-                                  value:
-                                      student
-                                          .motherName,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Mother CNIC',
-                                  value:
-                                      student
-                                          .motherCnic,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Mother Phone',
-                                  value:
-                                      student
-                                          .motherPhone,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Mother WhatsApp',
-                                  value:
-                                      student
-                                          .motherWhatsapp,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Guardian Name',
-                                  value:
-                                      student
-                                          .guardianName,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Guardian CNIC',
-                                  value:
-                                      student
-                                          .guardianCnic,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Guardian Phone',
-                                  value:
-                                      student
-                                          .guardianPhone,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Guardian WhatsApp',
-                                  value:
-                                      student
-                                          .guardianWhatsapp,
-                                ),
-                              ],
-                            ),
+                            _parentSection(),
                           ],
                         ),
                       ),
-
                       const SizedBox(
                         width: 24,
                       ),
-
                       Expanded(
                         child: Column(
                           children: [
-                            _InfoSection(
-                              title:
-                                  'Contact Information',
-                              icon:
-                                  Icons.contact_mail,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Guardian Email',
-                                  value:
-                                      student
-                                          .guardianEmail,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Address',
-                                  value:
-                                      student.address,
-                                  multiline: true,
-                                ),
-                              ],
-                            ),
-
+                            _contactSection(),
                             const SizedBox(
                               height: 20,
                             ),
-
-                            _InfoSection(
-                              title:
-                                  'Medical Information',
-                              icon:
-                                  Icons.medical_information,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Blood Group',
-                                  value:
-                                      student
-                                          .bloodGroup,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Medical Allergies',
-                                  value:
-                                      student
-                                          .medicalAllergies,
-                                  multiline: true,
-                                ),
-                              ],
-                            ),
-
+                            _medicalSection(),
                             const SizedBox(
                               height: 20,
                             ),
-
-                            _InfoSection(
-                              title:
-                                  'System Information',
-                              icon:
-                                  Icons.info,
-                              children: [
-                                _InfoTile(
-                                  label:
-                                      'Student ID',
-                                  value:
-                                      student.id,
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Created Date',
-                                  value:
-                                      _formatDate(
-                                    student
-                                        .createdAt,
-                                  ),
-                                ),
-                                _InfoTile(
-                                  label:
-                                      'Updated Date',
-                                  value:
-                                      _formatDate(
-                                    student
-                                        .updatedAt,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _systemSection(),
                           ],
                         ),
                       ),
@@ -533,250 +303,17 @@ void _openLeavingCertificate() {
                 else
                   Column(
                     children: [
-                      _InfoSection(
-                        title:
-                            'Personal Information',
-                        icon:
-                            Icons.person,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Full Name',
-                            value:
-                                student.fullName,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Gender',
-                            value:
-                                student.gender,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Date of Birth',
-                            value:
-                                _formatDate(
-                              student
-                                  .dateOfBirth,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      _InfoSection(
-                        title:
-                            'Academic Information',
-                        icon:
-                            Icons.school,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Admission No.',
-                            value:
-                                student.admissionNo,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Roll Number',
-                            value:
-                                student.rollNumber,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Class',
-                            value:
-                                _className ??
-                                    'Loading...',
-                          ),
-                          _InfoTile(
-                            label:
-                                'Section',
-                            value:
-                                _sectionName ??
-                                    'Loading...',
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      _InfoSection(
-                        title:
-                            'Parent Information',
-                        icon:
-                            Icons.family_restroom,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Father Name',
-                            value:
-                                student.fatherName,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Father CNIC',
-                            value:
-                                student.fatherCnic,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Father Phone',
-                            value:
-                                student.fatherPhone,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Father WhatsApp',
-                            value:
-                                student
-                                    .fatherWhatsapp,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Mother Name',
-                            value:
-                                student.motherName,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Mother CNIC',
-                            value:
-                                student.motherCnic,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Mother Phone',
-                            value:
-                                student.motherPhone,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Mother WhatsApp',
-                            value:
-                                student
-                                    .motherWhatsapp,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Guardian Name',
-                            value:
-                                student.guardianName,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Guardian CNIC',
-                            value:
-                                student.guardianCnic,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Guardian Phone',
-                            value:
-                                student.guardianPhone,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Guardian WhatsApp',
-                            value:
-                                student
-                                    .guardianWhatsapp,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      _InfoSection(
-                        title:
-                            'Contact Information',
-                        icon:
-                            Icons.contact_mail,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Guardian Email',
-                            value:
-                                student.guardianEmail,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Address',
-                            value:
-                                student.address,
-                            multiline: true,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      _InfoSection(
-                        title:
-                            'Medical Information',
-                        icon:
-                            Icons.medical_information,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Blood Group',
-                            value:
-                                student.bloodGroup,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Medical Allergies',
-                            value:
-                                student
-                                    .medicalAllergies,
-                            multiline: true,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      _InfoSection(
-                        title:
-                            'System Information',
-                        icon:
-                            Icons.info,
-                        children: [
-                          _InfoTile(
-                            label:
-                                'Student ID',
-                            value:
-                                student.id,
-                          ),
-                          _InfoTile(
-                            label:
-                                'Created Date',
-                            value:
-                                _formatDate(
-                              student.createdAt,
-                            ),
-                          ),
-                          _InfoTile(
-                            label:
-                                'Updated Date',
-                            value:
-                                _formatDate(
-                              student.updatedAt,
-                            ),
-                          ),
-                        ],
-                      ),
+                      _personalSection(),
+                      const SizedBox(height: 20),
+                      _academicSection(),
+                      const SizedBox(height: 20),
+                      _parentSection(),
+                      const SizedBox(height: 20),
+                      _contactSection(),
+                      const SizedBox(height: 20),
+                      _medicalSection(),
+                      const SizedBox(height: 20),
+                      _systemSection(),
                     ],
                   ),
               ],
@@ -784,6 +321,171 @@ void _openLeavingCertificate() {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _personalSection() {
+    return _InfoSection(
+      title: 'Personal Information',
+      icon: Icons.person,
+      children: [
+        _InfoTile(
+          label: 'Full Name',
+          value: student.fullName,
+        ),
+        _InfoTile(
+          label: 'Gender',
+          value: student.gender,
+        ),
+        _InfoTile(
+          label: 'Date of Birth',
+          value:
+              _formatDate(student.dateOfBirth),
+        ),
+      ],
+    );
+  }
+
+  Widget _academicSection() {
+    return _InfoSection(
+      title: 'Academic Information',
+      icon: Icons.school,
+      children: [
+        _InfoTile(
+          label: 'Admission No.',
+          value: student.admissionNo,
+        ),
+        _InfoTile(
+          label: 'Roll Number',
+          value: student.rollNumber,
+        ),
+        _InfoTile(
+          label: 'Class',
+          value:
+              _className ?? 'Loading...',
+        ),
+        _InfoTile(
+          label: 'Section',
+          value:
+              _sectionName ?? 'Loading...',
+        ),
+      ],
+    );
+  }
+
+  Widget _parentSection() {
+    return _InfoSection(
+      title: 'Parent Information',
+      icon: Icons.family_restroom,
+      children: [
+        _InfoTile(
+          label: 'Father Name',
+          value: student.fatherName,
+        ),
+        _InfoTile(
+          label: 'Father CNIC',
+          value: student.fatherCnic,
+        ),
+        _InfoTile(
+          label: 'Father Phone',
+          value: student.fatherPhone,
+        ),
+        _InfoTile(
+          label: 'Father WhatsApp',
+          value: student.fatherWhatsapp,
+        ),
+        _InfoTile(
+          label: 'Mother Name',
+          value: student.motherName,
+        ),
+        _InfoTile(
+          label: 'Mother CNIC',
+          value: student.motherCnic,
+        ),
+        _InfoTile(
+          label: 'Mother Phone',
+          value: student.motherPhone,
+        ),
+        _InfoTile(
+          label: 'Mother WhatsApp',
+          value: student.motherWhatsapp,
+        ),
+        _InfoTile(
+          label: 'Guardian Name',
+          value: student.guardianName,
+        ),
+        _InfoTile(
+          label: 'Guardian CNIC',
+          value: student.guardianCnic,
+        ),
+        _InfoTile(
+          label: 'Guardian Phone',
+          value: student.guardianPhone,
+        ),
+        _InfoTile(
+          label: 'Guardian WhatsApp',
+          value: student.guardianWhatsapp,
+        ),
+      ],
+    );
+  }
+
+  Widget _contactSection() {
+    return _InfoSection(
+      title: 'Contact Information',
+      icon: Icons.contact_mail,
+      children: [
+        _InfoTile(
+          label: 'Guardian Email',
+          value: student.guardianEmail,
+        ),
+        _InfoTile(
+          label: 'Address',
+          value: student.address,
+          multiline: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _medicalSection() {
+    return _InfoSection(
+      title: 'Medical Information',
+      icon: Icons.medical_information,
+      children: [
+        _InfoTile(
+          label: 'Blood Group',
+          value: student.bloodGroup,
+        ),
+        _InfoTile(
+          label: 'Medical Allergies',
+          value: student.medicalAllergies,
+          multiline: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _systemSection() {
+    return _InfoSection(
+      title: 'System Information',
+      icon: Icons.info,
+      children: [
+        _InfoTile(
+          label: 'Student ID',
+          value: student.id,
+        ),
+        _InfoTile(
+          label: 'Created Date',
+          value:
+              _formatDate(student.createdAt),
+        ),
+        _InfoTile(
+          label: 'Updated Date',
+          value:
+              _formatDate(student.updatedAt),
+        ),
+      ],
     );
   }
 }
@@ -795,6 +497,7 @@ class _Header extends StatelessWidget {
     required this.onCharacterCertificate,
     required this.onBonafideCertificate,
     required this.onLeavingCertificate,
+    required this.onStudentIdCard,
   });
 
   final StudentEntity student;
@@ -802,16 +505,12 @@ class _Header extends StatelessWidget {
   final VoidCallback onCharacterCertificate;
   final VoidCallback onBonafideCertificate;
   final VoidCallback onLeavingCertificate;
+  final VoidCallback onStudentIdCard;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     final desktop =
-        MediaQuery.of(context)
-                .size
-                .width >=
-            800;
+        MediaQuery.of(context).size.width >= 800;
 
     return Card(
       elevation: 1,
@@ -820,140 +519,168 @@ class _Header extends StatelessWidget {
             const EdgeInsets.all(24),
         child: desktop
             ? Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   _avatar(),
-                  const SizedBox(
-                    width: 24,
-                  ),
+                  const SizedBox(width: 24),
                   Expanded(
                     child: _info(),
                   ),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    alignment:
-                        WrapAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed:
-                            onCharacterCertificate,
-                        icon: const Icon(
-                          Icons
-                              .workspace_premium_outlined,
-                        ),
-                        label:
-                            const Text(
-                          'Character Certificate',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed:
-                            onBonafideCertificate,
-                        icon: const Icon(
-                          Icons
-                              .verified_user_outlined,
-                        ),
-                        label:
-                            const Text(
-                          'Bonafide Certificate',
-                        ),
-                      ),
-OutlinedButton.icon(
-  onPressed:
-      onLeavingCertificate,
-  icon: const Icon(
-    Icons.exit_to_app_outlined,
-  ),
-  label:
-      const Text(
-    'Leaving Certificate',
-  ),
-),
-                      FilledButton.icon(
-                        onPressed: onEdit,
-                        icon: const Icon(
-                          Icons.edit,
-                        ),
-                        label:
-                            const Text(
-                          'Edit Student',
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: 20),
+                  ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(
+                      maxWidth: 470,
+                    ),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment:
+                          WrapAlignment.end,
+                      children:
+                          _actionButtons(),
+                    ),
                   ),
                 ],
               )
             : Column(
                 children: [
                   _avatar(),
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
                   _info(),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  SizedBox(
-                    width:
-                        double.infinity,
-                    child:
-                        OutlinedButton.icon(
-                      onPressed:
-                          onCharacterCertificate,
-                      icon: const Icon(
-                        Icons
-                            .workspace_premium_outlined,
-                      ),
-                      label:
-                          const Text(
-                        'Character Certificate',
-                      ),
+                  const SizedBox(height: 20),
+                  for (final button
+                      in _mobileButtons()) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: button,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  SizedBox(
-                    width:
-                        double.infinity,
-                    child:
-                        OutlinedButton.icon(
-                      onPressed:
-                          onBonafideCertificate,
-                      icon: const Icon(
-                        Icons
-                            .verified_user_outlined,
-                      ),
-                      label:
-                          const Text(
-                        'Bonafide Certificate',
-                      ),
+                    const SizedBox(
+                      height: 10,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  SizedBox(
-                    width:
-                        double.infinity,
-                    child:
-                        FilledButton.icon(
-                      onPressed:
-                          onEdit,
-                      icon:
-                          const Icon(
-                        Icons.edit,
-                      ),
-                      label:
-                          const Text(
-                        'Edit Student',
-                      ),
-                    ),
-                  ),
+                  ],
                 ],
               ),
       ),
     );
+  }
+
+  List<Widget> _actionButtons() {
+    return [
+      OutlinedButton.icon(
+        onPressed:
+            onCharacterCertificate,
+        icon: const Icon(
+          Icons.workspace_premium_outlined,
+        ),
+        label:
+            const Text(
+          'Character Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onBonafideCertificate,
+        icon: const Icon(
+          Icons.verified_user_outlined,
+        ),
+        label:
+            const Text(
+          'Bonafide Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onLeavingCertificate,
+        icon: const Icon(
+          Icons.exit_to_app_outlined,
+        ),
+        label:
+            const Text(
+          'Leaving Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onStudentIdCard,
+        icon: const Icon(
+          Icons.badge_outlined,
+        ),
+        label:
+            const Text(
+          'Student ID Card',
+        ),
+      ),
+      FilledButton.icon(
+        onPressed: onEdit,
+        icon:
+            const Icon(Icons.edit),
+        label:
+            const Text(
+          'Edit Student',
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _mobileButtons() {
+    return [
+      OutlinedButton.icon(
+        onPressed:
+            onCharacterCertificate,
+        icon: const Icon(
+          Icons.workspace_premium_outlined,
+        ),
+        label:
+            const Text(
+          'Character Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onBonafideCertificate,
+        icon: const Icon(
+          Icons.verified_user_outlined,
+        ),
+        label:
+            const Text(
+          'Bonafide Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onLeavingCertificate,
+        icon: const Icon(
+          Icons.exit_to_app_outlined,
+        ),
+        label:
+            const Text(
+          'Leaving Certificate',
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed:
+            onStudentIdCard,
+        icon:
+            const Icon(
+          Icons.badge_outlined,
+        ),
+        label:
+            const Text(
+          'Student ID Card',
+        ),
+      ),
+      FilledButton.icon(
+        onPressed: onEdit,
+        icon:
+            const Icon(Icons.edit),
+        label:
+            const Text(
+          'Edit Student',
+        ),
+      ),
+    ];
   }
 
   Widget _avatar() {
@@ -984,28 +711,20 @@ OutlinedButton.icon(
           student.fullName,
           style: const TextStyle(
             fontSize: 26,
-            fontWeight:
-                FontWeight.bold,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(
-          height: 6,
-        ),
+        const SizedBox(height: 6),
         Text(
           'Admission No: ${student.admissionNo}',
         ),
-        const SizedBox(
-          height: 4,
-        ),
+        const SizedBox(height: 4),
         Text(
           'Roll No: ${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
         ),
-        const SizedBox(
-          height: 14,
-        ),
+        const SizedBox(height: 14),
         _StatusChip(
-          active:
-              student.isActive,
+          active: student.isActive,
         ),
       ],
     );
@@ -1020,9 +739,7 @@ class _StatusChip extends StatelessWidget {
   final bool active;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Chip(
       avatar: Icon(
         active
@@ -1039,8 +756,7 @@ class _StatusChip extends StatelessWidget {
         active
             ? 'Active'
             : 'Inactive',
-        style:
-            const TextStyle(
+        style: const TextStyle(
           color: Colors.white,
           fontWeight:
               FontWeight.w600,
@@ -1062,18 +778,14 @@ class _InfoSection extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Card(
       elevation: 1,
       clipBehavior:
           Clip.antiAlias,
       child: Padding(
         padding:
-            const EdgeInsets.all(
-          20,
-        ),
+            const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
@@ -1081,9 +793,7 @@ class _InfoSection extends StatelessWidget {
             Row(
               children: [
                 Icon(icon),
-                const SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 10),
                 Text(
                   title,
                   style:
@@ -1097,9 +807,7 @@ class _InfoSection extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(
-              height: 20,
-            ),
+            const SizedBox(height: 20),
             ...children,
           ],
         ),
@@ -1120,9 +828,7 @@ class _InfoTile extends StatelessWidget {
   final bool multiline;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     final displayValue =
         value.trim().isEmpty
             ? '-'
@@ -1151,9 +857,7 @@ class _InfoTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(
-            width: 16,
-          ),
+          const SizedBox(width: 16),
           Expanded(
             child: SelectableText(
               displayValue,

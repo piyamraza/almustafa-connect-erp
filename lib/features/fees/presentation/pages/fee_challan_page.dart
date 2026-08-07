@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../documents/presentation/pages/fee_challan_preview_page.dart';
 import '../../domain/entities/fee_document_request_entity.dart';
 import '../../domain/entities/monthly_fee_due_entity.dart';
 import '../../domain/repositories/monthly_fee_due_repository.dart';
@@ -105,6 +106,31 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
 
     context.read<FeeDocumentBloc>().add(
       share ? ShareFeeChallan(request) : PrintFeeChallan(request),
+    );
+  }
+
+  void _previewChallan() {
+    final selected = _selectedDues;
+
+    if (selected.isEmpty) {
+      _show('Select one challan to preview.');
+      return;
+    }
+
+    if (selected.length != 1) {
+      _show('Select exactly one challan for preview.');
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FeeChallanPreviewPage(
+          request: FeeChallanDocumentRequest(
+            dues: selected,
+            copyCount: _copyCount,
+          ),
+        ),
+      ),
     );
   }
 
@@ -251,6 +277,11 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('Load'),
                               ),
+OutlinedButton.icon(
+  onPressed: busy ? null : _previewChallan,
+  icon: const Icon(Icons.visibility_outlined),
+  label: const Text('Preview'),
+),
                               FilledButton.tonalIcon(
                                 onPressed: busy ? null : () => _print(false),
                                 icon: const Icon(Icons.print_outlined),
@@ -324,8 +355,8 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
                                     value: _selectedDueIds.contains(due.id),
                                     title: Text(due.studentName),
                                     subtitle: Text(
-                                      '${due.admissionNo} • '
-                                      '${_monthName(due.month)} ${due.year} • '
+                                      '${due.admissionNo} â€¢ '
+                                      '${_monthName(due.month)} ${due.year} â€¢ '
                                       'Due ${_date(due.dueDate)}',
                                     ),
                                     secondary: Chip(
@@ -387,3 +418,4 @@ class _FeeChallanViewState extends State<_FeeChallanView> {
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
 }
+

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../documents/presentation/pages/fee_receipt_preview_page.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../../../school_store/domain/entities/store_sale_entity.dart';
@@ -461,6 +462,28 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
         reason: reason,
         academicSession: _sessionController.text.trim(),
         studentId: student.id,
+      ),
+    );
+  }
+
+  void _previewReceipt(
+    FeePaymentEntity payment,
+  ) {
+    final student = _selectedStudent;
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FeeReceiptPreviewPage(
+          request: FeeReceiptDocumentRequest(
+            payment: payment,
+          ),
+          className: student == null
+              ? ''
+              : _className(student),
+          sectionName: student == null
+              ? ''
+              : _sectionName(student),
+        ),
       ),
     );
   }
@@ -970,8 +993,8 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                     value: _selectedDueIds.contains(due.id),
                     title: Text('${_monthName(due.month)} ${due.year}'),
                     subtitle: Text(
-                      'Net Rs. ${due.netPayable.toStringAsFixed(0)} • '
-                      'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} • '
+                      'Net Rs. ${due.netPayable.toStringAsFixed(0)} â€¢ '
+                      'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} â€¢ '
                       'Outstanding Rs. ${due.outstandingAmount.toStringAsFixed(0)}',
                     ),
                     secondary: Chip(label: Text(due.status.name.toUpperCase())),
@@ -1324,9 +1347,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                 value: _selectedAdditionalDueIds.contains(due.id),
                 title: Text(due.chargeTitle),
                 subtitle: Text(
-                  '${_label(due.chargeCategory.name)} • Due ${_date(due.dueDate)} • '
-                  'Net Rs. ${due.netPayable.toStringAsFixed(0)} • '
-                  'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} • '
+                  '${_label(due.chargeCategory.name)} â€¢ Due ${_date(due.dueDate)} â€¢ '
+                  'Net Rs. ${due.netPayable.toStringAsFixed(0)} â€¢ '
+                  'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} â€¢ '
                   'Outstanding Rs. ${due.outstandingAmount.toStringAsFixed(0)}',
                 ),
                 secondary: Chip(label: Text(due.status.name.toUpperCase())),
@@ -1409,6 +1432,16 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                tooltip: 'Preview receipt',
+                                onPressed:
+                                    payment.status == FeePaymentStatus.cancelled
+                                    ? null
+                                    : () => _previewReceipt(payment),
+                                icon: const Icon(
+                                  Icons.visibility_outlined,
+                                ),
+                              ),
                               IconButton(
                                 tooltip: 'Print receipt',
                                 onPressed:
@@ -2053,3 +2086,4 @@ class _LedgerDisplayRow {
   final double receivableBalance;
   final double advanceBalance;
 }
+
