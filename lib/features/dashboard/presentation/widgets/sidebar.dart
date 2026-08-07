@@ -13,6 +13,7 @@ import '../../../academic_calendar/presentation/pages/academic_calendar_page.dar
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
 import '../../../communication/presentation/pages/communication_dashboard_page.dart';
+import '../../../documents/presentation/pages/document_center_page.dart';
 import '../../../exams/presentation/pages/exam_date_sheet_dashboard_page.dart';
 import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
@@ -468,6 +469,18 @@ _menuTile(
     );
   },
 ),
+                    _menuTile(
+                      context,
+                      icon: Icons.description_outlined,
+                      title: 'Document Center',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const DocumentCenterPage(),
+                          ),
+                        );
+                      },
+                    ),
                     if (_access.hasPermission(AppPermission.parentsView))
                       _menuTile(
                         context,
@@ -619,6 +632,7 @@ _menuTile(
       'Parents' => const Color(0xFF818CF8),
       'Accounts & Payroll' => const Color(0xFF0F766E),
       'School Store' => const Color(0xFF14B8A6),
+      'Document Center' => const Color(0xFF2563EB),
       'Reports' => const Color(0xFF60A5FA),
       'Roles & Permissions' => const Color(0xFFE879F9),
       'Settings' => const Color(0xFF64748B),
