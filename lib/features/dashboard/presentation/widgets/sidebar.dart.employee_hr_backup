@@ -27,6 +27,7 @@ import '../../../school_store/presentation/pages/school_store_dashboard_page.dar
 import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
 import '../../../settings/presentation/pages/settings_dashboard_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
+import '../../../teacher_portal/presentation/pages/substitute_duty_management_page.dart';
 import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
 
 class Sidebar extends StatefulWidget {
@@ -565,5 +566,4 @@ _menuTile(
     };
   }
 }
-
 

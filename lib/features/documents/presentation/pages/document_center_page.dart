@@ -1,8 +1,14 @@
 ﻿import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../fees/presentation/pages/fee_challan_page.dart';
+import '../../../fees/presentation/pages/fee_collection_page.dart';
+import '../../../results/presentation/pages/merit_list_page.dart';
+import '../../../results/presentation/pages/report_cards_page.dart';
 import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
-import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../domain/entities/document_type.dart';
+import 'experience_certificate_preview_page.dart';
 
 const _pageBackground = Color(0xFFF5F7FA);
 const _brandBlue = Color(0xFF0B63CE);
@@ -12,14 +18,30 @@ const _textSecondary = Color(0xFF667085);
 const _successGreen = Color(0xFF067647);
 const _successBackground = Color(0xFFECFDF3);
 
-class DocumentCenterPage extends StatelessWidget {
+class DocumentCenterPage extends StatefulWidget {
   const DocumentCenterPage({
     super.key,
   });
 
   @override
+  State<DocumentCenterPage> createState() => _DocumentCenterPageState();
+}
+
+class _DocumentCenterPageState extends State<DocumentCenterPage> {
+  final TextEditingController _searchController = TextEditingController();
+
+  _DocumentCategory _selectedCategory = _DocumentCategory.all;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final groups = _buildGroups();
+    final groups = _filteredGroups();
 
     return Scaffold(
       backgroundColor: _pageBackground,
@@ -32,20 +54,39 @@ class DocumentCenterPage extends StatelessWidget {
                 maxWidth: 1250,
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _DocumentCenterHeader(),
                   const SizedBox(height: 24),
                   const _OverviewCards(),
+                  const SizedBox(height: 24),
+                  _SearchAndCategories(
+                    controller: _searchController,
+                    selectedCategory: _selectedCategory,
+                    onSearchChanged: (value) {
+                      setState(() {
+                        _query = value.trim().toLowerCase();
+                      });
+                    },
+                    onCategoryChanged: (value) {
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    },
+                    onClear: _clearFilters,
+                  ),
                   const SizedBox(height: 28),
-
-                  for (final group in groups) ...[
-                    _DocumentGroupSection(
-                      group: group,
-                    ),
-                    const SizedBox(height: 26),
-                  ],
+                  if (groups.isEmpty)
+                    _EmptySearchState(
+                      onClear: _clearFilters,
+                    )
+                  else
+                    for (final group in groups) ...[
+                      _DocumentGroupSection(
+                        group: group,
+                      ),
+                      const SizedBox(height: 26),
+                    ],
                 ],
               ),
             ),
@@ -55,12 +96,59 @@ class DocumentCenterPage extends StatelessWidget {
     );
   }
 
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _selectedCategory = _DocumentCategory.all;
+    });
+  }
+
+  List<_DocumentGroup> _filteredGroups() {
+    final result = <_DocumentGroup>[];
+
+    for (final group in _buildGroups()) {
+      if (_selectedCategory != _DocumentCategory.all &&
+          group.category != _selectedCategory) {
+        continue;
+      }
+
+      final items = group.items.where((item) {
+        if (_query.isEmpty) {
+          return true;
+        }
+
+        final searchable = [
+          item.title,
+          item.description,
+          item.type.label,
+          group.title,
+        ].join(' ').toLowerCase();
+
+        return searchable.contains(_query);
+      }).toList(growable: false);
+
+      if (items.isNotEmpty) {
+        result.add(
+          _DocumentGroup(
+            category: group.category,
+            title: group.title,
+            subtitle: group.subtitle,
+            items: items,
+          ),
+        );
+      }
+    }
+
+    return result;
+  }
+
   List<_DocumentGroup> _buildGroups() {
     return const [
       _DocumentGroup(
+        category: _DocumentCategory.student,
         title: 'Student Documents',
-        subtitle:
-            'Cards and official documents generated for students.',
+        subtitle: 'Cards and official documents generated for students.',
         items: [
           _DocumentCenterItem(
             type: DocumentType.birthdayCard,
@@ -81,8 +169,7 @@ class DocumentCenterPage extends StatelessWidget {
           _DocumentCenterItem(
             type: DocumentType.bonafideCertificate,
             title: 'Bonafide Certificate',
-            description:
-                'Create bonafide certificates from student records.',
+            description: 'Create bonafide certificates from student records.',
             icon: Icons.verified_user_outlined,
             status: _DocumentStatus.ready,
           ),
@@ -92,7 +179,7 @@ class DocumentCenterPage extends StatelessWidget {
             description:
                 'Prepare student leaving and school transfer documentation.',
             icon: Icons.exit_to_app_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
           ),
           _DocumentCenterItem(
             type: DocumentType.idCard,
@@ -100,53 +187,66 @@ class DocumentCenterPage extends StatelessWidget {
             description:
                 'Generate student identity cards from reusable templates.',
             icon: Icons.badge_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
           ),
         ],
       ),
-
       _DocumentGroup(
+        category: _DocumentCategory.academic,
         title: 'Academic Documents',
-        subtitle:
-            'Examination, result and academic output documents.',
+        subtitle: 'Examination, result and fee-related school documents.',
         items: [
           _DocumentCenterItem(
             type: DocumentType.resultCard,
             title: 'Result Cards',
             description:
-                'Generate branded result cards through the same rendering engine.',
+                'Generate branded result cards from published student results.',
             icon: Icons.assessment_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
+          ),
+          _DocumentCenterItem(
+            type: DocumentType.meritCertificate,
+            title: 'Merit Certificate',
+            description:
+                'Generate merit certificates for students from published results.',
+            icon: Icons.emoji_events_outlined,
+            status: _DocumentStatus.ready,
           ),
           _DocumentCenterItem(
             type: DocumentType.feeChallan,
             title: 'Fee Challans',
             description:
-                'Create printable student fee challans from reusable layouts.',
+                'Create printable student fee challans from current fee dues.',
             icon: Icons.receipt_long_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
+          ),
+          _DocumentCenterItem(
+            type: DocumentType.feeReceipt,
+            title: 'Fee Receipts',
+            description:
+                'Preview, print and share receipts from recorded fee payments.',
+            icon: Icons.receipt_outlined,
+            status: _DocumentStatus.ready,
           ),
         ],
       ),
-
       _DocumentGroup(
+        category: _DocumentCategory.staff,
         title: 'Staff Documents',
-        subtitle:
-            'Employee identity, experience and payroll documents.',
+        subtitle: 'Employee identity, experience and payroll documents.',
         items: [
           _DocumentCenterItem(
             type: DocumentType.experienceCertificate,
             title: 'Experience Certificate',
             description:
-                'Generate staff and teacher experience certificates.',
+                'Generate staff and teacher experience certificates manually.',
             icon: Icons.history_edu_outlined,
-            status: _DocumentStatus.foundationReady,
+            status: _DocumentStatus.ready,
           ),
           _DocumentCenterItem(
             type: DocumentType.employeeCard,
             title: 'Employee Cards',
-            description:
-                'Generate staff and teacher identity cards.',
+            description: 'Generate staff and teacher identity cards.',
             icon: Icons.account_box_outlined,
             status: _DocumentStatus.foundationReady,
           ),
@@ -175,8 +275,7 @@ class _DocumentCenterHeader extends StatelessWidget {
         constraints,
       ) {
         const title = Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Document Center',
@@ -199,8 +298,7 @@ class _DocumentCenterHeader extends StatelessWidget {
 
         if (constraints.maxWidth < 720) {
           return const Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DashboardNavigationButton(),
               SizedBox(height: 16),
@@ -210,8 +308,7 @@ class _DocumentCenterHeader extends StatelessWidget {
         }
 
         return const Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardNavigationButton(),
             SizedBox(width: 16),
@@ -235,12 +332,11 @@ class _OverviewCards extends StatelessWidget {
         context,
         constraints,
       ) {
-        final width =
-            constraints.maxWidth >= 900
-                ? (constraints.maxWidth - 32) / 3
-                : constraints.maxWidth >= 600
-                    ? (constraints.maxWidth - 16) / 2
-                    : constraints.maxWidth;
+        final width = constraints.maxWidth >= 900
+            ? (constraints.maxWidth - 32) / 3
+            : constraints.maxWidth >= 600
+                ? (constraints.maxWidth - 16) / 2
+                : constraints.maxWidth;
 
         return Wrap(
           spacing: 16,
@@ -250,7 +346,7 @@ class _OverviewCards extends StatelessWidget {
               width: width,
               child: const _OverviewCard(
                 icon: Icons.dashboard_customize_outlined,
-                value: '10',
+                value: '12',
                 label: 'Document Types',
               ),
             ),
@@ -258,7 +354,7 @@ class _OverviewCards extends StatelessWidget {
               width: width,
               child: const _OverviewCard(
                 icon: Icons.check_circle_outline,
-                value: '1',
+                value: '10',
                 label: 'Production Ready',
               ),
             ),
@@ -308,8 +404,7 @@ class _OverviewCard extends StatelessWidget {
               color: _brandBlue.withValues(
                 alpha: 0.10,
               ),
-              borderRadius:
-                  BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
@@ -318,8 +413,7 @@ class _OverviewCard extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 value,
@@ -344,8 +438,111 @@ class _OverviewCard extends StatelessWidget {
   }
 }
 
-class _DocumentGroupSection
-    extends StatelessWidget {
+class _SearchAndCategories extends StatelessWidget {
+  const _SearchAndCategories({
+    required this.controller,
+    required this.selectedCategory,
+    required this.onSearchChanged,
+    required this.onCategoryChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final _DocumentCategory selectedCategory;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<_DocumentCategory> onCategoryChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          onChanged: onSearchChanged,
+          decoration: InputDecoration(
+            labelText: 'Search Documents',
+            hintText: 'Search fee, result, certificate, ID card...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: controller.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Clear search',
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close),
+                  ),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final category in _DocumentCategory.values)
+              ChoiceChip(
+                label: Text(category.label),
+                selected: selectedCategory == category,
+                onSelected: (_) => onCategoryChanged(category),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptySearchState extends StatelessWidget {
+  const _EmptySearchState({
+    required this.onClear,
+  });
+
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 56),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.search_off_outlined,
+              size: 56,
+              color: _textSecondary,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'No documents found.',
+              style: TextStyle(
+                color: _textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Try another search or category.',
+              style: TextStyle(
+                color: _textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Show All Documents'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentGroupSection extends StatelessWidget {
   const _DocumentGroupSection({
     required this.group,
   });
@@ -355,8 +552,7 @@ class _DocumentGroupSection
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           group.title,
@@ -380,12 +576,11 @@ class _DocumentGroupSection
             context,
             constraints,
           ) {
-            final itemWidth =
-                constraints.maxWidth >= 1050
-                    ? (constraints.maxWidth - 32) / 3
-                    : constraints.maxWidth >= 680
-                        ? (constraints.maxWidth - 16) / 2
-                        : constraints.maxWidth;
+            final itemWidth = constraints.maxWidth >= 1050
+                ? (constraints.maxWidth - 32) / 3
+                : constraints.maxWidth >= 680
+                    ? (constraints.maxWidth - 16) / 2
+                    : constraints.maxWidth;
 
             return Wrap(
               spacing: 16,
@@ -416,31 +611,24 @@ class _DocumentTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ready =
-        item.status == _DocumentStatus.ready;
+    final ready = item.status == _DocumentStatus.ready;
 
     return Material(
       color: Colors.white,
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(16),
-        onTap: () => _open(
-          context,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _open(context),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             border: Border.all(
               color: _borderColor,
             ),
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -451,8 +639,7 @@ class _DocumentTypeCard extends StatelessWidget {
                       color: _brandBlue.withValues(
                         alpha: 0.10,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       item.icon,
@@ -487,9 +674,7 @@ class _DocumentTypeCard extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    ready
-                        ? 'Open'
-                        : 'View',
+                    ready ? 'Open' : 'View',
                     style: const TextStyle(
                       color: _brandBlue,
                       fontSize: 13,
@@ -511,44 +696,91 @@ class _DocumentTypeCard extends StatelessWidget {
     );
   }
 
-  void _open(
-  BuildContext context,
-) {
-  switch (item.type) {
-case DocumentType.birthdayCard:
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const SchoolEngagementPage(),
-    ),
-  );
-  return;
-    case DocumentType.characterCertificate:
-    case DocumentType.bonafideCertificate:
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const StudentsPage(),
+  void _open(BuildContext context) {
+    switch (item.type) {
+      case DocumentType.birthdayCard:
+        _push(
+          context,
+          const SchoolEngagementPage(),
+        );
+        return;
+
+      case DocumentType.characterCertificate:
+      case DocumentType.bonafideCertificate:
+      case DocumentType.leavingCertificate:
+      case DocumentType.idCard:
+        _push(
+          context,
+          const StudentsPage(),
+        );
+        return;
+
+      case DocumentType.resultCard:
+        _push(
+          context,
+          const ReportCardsPage(),
+        );
+        return;
+
+      case DocumentType.meritCertificate:
+        _push(
+          context,
+          const MeritListPage(),
+        );
+        return;
+
+      case DocumentType.feeChallan:
+        _push(
+          context,
+          const FeeChallanPage(),
+        );
+        return;
+
+      case DocumentType.feeReceipt:
+        _push(
+          context,
+          const FeeCollectionPage(),
+        );
+        return;
+
+      case DocumentType.experienceCertificate:
+        _push(
+          context,
+          const ExperienceCertificatePreviewPage(),
+        );
+        return;
+
+      case DocumentType.employeeCard:
+      case DocumentType.salarySlip:
+        _showFoundationMessage(context);
+        return;
+    }
+  }
+
+  void _push(
+    BuildContext context,
+    Widget page,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => page,
+      ),
+    );
+  }
+
+  void _showFoundationMessage(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '${item.title} engine foundation is ready. Its working template will be added later.',
+          ),
         ),
       );
-      return;
-
-    default:
-      final message = switch (item.status) {
-        _DocumentStatus.ready =>
-          '${item.title} is connected to the Document Engine.',
-        _DocumentStatus.foundationReady =>
-          '${item.title} engine foundation is ready. Its template will be added next.',
-      };
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-          ),
-        );
   }
 }
-}
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     required this.status,
@@ -558,8 +790,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ready =
-        status == _DocumentStatus.ready;
+    final ready = status == _DocumentStatus.ready;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -567,20 +798,13 @@ class _StatusBadge extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: ready
-            ? _successBackground
-            : _pageBackground,
-        borderRadius:
-            BorderRadius.circular(20),
+        color: ready ? _successBackground : _pageBackground,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        ready
-            ? 'Ready'
-            : 'Foundation Ready',
+        ready ? 'Ready' : 'Foundation Ready',
         style: TextStyle(
-          color: ready
-              ? _successGreen
-              : _textSecondary,
+          color: ready ? _successGreen : _textSecondary,
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
@@ -594,13 +818,33 @@ enum _DocumentStatus {
   foundationReady,
 }
 
+enum _DocumentCategory {
+  all,
+  student,
+  academic,
+  staff,
+}
+
+extension _DocumentCategoryX on _DocumentCategory {
+  String get label {
+    return switch (this) {
+      _DocumentCategory.all => 'All',
+      _DocumentCategory.student => 'Student',
+      _DocumentCategory.academic => 'Academic',
+      _DocumentCategory.staff => 'Staff',
+    };
+  }
+}
+
 class _DocumentGroup {
   const _DocumentGroup({
+    required this.category,
     required this.title,
     required this.subtitle,
     required this.items,
   });
 
+  final _DocumentCategory category;
   final String title;
   final String subtitle;
   final List<_DocumentCenterItem> items;
