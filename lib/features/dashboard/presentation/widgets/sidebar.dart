@@ -22,6 +22,7 @@ import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.d
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../reports/presentation/pages/reports_dashboard_page.dart';
 import '../../../school_store/presentation/pages/school_store_dashboard_page.dart';
+import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
 import '../../../settings/presentation/pages/settings_dashboard_page.dart';
 import '../../../staff/presentation/pages/add_staff_page.dart';
 import '../../../staff/presentation/pages/staff_attendance_page.dart';
@@ -455,6 +456,18 @@ class _SidebarState extends State<Sidebar> {
                           page: const NoticesDashboardPage(),
                         ),
                       ),
+_menuTile(
+  context,
+  icon: Icons.cake_outlined,
+  title: 'School Engagement',
+  onTap: () {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const SchoolEngagementPage(),
+      ),
+    );
+  },
+),
                     if (_access.hasPermission(AppPermission.parentsView))
                       _menuTile(
                         context,

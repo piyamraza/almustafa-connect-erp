@@ -1,4 +1,4 @@
-import '../../features/parent_portal/parent_fee_di.dart';
+﻿import '../../features/parent_portal/parent_fee_di.dart';
 import '../../features/parent_portal/parent_results_di.dart';
 import '../../features/parent_portal/parent_homework_di.dart';
 import '../../features/parent_portal/parent_attendance_di.dart';
@@ -300,6 +300,17 @@ import '../../features/students/domain/repositories/student_repository.dart';
 import '../../features/students/domain/usecases/get_student_by_id.dart';
 import '../../features/students/domain/usecases/get_students_by_class_and_section.dart';
 import '../../features/students/presentation/bloc/student_bloc.dart';
+import '../../features/school_engagement/data/datasources/engagement_remote_datasource.dart';
+import '../../features/school_engagement/data/repositories/engagement_repository_impl.dart';
+import '../../features/school_engagement/domain/repositories/engagement_repository.dart';
+import '../../features/school_engagement/domain/services/birthday_resolver_service.dart';
+import '../../features/school_engagement/domain/services/engagement_template_resolver.dart';
+import '../../features/school_engagement/domain/usecases/generate_birthday_card.dart';
+import '../../features/school_engagement/domain/usecases/get_birthday_history.dart';
+import '../../features/school_engagement/domain/usecases/get_today_birthdays.dart';
+import '../../features/school_engagement/domain/usecases/get_upcoming_birthdays.dart';
+import '../../features/school_engagement/domain/usecases/record_engagement_history.dart';
+import '../../features/school_engagement/domain/usecases/search_birthday_people.dart';
 import '../../features/timetable/data/services/timetable_report_export_service_impl.dart';
 import '../../features/timetable/data/repositories/teacher_availability_repository_impl.dart';
 import '../../features/timetable/data/datasources/timetable_remote_datasource.dart';
@@ -686,6 +697,9 @@ Future<void> setupServiceLocator() async {
       firestoreService: sl<FirebaseFirestoreService>(),
     ),
   );
+  sl.registerLazySingleton<EngagementRemoteDataSource>(
+    () => EngagementRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
 
   sl.registerLazySingleton<AttendanceRemoteDataSource>(
     AttendanceRemoteDataSourceImpl.new,
@@ -785,6 +799,9 @@ Future<void> setupServiceLocator() async {
       remoteDataSource: sl<StudentRemoteDataSource>(),
       auditService: sl<AuditService>(),
     ),
+  );
+  sl.registerLazySingleton<EngagementRepository>(
+    () => EngagementRepositoryImpl(sl<EngagementRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<AttendanceRepository>(
@@ -1294,6 +1311,41 @@ Future<void> setupServiceLocator() async {
   // Use Cases
   // =========================================================
 
+  sl.registerLazySingleton<BirthdayResolverService>(
+    BirthdayResolverService.new,
+  );
+
+  sl.registerLazySingleton<EngagementTemplateResolver>(
+    EngagementTemplateResolver.new,
+  );
+  sl.registerLazySingleton<GetTodayBirthdays>(
+    () => GetTodayBirthdays(
+      studentRepository: sl<StudentRepository>(),
+      birthdayResolver: sl<BirthdayResolverService>(),
+    ),
+  );
+  sl.registerLazySingleton<GetUpcomingBirthdays>(
+    () => GetUpcomingBirthdays(
+      studentRepository: sl<StudentRepository>(),
+      birthdayResolver: sl<BirthdayResolverService>(),
+    ),
+  );
+  sl.registerLazySingleton<SearchBirthdayPeople>(
+    () => SearchBirthdayPeople(studentRepository: sl<StudentRepository>()),
+  );
+  sl.registerLazySingleton<GetBirthdayHistory>(
+    () => GetBirthdayHistory(repository: sl<EngagementRepository>()),
+  );
+  sl.registerLazySingleton<RecordEngagementHistory>(
+    () => RecordEngagementHistory(repository: sl<EngagementRepository>()),
+  );
+
+  sl.registerLazySingleton<GenerateBirthdayCard>(
+    () => GenerateBirthdayCard(
+      repository: sl<EngagementRepository>(),
+      templateResolver: sl<EngagementTemplateResolver>(),
+    ),
+  );
   sl.registerLazySingleton<AccountsReportService>(
     AccountsReportServiceImpl.new,
   );

@@ -79,6 +79,8 @@ class FirestorePaths {
   static const String communicationAuditLogs = 'communication_audit_logs';
   static const String notices = 'notices';
   static const String noticeReceipts = 'notice_receipts';
+  static const String engagementTemplates = 'engagement_templates';
+  static const String engagementHistory = 'engagement_history';
   static const String parentAccounts = 'parent_accounts';
   static const String parentNotifications = 'parent_notifications';
   static const String appRoles = 'app_roles';
