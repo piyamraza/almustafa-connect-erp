@@ -1,4 +1,4 @@
-class FirestorePaths {
+﻿class FirestorePaths {
   FirestorePaths._();
 
   static const String auditLogs = 'audit_logs';
@@ -81,8 +81,10 @@ class FirestorePaths {
   static const String noticeReceipts = 'notice_receipts';
   static const String engagementTemplates = 'engagement_templates';
   static const String engagementHistory = 'engagement_history';
+  static const String documentTemplates = 'document_templates';
   static const String parentAccounts = 'parent_accounts';
   static const String parentNotifications = 'parent_notifications';
   static const String appRoles = 'app_roles';
   static const String userRoleAssignments = 'user_roles';
 }
+
