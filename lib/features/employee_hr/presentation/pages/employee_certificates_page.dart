@@ -2,6 +2,8 @@
 
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../documents/presentation/pages/experience_certificate_preview_page.dart';
+import '../../../documents/presentation/pages/employee_card_preview_page.dart';
+import '../../../documents/presentation/pages/salary_slip_preview_page.dart';
 
 class EmployeeCertificatesPage extends StatelessWidget {
   const EmployeeCertificatesPage({
@@ -61,21 +63,37 @@ class EmployeeCertificatesPage extends StatelessWidget {
                           );
                         },
                       ),
-                      const _CertificateCard(
+                      _CertificateCard(
                         title: 'Employee Card',
                         description:
-                            'Employee identity card.',
+                            'Generate employee identity card.',
                         icon:
                             Icons.badge_outlined,
-                        ready: false,
+                        ready: true,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  const EmployeeCardPreviewPage(),
+                            ),
+                          );
+                        },
                       ),
-                      const _CertificateCard(
+                      _CertificateCard(
                         title: 'Salary Slip',
                         description:
-                            'Employee salary slip document.',
+                            'Generate monthly employee salary slip.',
                         icon:
                             Icons.receipt_long_outlined,
-                        ready: false,
+                        ready: true,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  const SalarySlipPreviewPage(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   );
@@ -155,3 +173,5 @@ class _CertificateCard extends StatelessWidget {
     );
   }
 }
+
+
