@@ -49,11 +49,12 @@ class ImageRenderer extends ElementRenderer {
         style.shape ==
         DocumentElementShape.circle;
 
-    final radius = style.shape ==
-            DocumentElementShape
-                .roundedRectangle
-        ? style.borderRadius
-        : 0.0;
+    final radius =
+        style.shape ==
+                DocumentElementShape
+                    .roundedRectangle
+            ? style.borderRadius
+            : 0.0;
 
     return Container(
       width: double.infinity,
@@ -155,6 +156,12 @@ class ImageRenderer extends ElementRenderer {
       width: double.infinity,
       height: double.infinity,
       fit: fit,
+
+      // Required for Firebase Storage images
+      // when documents are rendered in Flutter Web.
+      webHtmlElementStrategy:
+          WebHtmlElementStrategy.prefer,
+
       errorBuilder: _errorBuilder,
     );
   }

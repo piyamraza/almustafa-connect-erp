@@ -55,6 +55,11 @@ class LeavingCertificatePreviewPage extends StatefulWidget {
 class _LeavingCertificatePreviewPageState
     extends State<LeavingCertificatePreviewPage> {
   final GlobalKey _documentBoundaryKey = GlobalKey();
+  final _formKey = GlobalKey<FormState>();
+
+  final _leavingDateController = TextEditingController();
+  final _reasonController = TextEditingController();
+  final _conductController = TextEditingController();
 
   final DocumentExportService _exportService =
       const DocumentExportService();
@@ -62,11 +67,32 @@ class _LeavingCertificatePreviewPageState
   late Future<SchoolSettingsEntity> _settingsFuture;
 
   bool _exporting = false;
+  bool _previewReady = false;
 
   @override
   void initState() {
     super.initState();
+
     _settingsFuture = sl<GetSchoolSettings>()();
+
+    if (widget.dateOfLeaving != null) {
+      _leavingDateController.text =
+          _formatDate(widget.dateOfLeaving!);
+    }
+
+    _reasonController.text =
+        widget.reasonForLeaving.trim();
+
+    _conductController.text =
+        widget.conduct.trim();
+  }
+
+  @override
+  void dispose() {
+    _leavingDateController.dispose();
+    _reasonController.dispose();
+    _conductController.dispose();
+    super.dispose();
   }
 
   @override
@@ -110,7 +136,7 @@ class _LeavingCertificatePreviewPageState
                     );
                   }
 
-                  return _buildPreview(
+                  return _buildContent(
                     settings,
                   );
                 },
@@ -120,6 +146,303 @@ class _LeavingCertificatePreviewPageState
         ),
       ),
     );
+  }
+
+  Widget _buildContent(
+    SchoolSettingsEntity settings,
+  ) {
+    return LayoutBuilder(
+      builder: (
+        context,
+        constraints,
+      ) {
+        final desktop =
+            constraints.maxWidth >= 950;
+
+        if (!desktop) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildFormCard(),
+                const SizedBox(height: 20),
+                if (_previewReady)
+                  SizedBox(
+                    height: 900,
+                    child: _buildPreview(
+                      settings,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        return Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: _buildFormCard(),
+              ),
+            ),
+            Expanded(
+              child: _previewReady
+                  ? _buildPreview(settings)
+                  : const _PreviewNotGenerated(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFormCard() {
+    final admissionDate =
+        widget.dateOfAdmission ??
+            widget.student.createdAt;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Leaving Certificate Details',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.student.fullName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Admission No. ${widget.student.admissionNo}  •  Admission Date ${_formatDate(admissionDate)}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: _textSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextFormField(
+                controller:
+                    _leavingDateController,
+                decoration: InputDecoration(
+                  labelText:
+                      'Date of Leaving',
+                  hintText:
+                      'DD/MM/YYYY',
+                  prefixIcon: const Icon(
+                    Icons.event_busy_outlined,
+                  ),
+                  suffixIcon: IconButton(
+                    tooltip:
+                        'Choose date',
+                    onPressed:
+                        _pickLeavingDate,
+                    icon: const Icon(
+                      Icons.calendar_month_outlined,
+                    ),
+                  ),
+                  border:
+                      const OutlineInputBorder(),
+                ),
+                validator: _required,
+                onChanged: (_) {
+                  if (_previewReady) {
+                    setState(() {
+                      _previewReady = false;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              TextFormField(
+                controller:
+                    _reasonController,
+                maxLines: 3,
+                decoration:
+                    const InputDecoration(
+                  labelText:
+                      'Reason for Leaving',
+                  hintText:
+                      'Enter reason for leaving',
+                  prefixIcon: Icon(
+                    Icons.notes_outlined,
+                  ),
+                  border:
+                      OutlineInputBorder(),
+                ),
+                validator: _required,
+                onChanged: (_) {
+                  if (_previewReady) {
+                    setState(() {
+                      _previewReady = false;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              TextFormField(
+                controller:
+                    _conductController,
+                decoration:
+                    const InputDecoration(
+                  labelText: 'Conduct',
+                  hintText:
+                      'e.g. Good, Very Good',
+                  prefixIcon: Icon(
+                    Icons.verified_outlined,
+                  ),
+                  border:
+                      OutlineInputBorder(),
+                ),
+                validator: _required,
+                onChanged: (_) {
+                  if (_previewReady) {
+                    setState(() {
+                      _previewReady = false;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 18),
+
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed:
+                      _generatePreview,
+                  icon: const Icon(
+                    Icons.visibility_outlined,
+                  ),
+                  label: const Text(
+                    'Generate Preview',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _required(
+    String? value,
+  ) {
+    if (value == null ||
+        value.trim().isEmpty) {
+      return 'Required';
+    }
+
+    return null;
+  }
+
+  Future<void> _pickLeavingDate() async {
+    final selected =
+        await showDatePicker(
+      context: context,
+      initialDate:
+          _tryParseDate(
+                _leavingDateController.text,
+              ) ??
+              DateTime.now(),
+      firstDate: DateTime(1950),
+      lastDate: DateTime(2100),
+    );
+
+    if (selected == null) {
+      return;
+    }
+
+    setState(() {
+      _leavingDateController.text =
+          _formatDate(selected);
+      _previewReady = false;
+    });
+  }
+
+  DateTime? _tryParseDate(
+    String value,
+  ) {
+    final parts =
+        value.trim().split('/');
+
+    if (parts.length != 3) {
+      return null;
+    }
+
+    final day =
+        int.tryParse(parts[0]);
+    final month =
+        int.tryParse(parts[1]);
+    final year =
+        int.tryParse(parts[2]);
+
+    if (day == null ||
+        month == null ||
+        year == null) {
+      return null;
+    }
+
+    final result =
+        DateTime(year, month, day);
+
+    if (result.year != year ||
+        result.month != month ||
+        result.day != day) {
+      return null;
+    }
+
+    return result;
+  }
+
+  void _generatePreview() {
+    if (!(_formKey.currentState
+            ?.validate() ??
+        false)) {
+      return;
+    }
+
+    if (_tryParseDate(
+          _leavingDateController.text,
+        ) ==
+        null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please enter Date of Leaving in DD/MM/YYYY format.',
+            ),
+          ),
+        );
+      return;
+    }
+
+    setState(() {
+      _previewReady = true;
+    });
   }
 
   Widget _buildPreview(
@@ -248,8 +571,7 @@ class _LeavingCertificatePreviewPageState
             student.createdAt;
 
     final leavingDate =
-        widget.dateOfLeaving ??
-            DateTime.now();
+        _leavingDateController.text.trim();
 
     return DocumentDataEntity(
       documentType:
@@ -296,14 +618,15 @@ class _LeavingCertificatePreviewPageState
             admissionDate,
           ),
           'dateOfLeaving':
-              _formatDate(
-            leavingDate,
-          ),
+              leavingDate,
           'reason':
-              widget.reasonForLeaving
+              _reasonController
+                  .text
                   .trim(),
           'conduct':
-              widget.conduct.trim(),
+              _conductController
+                  .text
+                  .trim(),
         },
         'certificate': {
           'number':
@@ -954,6 +1277,34 @@ class _LoadFailure
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewNotGenerated
+    extends StatelessWidget {
+  const _PreviewNotGenerated();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 60,
+            color: _textSecondary,
+          ),
+          SizedBox(height: 14),
+          Text(
+            'Enter leaving details and click Generate Preview.',
+            style: TextStyle(
+              color: _textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

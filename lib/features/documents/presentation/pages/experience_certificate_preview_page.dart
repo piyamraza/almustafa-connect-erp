@@ -4,13 +4,22 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+
 import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
+
+import '../../../staff/domain/entities/staff_entity.dart';
+import '../../../staff/domain/repositories/staff_repository.dart';
+
+import '../../../teachers/domain/entities/teacher_entity.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
+
 import '../../domain/entities/document_branding_entity.dart';
 import '../../domain/entities/document_data_entity.dart';
 import '../../domain/entities/document_type.dart';
 import '../../domain/services/default_document_placeholder_resolver.dart';
 import '../../templates/experience_certificate/experience_certificate_template_v1.dart';
+
 import '../export/document_export_service.dart';
 import '../renderer/document_element_visibility_resolver.dart';
 import '../renderer/document_render_context.dart';
@@ -23,6 +32,11 @@ const _textPrimary = Color(0xFF182230);
 const _textSecondary = Color(0xFF667085);
 const _brandBlue = Color(0xFF0B63CE);
 const _borderColor = Color(0xFFE1E6ED);
+
+enum _EmployeeType {
+  teacher,
+  staff,
+}
 
 class ExperienceCertificatePreviewPage
     extends StatefulWidget {
@@ -41,7 +55,8 @@ class _ExperienceCertificatePreviewPageState
   final GlobalKey _documentBoundaryKey =
       GlobalKey();
 
-  final _formKey = GlobalKey<FormState>();
+  final _formKey =
+      GlobalKey<FormState>();
 
   final _nameController =
       TextEditingController();
@@ -67,6 +82,17 @@ class _ExperienceCertificatePreviewPageState
   late Future<SchoolSettingsEntity>
       _settingsFuture;
 
+  late Future<List<TeacherEntity>>
+      _teachersFuture;
+
+  late Future<List<StaffEntity>>
+      _staffFuture;
+
+  _EmployeeType _employeeType =
+      _EmployeeType.teacher;
+
+  String? _selectedEmployeeId;
+
   bool _exporting = false;
   bool _previewReady = false;
 
@@ -76,6 +102,14 @@ class _ExperienceCertificatePreviewPageState
 
     _settingsFuture =
         sl<GetSchoolSettings>()();
+
+    _teachersFuture =
+        sl<TeacherRepository>()
+            .getTeachers();
+
+    _staffFuture =
+        sl<StaffRepository>()
+            .getStaff();
   }
 
   @override
@@ -90,23 +124,30 @@ class _ExperienceCertificatePreviewPageState
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      backgroundColor: _pageBackground,
+      backgroundColor:
+          _pageBackground,
       body: SafeArea(
         child: Column(
           children: [
             const _PreviewHeader(),
+
             Expanded(
-              child: FutureBuilder<
-                  SchoolSettingsEntity>(
-                future: _settingsFuture,
+              child:
+                  FutureBuilder<SchoolSettingsEntity>(
+                future:
+                    _settingsFuture,
                 builder: (
                   context,
                   snapshot,
                 ) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
+                  if (snapshot
+                          .connectionState ==
+                      ConnectionState
+                          .waiting) {
                     return const Center(
                       child:
                           CircularProgressIndicator(),
@@ -116,7 +157,8 @@ class _ExperienceCertificatePreviewPageState
                   if (snapshot.hasError) {
                     return _LoadFailure(
                       message:
-                          snapshot.error.toString(),
+                          snapshot.error
+                              .toString(),
                       onRetry: _reload,
                     );
                   }
@@ -124,7 +166,8 @@ class _ExperienceCertificatePreviewPageState
                   final settings =
                       snapshot.data;
 
-                  if (settings == null) {
+                  if (settings ==
+                      null) {
                     return _LoadFailure(
                       message:
                           'School Settings could not be loaded.',
@@ -153,18 +196,27 @@ class _ExperienceCertificatePreviewPageState
         constraints,
       ) {
         final desktop =
-            constraints.maxWidth >= 950;
+            constraints.maxWidth >=
+                950;
 
         if (!desktop) {
           return SingleChildScrollView(
             padding:
-                const EdgeInsets.all(20),
+                const EdgeInsets.all(
+              20,
+            ),
             child: Column(
               children: [
                 _buildFormCard(),
-                const SizedBox(height: 20),
+
+                const SizedBox(
+                  height: 20,
+                ),
+
                 if (_previewReady)
-                  _buildPreview(settings),
+                  _buildPreview(
+                    settings,
+                  ),
               ],
             ),
           );
@@ -175,17 +227,23 @@ class _ExperienceCertificatePreviewPageState
               CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 390,
+              width: 420,
               child:
                   SingleChildScrollView(
                 padding:
-                    const EdgeInsets.all(20),
-                child: _buildFormCard(),
+                    const EdgeInsets.all(
+                  20,
+                ),
+                child:
+                    _buildFormCard(),
               ),
             ),
+
             Expanded(
               child: _previewReady
-                  ? _buildPreview(settings)
+                  ? _buildPreview(
+                      settings,
+                    )
                   : const _PreviewEmptyState(),
             ),
           ],
@@ -214,59 +272,233 @@ class _ExperienceCertificatePreviewPageState
                   color: _textPrimary,
                 ),
               ),
-              const SizedBox(height: 18),
-              TextFormField(
-                controller: _nameController,
-                decoration:
-                    const InputDecoration(
-                  labelText: 'Employee Name',
-                  border:
-                      OutlineInputBorder(),
-                ),
-                validator: _required,
+
+              const SizedBox(
+                height: 18,
               ),
-              const SizedBox(height: 14),
+
+              const Text(
+                'Employee Type',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                      FontWeight.w600,
+                  color:
+                      _textSecondary,
+                ),
+              ),
+
+              const SizedBox(
+                height: 8,
+              ),
+
+              SegmentedButton<
+                  _EmployeeType>(
+                segments: const [
+                  ButtonSegment<
+                      _EmployeeType>(
+                    value:
+                        _EmployeeType
+                            .teacher,
+                    icon: Icon(
+                      Icons
+                          .school_outlined,
+                    ),
+                    label: Text(
+                      'Teacher',
+                    ),
+                  ),
+                  ButtonSegment<
+                      _EmployeeType>(
+                    value:
+                        _EmployeeType
+                            .staff,
+                    icon: Icon(
+                      Icons
+                          .badge_outlined,
+                    ),
+                    label: Text(
+                      'Staff',
+                    ),
+                  ),
+                ],
+                selected: {
+                  _employeeType,
+                },
+                onSelectionChanged:
+                    (selection) {
+                  if (selection
+                      .isEmpty) {
+                    return;
+                  }
+
+                  _changeEmployeeType(
+                    selection.first,
+                  );
+                },
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              InkWell(
+                borderRadius:
+                    BorderRadius
+                        .circular(4),
+                onTap:
+                    _openEmployeePicker,
+                child:
+                    InputDecorator(
+                  decoration:
+                      InputDecoration(
+                    labelText:
+                        _employeeType ==
+                                _EmployeeType
+                                    .teacher
+                            ? 'Select Teacher'
+                            : 'Select Staff',
+                    prefixIcon:
+                        const Icon(
+                      Icons
+                          .person_search_outlined,
+                    ),
+                    suffixIcon:
+                        const Icon(
+                      Icons
+                          .arrow_drop_down,
+                    ),
+                    border:
+                        const OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    _nameController
+                            .text
+                            .trim()
+                            .isEmpty
+                        ? _employeeType ==
+                                _EmployeeType
+                                    .teacher
+                            ? 'Choose teacher'
+                            : 'Choose staff member'
+                        : _nameController
+                            .text
+                            .trim(),
+                    style: TextStyle(
+                      color:
+                          _nameController
+                                  .text
+                                  .trim()
+                                  .isEmpty
+                              ? _textSecondary
+                              : _textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height: 14,
+              ),
+
               TextFormField(
                 controller:
                     _designationController,
                 decoration:
                     const InputDecoration(
-                  labelText: 'Designation',
-                  hintText:
-                      'e.g. Teacher, Coordinator',
+                  labelText:
+                      'Designation',
+                  prefixIcon: Icon(
+                    Icons
+                        .badge_outlined,
+                  ),
                   border:
                       OutlineInputBorder(),
                 ),
-                validator: _required,
+                validator:
+                    _required,
               ),
-              const SizedBox(height: 14),
+
+              const SizedBox(
+                height: 14,
+              ),
+
               TextFormField(
                 controller:
                     _joiningDateController,
+                readOnly: false,
                 decoration:
-                    const InputDecoration(
-                  labelText: 'Joining Date',
-                  hintText: 'DD/MM/YYYY',
+                    InputDecoration(
+                  labelText:
+                      'Joining Date',
+                  hintText:
+                      'DD/MM/YYYY',
+                  prefixIcon:
+                      const Icon(
+                    Icons
+                        .calendar_month_outlined,
+                  ),
+                  suffixIcon:
+                      IconButton(
+                    tooltip:
+                        'Choose date',
+                    onPressed:
+                        _pickJoiningDate,
+                    icon:
+                        const Icon(
+                      Icons
+                          .event_outlined,
+                    ),
+                  ),
                   border:
-                      OutlineInputBorder(),
+                      const OutlineInputBorder(),
                 ),
-                validator: _required,
+                validator:
+                    _required,
               ),
-              const SizedBox(height: 14),
+
+              const SizedBox(
+                height: 14,
+              ),
+
               TextFormField(
                 controller:
                     _leavingDateController,
+                readOnly: false,
                 decoration:
-                    const InputDecoration(
-                  labelText: 'Leaving Date',
+                    InputDecoration(
+                  labelText:
+                      'Leaving Date',
                   hintText:
                       'DD/MM/YYYY or Present',
+                  prefixIcon:
+                      const Icon(
+                    Icons
+                        .event_busy_outlined,
+                  ),
+                  suffixIcon:
+                      IconButton(
+                    tooltip:
+                        'Choose date',
+                    onPressed:
+                        _pickLeavingDate,
+                    icon:
+                        const Icon(
+                      Icons
+                          .event_outlined,
+                    ),
+                  ),
                   border:
-                      OutlineInputBorder(),
+                      const OutlineInputBorder(),
                 ),
-                validator: _required,
+                validator:
+                    _required,
               ),
-              const SizedBox(height: 14),
+
+              const SizedBox(
+                height: 14,
+              ),
+
               TextFormField(
                 controller:
                     _remarksController,
@@ -279,14 +511,21 @@ class _ExperienceCertificatePreviewPageState
                       OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 18),
+
+              const SizedBox(
+                height: 18,
+              ),
+
               SizedBox(
-                width: double.infinity,
+                width:
+                    double.infinity,
                 child:
                     FilledButton.icon(
-                  onPressed: _generatePreview,
+                  onPressed:
+                      _generatePreview,
                   icon: const Icon(
-                    Icons.visibility_outlined,
+                    Icons
+                        .visibility_outlined,
                   ),
                   label: const Text(
                     'Generate Preview',
@@ -298,6 +537,327 @@ class _ExperienceCertificatePreviewPageState
         ),
       ),
     );
+  }
+
+  void _changeEmployeeType(
+    _EmployeeType type,
+  ) {
+    setState(() {
+      _employeeType = type;
+
+      _selectedEmployeeId =
+          null;
+
+      _nameController.clear();
+
+      _designationController
+          .clear();
+
+      _joiningDateController
+          .clear();
+
+      _previewReady =
+          false;
+    });
+  }
+
+  Future<void>
+      _openEmployeePicker() async {
+    if (_employeeType ==
+        _EmployeeType.teacher) {
+      await _openTeacherPicker();
+    } else {
+      await _openStaffPicker();
+    }
+  }
+
+  Future<void>
+      _openTeacherPicker() async {
+    List<TeacherEntity> teachers;
+
+    try {
+      teachers =
+          await _teachersFuture;
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      _showError(
+        'Unable to load teachers: $e',
+      );
+
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final activeTeachers =
+        teachers
+            .where(
+              (teacher) =>
+                  teacher.isActive,
+            )
+            .toList()
+          ..sort(
+            (a, b) =>
+                a.fullName
+                    .toLowerCase()
+                    .compareTo(
+                      b.fullName
+                          .toLowerCase(),
+                    ),
+          );
+
+    final selected =
+        await showDialog<
+            TeacherEntity>(
+      context: context,
+      builder: (_) =>
+          _TeacherPickerDialog(
+        teachers:
+            activeTeachers,
+      ),
+    );
+
+    if (selected ==
+        null) {
+      return;
+    }
+
+    _selectTeacher(
+      selected,
+    );
+  }
+
+  Future<void>
+      _openStaffPicker() async {
+    List<StaffEntity> staff;
+
+    try {
+      staff =
+          await _staffFuture;
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      _showError(
+        'Unable to load staff: $e',
+      );
+
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final activeStaff =
+        staff
+            .where(
+              (item) =>
+                  item.isActive,
+            )
+            .toList()
+          ..sort(
+            (a, b) =>
+                a.fullName
+                    .toLowerCase()
+                    .compareTo(
+                      b.fullName
+                          .toLowerCase(),
+                    ),
+          );
+
+    final selected =
+        await showDialog<
+            StaffEntity>(
+      context: context,
+      builder: (_) =>
+          _StaffPickerDialog(
+        staff:
+            activeStaff,
+      ),
+    );
+
+    if (selected ==
+        null) {
+      return;
+    }
+
+    _selectStaff(
+      selected,
+    );
+  }
+
+  void _selectTeacher(
+    TeacherEntity teacher,
+  ) {
+    setState(() {
+      _selectedEmployeeId =
+          teacher.id;
+
+      _nameController.text =
+          teacher.fullName;
+
+      _designationController
+              .text =
+          teacher.designation;
+
+      _joiningDateController
+              .text =
+          _formatDate(
+        teacher.joiningDate,
+      );
+
+      _previewReady =
+          false;
+    });
+  }
+
+  void _selectStaff(
+    StaffEntity staff,
+  ) {
+    setState(() {
+      _selectedEmployeeId =
+          staff.id;
+
+      _nameController.text =
+          staff.fullName;
+
+      _designationController
+              .text =
+          staff.designation;
+
+      _joiningDateController
+              .text =
+          _formatDate(
+        staff.joiningDate,
+      );
+
+      _previewReady =
+          false;
+    });
+  }
+
+  Future<void>
+      _pickJoiningDate() async {
+    final current =
+        _parseDate(
+          _joiningDateController
+              .text,
+        ) ??
+        DateTime.now();
+
+    final selected =
+        await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate:
+          DateTime(1950),
+      lastDate:
+          DateTime(2100),
+    );
+
+    if (selected ==
+        null) {
+      return;
+    }
+
+    setState(() {
+      _joiningDateController
+              .text =
+          _formatDate(
+        selected,
+      );
+
+      _previewReady =
+          false;
+    });
+  }
+
+  Future<void>
+      _pickLeavingDate() async {
+    final current =
+        _parseDate(
+          _leavingDateController
+              .text,
+        ) ??
+        DateTime.now();
+
+    final selected =
+        await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate:
+          DateTime(1950),
+      lastDate:
+          DateTime(2100),
+    );
+
+    if (selected ==
+        null) {
+      return;
+    }
+
+    setState(() {
+      _leavingDateController
+              .text =
+          _formatDate(
+        selected,
+      );
+
+      _previewReady =
+          false;
+    });
+  }
+
+  DateTime? _parseDate(
+    String value,
+  ) {
+    final parts =
+        value
+            .trim()
+            .split('/');
+
+    if (parts.length !=
+        3) {
+      return null;
+    }
+
+    final day =
+        int.tryParse(
+      parts[0],
+    );
+
+    final month =
+        int.tryParse(
+      parts[1],
+    );
+
+    final year =
+        int.tryParse(
+      parts[2],
+    );
+
+    if (day == null ||
+        month == null ||
+        year == null) {
+      return null;
+    }
+
+    try {
+      return DateTime(
+        year,
+        month,
+        day,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildPreview(
@@ -315,9 +875,11 @@ class _ExperienceCertificatePreviewPageState
       principalName:
           settings.principalName,
       principalDesignation:
-          settings.principalDesignation,
+          settings
+              .principalDesignation,
       principalSignatureUrl:
-          settings.principalSignatureUrl,
+          settings
+              .principalSignatureUrl,
       schoolStampUrl:
           settings.schoolStampUrl,
     );
@@ -333,11 +895,14 @@ class _ExperienceCertificatePreviewPageState
         'schoolLogo':
             branding.schoolLogoUrl,
         'principalName':
-            branding.principalName,
+            branding
+                .principalName,
         'principalDesignation':
-            branding.principalDesignation,
+            branding
+                .principalDesignation,
         'principalSignature':
-            branding.principalSignatureUrl,
+            branding
+                .principalSignatureUrl,
         'schoolStamp':
             branding.schoolStampUrl,
       },
@@ -375,25 +940,32 @@ class _ExperienceCertificatePreviewPageState
           onSavePng: _savePng,
           onSavePdf: _savePdf,
           onPrint: _printPdf,
-          onSharePdf: _sharePdf,
-          onSharePng: _sharePng,
+          onSharePdf:
+              _sharePdf,
+          onSharePng:
+              _sharePng,
         ),
+
         Expanded(
           child:
               SingleChildScrollView(
             padding:
-                const EdgeInsets.fromLTRB(
+                const EdgeInsets
+                    .fromLTRB(
               20,
               20,
               20,
               32,
             ),
             child: Center(
-              child: RepaintBoundary(
+              child:
+                  RepaintBoundary(
                 key:
                     _documentBoundaryKey,
-                child: ColoredBox(
-                  color: Colors.white,
+                child:
+                    ColoredBox(
+                  color:
+                      Colors.white,
                   child: Column(
                     mainAxisSize:
                         MainAxisSize.min,
@@ -405,11 +977,14 @@ class _ExperienceCertificatePreviewPageState
                           page: page,
                           renderContext:
                               renderContext,
-                          renderer: renderer,
-                          maxWidth: 760,
+                          renderer:
+                              renderer,
+                          maxWidth:
+                              760,
                           padding:
                               EdgeInsets.zero,
-                          showShadow: false,
+                          showShadow:
+                              false,
                         ),
                     ],
                   ),
@@ -425,33 +1000,45 @@ class _ExperienceCertificatePreviewPageState
   DocumentDataEntity
       _buildDocumentData() {
     final name =
-        _nameController.text.trim();
+        _nameController
+            .text
+            .trim();
 
     return DocumentDataEntity(
       documentType:
           DocumentType
               .experienceCertificate,
       referenceId:
+          _selectedEmployeeId ??
           'experience_${DateTime.now().millisecondsSinceEpoch}',
       referenceType:
-          'manual_experience_certificate',
+          _employeeType ==
+                  _EmployeeType
+                      .teacher
+              ? 'teacher'
+              : 'staff',
       generatedAt:
           DateTime.now(),
       values: {
         'experience': {
-          'employeeName': name,
+          'employeeName':
+              name,
+
           'designation':
               _designationController
                   .text
                   .trim(),
+
           'joiningDate':
               _joiningDateController
                   .text
                   .trim(),
+
           'leavingDate':
               _leavingDateController
                   .text
                   .trim(),
+
           'remarks':
               _remarksController
                       .text
@@ -461,6 +1048,7 @@ class _ExperienceCertificatePreviewPageState
                   : _remarksController
                       .text
                       .trim(),
+
           'issueDate':
               _formatDate(
             DateTime.now(),
@@ -470,7 +1058,9 @@ class _ExperienceCertificatePreviewPageState
     );
   }
 
-  String? _required(String? value) {
+  String? _required(
+    String? value,
+  ) {
     if (value == null ||
         value.trim().isEmpty) {
       return 'Required';
@@ -480,35 +1070,60 @@ class _ExperienceCertificatePreviewPageState
   }
 
   void _generatePreview() {
-    if (!(_formKey.currentState
+    if (_selectedEmployeeId ==
+        null) {
+      _showError(
+        _employeeType ==
+                _EmployeeType
+                    .teacher
+            ? 'Please select a teacher.'
+            : 'Please select a staff member.',
+      );
+
+      return;
+    }
+
+    if (!(_formKey
+            .currentState
             ?.validate() ??
         false)) {
       return;
     }
 
     setState(() {
-      _previewReady = true;
+      _previewReady =
+          true;
     });
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(
+    DateTime date,
+  ) {
     final day =
         date.day
             .toString()
-            .padLeft(2, '0');
+            .padLeft(
+              2,
+              '0',
+            );
 
     final month =
         date.month
             .toString()
-            .padLeft(2, '0');
+            .padLeft(
+              2,
+              '0',
+            );
 
     return '$day/$month/${date.year}';
   }
 
-  Future<Uint8List> _capturePng({
+  Future<Uint8List>
+      _capturePng({
     required double pixelRatio,
   }) {
-    return _exportService.capturePng(
+    return _exportService
+        .capturePng(
       boundaryKey:
           _documentBoundaryKey,
       pixelRatio:
@@ -516,12 +1131,15 @@ class _ExperienceCertificatePreviewPageState
     );
   }
 
-  Future<Uint8List> _buildPdf() async {
+  Future<Uint8List>
+      _buildPdf() async {
     final template =
         buildExperienceCertificateTemplateV1();
 
     final page =
-        template.orderedPages.first;
+        template
+            .orderedPages
+            .first;
 
     final pngBytes =
         await _capturePng(
@@ -530,98 +1148,122 @@ class _ExperienceCertificatePreviewPageState
 
     return _exportService
         .createPdfFromPng(
-      pngBytes: pngBytes,
+      pngBytes:
+          pngBytes,
       aspectRatio:
-          page.width / page.height,
+          page.width /
+              page.height,
       title:
           'Experience Certificate - ${_nameController.text.trim()}',
     );
   }
 
-  Future<void> _savePng() async {
-    await _runExport(() async {
-      final path =
-          await _exportService.savePng(
-        bytes:
-            await _capturePng(
-          pixelRatio: 3,
-        ),
-        fileName:
-            '${_baseFileName()}_experience_certificate',
-      );
-
-      if (path != null) {
-        _showSuccess(
-          'Experience Certificate PNG saved successfully.',
+  Future<void>
+      _savePng() async {
+    await _runExport(
+      () async {
+        final path =
+            await _exportService
+                .savePng(
+          bytes:
+              await _capturePng(
+            pixelRatio: 3,
+          ),
+          fileName:
+              '${_baseFileName()}_experience_certificate',
         );
-      }
-    });
+
+        if (path != null) {
+          _showSuccess(
+            'Experience Certificate PNG saved successfully.',
+          );
+        }
+      },
+    );
   }
 
-  Future<void> _savePdf() async {
-    await _runExport(() async {
-      final path =
-          await _exportService.savePdf(
-        bytes:
-            await _buildPdf(),
-        fileName:
-            '${_baseFileName()}_experience_certificate',
-      );
-
-      if (path != null) {
-        _showSuccess(
-          'Experience Certificate PDF saved successfully.',
+  Future<void>
+      _savePdf() async {
+    await _runExport(
+      () async {
+        final path =
+            await _exportService
+                .savePdf(
+          bytes:
+              await _buildPdf(),
+          fileName:
+              '${_baseFileName()}_experience_certificate',
         );
-      }
-    });
+
+        if (path != null) {
+          _showSuccess(
+            'Experience Certificate PDF saved successfully.',
+          );
+        }
+      },
+    );
   }
 
-  Future<void> _printPdf() async {
-    await _runExport(() async {
-      await _exportService.printPdf(
-        bytes:
-            await _buildPdf(),
-        name:
-            'Experience Certificate - ${_nameController.text.trim()}',
-      );
-    });
+  Future<void>
+      _printPdf() async {
+    await _runExport(
+      () async {
+        await _exportService
+            .printPdf(
+          bytes:
+              await _buildPdf(),
+          name:
+              'Experience Certificate - ${_nameController.text.trim()}',
+        );
+      },
+    );
   }
 
-  Future<void> _sharePdf() async {
-    await _runExport(() async {
-      await _exportService.sharePdf(
-        bytes:
-            await _buildPdf(),
-        fileName:
-            '${_baseFileName()}_experience_certificate.pdf',
-      );
-    });
+  Future<void>
+      _sharePdf() async {
+    await _runExport(
+      () async {
+        await _exportService
+            .sharePdf(
+          bytes:
+              await _buildPdf(),
+          fileName:
+              '${_baseFileName()}_experience_certificate.pdf',
+        );
+      },
+    );
   }
 
-  Future<void> _sharePng() async {
-    await _runExport(() async {
-      await _exportService.sharePng(
-        bytes:
-            await _capturePng(
-          pixelRatio: 3,
-        ),
-        fileName:
-            '${_baseFileName()}_experience_certificate.png',
-        text:
-            'Experience Certificate - ${_nameController.text.trim()}',
-      );
-    });
+  Future<void>
+      _sharePng() async {
+    await _runExport(
+      () async {
+        await _exportService
+            .sharePng(
+          bytes:
+              await _capturePng(
+            pixelRatio: 3,
+          ),
+          fileName:
+              '${_baseFileName()}_experience_certificate.png',
+          text:
+              'Experience Certificate - ${_nameController.text.trim()}',
+        );
+      },
+    );
   }
 
   Future<void> _runExport(
-    Future<void> Function() action,
+    Future<void> Function()
+        action,
   ) async {
     if (_exporting) {
       return;
     }
 
     setState(() {
-      _exporting = true;
+      _exporting =
+          true;
     });
 
     try {
@@ -631,7 +1273,9 @@ class _ExperienceCertificatePreviewPageState
         return;
       }
 
-      ScaffoldMessenger.of(context)
+      ScaffoldMessenger.of(
+        context,
+      )
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
@@ -643,15 +1287,19 @@ class _ExperienceCertificatePreviewPageState
     } finally {
       if (mounted) {
         setState(() {
-          _exporting = false;
+          _exporting =
+              false;
         });
       }
     }
   }
 
   String _baseFileName() {
-    return _exportService.safeFileName(
-      _nameController.text.trim(),
+    return _exportService
+        .safeFileName(
+      _nameController
+          .text
+          .trim(),
       fallback:
           'experience_certificate',
     );
@@ -664,7 +1312,28 @@ class _ExperienceCertificatePreviewPageState
       return;
     }
 
-    ScaffoldMessenger.of(context)
+    ScaffoldMessenger.of(
+      context,
+    )
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content:
+              Text(message),
+        ),
+      );
+  }
+
+  void _showError(
+    String message,
+  ) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    )
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
@@ -678,7 +1347,383 @@ class _ExperienceCertificatePreviewPageState
     setState(() {
       _settingsFuture =
           sl<GetSchoolSettings>()();
+
+      _teachersFuture =
+          sl<TeacherRepository>()
+              .getTeachers();
+
+      _staffFuture =
+          sl<StaffRepository>()
+              .getStaff();
     });
+  }
+}
+
+class _TeacherPickerDialog
+    extends StatefulWidget {
+  const _TeacherPickerDialog({
+    required this.teachers,
+  });
+
+  final List<TeacherEntity>
+      teachers;
+
+  @override
+  State<_TeacherPickerDialog>
+      createState() =>
+          _TeacherPickerDialogState();
+}
+
+class _TeacherPickerDialogState
+    extends State<_TeacherPickerDialog> {
+  final _searchController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController
+        .dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    final query =
+        _searchController
+            .text
+            .trim()
+            .toLowerCase();
+
+    final results =
+        widget.teachers
+            .where(
+              (teacher) {
+                if (query
+                    .isEmpty) {
+                  return true;
+                }
+
+                return teacher
+                        .fullName
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        ) ||
+                    teacher
+                        .employeeId
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        ) ||
+                    teacher
+                        .designation
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        );
+              },
+            )
+            .toList();
+
+    return AlertDialog(
+      title:
+          const Text(
+        'Select Teacher',
+      ),
+      content: SizedBox(
+        width: 560,
+        height: 520,
+        child: Column(
+          children: [
+            TextField(
+              controller:
+                  _searchController,
+              autofocus:
+                  true,
+              onChanged: (_) {
+                setState(
+                    () {});
+              },
+              decoration:
+                  const InputDecoration(
+                labelText:
+                    'Search Teacher',
+                hintText:
+                    'Name, Employee ID or Designation',
+                prefixIcon:
+                    Icon(
+                  Icons.search,
+                ),
+                border:
+                    OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            Expanded(
+              child: results
+                      .isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No matching teacher found.',
+                      ),
+                    )
+                  : ListView
+                      .separated(
+                      itemCount:
+                          results
+                              .length,
+                      separatorBuilder:
+                          (_, __) =>
+                              const Divider(
+                        height: 1,
+                      ),
+                      itemBuilder:
+                          (
+                        context,
+                        index,
+                      ) {
+                        final teacher =
+                            results[
+                                index];
+
+                        return ListTile(
+                          leading:
+                              const CircleAvatar(
+                            child:
+                                Icon(
+                              Icons
+                                  .school_outlined,
+                            ),
+                          ),
+                          title:
+                              Text(
+                            teacher
+                                .fullName,
+                          ),
+                          subtitle:
+                              Text(
+                            '${teacher.designation} • ${teacher.employeeId}',
+                          ),
+                          onTap:
+                              () {
+                            Navigator.of(
+                              context,
+                            ).pop(
+                              teacher,
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).pop();
+          },
+          child:
+              const Text(
+            'Cancel',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StaffPickerDialog
+    extends StatefulWidget {
+  const _StaffPickerDialog({
+    required this.staff,
+  });
+
+  final List<StaffEntity>
+      staff;
+
+  @override
+  State<_StaffPickerDialog>
+      createState() =>
+          _StaffPickerDialogState();
+}
+
+class _StaffPickerDialogState
+    extends State<_StaffPickerDialog> {
+  final _searchController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController
+        .dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    final query =
+        _searchController
+            .text
+            .trim()
+            .toLowerCase();
+
+    final results =
+        widget.staff
+            .where(
+              (staff) {
+                if (query
+                    .isEmpty) {
+                  return true;
+                }
+
+                return staff
+                        .fullName
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        ) ||
+                    staff
+                        .staffId
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        ) ||
+                    staff
+                        .designation
+                        .toLowerCase()
+                        .contains(
+                          query,
+                        );
+              },
+            )
+            .toList();
+
+    return AlertDialog(
+      title:
+          const Text(
+        'Select Staff',
+      ),
+      content: SizedBox(
+        width: 560,
+        height: 520,
+        child: Column(
+          children: [
+            TextField(
+              controller:
+                  _searchController,
+              autofocus:
+                  true,
+              onChanged: (_) {
+                setState(
+                    () {});
+              },
+              decoration:
+                  const InputDecoration(
+                labelText:
+                    'Search Staff',
+                hintText:
+                    'Name, Staff ID or Designation',
+                prefixIcon:
+                    Icon(
+                  Icons.search,
+                ),
+                border:
+                    OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            Expanded(
+              child: results
+                      .isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No matching staff member found.',
+                      ),
+                    )
+                  : ListView
+                      .separated(
+                      itemCount:
+                          results
+                              .length,
+                      separatorBuilder:
+                          (_, __) =>
+                              const Divider(
+                        height: 1,
+                      ),
+                      itemBuilder:
+                          (
+                        context,
+                        index,
+                      ) {
+                        final staff =
+                            results[
+                                index];
+
+                        return ListTile(
+                          leading:
+                              const CircleAvatar(
+                            child:
+                                Icon(
+                              Icons
+                                  .badge_outlined,
+                            ),
+                          ),
+                          title:
+                              Text(
+                            staff
+                                .fullName,
+                          ),
+                          subtitle:
+                              Text(
+                            '${staff.designation} • ${staff.staffId}',
+                          ),
+                          onTap:
+                              () {
+                            Navigator.of(
+                              context,
+                            ).pop(
+                              staff,
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).pop();
+          },
+          child:
+              const Text(
+            'Cancel',
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -691,7 +1736,8 @@ class _PreviewHeader
     BuildContext context,
   ) {
     return Container(
-      width: double.infinity,
+      width:
+          double.infinity,
       padding:
           const EdgeInsets.fromLTRB(
         24,
@@ -703,35 +1749,49 @@ class _PreviewHeader
           const BoxDecoration(
         color: Colors.white,
         border: Border(
-          bottom: BorderSide(
-            color: _borderColor,
+          bottom:
+              BorderSide(
+            color:
+                _borderColor,
           ),
         ),
       ),
       child: const Row(
         children: [
           DashboardNavigationButton(),
-          SizedBox(width: 14),
+
+          SizedBox(
+            width: 14,
+          ),
+
           Expanded(
             child: Column(
               crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  CrossAxisAlignment
+                      .start,
               children: [
                 Text(
                   'Experience Certificate',
-                  style: TextStyle(
-                    fontSize: 24,
+                  style:
+                      TextStyle(
+                    fontSize:
+                        24,
                     fontWeight:
-                        FontWeight.w700,
+                        FontWeight
+                            .w700,
                     color:
                         _textPrimary,
                   ),
                 ),
-                SizedBox(height: 3),
+                SizedBox(
+                  height: 3,
+                ),
                 Text(
-                  'Enter staff details and generate certificate.',
-                  style: TextStyle(
-                    fontSize: 13,
+                  'Select a teacher or staff member and generate certificate.',
+                  style:
+                      TextStyle(
+                    fontSize:
+                        13,
                     color:
                         _textSecondary,
                   ),
@@ -757,18 +1817,29 @@ class _ExportToolbar
   });
 
   final bool busy;
-  final VoidCallback onSavePng;
-  final VoidCallback onSavePdf;
-  final VoidCallback onPrint;
-  final VoidCallback onSharePdf;
-  final VoidCallback onSharePng;
+
+  final VoidCallback
+      onSavePng;
+
+  final VoidCallback
+      onSavePdf;
+
+  final VoidCallback
+      onPrint;
+
+  final VoidCallback
+      onSharePdf;
+
+  final VoidCallback
+      onSharePng;
 
   @override
   Widget build(
     BuildContext context,
   ) {
     return Container(
-      width: double.infinity,
+      width:
+          double.infinity,
       padding:
           const EdgeInsets.symmetric(
         horizontal: 20,
@@ -778,8 +1849,10 @@ class _ExportToolbar
           const BoxDecoration(
         color: Colors.white,
         border: Border(
-          bottom: BorderSide(
-            color: _borderColor,
+          bottom:
+              BorderSide(
+            color:
+                _borderColor,
           ),
         ),
       ),
@@ -795,75 +1868,115 @@ class _ExportToolbar
               height: 20,
               child:
                   CircularProgressIndicator(
-                strokeWidth: 2,
+                strokeWidth:
+                    2,
               ),
             ),
+
           OutlinedButton.icon(
             onPressed:
-                busy ? null : onSavePng,
-            icon: const Icon(
-              Icons.image_outlined,
+                busy
+                    ? null
+                    : onSavePng,
+            icon:
+                const Icon(
+              Icons
+                  .image_outlined,
             ),
             label:
-                const Text('Save PNG'),
+                const Text(
+              'Save PNG',
+            ),
           ),
+
           OutlinedButton.icon(
             onPressed:
-                busy ? null : onSavePdf,
-            icon: const Icon(
+                busy
+                    ? null
+                    : onSavePdf,
+            icon:
+                const Icon(
               Icons
                   .picture_as_pdf_outlined,
             ),
             label:
-                const Text('Save PDF'),
+                const Text(
+              'Save PDF',
+            ),
           ),
+
           OutlinedButton.icon(
             onPressed:
-                busy ? null : onPrint,
-            icon: const Icon(
-              Icons.print_outlined,
+                busy
+                    ? null
+                    : onPrint,
+            icon:
+                const Icon(
+              Icons
+                  .print_outlined,
             ),
             label:
-                const Text('Print'),
+                const Text(
+              'Print',
+            ),
           ),
-          PopupMenuButton<_ShareFormat>(
-            enabled: !busy,
-            onSelected: (value) {
+
+          PopupMenuButton<
+              _ShareFormat>(
+            enabled:
+                !busy,
+            onSelected:
+                (value) {
               switch (value) {
-                case _ShareFormat.pdf:
+                case _ShareFormat
+                      .pdf:
                   onSharePdf();
-                case _ShareFormat.png:
+
+                case _ShareFormat
+                      .png:
                   onSharePng();
               }
             },
-            itemBuilder: (_) =>
-                const [
+            itemBuilder:
+                (_) =>
+                    const [
               PopupMenuItem(
                 value:
-                    _ShareFormat.pdf,
+                    _ShareFormat
+                        .pdf,
                 child:
-                    Text('Share PDF'),
+                    Text(
+                  'Share PDF',
+                ),
               ),
               PopupMenuItem(
                 value:
-                    _ShareFormat.png,
+                    _ShareFormat
+                        .png,
                 child:
-                    Text('Share PNG'),
+                    Text(
+                  'Share PNG',
+                ),
               ),
             ],
             child: Container(
               padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 18,
+                  const EdgeInsets
+                      .symmetric(
+                horizontal:
+                    18,
                 vertical: 10,
               ),
               decoration:
                   BoxDecoration(
                 color: busy
-                    ? Colors.grey.shade300
+                    ? Colors
+                        .grey
+                        .shade300
                     : _brandBlue,
                 borderRadius:
-                    BorderRadius.circular(
+                    BorderRadius
+                        .circular(
                   20,
                 ),
               ),
@@ -875,7 +1988,8 @@ class _ExportToolbar
                   color:
                       Colors.white,
                   fontWeight:
-                      FontWeight.w600,
+                      FontWeight
+                          .w600,
                 ),
               ),
             ),
@@ -905,15 +2019,23 @@ class _PreviewEmptyState
             MainAxisSize.min,
         children: [
           Icon(
-            Icons.history_edu_outlined,
+            Icons
+                .history_edu_outlined,
             size: 64,
-            color: _textSecondary,
+            color:
+                _textSecondary,
           ),
-          SizedBox(height: 14),
+
+          SizedBox(
+            height: 14,
+          ),
+
           Text(
-            'Enter certificate details and click Generate Preview.',
-            style: TextStyle(
-              color: _textSecondary,
+            'Select employee details and click Generate Preview.',
+            style:
+                TextStyle(
+              color:
+                  _textSecondary,
             ),
           ),
         ],
@@ -930,7 +2052,9 @@ class _LoadFailure
   });
 
   final String message;
-  final VoidCallback onRetry;
+
+  final VoidCallback
+      onRetry;
 
   @override
   Widget build(
@@ -939,27 +2063,43 @@ class _LoadFailure
     return Center(
       child: Padding(
         padding:
-            const EdgeInsets.all(24),
+            const EdgeInsets.all(
+          24,
+        ),
         child: Column(
           mainAxisSize:
               MainAxisSize.min,
           children: [
             const Icon(
-              Icons.error_outline,
+              Icons
+                  .error_outline,
               size: 48,
-              color: Colors.red,
+              color:
+                  Colors.red,
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(
+              height: 12,
+            ),
+
             const Text(
               'Unable to load Experience Certificate',
-              style: TextStyle(
-                color: _textPrimary,
-                fontSize: 17,
+              style:
+                  TextStyle(
+                color:
+                    _textPrimary,
+                fontSize:
+                    17,
                 fontWeight:
-                    FontWeight.w700,
+                    FontWeight
+                        .w700,
               ),
             ),
-            const SizedBox(height: 8),
+
+            const SizedBox(
+              height: 8,
+            ),
+
             Text(
               message,
               textAlign:
@@ -970,9 +2110,14 @@ class _LoadFailure
                     _textSecondary,
               ),
             ),
-            const SizedBox(height: 18),
+
+            const SizedBox(
+              height: 18,
+            ),
+
             FilledButton.icon(
-              onPressed: onRetry,
+              onPressed:
+                  onRetry,
               icon:
                   const Icon(
                 Icons.refresh,

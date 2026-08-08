@@ -7,7 +7,9 @@ import '../../data/repositories/teacher_duty_repository.dart';
 import '../../domain/entities/teacher_duty_entities.dart';
 
 class SubstituteDutyManagementPage extends StatefulWidget {
-  const SubstituteDutyManagementPage({super.key});
+  const SubstituteDutyManagementPage({
+    super.key,
+  });
 
   @override
   State<SubstituteDutyManagementPage> createState() =>
@@ -16,7 +18,8 @@ class SubstituteDutyManagementPage extends StatefulWidget {
 
 class _SubstituteDutyManagementPageState
     extends State<SubstituteDutyManagementPage> {
-  final TeacherDutyRepository _repository = TeacherDutyRepository();
+  final TeacherDutyRepository _repository =
+      TeacherDutyRepository();
 
   late Future<_AdminDutyData> _future;
 
@@ -30,132 +33,448 @@ class _SubstituteDutyManagementPageState
     final values = await Future.wait<Object>([
       _repository.getLeaveRequests(),
       _repository.getDuties(),
+      sl<TeacherRepository>().getTeachers(),
     ]);
 
+    final teachers =
+        values[2] as List<TeacherEntity>;
+
     return _AdminDutyData(
-      leaves: values[0] as List<TeacherLeaveRequestEntity>,
-      duties: values[1] as List<SubstituteDutyEntity>,
+      leaves:
+          values[0]
+              as List<TeacherLeaveRequestEntity>,
+      duties:
+          values[1]
+              as List<SubstituteDutyEntity>,
+      teachers: teachers,
     );
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
+
     await _future;
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Substitute Duties')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAssignDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Assign Duty'),
+      appBar: AppBar(
+        title: const Text(
+          'Substitute Duties',
+        ),
       ),
-      body: FutureBuilder<_AdminDutyData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+
+      floatingActionButton:
+          FloatingActionButton.extended(
+        onPressed:
+            _showAssignDialog,
+        icon:
+            const Icon(
+          Icons.add,
+        ),
+        label:
+            const Text(
+          'Assign Duty',
+        ),
+      ),
+
+      body:
+          FutureBuilder<_AdminDutyData>(
+        future:
+            _future,
+        builder:
+            (
+          context,
+          snapshot,
+        ) {
+          if (snapshot
+                  .connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child:
+                  CircularProgressIndicator(),
+            );
           }
 
-          final data = snapshot.data!;
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.all(
+                  24,
+                ),
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons
+                          .error_outline,
+                      size: 48,
+                      color:
+                          Colors.red,
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    const Text(
+                      'Unable to load substitute duties.',
+                    ),
+
+                    const SizedBox(
+                      height: 8,
+                    ),
+
+                    Text(
+                      snapshot.error
+                          .toString(),
+                      textAlign:
+                          TextAlign.center,
+                    ),
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    FilledButton.icon(
+                      onPressed:
+                          _refresh,
+                      icon:
+                          const Icon(
+                        Icons.refresh,
+                      ),
+                      label:
+                          const Text(
+                        'Retry',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child:
+                  CircularProgressIndicator(),
+            );
+          }
+
+          final data =
+              snapshot.data!;
 
           return RefreshIndicator(
-            onRefresh: _refresh,
+            onRefresh:
+                _refresh,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              padding:
+                  const EdgeInsets
+                      .fromLTRB(
+                16,
+                16,
+                16,
+                96,
+              ),
               children: [
                 Text(
                   'Leave Requests',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style:
+                      Theme.of(context)
+                          .textTheme
+                          .titleLarge,
                 ),
-                const SizedBox(height: 8),
-                if (data.leaves.isEmpty)
+
+                const SizedBox(
+                  height: 8,
+                ),
+
+                if (data
+                    .leaves
+                    .isEmpty)
                   const Card(
-                    child: ListTile(title: Text('No leave requests found.')),
+                    child:
+                        ListTile(
+                      title:
+                          Text(
+                        'No leave requests found.',
+                      ),
+                    ),
                   ),
+
                 ...data.leaves.map(
-                  (leave) => Card(
-                    child: ListTile(
-                      title: Text(leave.teacherEmail),
-                      subtitle: Text(
+                  (leave) =>
+                      Card(
+                    child:
+                        ListTile(
+                      title:
+                          Text(
+                        _teacherName(
+                          data.teachers,
+                          leave.teacherEmail,
+                        ),
+                      ),
+
+                      subtitle:
+                          Text(
                         '${_date(leave.fromDate)} to '
                         '${_date(leave.toDate)}\n'
                         '${leave.reason}',
                       ),
-                      isThreeLine: true,
-                      trailing: leave.status == TeacherLeaveStatus.pending
-                          ? Wrap(
-                              spacing: 4,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Approve',
-                                  onPressed: () async {
-                                    await _repository.updateLeaveStatus(
-                                      id: leave.id,
-                                      status: TeacherLeaveStatus.approved,
-                                    );
-                                    await _refresh();
-                                  },
-                                  icon: const Icon(Icons.check_circle_outline),
+
+                      isThreeLine:
+                          true,
+
+                      trailing:
+                          leave.status ==
+                                  TeacherLeaveStatus
+                                      .pending
+                              ? Wrap(
+                                  spacing:
+                                      4,
+                                  children: [
+                                    IconButton(
+                                      tooltip:
+                                          'Approve',
+                                      onPressed:
+                                          () async {
+                                        await _repository
+                                            .updateLeaveStatus(
+                                          id: leave.id,
+                                          status:
+                                              TeacherLeaveStatus.approved,
+                                        );
+
+                                        await _refresh();
+                                      },
+                                      icon:
+                                          const Icon(
+                                        Icons
+                                            .check_circle_outline,
+                                      ),
+                                    ),
+
+                                    IconButton(
+                                      tooltip:
+                                          'Reject',
+                                      onPressed:
+                                          () async {
+                                        await _repository
+                                            .updateLeaveStatus(
+                                          id: leave.id,
+                                          status:
+                                              TeacherLeaveStatus.rejected,
+                                        );
+
+                                        await _refresh();
+                                      },
+                                      icon:
+                                          const Icon(
+                                        Icons
+                                            .cancel_outlined,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Chip(
+                                  label:
+                                      Text(
+                                    leave.status.name,
+                                  ),
                                 ),
-                                IconButton(
-                                  tooltip: 'Reject',
-                                  onPressed: () async {
-                                    await _repository.updateLeaveStatus(
-                                      id: leave.id,
-                                      status: TeacherLeaveStatus.rejected,
-                                    );
-                                    await _refresh();
-                                  },
-                                  icon: const Icon(Icons.cancel_outlined),
-                                ),
-                              ],
-                            )
-                          : Chip(label: Text(leave.status.name)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(
+                  height: 20,
+                ),
+
                 Text(
                   'Assigned Substitute Duties',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style:
+                      Theme.of(context)
+                          .textTheme
+                          .titleLarge,
                 ),
-                const SizedBox(height: 8),
-                if (data.duties.isEmpty)
+
+                const SizedBox(
+                  height: 8,
+                ),
+
+                if (data
+                    .duties
+                    .isEmpty)
                   const Card(
-                    child: ListTile(
-                      title: Text('No substitute duties assigned.'),
+                    child:
+                        ListTile(
+                      title:
+                          Text(
+                        'No substitute duties assigned.',
+                      ),
                     ),
                   ),
+
                 ...data.duties.map(
-                  (duty) => Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.swap_horiz),
+                  (duty) {
+                    final originalTeacherName =
+                        _teacherName(
+                      data.teachers,
+                      duty.originalTeacherEmail,
+                    );
+
+                    final substituteTeacherName =
+                        _teacherName(
+                      data.teachers,
+                      duty.substituteTeacherEmail,
+                    );
+
+                    final classSection =
+                        _classSectionLabel(
+                      duty.className,
+                      duty.sectionName,
+                    );
+
+                    return Card(
+                      child:
+                          ListTile(
+                        leading:
+                            const CircleAvatar(
+                          child:
+                              Icon(
+                            Icons
+                                .swap_horiz,
+                          ),
+                        ),
+
+                        title:
+                            Text(
+                          '$classSection ${duty.subjectName}'
+                              .trim(),
+                        ),
+
+                        subtitle:
+                            Padding(
+                          padding:
+                              const EdgeInsets
+                                  .only(
+                            top: 4,
+                          ),
+                          child:
+                              Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+                            children: [
+                              Text(
+                                '${_date(duty.dutyDate)} | '
+                                'Period ${duty.periodLabel}',
+                              ),
+
+                              const SizedBox(
+                                height: 5,
+                              ),
+
+                              Wrap(
+                                crossAxisAlignment:
+                                    WrapCrossAlignment
+                                        .center,
+                                spacing:
+                                    6,
+                                runSpacing:
+                                    4,
+                                children: [
+                                  const Text(
+                                    'Absent:',
+                                    style:
+                                        TextStyle(
+                                      fontWeight:
+                                          FontWeight
+                                              .w600,
+                                    ),
+                                  ),
+
+                                  Text(
+                                    originalTeacherName,
+                                  ),
+
+                                  const Icon(
+                                    Icons
+                                        .arrow_forward,
+                                    size:
+                                        16,
+                                  ),
+
+                                  const Text(
+                                    'Substitute:',
+                                    style:
+                                        TextStyle(
+                                      fontWeight:
+                                          FontWeight
+                                              .w600,
+                                    ),
+                                  ),
+
+                                  Text(
+                                    substituteTeacherName,
+                                  ),
+                                ],
+                              ),
+
+                              if (duty.room
+                                  .trim()
+                                  .isNotEmpty) ...[
+                                const SizedBox(
+                                  height: 4,
+                                ),
+                                Text(
+                                  'Room: ${duty.room.trim()}',
+                                ),
+                              ],
+
+                              if (duty.notes
+                                  .trim()
+                                  .isNotEmpty) ...[
+                                const SizedBox(
+                                  height: 4,
+                                ),
+                                Text(
+                                  'Notes: ${duty.notes.trim()}',
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                        trailing:
+                            IconButton(
+                          tooltip:
+                              'Cancel Duty',
+                          onPressed:
+                              () async {
+                            await _repository
+                                .cancelDuty(
+                              duty.id,
+                            );
+
+                            await _refresh();
+                          },
+                          icon:
+                              const Icon(
+                            Icons
+                                .delete_outline,
+                          ),
+                        ),
                       ),
-                      title: Text(
-                        '${duty.className}-${duty.sectionName} '
-                        '${duty.subjectName}',
-                      ),
-                      subtitle: Text(
-                        '${_date(duty.dutyDate)} | '
-                        '${duty.periodLabel}\n'
-                        '${duty.originalTeacherEmail} â†’ '
-                        '${duty.substituteTeacherEmail}',
-                      ),
-                      isThreeLine: true,
-                      trailing: IconButton(
-                        tooltip: 'Cancel Duty',
-                        onPressed: () async {
-                          await _repository.cancelDuty(duty.id);
-                          await _refresh();
-                        },
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -165,202 +484,498 @@ class _SubstituteDutyManagementPageState
     );
   }
 
-  Future<void> _showAssignDialog() async {
+  Future<void>
+      _showAssignDialog() async {
     List<TeacherEntity> teachers;
+
     try {
-      teachers = await sl<TeacherRepository>().getTeachers();
-      teachers = teachers.where((teacher) => teacher.isActive).toList()
+      teachers =
+          await sl<TeacherRepository>()
+              .getTeachers();
+
+      teachers = teachers
+          .where(
+            (teacher) =>
+                teacher.isActive,
+          )
+          .toList()
         ..sort(
-          (first, second) => first.fullName.toLowerCase().compareTo(
-            second.fullName.toLowerCase(),
-          ),
+          (
+            first,
+            second,
+          ) =>
+              first.fullName
+                  .toLowerCase()
+                  .compareTo(
+                    second.fullName
+                        .toLowerCase(),
+                  ),
         );
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Teachers could not be loaded: $error')),
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content:
+              Text(
+            'Teachers could not be loaded: $error',
+          ),
+        ),
       );
+
       return;
     }
-    if (!mounted) return;
 
-    final originalController = TextEditingController();
-    final substituteController = TextEditingController();
-    final periodController = TextEditingController();
-    final classController = TextEditingController();
-    final sectionController = TextEditingController();
-    final subjectController = TextEditingController();
-    final roomController = TextEditingController();
-    final notesController = TextEditingController();
-    TeacherEntity? originalTeacher;
-    TeacherEntity? substituteTeacher;
-    var date = DateTime.now();
+    if (!mounted) {
+      return;
+    }
 
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Assign Substitute Duty'),
-          content: SizedBox(
-            width: 560,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+    final originalController =
+        TextEditingController();
+
+    final substituteController =
+        TextEditingController();
+
+    final periodController =
+        TextEditingController();
+
+    final classController =
+        TextEditingController();
+
+    final sectionController =
+        TextEditingController();
+
+    final subjectController =
+        TextEditingController();
+
+    final roomController =
+        TextEditingController();
+
+    final notesController =
+        TextEditingController();
+
+    TeacherEntity?
+        originalTeacher;
+
+    TeacherEntity?
+        substituteTeacher;
+
+    var date =
+        DateTime.now();
+
+    final save =
+        await showDialog<bool>(
+      context:
+          context,
+      builder:
+          (dialogContext) =>
+              StatefulBuilder(
+        builder:
+            (
+          context,
+          setDialogState,
+        ) =>
+                AlertDialog(
+          title:
+              const Text(
+            'Assign Substitute Duty',
+          ),
+
+          content:
+              SizedBox(
+            width:
+                560,
+            child:
+                SingleChildScrollView(
+              child:
+                  Column(
+                mainAxisSize:
+                    MainAxisSize.min,
                 children: [
                   TextField(
-                    controller: originalController,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Absent Teacher',
-                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    controller:
+                        originalController,
+                    readOnly:
+                        true,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Absent Teacher',
+                      suffixIcon:
+                          Icon(
+                        Icons
+                            .arrow_drop_down,
+                      ),
                     ),
-                    onTap: () async {
-                      final selected = await _selectTeacher(
+                    onTap:
+                        () async {
+                      final selected =
+                          await _selectTeacher(
                         dialogContext,
                         teachers,
-                        title: 'Select Absent Teacher',
-                        selected: originalTeacher,
+                        title:
+                            'Select Absent Teacher',
+                        selected:
+                            originalTeacher,
                       );
-                      if (selected != null) {
-                        setDialogState(() {
-                          originalTeacher = selected;
-                          originalController.text = selected.fullName;
-                          if (substituteTeacher?.id == selected.id) {
-                            substituteTeacher = null;
-                            substituteController.clear();
-                          }
-                        });
+
+                      if (selected !=
+                          null) {
+                        setDialogState(
+                          () {
+                            originalTeacher =
+                                selected;
+
+                            originalController
+                                    .text =
+                                selected
+                                    .fullName;
+
+                            if (substituteTeacher
+                                    ?.id ==
+                                selected
+                                    .id) {
+                              substituteTeacher =
+                                  null;
+
+                              substituteController
+                                  .clear();
+                            }
+                          },
+                        );
                       }
                     },
                   ),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
                   TextField(
-                    controller: substituteController,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Substitute Teacher',
-                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    controller:
+                        substituteController,
+                    readOnly:
+                        true,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Substitute Teacher',
+                      suffixIcon:
+                          Icon(
+                        Icons
+                            .arrow_drop_down,
+                      ),
                     ),
-                    onTap: () async {
-                      final selected = await _selectTeacher(
+                    onTap:
+                        () async {
+                      final selected =
+                          await _selectTeacher(
                         dialogContext,
                         teachers,
-                        title: 'Select Substitute Teacher',
-                        selected: substituteTeacher,
-                        excludedTeacherId: originalTeacher?.id,
+                        title:
+                            'Select Substitute Teacher',
+                        selected:
+                            substituteTeacher,
+                        excludedTeacherId:
+                            originalTeacher
+                                ?.id,
                       );
-                      if (selected != null) {
-                        setDialogState(() {
-                          substituteTeacher = selected;
-                          substituteController.text = selected.fullName;
-                        });
+
+                      if (selected !=
+                          null) {
+                        setDialogState(
+                          () {
+                            substituteTeacher =
+                                selected;
+
+                            substituteController
+                                    .text =
+                                selected
+                                    .fullName;
+                          },
+                        );
                       }
                     },
                   ),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
                   ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Duty Date'),
-                    subtitle: Text(_date(date)),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final selected = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime.now().subtract(
-                          const Duration(days: 30),
+                    contentPadding:
+                        EdgeInsets.zero,
+                    title:
+                        const Text(
+                      'Duty Date',
+                    ),
+                    subtitle:
+                        Text(
+                      _date(
+                        date,
+                      ),
+                    ),
+                    trailing:
+                        const Icon(
+                      Icons
+                          .calendar_today,
+                    ),
+                    onTap:
+                        () async {
+                      final now =
+                          DateTime.now();
+
+                      final selected =
+                          await showDatePicker(
+                        context:
+                            context,
+                        firstDate:
+                            now.subtract(
+                          const Duration(
+                            days:
+                                30,
+                          ),
                         ),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        initialDate: date,
+                        lastDate:
+                            now.add(
+                          const Duration(
+                            days:
+                                365,
+                          ),
+                        ),
+                        initialDate:
+                            date,
                       );
-                      if (selected != null) {
-                        setDialogState(() => date = selected);
+
+                      if (selected !=
+                          null) {
+                        setDialogState(
+                          () {
+                            date =
+                                selected;
+                          },
+                        );
                       }
                     },
                   ),
+
                   TextField(
-                    controller: periodController,
-                    decoration: const InputDecoration(
-                      labelText: 'Period / Time',
+                    controller:
+                        periodController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Period / Time',
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: classController,
-                    decoration: const InputDecoration(labelText: 'Class'),
+
+                  const SizedBox(
+                    height:
+                        10,
                   ),
-                  const SizedBox(height: 10),
+
                   TextField(
-                    controller: sectionController,
-                    decoration: const InputDecoration(labelText: 'Section'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: subjectController,
-                    decoration: const InputDecoration(labelText: 'Subject'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: roomController,
-                    decoration: const InputDecoration(
-                      labelText: 'Room (optional)',
+                    controller:
+                        classController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Class',
                     ),
                   ),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
                   TextField(
-                    controller: notesController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes (optional)',
+                    controller:
+                        sectionController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Section',
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
+                  TextField(
+                    controller:
+                        subjectController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Subject',
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
+                  TextField(
+                    controller:
+                        roomController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Room (optional)',
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height:
+                        10,
+                  ),
+
+                  TextField(
+                    controller:
+                        notesController,
+                    maxLines:
+                        2,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Notes (optional)',
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          actions: [
+
+          actions:
+              [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              onPressed:
+                  () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              child:
+                  const Text(
+                'Cancel',
+              ),
             ),
+
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Assign'),
+              onPressed:
+                  () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              child:
+                  const Text(
+                'Assign',
+              ),
             ),
           ],
         ),
       ),
     );
 
-    if (save == true && mounted) {
-      if (originalTeacher == null ||
-          substituteTeacher == null ||
-          periodController.text.trim().isEmpty ||
-          classController.text.trim().isEmpty ||
-          subjectController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+    if (save == true &&
+        mounted) {
+      if (originalTeacher ==
+              null ||
+          substituteTeacher ==
+              null ||
+          periodController
+              .text
+              .trim()
+              .isEmpty ||
+          classController
+              .text
+              .trim()
+              .isEmpty ||
+          subjectController
+              .text
+              .trim()
+              .isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
           const SnackBar(
-            content: Text(
+            content:
+                Text(
               'Absent teacher, substitute teacher, period, class and subject are required.',
             ),
           ),
         );
       } else {
-        final now = DateTime.now();
+        final now =
+            DateTime.now();
 
-        await _repository.assignDuty(
+        await _repository
+            .assignDuty(
           SubstituteDutyEntity(
-            id: 'duty_${now.microsecondsSinceEpoch}',
-            originalTeacherEmail: _teacherIdentifier(originalTeacher!),
-            substituteTeacherEmail: _teacherIdentifier(substituteTeacher!),
-            dutyDate: date,
-            periodLabel: periodController.text.trim(),
-            className: classController.text.trim(),
-            sectionName: sectionController.text.trim(),
-            subjectName: subjectController.text.trim(),
-            room: roomController.text.trim(),
-            notes: notesController.text.trim(),
-            isActive: true,
-            createdAt: now,
+            id:
+                'duty_${now.microsecondsSinceEpoch}',
+
+            originalTeacherEmail:
+                _teacherIdentifier(
+              originalTeacher!,
+            ),
+
+            substituteTeacherEmail:
+                _teacherIdentifier(
+              substituteTeacher!,
+            ),
+
+            dutyDate:
+                date,
+
+            periodLabel:
+                periodController
+                    .text
+                    .trim(),
+
+            className:
+                classController
+                    .text
+                    .trim(),
+
+            sectionName:
+                sectionController
+                    .text
+                    .trim(),
+
+            subjectName:
+                subjectController
+                    .text
+                    .trim(),
+
+            room:
+                roomController
+                    .text
+                    .trim(),
+
+            notes:
+                notesController
+                    .text
+                    .trim(),
+
+            isActive:
+                true,
+
+            createdAt:
+                now,
           ),
         );
 
@@ -368,105 +983,333 @@ class _SubstituteDutyManagementPageState
       }
     }
 
-    originalController.dispose();
-    substituteController.dispose();
-    periodController.dispose();
-    classController.dispose();
-    sectionController.dispose();
-    subjectController.dispose();
-    roomController.dispose();
-    notesController.dispose();
+    originalController
+        .dispose();
+
+    substituteController
+        .dispose();
+
+    periodController
+        .dispose();
+
+    classController
+        .dispose();
+
+    sectionController
+        .dispose();
+
+    subjectController
+        .dispose();
+
+    roomController
+        .dispose();
+
+    notesController
+        .dispose();
   }
 
-  Future<TeacherEntity?> _selectTeacher(
+  Future<TeacherEntity?>
+      _selectTeacher(
     BuildContext context,
     List<TeacherEntity> teachers, {
     required String title,
     TeacherEntity? selected,
     String? excludedTeacherId,
   }) {
-    final searchController = TextEditingController();
-    var query = '';
+    final searchController =
+        TextEditingController();
+
+    var query =
+        '';
+
     return showDialog<TeacherEntity>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final filtered = teachers
-              .where((teacher) {
-                if (teacher.id == excludedTeacherId) return false;
-                final searchText = [
-                  teacher.fullName,
-                  teacher.employeeId,
-                  teacher.email,
-                  teacher.designation,
-                ].join(' ').toLowerCase();
-                return searchText.contains(query.trim().toLowerCase());
-              })
-              .toList(growable: false);
+      context:
+          context,
+      builder:
+          (dialogContext) =>
+              StatefulBuilder(
+        builder:
+            (
+          context,
+          setDialogState,
+        ) {
+          final filtered =
+              teachers
+                  .where(
+                    (
+                      teacher,
+                    ) {
+                      if (teacher.id ==
+                          excludedTeacherId) {
+                        return false;
+                      }
+
+                      final searchText =
+                          [
+                        teacher
+                            .fullName,
+                        teacher
+                            .employeeId,
+                        teacher
+                            .email,
+                        teacher
+                            .designation,
+                      ]
+                              .join(
+                                ' ',
+                              )
+                              .toLowerCase();
+
+                      return searchText
+                          .contains(
+                        query
+                            .trim()
+                            .toLowerCase(),
+                      );
+                    },
+                  )
+                  .toList(
+                    growable:
+                        false,
+                  );
 
           return AlertDialog(
-            title: Text(title),
-            content: SizedBox(
-              width: 480,
-              height: 460,
-              child: Column(
+            title:
+                Text(
+              title,
+            ),
+
+            content:
+                SizedBox(
+              width:
+                  480,
+              height:
+                  460,
+              child:
+                  Column(
                 children: [
                   TextField(
-                    controller: searchController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Search teacher by name',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
+                    controller:
+                        searchController,
+                    autofocus:
+                        true,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Search teacher by name',
+                      prefixIcon:
+                          Icon(
+                        Icons
+                            .search,
+                      ),
+                      border:
+                          OutlineInputBorder(),
                     ),
-                    onChanged: (value) => setDialogState(() => query = value),
+                    onChanged:
+                        (value) {
+                      setDialogState(
+                        () {
+                          query =
+                              value;
+                        },
+                      );
+                    },
                   ),
-                  const SizedBox(height: 12),
+
+                  const SizedBox(
+                    height:
+                        12,
+                  ),
+
                   Expanded(
-                    child: filtered.isEmpty
-                        ? const Center(child: Text('No teacher found.'))
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final teacher = filtered[index];
-                              return ListTile(
-                                selected: teacher.id == selected?.id,
-                                leading: const CircleAvatar(
-                                  child: Icon(Icons.person_outline),
+                    child:
+                        filtered.isEmpty
+                            ? const Center(
+                                child:
+                                    Text(
+                                  'No teacher found.',
                                 ),
-                                title: Text(teacher.fullName),
-                                subtitle: Text(
-                                  teacher.email.trim().isNotEmpty
-                                      ? '${teacher.employeeId} • ${teacher.email}'
-                                      : '${teacher.employeeId} • Email missing',
-                                ),
-                                onTap: () =>
-                                    Navigator.pop(dialogContext, teacher),
-                              );
-                            },
-                          ),
+                              )
+                            : ListView.builder(
+                                itemCount:
+                                    filtered.length,
+                                itemBuilder:
+                                    (
+                                  context,
+                                  index,
+                                ) {
+                                  final teacher =
+                                      filtered[index];
+
+                                  return ListTile(
+                                    selected:
+                                        teacher.id ==
+                                            selected?.id,
+
+                                    leading:
+                                        const CircleAvatar(
+                                      child:
+                                          Icon(
+                                        Icons
+                                            .person_outline,
+                                      ),
+                                    ),
+
+                                    title:
+                                        Text(
+                                      teacher.fullName,
+                                    ),
+
+                                    subtitle:
+                                        Text(
+                                      teacher.email
+                                              .trim()
+                                              .isNotEmpty
+                                          ? '${teacher.employeeId} • ${teacher.email}'
+                                          : '${teacher.employeeId} • ${teacher.designation}',
+                                    ),
+
+                                    onTap:
+                                        () {
+                                      Navigator.pop(
+                                        dialogContext,
+                                        teacher,
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                   ),
                 ],
               ),
             ),
-            actions: [
+
+            actions:
+                [
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                onPressed:
+                    () {
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child:
+                    const Text(
+                  'Cancel',
+                ),
               ),
             ],
           );
         },
       ),
-    ).whenComplete(searchController.dispose);
+    ).whenComplete(
+      searchController.dispose,
+    );
   }
 
-  static String _teacherIdentifier(TeacherEntity teacher) {
-    final email = teacher.email.trim();
-    return email.isNotEmpty ? email : teacher.id;
+  static String _teacherName(
+    List<TeacherEntity> teachers,
+    String identifier,
+  ) {
+    final value =
+        identifier
+            .trim()
+            .toLowerCase();
+
+    if (value.isEmpty) {
+      return 'Unknown Teacher';
+    }
+
+    for (final teacher
+        in teachers) {
+      final email =
+          teacher.email
+              .trim()
+              .toLowerCase();
+
+      final id =
+          teacher.id
+              .trim()
+              .toLowerCase();
+
+      final employeeId =
+          teacher.employeeId
+              .trim()
+              .toLowerCase();
+
+      if ((email.isNotEmpty &&
+              email ==
+                  value) ||
+          id ==
+              value ||
+          (employeeId.isNotEmpty &&
+              employeeId ==
+                  value)) {
+        final name =
+            teacher.fullName
+                .trim();
+
+        return name.isEmpty
+            ? 'Unknown Teacher'
+            : name;
+      }
+    }
+
+    // Never expose Firebase document IDs
+    // or other internal identifiers
+    // on the screen.
+    if (!identifier.contains('@')) {
+      return 'Teacher not found';
+    }
+
+    // If an older duty only contains
+    // an email and the teacher record
+    // has since been deleted, show a
+    // clean readable fallback.
+    return identifier
+        .trim();
   }
 
-  static String _date(DateTime value) {
+  static String _teacherIdentifier(
+    TeacherEntity teacher,
+  ) {
+    final email =
+        teacher.email.trim();
+
+    return email.isNotEmpty
+        ? email
+        : teacher.id;
+  }
+
+  static String _classSectionLabel(
+    String className,
+    String sectionName,
+  ) {
+    final classValue =
+        className.trim();
+
+    final sectionValue =
+        sectionName.trim();
+
+    if (classValue.isNotEmpty &&
+        sectionValue.isNotEmpty) {
+      return '$classValue-$sectionValue';
+    }
+
+    if (classValue.isNotEmpty) {
+      return classValue;
+    }
+
+    if (sectionValue.isNotEmpty) {
+      return sectionValue;
+    }
+
+    return '';
+  }
+
+  static String _date(
+    DateTime value,
+  ) {
     return '${value.day.toString().padLeft(2, '0')}-'
         '${value.month.toString().padLeft(2, '0')}-'
         '${value.year}';
@@ -474,8 +1317,18 @@ class _SubstituteDutyManagementPageState
 }
 
 class _AdminDutyData {
-  const _AdminDutyData({required this.leaves, required this.duties});
+  const _AdminDutyData({
+    required this.leaves,
+    required this.duties,
+    required this.teachers,
+  });
 
-  final List<TeacherLeaveRequestEntity> leaves;
-  final List<SubstituteDutyEntity> duties;
+  final List<TeacherLeaveRequestEntity>
+      leaves;
+
+  final List<SubstituteDutyEntity>
+      duties;
+
+  final List<TeacherEntity>
+      teachers;
 }
