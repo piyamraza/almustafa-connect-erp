@@ -5,6 +5,8 @@ import 'mark_attendance_page.dart';
 import 'attendance_history_page.dart';
 import 'student_attendance_page.dart';
 import 'attendance_reports_page.dart';
+import '../../../teachers/presentation/pages/teacher_attendance_page.dart';
+import '../../../staff/presentation/pages/staff_attendance_page.dart';
 
 class AttendancePage extends StatelessWidget {
   const AttendancePage({super.key});
@@ -15,7 +17,10 @@ class AttendancePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Attendance')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Attendance'),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -23,11 +28,11 @@ class AttendancePage extends StatelessWidget {
 
             int crossAxisCount = 1;
 
-if (width >= 1200) {
-  crossAxisCount = 4;
-} else if (width >= 700) {
-  crossAxisCount = 2;
-}
+            if (width >= 1200) {
+              crossAxisCount = 4;
+            } else if (width >= 700) {
+              crossAxisCount = 2;
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -37,7 +42,7 @@ if (width >= 1200) {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 4,
+                    itemCount: 6,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
@@ -48,7 +53,8 @@ if (width >= 1200) {
                       switch (index) {
                         case 0:
                           return _AttendanceCard(
-                            title: 'Mark Attendance',
+                            title: 'Student Attendance',
+                            description: 'Mark daily student attendance.',
                             icon: Icons.edit_calendar_outlined,
                             onTap: () {
                               Navigator.push(
@@ -61,35 +67,72 @@ if (width >= 1200) {
                           );
                         case 1:
                           return _AttendanceCard(
-                            title: 'Attendance History',
-                            icon: Icons.history,
+                            title: 'Teacher Attendance',
+                            description:
+                                'Mark and review daily teacher attendance.',
+                            icon: Icons.school_outlined,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const AttendanceHistoryPage(),
+                                  builder: (_) => const TeacherAttendancePage(),
                                 ),
                               );
                             },
                           );
                         case 2:
                           return _AttendanceCard(
-                            title: 'Student Attendance',
-                            icon: Icons.person_outline,
+                            title: 'Staff Attendance',
+                            description:
+                                'Mark and review daily staff attendance.',
+                            icon: Icons.badge_outlined,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const StudentAttendancePage(),
+                                  builder: (_) => const StaffAttendancePage(),
                                 ),
                               );
                             },
                           );
                         case 3:
                           return _AttendanceCard(
+                            title: 'Student Attendance History',
+                            description:
+                                'Review previously marked class attendance.',
+                            icon: Icons.history,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AttendanceHistoryPage(),
+                              ),
+                            ),
+                          );
+                        case 4:
+                          return _AttendanceCard(
+                            title: 'Student Attendance Records',
+                            description:
+                                'View attendance for an individual student.',
+                            icon: Icons.person_search_outlined,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const StudentAttendancePage(),
+                              ),
+                            ),
+                          );
+                        case 5:
+                          return _AttendanceCard(
                             title: 'Attendance Reports',
+                            description:
+                                'Open student attendance reports and summaries.',
                             icon: Icons.bar_chart_outlined,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceReportsPage())),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AttendanceReportsPage(),
+                              ),
+                            ),
                           );
                         default:
                           return const SizedBox.shrink();
@@ -109,12 +152,14 @@ if (width >= 1200) {
 class _AttendanceCard extends StatefulWidget {
   final String title;
   final IconData icon;
+  final String description;
   final VoidCallback? onTap;
   final bool isDisabled;
 
   const _AttendanceCard({
     required this.title,
     required this.icon,
+    required this.description,
     this.onTap,
   }) : isDisabled = false;
 
@@ -169,7 +214,9 @@ class _AttendanceCardState extends State<_AttendanceCard> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -181,7 +228,9 @@ class _AttendanceCardState extends State<_AttendanceCard> {
                       if (widget.isDisabled)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.errorContainer,
                             borderRadius: BorderRadius.circular(8),
@@ -202,7 +251,16 @@ class _AttendanceCardState extends State<_AttendanceCard> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(

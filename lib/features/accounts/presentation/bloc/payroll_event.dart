@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
+import '../../domain/entities/salary_history_entity.dart';
 
 sealed class PayrollEvent extends Equatable {
   const PayrollEvent();
@@ -11,7 +12,23 @@ sealed class PayrollEvent extends Equatable {
 }
 
 class LoadPayroll extends PayrollEvent {
-  const LoadPayroll();
+  const LoadPayroll({this.actorId = ''});
+  final String actorId;
+
+  @override
+  List<Object?> get props => [actorId];
+}
+
+class ApplySalaryIncrementsRequested extends PayrollEvent {
+  const ApplySalaryIncrementsRequested({
+    required this.increments,
+    required this.actorId,
+  });
+  final List<SalaryIncrementRequest> increments;
+  final String actorId;
+
+  @override
+  List<Object?> get props => [increments, actorId];
 }
 
 class SavePayrollProfileRequested extends PayrollEvent {

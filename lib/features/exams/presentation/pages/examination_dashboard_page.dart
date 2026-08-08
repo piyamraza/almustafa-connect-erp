@@ -4,6 +4,7 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'exams_page.dart';
 import 'marks_entry_page.dart';
 import 'result_summary_page.dart';
+import 'annual_promotion_page.dart';
 
 class ExaminationDashboardPage extends StatelessWidget {
   const ExaminationDashboardPage({super.key});
@@ -25,6 +26,12 @@ class ExaminationDashboardPage extends StatelessWidget {
       title: 'Result Review',
       description: 'Calculate, review and publish examination results.',
       icon: Icons.emoji_events_outlined,
+      isAvailable: true,
+    ),
+    _ExaminationModule(
+      title: 'Annual Promotion',
+      description: 'Review final results and safely promote students.',
+      icon: Icons.school_outlined,
       isAvailable: true,
     ),
   ];
@@ -72,6 +79,9 @@ class ExaminationDashboardPage extends StatelessWidget {
                                     }
                                     if (module.title == 'Marks Entry') {
                                       return const MarksEntryPage();
+                                    }
+                                    if (module.title == 'Annual Promotion') {
+                                      return const AnnualPromotionPage();
                                     }
                                     return const ResultSummaryPage();
                                   },

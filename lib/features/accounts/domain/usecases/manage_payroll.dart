@@ -1,31 +1,74 @@
 import '../entities/payroll_profile_entity.dart';
 import '../entities/payroll_record_entity.dart';
+import '../entities/salary_history_entity.dart';
 import '../repositories/accounts_repository.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../staff/domain/repositories/staff_repository.dart';
 
 class PayrollManagementData {
   const PayrollManagementData({
     required this.profiles,
     required this.records,
+    required this.employees,
+    required this.salaryHistory,
   });
 
   final List<PayrollProfileEntity> profiles;
   final List<PayrollRecordEntity> records;
+  final List<PayrollEmployeeEntity> employees;
+  final List<SalaryHistoryEntity> salaryHistory;
 }
 
 class GetPayrollManagementData {
-  const GetPayrollManagementData(this._repository);
+  const GetPayrollManagementData(
+    this._repository,
+    this._teacherRepository,
+    this._staffRepository,
+  );
 
   final AccountsRepository _repository;
+  final TeacherRepository _teacherRepository;
+  final StaffRepository _staffRepository;
 
   Future<PayrollManagementData> call() async {
     final responses = await Future.wait<Object>([
       _repository.getPayrollProfiles(),
       _repository.getPayrollRecords(),
+      _teacherRepository.getTeachers(),
+      _staffRepository.getStaff(),
+      _repository.getSalaryHistory(),
     ]);
 
     return PayrollManagementData(
       profiles: responses[0] as List<PayrollProfileEntity>,
       records: responses[1] as List<PayrollRecordEntity>,
+      employees: [
+        ...(responses[2] as List)
+            .where((item) => item.isActive)
+            .map(
+              (item) => PayrollEmployeeEntity(
+                id: item.id,
+                code: item.employeeId,
+                name: item.fullName,
+                type: PayrollEmployeeType.teacher,
+                monthlySalary: item.monthlySalary.round(),
+                joiningDate: item.joiningDate,
+              ),
+            ),
+        ...(responses[3] as List)
+            .where((item) => item.isActive)
+            .map(
+              (item) => PayrollEmployeeEntity(
+                id: item.id,
+                code: item.staffId,
+                name: item.fullName,
+                type: PayrollEmployeeType.administrativeStaff,
+                monthlySalary: item.monthlySalary.round(),
+                joiningDate: item.joiningDate,
+              ),
+            ),
+      ],
+      salaryHistory: responses[4] as List<SalaryHistoryEntity>,
     );
   }
 }
@@ -65,10 +108,7 @@ class SetPayrollProfileActive {
 
   final AccountsRepository _repository;
 
-  Future<void> call({
-    required String profileId,
-    required bool isActive,
-  }) {
+  Future<void> call({required String profileId, required bool isActive}) {
     if (profileId.trim().isEmpty) {
       throw ArgumentError('Payroll profile ID is required.');
     }
@@ -95,71 +135,89 @@ class DeletePayrollProfile {
 }
 
 class GenerateMonthlyPayroll {
-  const GenerateMonthlyPayroll(this._repository);
+  const GenerateMonthlyPayroll(
+    this._repository,
+    this._teacherRepository,
+    this._staffRepository,
+  );
 
   final AccountsRepository _repository;
+  final TeacherRepository _teacherRepository;
+  final StaffRepository _staffRepository;
 
-  Future<void> call({
-    required DateTime month,
-    required String actorId,
-  }) async {
+  Future<void> call({required DateTime month, required String actorId}) async {
     if (actorId.trim().isEmpty) {
       throw ArgumentError('Current user could not be identified.');
     }
 
-    final profiles = await _repository.getPayrollProfiles();
+    final teachers = await _teacherRepository.getTeachers();
+    final staff = await _staffRepository.getStaff();
     final records = await _repository.getPayrollRecords();
 
-    final monthStart = DateTime(
-      month.year,
-      month.month,
-    );
+    final monthStart = DateTime(month.year, month.month);
 
     final monthKey =
         '${monthStart.year.toString().padLeft(4, '0')}-'
         '${monthStart.month.toString().padLeft(2, '0')}';
 
-    final existingRecordIds = records
-        .map((record) => record.id)
-        .toSet();
+    final existingRecordIds = records.map((record) => record.id).toSet();
 
-    for (final profile in profiles.where((item) => item.isActive)) {
-      final payrollId = '${profile.employeeId}_$monthKey';
+    final employees = <PayrollEmployeeEntity>[
+      ...teachers
+          .where((item) => item.isActive)
+          .map(
+            (item) => PayrollEmployeeEntity(
+              id: item.id,
+              code: item.employeeId,
+              name: item.fullName,
+              type: PayrollEmployeeType.teacher,
+              monthlySalary: item.monthlySalary.round(),
+              joiningDate: item.joiningDate,
+            ),
+          ),
+      ...staff
+          .where((item) => item.isActive)
+          .map(
+            (item) => PayrollEmployeeEntity(
+              id: item.id,
+              code: item.staffId,
+              name: item.fullName,
+              type: PayrollEmployeeType.administrativeStaff,
+              monthlySalary: item.monthlySalary.round(),
+              joiningDate: item.joiningDate,
+            ),
+          ),
+    ];
+
+    for (final employee in employees) {
+      if (employee.monthlySalary <= 0) continue;
+      final payrollId = '${employee.type.name}_${employee.id}_$monthKey';
 
       if (existingRecordIds.contains(payrollId)) {
         continue;
       }
 
-      final employeeFinance =
-          await _repository.getPayrollAutoDeductions(
-        employeeId: profile.employeeId,
-        employeeType: profile.employeeType,
+      final employeeFinance = await _repository.getPayrollAutoDeductions(
+        employeeId: employee.id,
+        employeeType: employee.type,
         payrollMonth: monthStart,
       );
 
-      final employeeFinanceValue =
-          employeeFinance.otherDeductions;
+      final employeeFinanceValue = employeeFinance.otherDeductions;
 
-      final employeeFinanceAdditions =
-          employeeFinanceValue < 0
-              ? employeeFinanceValue.abs()
-              : 0;
+      final employeeFinanceAdditions = employeeFinanceValue < 0
+          ? employeeFinanceValue.abs()
+          : 0;
 
-      final employeeFinanceDeductions =
-          employeeFinanceValue > 0
-              ? employeeFinanceValue
-              : 0;
+      final employeeFinanceDeductions = employeeFinanceValue > 0
+          ? employeeFinanceValue
+          : 0;
 
       final automaticBonus = employeeFinanceAdditions;
 
-      final totalFixedAndOtherDeductions =
-          profile.fixedDeductions +
-          employeeFinanceDeductions;
+      final totalFixedAndOtherDeductions = employeeFinanceDeductions;
 
-      final grossSalary =
-          profile.basicSalary +
-          profile.fixedAllowances +
-          automaticBonus;
+      final grossSalary = employee.monthlySalary + automaticBonus;
 
       final totalDeductions =
           totalFixedAndOtherDeductions +
@@ -171,7 +229,7 @@ class GenerateMonthlyPayroll {
       if (netSalary < 0) {
         throw StateError(
           'Net salary cannot be negative for '
-          '${profile.employeeName}. '
+          '${employee.name}. '
           'Please review this employee’s deductions.',
         );
       }
@@ -180,34 +238,28 @@ class GenerateMonthlyPayroll {
 
       final payrollRecord = PayrollRecordEntity(
         id: payrollId,
-        employeeId: profile.employeeId,
-        employeeName: profile.employeeName,
+        employeeId: employee.id,
+        employeeName: employee.name,
+        employeeType: employee.type,
         payrollMonth: monthStart,
-        basicSalary: profile.basicSalary,
-        allowances: profile.fixedAllowances,
+        basicSalary: employee.monthlySalary,
+        allowances: 0,
         deductions: totalFixedAndOtherDeductions,
         absenceDeduction: 0,
-        advanceDeduction:
-            employeeFinance.advanceDeduction,
-        loanDeduction:
-            employeeFinance.loanDeduction,
+        advanceDeduction: employeeFinance.advanceDeduction,
+        loanDeduction: employeeFinance.loanDeduction,
         bonus: automaticBonus,
         grossSalary: grossSalary,
         netSalary: netSalary,
-        paymentStatus:
-            PayrollPaymentStatus.generated,
+        paymentStatus: PayrollPaymentStatus.generated,
         paymentDate: null,
         paymentMethod: '',
         referenceNumber: '',
         remarks: _buildAutomaticRemarks(
-          advanceDeduction:
-              employeeFinance.advanceDeduction,
-          loanDeduction:
-              employeeFinance.loanDeduction,
-          otherDeductions:
-              employeeFinanceDeductions,
-          otherAdditions:
-              employeeFinanceAdditions,
+          advanceDeduction: employeeFinance.advanceDeduction,
+          loanDeduction: employeeFinance.loanDeduction,
+          otherDeductions: employeeFinanceDeductions,
+          otherAdditions: employeeFinanceAdditions,
         ),
         generatedBy: actorId,
         approvedBy: '',
@@ -217,14 +269,12 @@ class GenerateMonthlyPayroll {
         updatedAt: now,
       );
 
-      await _repository.savePayrollRecord(
-        payrollRecord,
-      );
+      await _repository.savePayrollRecord(payrollRecord);
 
       await _repository.markEmployeeFinancePosted(
         payrollId: payrollId,
-        employeeId: profile.employeeId,
-        employeeType: profile.employeeType,
+        employeeId: employee.id,
+        employeeType: employee.type,
         payrollMonth: monthStart,
         actorId: actorId,
       );
@@ -242,15 +292,11 @@ class GenerateMonthlyPayroll {
     final values = <String>[];
 
     if (advanceDeduction > 0) {
-      values.add(
-        'Advance recovery: Rs. $advanceDeduction',
-      );
+      values.add('Advance recovery: Rs. $advanceDeduction');
     }
 
     if (loanDeduction > 0) {
-      values.add(
-        'Loan recovery: Rs. $loanDeduction',
-      );
+      values.add('Loan recovery: Rs. $loanDeduction');
     }
 
     if (otherDeductions > 0) {
@@ -275,6 +321,33 @@ class GenerateMonthlyPayroll {
   }
 }
 
+class ApplySalaryIncrements {
+  const ApplySalaryIncrements(this._repository);
+
+  final AccountsRepository _repository;
+
+  Future<void> call({
+    required List<SalaryIncrementRequest> increments,
+    required String actorId,
+  }) {
+    final valid = increments.where((item) => item.incrementAmount > 0).toList();
+    if (valid.isEmpty) throw StateError('Enter at least one increment amount.');
+    return _repository.applySalaryIncrements(
+      increments: valid,
+      actorId: actorId,
+    );
+  }
+}
+
+class InitializeProfileBasedPayroll {
+  const InitializeProfileBasedPayroll(this._repository);
+
+  final AccountsRepository _repository;
+
+  Future<void> call(String actorId) =>
+      _repository.initializeProfileBasedPayroll(actorId: actorId);
+}
+
 class SavePayrollRecord {
   const SavePayrollRecord(this._repository);
 
@@ -282,48 +355,34 @@ class SavePayrollRecord {
 
   Future<void> call(PayrollRecordEntity record) {
     if (record.id.trim().isEmpty) {
-      throw ArgumentError(
-        'Payroll record ID is required.',
-      );
+      throw ArgumentError('Payroll record ID is required.');
     }
 
     if (record.employeeId.trim().isEmpty) {
-      throw ArgumentError(
-        'Employee ID is required.',
-      );
+      throw ArgumentError('Employee ID is required.');
     }
 
     if (record.employeeName.trim().isEmpty) {
-      throw ArgumentError(
-        'Employee name is required.',
-      );
+      throw ArgumentError('Employee name is required.');
     }
 
     if (record.basicSalary < 0) {
-      throw ArgumentError(
-        'Basic salary cannot be negative.',
-      );
+      throw ArgumentError('Basic salary cannot be negative.');
     }
 
     if (record.grossSalary < 0) {
-      throw ArgumentError(
-        'Gross salary cannot be negative.',
-      );
+      throw ArgumentError('Gross salary cannot be negative.');
     }
 
     if (record.netSalary < 0) {
-      throw ArgumentError(
-        'Net salary cannot be negative.',
-      );
+      throw ArgumentError('Net salary cannot be negative.');
     }
 
     if (record.advanceDeduction < 0 ||
         record.loanDeduction < 0 ||
         record.absenceDeduction < 0 ||
         record.deductions < 0) {
-      throw ArgumentError(
-        'Payroll deductions cannot be negative.',
-      );
+      throw ArgumentError('Payroll deductions cannot be negative.');
     }
 
     return _repository.savePayrollRecord(record);
@@ -343,22 +402,15 @@ class UpdatePayrollStatus {
     String referenceNumber = '',
   }) {
     if (payrollId.trim().isEmpty) {
-      throw ArgumentError(
-        'Payroll ID is required.',
-      );
+      throw ArgumentError('Payroll ID is required.');
     }
 
     if (actorId.trim().isEmpty) {
-      throw ArgumentError(
-        'Current user could not be identified.',
-      );
+      throw ArgumentError('Current user could not be identified.');
     }
 
-    if (status == PayrollPaymentStatus.paid &&
-        paymentMethod.trim().isEmpty) {
-      throw ArgumentError(
-        'Payment method is required.',
-      );
+    if (status == PayrollPaymentStatus.paid && paymentMethod.trim().isEmpty) {
+      throw ArgumentError('Payment method is required.');
     }
 
     return _repository.updatePayrollStatus(

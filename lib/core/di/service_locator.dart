@@ -156,6 +156,7 @@ import '../../features/fees/data/repositories/student_fee_assignment_repository_
 import '../../features/fees/data/repositories/fee_structure_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_result_repository_impl.dart';
+import '../../features/exams/data/repositories/annual_promotion_repository_impl.dart';
 import '../../features/exams/data/repositories/exam_subject_setup_repository_impl.dart';
 import '../../features/exams/data/repositories/grading_rule_repository_impl.dart';
 import '../../features/exams/domain/repositories/exam_mark_repository.dart';
@@ -175,6 +176,8 @@ import '../../features/fees/domain/repositories/student_fee_assignment_repositor
 import '../../features/fees/domain/repositories/fee_structure_repository.dart';
 import '../../features/exams/domain/repositories/exam_repository.dart';
 import '../../features/exams/domain/repositories/exam_result_repository.dart';
+import '../../features/exams/domain/repositories/annual_promotion_repository.dart';
+import '../../features/exams/domain/services/annual_promotion_service.dart';
 import '../../features/exams/domain/repositories/exam_subject_setup_repository.dart';
 import '../../features/exams/domain/repositories/grading_rule_repository.dart';
 import '../../features/exams/domain/usecases/create_exam.dart';
@@ -490,7 +493,6 @@ Future<void> setupServiceLocator() async {
     () => sl<FirebaseFirestoreService>().instance,
   );
 
-
   // =========================================================
   // Document Engine
   // =========================================================
@@ -504,27 +506,20 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<DocumentTemplateRemoteDataSource>(
-    () => DocumentTemplateRemoteDataSourceImpl(
-      sl<FirebaseFirestoreService>(),
-    ),
+    () => DocumentTemplateRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
 
   sl.registerLazySingleton<DocumentTemplateRepository>(
-    () => DocumentTemplateRepositoryImpl(
-      sl<DocumentTemplateRemoteDataSource>(),
-    ),
+    () =>
+        DocumentTemplateRepositoryImpl(sl<DocumentTemplateRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<GetDocumentTemplates>(
-    () => GetDocumentTemplates(
-      sl<DocumentTemplateRepository>(),
-    ),
+    () => GetDocumentTemplates(sl<DocumentTemplateRepository>()),
   );
 
   sl.registerLazySingleton<GetDefaultDocumentTemplate>(
-    () => GetDefaultDocumentTemplate(
-      sl<DocumentTemplateRepository>(),
-    ),
+    () => GetDefaultDocumentTemplate(sl<DocumentTemplateRepository>()),
   );
 
   sl.registerLazySingleton<SaveDocumentTemplate>(
@@ -535,17 +530,12 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<DeleteDocumentTemplate>(
-    () => DeleteDocumentTemplate(
-      sl<DocumentTemplateRepository>(),
-    ),
+    () => DeleteDocumentTemplate(sl<DocumentTemplateRepository>()),
   );
 
   sl.registerLazySingleton<SetDefaultDocumentTemplate>(
-    () => SetDefaultDocumentTemplate(
-      sl<DocumentTemplateRepository>(),
-    ),
+    () => SetDefaultDocumentTemplate(sl<DocumentTemplateRepository>()),
   );
-
 
   sl.registerLazySingleton<SeedBirthdayDocumentTemplate>(
     () => SeedBirthdayDocumentTemplate(
@@ -555,9 +545,7 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<EnsureDefaultDocumentTemplate>(
-    () => EnsureDefaultDocumentTemplate(
-      sl<DocumentTemplateRepository>(),
-    ),
+    () => EnsureDefaultDocumentTemplate(sl<DocumentTemplateRepository>()),
   );
 
   // =========================================================
@@ -1030,6 +1018,22 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<ExamResultRepository>(
     () => ExamResultRepositoryImpl(source: sl<ExamResultRemoteDataSource>()),
   );
+  sl.registerLazySingleton<AnnualPromotionRepository>(
+    () => AnnualPromotionRepositoryImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+      auth: sl<FirebaseAuth>(),
+    ),
+  );
+  sl.registerLazySingleton<AnnualPromotionService>(
+    () => AnnualPromotionService(
+      examRepository: sl<ExamRepository>(),
+      resultRepository: sl<ExamResultRepository>(),
+      studentRepository: sl<StudentRepository>(),
+      structureRepository: sl<AcademicStructureRepository>(),
+      sessionRepository: sl<AcademicYearConfigRepository>(),
+      promotionRepository: sl<AnnualPromotionRepository>(),
+    ),
+  );
 
   sl.registerLazySingleton<GradingRuleRepository>(
     () => GradingRuleRepositoryImpl(source: sl<GradingRuleRemoteDataSource>()),
@@ -1416,13 +1420,11 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<SearchBirthdayPeople>(
-  () => SearchBirthdayPeople(
-    studentRepository:
-        sl<StudentRepository>(),
-    academicStructureRepository:
-        sl<AcademicStructureRepository>(),
-  ),
-);
+    () => SearchBirthdayPeople(
+      studentRepository: sl<StudentRepository>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
+    ),
+  );
   sl.registerLazySingleton<GetBirthdayHistory>(
     () => GetBirthdayHistory(repository: sl<EngagementRepository>()),
   );
@@ -1474,7 +1476,11 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<GetPayrollManagementData>(
-    () => GetPayrollManagementData(sl<AccountsRepository>()),
+    () => GetPayrollManagementData(
+      sl<AccountsRepository>(),
+      sl<TeacherRepository>(),
+      sl<StaffRepository>(),
+    ),
   );
   sl.registerLazySingleton<SavePayrollProfile>(
     () => SavePayrollProfile(sl<AccountsRepository>()),
@@ -1487,7 +1493,17 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<GenerateMonthlyPayroll>(
-    () => GenerateMonthlyPayroll(sl<AccountsRepository>()),
+    () => GenerateMonthlyPayroll(
+      sl<AccountsRepository>(),
+      sl<TeacherRepository>(),
+      sl<StaffRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ApplySalaryIncrements>(
+    () => ApplySalaryIncrements(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<InitializeProfileBasedPayroll>(
+    () => InitializeProfileBasedPayroll(sl<AccountsRepository>()),
   );
   sl.registerLazySingleton<SavePayrollRecord>(
     () => SavePayrollRecord(sl<AccountsRepository>()),
@@ -1869,6 +1885,8 @@ Future<void> setupServiceLocator() async {
       generatePayroll: sl<GenerateMonthlyPayroll>(),
       saveRecord: sl<SavePayrollRecord>(),
       updateStatus: sl<UpdatePayrollStatus>(),
+      applyIncrements: sl<ApplySalaryIncrements>(),
+      initializePayroll: sl<InitializeProfileBasedPayroll>(),
     ),
   );
 

@@ -29,6 +29,7 @@ class StudentModel extends StudentEntity {
     required super.address,
     required super.profileImageUrl,
     required super.isActive,
+    super.status,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -62,6 +63,7 @@ class StudentModel extends StudentEntity {
       address: map['address'] ?? '',
       profileImageUrl: map['profileImageUrl'] ?? '',
       isActive: map['isActive'] ?? true,
+      status: _status(map),
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: DateTime.parse(map['updatedAt']),
     );
@@ -96,6 +98,7 @@ class StudentModel extends StudentEntity {
       'address': address,
       'profileImageUrl': profileImageUrl,
       'isActive': isActive,
+      'status': status.name,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -130,8 +133,19 @@ class StudentModel extends StudentEntity {
       address: entity.address,
       profileImageUrl: entity.profileImageUrl,
       isActive: entity.isActive,
+      status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+    );
+  }
+
+  static StudentStatus _status(Map<String, dynamic> map) {
+    final value = map['status']?.toString();
+    return StudentStatus.values.firstWhere(
+      (item) => item.name == value,
+      orElse: () => (map['isActive'] ?? true)
+          ? StudentStatus.active
+          : StudentStatus.inactive,
     );
   }
 }

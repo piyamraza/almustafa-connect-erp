@@ -10,6 +10,7 @@ import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
 import '../../domain/entities/teacher_finance_account_entity.dart';
 import '../../domain/entities/teacher_finance_transaction_entity.dart';
+import '../../domain/entities/salary_history_entity.dart';
 import '../../domain/repositories/accounts_repository.dart';
 import '../../domain/repositories/teacher_finance_repository.dart';
 import '../datasources/accounts_remote_datasource.dart';
@@ -37,11 +38,10 @@ class AccountsRepositoryImpl implements AccountsRepository {
   Future<void> setExpenseCategoryActive({
     required String categoryId,
     required bool isActive,
-  }) =>
-      _source.setExpenseCategoryActive(
-        categoryId: categoryId,
-        isActive: isActive,
-      );
+  }) => _source.setExpenseCategoryActive(
+    categoryId: categoryId,
+    isActive: isActive,
+  );
 
   @override
   Future<List<ExpenseEntity>> getExpenses() => _source.getExpenses();
@@ -55,12 +55,11 @@ class AccountsRepositoryImpl implements AccountsRepository {
     required String expenseId,
     required ExpenseStatus status,
     required String actorId,
-  }) =>
-      _source.updateExpenseStatus(
-        expenseId: expenseId,
-        status: status,
-        actorId: actorId,
-      );
+  }) => _source.updateExpenseStatus(
+    expenseId: expenseId,
+    status: status,
+    actorId: actorId,
+  );
 
   @override
   Future<List<PayrollProfileEntity>> getPayrollProfiles() =>
@@ -111,12 +110,8 @@ class AccountsRepositoryImpl implements AccountsRepository {
       description: isActive
           ? 'Salary profile activated'
           : 'Salary profile deactivated',
-      oldValues: {
-        if (previous != null) ..._profileValues(previous),
-      },
-      newValues: {
-        'isActive': isActive,
-      },
+      oldValues: {if (previous != null) ..._profileValues(previous)},
+      newValues: {'isActive': isActive},
     );
   }
 
@@ -205,13 +200,6 @@ class AccountsRepositoryImpl implements AccountsRepository {
       return;
     }
 
-    final profiles = await _source.getPayrollProfiles();
-
-    final payrollProfile = _findProfileForPayrollRecord(
-      profiles: profiles,
-      record: previous,
-    );
-
     await _source.updatePayrollStatus(
       payrollId: payrollId,
       status: status,
@@ -224,9 +212,7 @@ class AccountsRepositoryImpl implements AccountsRepository {
       await _teacherFinanceRepository.postPayrollRecoveries(
         payrollId: payrollId,
         employeeId: previous.employeeId,
-        employeeType: _financeEmployeeType(
-          payrollProfile.employeeType,
-        ),
+        employeeType: _financeEmployeeType(previous.employeeType),
         advanceAmount: previous.advanceDeduction,
         loanAmount: previous.loanDeduction,
         actorId: actorId,
@@ -267,6 +253,38 @@ class AccountsRepositoryImpl implements AccountsRepository {
   }
 
   @override
+  Future<List<SalaryHistoryEntity>> getSalaryHistory() =>
+      _source.getSalaryHistory();
+
+  @override
+  Future<void> applySalaryIncrements({
+    required List<SalaryIncrementRequest> increments,
+    required String actorId,
+  }) async {
+    await _source.applySalaryIncrements(
+      increments: increments,
+      actorId: actorId,
+    );
+    await _auditService.logUpdate(
+      module: 'Payroll',
+      recordId: 'salary_increments_${DateTime.now().millisecondsSinceEpoch}',
+      description: 'Employee salary increments applied',
+      newValues: {
+        'employeeCount': increments.length,
+        'totalIncrement': increments.fold<int>(
+          0,
+          (total, item) => total + item.incrementAmount,
+        ),
+        'actorId': actorId,
+      },
+    );
+  }
+
+  @override
+  Future<void> initializeProfileBasedPayroll({required String actorId}) =>
+      _source.initializeProfileBasedPayroll(actorId: actorId);
+
+  @override
   Future<PayrollAutoDeductionsEntity> getPayrollAutoDeductions({
     required String employeeId,
     required PayrollEmployeeType employeeType,
@@ -276,10 +294,7 @@ class AccountsRepositoryImpl implements AccountsRepository {
       throw ArgumentError('Employee ID is required.');
     }
 
-    final monthStart = DateTime(
-      payrollMonth.year,
-      payrollMonth.month,
-    );
+    final monthStart = DateTime(payrollMonth.year, payrollMonth.month);
 
     final financeEmployeeType = _financeEmployeeType(employeeType);
 
@@ -296,11 +311,9 @@ class AccountsRepositoryImpl implements AccountsRepository {
       ),
     ]);
 
-    final accounts =
-        responses[0] as List<TeacherFinanceAccountEntity>;
+    final accounts = responses[0] as List<TeacherFinanceAccountEntity>;
 
-    final transactions =
-        responses[1] as List<TeacherFinanceTransactionEntity>;
+    final transactions = responses[1] as List<TeacherFinanceTransactionEntity>;
 
     var advanceDeduction = 0;
     var loanDeduction = 0;
@@ -366,12 +379,12 @@ class AccountsRepositoryImpl implements AccountsRepository {
       throw ArgumentError('Current user could not be identified.');
     }
 
-    final pending =
-        await _teacherFinanceRepository.getPendingPayrollTransactions(
-      employeeId: employeeId,
-      employeeType: _financeEmployeeType(employeeType),
-      payrollMonth: payrollMonth,
-    );
+    final pending = await _teacherFinanceRepository
+        .getPendingPayrollTransactions(
+          employeeId: employeeId,
+          employeeType: _financeEmployeeType(employeeType),
+          payrollMonth: payrollMonth,
+        );
 
     if (pending.isEmpty) {
       return;
@@ -411,19 +424,14 @@ class AccountsRepositoryImpl implements AccountsRepository {
     required String incomeEntryId,
     required String reason,
   }) =>
-      _source.reverseIncomeEntry(
-        incomeEntryId: incomeEntryId,
-        reason: reason,
-      );
+      _source.reverseIncomeEntry(incomeEntryId: incomeEntryId, reason: reason);
 
   @override
   Future<List<MonthlyProfitLossEntity>> getMonthlyProfitLoss() =>
       _source.getMonthlyProfitLoss();
 
   @override
-  Future<void> saveMonthlyProfitLoss(
-    MonthlyProfitLossEntity snapshot,
-  ) =>
+  Future<void> saveMonthlyProfitLoss(MonthlyProfitLossEntity snapshot) =>
       _source.saveMonthlyProfitLoss(snapshot);
 
   @override
@@ -447,46 +455,6 @@ class AccountsRepositoryImpl implements AccountsRepository {
     return null;
   }
 
-  PayrollProfileEntity _findProfileForPayrollRecord({
-    required List<PayrollProfileEntity> profiles,
-    required PayrollRecordEntity record,
-  }) {
-    final matchingProfiles = profiles
-        .where(
-          (profile) =>
-              profile.employeeId.trim() ==
-              record.employeeId.trim(),
-        )
-        .toList();
-
-    if (matchingProfiles.isEmpty) {
-      throw StateError(
-        'Payroll profile was not found for ${record.employeeName}.',
-      );
-    }
-
-    if (matchingProfiles.length > 1) {
-      final exactNameMatches = matchingProfiles
-          .where(
-            (profile) =>
-                profile.employeeName.trim().toLowerCase() ==
-                record.employeeName.trim().toLowerCase(),
-          )
-          .toList();
-
-      if (exactNameMatches.length == 1) {
-        return exactNameMatches.first;
-      }
-
-      throw StateError(
-        'More than one payroll profile uses employee ID '
-        '${record.employeeId}. Please correct the duplicate payroll profiles.',
-      );
-    }
-
-    return matchingProfiles.first;
-  }
-
   PayrollRecordEntity? _findRecord(
     List<PayrollRecordEntity> records,
     String id,
@@ -504,59 +472,51 @@ class AccountsRepositoryImpl implements AccountsRepository {
     PayrollEmployeeType employeeType,
   ) {
     return switch (employeeType) {
-      PayrollEmployeeType.teacher =>
-        TeacherFinanceEmployeeType.teacher,
+      PayrollEmployeeType.teacher => TeacherFinanceEmployeeType.teacher,
 
       PayrollEmployeeType.administrativeStaff ||
       PayrollEmployeeType.supportStaff ||
-      PayrollEmployeeType.other =>
-        TeacherFinanceEmployeeType.staff,
+      PayrollEmployeeType.other => TeacherFinanceEmployeeType.staff,
     };
   }
 
-  Map<String, dynamic> _profileValues(
-    PayrollProfileEntity profile,
-  ) =>
-      {
-        'employeeId': profile.employeeId,
-        'employeeName': profile.employeeName,
-        'employeeType': profile.employeeType.name,
-        'basicSalary': profile.basicSalary,
-        'fixedAllowances': profile.fixedAllowances,
-        'fixedDeductions': profile.fixedDeductions,
-        'isActive': profile.isActive,
-        'createdAt': profile.createdAt.toIso8601String(),
-        'updatedAt': profile.updatedAt.toIso8601String(),
-      };
+  Map<String, dynamic> _profileValues(PayrollProfileEntity profile) => {
+    'employeeId': profile.employeeId,
+    'employeeName': profile.employeeName,
+    'employeeType': profile.employeeType.name,
+    'basicSalary': profile.basicSalary,
+    'fixedAllowances': profile.fixedAllowances,
+    'fixedDeductions': profile.fixedDeductions,
+    'isActive': profile.isActive,
+    'createdAt': profile.createdAt.toIso8601String(),
+    'updatedAt': profile.updatedAt.toIso8601String(),
+  };
 
-  Map<String, dynamic> _recordValues(
-    PayrollRecordEntity record,
-  ) =>
-      {
-        'employeeId': record.employeeId,
-        'employeeName': record.employeeName,
-        'payrollMonth': record.payrollMonth.toIso8601String(),
-        'basicSalary': record.basicSalary,
-        'allowances': record.allowances,
-        'deductions': record.deductions,
-        'absenceDeduction': record.absenceDeduction,
-        'advanceDeduction': record.advanceDeduction,
-        'loanDeduction': record.loanDeduction,
-        'bonus': record.bonus,
-        'grossSalary': record.grossSalary,
-        'netSalary': record.netSalary,
-        'paymentStatus': record.paymentStatus.name,
-        'paymentDate': record.paymentDate?.toIso8601String(),
-        'paymentMethod': record.paymentMethod,
-        'referenceNumber': record.referenceNumber,
-        'remarks': record.remarks,
-        'generatedBy': record.generatedBy,
-        'approvedBy': record.approvedBy,
-        'approvedAt': record.approvedAt?.toIso8601String(),
-        'paidBy': record.paidBy,
-        'createdAt': record.createdAt.toIso8601String(),
-        'updatedAt': record.updatedAt.toIso8601String(),
-      };
+  Map<String, dynamic> _recordValues(PayrollRecordEntity record) => {
+    'employeeId': record.employeeId,
+    'employeeName': record.employeeName,
+    'payrollMonth': record.payrollMonth.toIso8601String(),
+    'basicSalary': record.basicSalary,
+    'allowances': record.allowances,
+    'deductions': record.deductions,
+    'absenceDeduction': record.absenceDeduction,
+    'advanceDeduction': record.advanceDeduction,
+    'loanDeduction': record.loanDeduction,
+    'bonus': record.bonus,
+    'grossSalary': record.grossSalary,
+    'netSalary': record.netSalary,
+    'paymentStatus': record.paymentStatus.name,
+    'paymentDate': record.paymentDate?.toIso8601String(),
+    'paymentMethod': record.paymentMethod,
+    'referenceNumber': record.referenceNumber,
+    'remarks': record.remarks,
+    'generatedBy': record.generatedBy,
+    'approvedBy': record.approvedBy,
+    'approvedAt': record.approvedAt?.toIso8601String(),
+    'paidBy': record.paidBy,
+    'createdAt': record.createdAt.toIso8601String(),
+    'updatedAt': record.updatedAt.toIso8601String(),
+  };
 
   String _statusDescription(
     PayrollPaymentStatus status,
@@ -566,20 +526,15 @@ class AccountsRepositoryImpl implements AccountsRepository {
     final suffix = employee.isEmpty ? '' : ' for $employee';
 
     return switch (status) {
-      PayrollPaymentStatus.draft =>
-        'Payroll moved to draft$suffix',
+      PayrollPaymentStatus.draft => 'Payroll moved to draft$suffix',
 
-      PayrollPaymentStatus.generated =>
-        'Payroll generated$suffix',
+      PayrollPaymentStatus.generated => 'Payroll generated$suffix',
 
-      PayrollPaymentStatus.approved =>
-        'Payroll approved$suffix',
+      PayrollPaymentStatus.approved => 'Payroll approved$suffix',
 
-      PayrollPaymentStatus.paid =>
-        'Salary paid$suffix',
+      PayrollPaymentStatus.paid => 'Salary paid$suffix',
 
-      PayrollPaymentStatus.cancelled =>
-        'Payroll cancelled$suffix',
+      PayrollPaymentStatus.cancelled => 'Payroll cancelled$suffix',
     };
   }
 

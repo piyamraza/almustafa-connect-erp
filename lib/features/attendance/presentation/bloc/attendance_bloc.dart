@@ -14,6 +14,7 @@ class AttendanceBloc
     on<RefreshAttendanceEvent>(_loadAttendance);
     on<AddAttendanceEvent>(_addAttendance);
     on<UpdateAttendanceEvent>(_updateAttendance);
+    on<SaveAttendanceBatchEvent>(_saveAttendanceBatch);
     on<DeleteAttendanceEvent>(_deleteAttendance);
     on<LoadAttendanceByDateEvent>(
       _loadAttendanceByDate,
@@ -21,6 +22,28 @@ class AttendanceBloc
     on<LoadAttendanceByStudentEvent>(
       _loadAttendanceByStudent,
     );
+  }
+
+  Future<void> _saveAttendanceBatch(
+    SaveAttendanceBatchEvent event,
+    Emitter<AttendanceState> emit,
+  ) async {
+    emit(const AttendanceLoading());
+
+    try {
+      for (final attendance in event.additions) {
+        await _repository.addAttendance(attendance);
+      }
+      for (final attendance in event.updates) {
+        await _repository.updateAttendance(attendance);
+      }
+
+      final attendance = await _repository.getAttendance();
+      emit(AttendanceBatchSaved(event.additions.length + event.updates.length));
+      emit(AttendanceLoaded(attendance));
+    } catch (e) {
+      emit(AttendanceError(e.toString()));
+    }
   }
 
   Future<void> _loadAttendance(

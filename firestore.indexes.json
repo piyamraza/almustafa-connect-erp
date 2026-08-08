@@ -23,6 +23,14 @@
         {"fieldPath": "studentId", "order": "ASCENDING"},
         {"fieldPath": "status", "order": "ASCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "annual_promotion_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "fromAcademicSession", "order": "ASCENDING"},
+        {"fieldPath": "finalExamId", "order": "ASCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []

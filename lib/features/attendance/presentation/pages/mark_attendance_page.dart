@@ -55,6 +55,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
   bool _hasRequestedInheritedStudents = false;
   late Future<AttendanceAcademicStructure> _academicStructureFuture;
   AttendanceAcademicStructure? _academicStructure;
+  bool _isSaving = false;
 
   bool get _isChoosingClass => _selectedClass == null;
 
@@ -288,14 +289,48 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
           floatingActionButton: _isChoosingClass
               ? null
               : FloatingActionButton.extended(
-                  onPressed: () => _saveAttendance(context),
-                  icon: const Icon(Icons.save),
+                  onPressed: _isSaving ? null : () => _saveAttendance(context),
+                  icon: _isSaving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save),
                   label: Text(
                     widget.isEditMode ? 'Update Attendance' : 'Save Attendance',
                   ),
                 ),
           body: BlocListener<AttendanceBloc, AttendanceState>(
-            listener: (_, state) {
+            listener: (context, state) {
+              if (state is AttendanceBatchSaved) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      widget.isEditMode
+                          ? '${state.count} attendance record(s) updated.'
+                          : '${state.count} attendance record(s) saved.',
+                    ),
+                  ),
+                );
+                _searchController.clear();
+                setState(() {
+                  _isSaving = false;
+                  _selectedClass = null;
+                  _selectedSection = null;
+                });
+                return;
+              }
+              if (state is AttendanceError && _isSaving) {
+                setState(() => _isSaving = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Unable to save attendance: ${state.message}',
+                    ),
+                  ),
+                );
+                return;
+              }
               if (state is AttendanceLoaded) {
                 _cacheAttendance(state.attendance);
                 if (mounted) setState(() {});
@@ -381,7 +416,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
     );
   }
 
-  Future<void> _saveAttendance(BuildContext context) async {
+  void _saveAttendance(BuildContext context) {
     final state = context.read<StudentBloc>().state;
     if (state is! StudentLoaded) return;
     final students = _filteredStudents(state.students);
@@ -391,8 +426,9 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
       );
       return;
     }
-    final bloc = context.read<AttendanceBloc>();
     final now = DateTime.now();
+    final additions = <AttendanceEntity>[];
+    final updates = <AttendanceEntity>[];
     for (final student in students) {
       final existing = _existingAttendanceByStudent[student.id];
       final attendance = AttendanceEntity(
@@ -411,19 +447,14 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
         updatedAt: now,
       );
       if (existing == null) {
-        bloc.add(AddAttendanceEvent(attendance));
+        additions.add(attendance);
       } else {
-        bloc.add(UpdateAttendanceEvent(attendance));
+        updates.add(attendance);
       }
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.isEditMode
-              ? '${students.length} attendance record(s) updated.'
-              : '${students.length} attendance record(s) saved.',
-        ),
-      ),
+    setState(() => _isSaving = true);
+    context.read<AttendanceBloc>().add(
+      SaveAttendanceBatchEvent(additions: additions, updates: updates),
     );
   }
 }

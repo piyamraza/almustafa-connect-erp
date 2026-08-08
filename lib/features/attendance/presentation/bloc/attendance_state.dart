@@ -43,3 +43,12 @@ class AttendanceUpdated extends AttendanceState {
   @override
   List<Object?> get props => [attendance];
 }
+
+class AttendanceBatchSaved extends AttendanceState {
+  final int count;
+
+  const AttendanceBatchSaved(this.count);
+
+  @override
+  List<Object?> get props => [count];
+}

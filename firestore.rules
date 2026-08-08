@@ -354,6 +354,17 @@ service cloud.firestore {
       allow write: if hasPermission('reportsExport');
     }
 
+    match /salary_history/{document=**} {
+      allow read: if hasAnyPermission('reportsView', 'reportsExport');
+      allow create: if hasPermission('reportsExport');
+      allow update, delete: if false;
+    }
+
+    match /payroll_migrations/{document=**} {
+      allow read, create: if hasPermission('reportsExport');
+      allow update, delete: if false;
+    }
+
     match /monthly_profit_loss/{document=**} {
       allow read: if hasAnyPermission('reportsView', 'reportsExport');
       allow write: if hasPermission('reportsExport');
@@ -420,6 +431,18 @@ service cloud.firestore {
           );
 
       allow delete: if hasPermission('resultsPublish');
+    }
+
+    match /annual_promotion_runs/{runId} {
+      allow read, create, update: if hasPermission('resultsPublish')
+          && hasPermission('studentsEdit');
+      allow delete: if false;
+    }
+
+    match /annual_promotion_history/{historyId} {
+      allow read, create: if hasPermission('resultsPublish')
+          && hasPermission('studentsEdit');
+      allow update, delete: if false;
     }
 
     match /results/{document=**} {
@@ -571,6 +594,11 @@ service cloud.firestore {
     // -----------------------------------------------------------------
 
     match /academic_year_config/{document=**} {
+      allow read: if signedIn();
+      allow write: if hasPermission('settingsManage');
+    }
+
+    match /academic_year_configs/{document=**} {
       allow read: if signedIn();
       allow write: if hasPermission('settingsManage');
     }

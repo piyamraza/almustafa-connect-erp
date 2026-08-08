@@ -1,4 +1,4 @@
-﻿class FirestorePaths {
+class FirestorePaths {
   FirestorePaths._();
 
   static const String auditLogs = 'audit_logs';
@@ -40,6 +40,8 @@
   static const String examSubjectSetups = 'exam_subject_setups';
   static const String examMarks = 'exam_marks';
   static const String examResults = 'exam_results';
+  static const String annualPromotionRuns = 'annual_promotion_runs';
+  static const String annualPromotionHistory = 'annual_promotion_history';
   static const String examDateSheets = 'exam_date_sheets';
   static const String gradingRules = 'grading_rules';
   static const String timetableConfigurations = 'timetable_configurations';
@@ -55,6 +57,8 @@
   static const String incomeEntries = 'income_entries';
   static const String payrollProfiles = 'payroll_profiles';
   static const String payrollRecords = 'payroll_records';
+  static const String salaryHistory = 'salary_history';
+  static const String payrollMigrations = 'payroll_migrations';
   static const String monthlyProfitLoss = 'monthly_profit_loss';
   static const String cashbookEntries = 'cashbook_entries';
   static const String additionalCharges = 'additional_charges';
@@ -87,4 +91,3 @@
   static const String appRoles = 'app_roles';
   static const String userRoleAssignments = 'user_roles';
 }
-

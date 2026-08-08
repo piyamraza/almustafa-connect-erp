@@ -61,3 +61,16 @@ class LoadAttendanceByStudentEvent extends AttendanceEvent {
   @override
   List<Object?> get props => [studentId];
 }
+
+class SaveAttendanceBatchEvent extends AttendanceEvent {
+  final List<AttendanceEntity> additions;
+  final List<AttendanceEntity> updates;
+
+  const SaveAttendanceBatchEvent({
+    required this.additions,
+    required this.updates,
+  });
+
+  @override
+  List<Object?> get props => [additions, updates];
+}

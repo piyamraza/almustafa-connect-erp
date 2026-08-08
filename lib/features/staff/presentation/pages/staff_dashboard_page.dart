@@ -20,7 +20,10 @@ class StaffDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Staff Management')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Staff Management'),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -80,14 +83,6 @@ class StaffDashboardPage extends StatelessWidget {
                                 icon: Icons.person_add_alt_1_outlined,
                                 actionLabel: 'Add Staff',
                                 onTap: onAddStaff,
-                              ),
-                              _StaffDashboardCard(
-                                title: 'Staff Attendance',
-                                description:
-                                    'Mark daily attendance and review attendance records.',
-                                icon: Icons.fact_check_outlined,
-                                actionLabel: 'Open Attendance',
-                                onTap: onAttendance,
                               ),
                               _StaffDashboardCard(
                                 title: 'Salary Management',

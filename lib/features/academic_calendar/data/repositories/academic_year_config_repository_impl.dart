@@ -10,6 +10,23 @@ class AcademicYearConfigRepositoryImpl implements AcademicYearConfigRepository {
   final FirebaseFirestoreService _firestoreService;
 
   @override
+  Future<List<AcademicYearConfigEntity>> getAll() async {
+    final snapshot = await _firestoreService
+        .collection(FirestorePaths.academicYearConfigs)
+        .get();
+    final values = snapshot.docs
+        .map(
+          (document) => AcademicYearConfigModel.fromMap({
+            ...document.data(),
+            'id': document.id,
+          }),
+        )
+        .toList();
+    values.sort((a, b) => a.startDate.compareTo(b.startDate));
+    return values;
+  }
+
+  @override
   Future<AcademicYearConfigEntity?> getBySession(String academicSession) async {
     final snapshot = await _firestoreService
         .collection(FirestorePaths.academicYearConfigs)

@@ -6,7 +6,6 @@ import '../../../timetable/presentation/pages/teacher_workload_page.dart';
 import '../../../staff/presentation/pages/teacher_leave_page.dart'
     as staff_teacher_leave;
 import 'teacher_assignments_page.dart';
-import 'teacher_attendance_page.dart';
 import 'teacher_reports_page.dart';
 import 'teachers_page.dart';
 
@@ -15,7 +14,10 @@ class TeachersModulePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Teachers')),
+    appBar: AppBar(
+      actions: const [DashboardNavigationButton()],
+      title: const Text('Teachers'),
+    ),
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -47,12 +49,6 @@ class TeachersModulePage extends StatelessWidget {
                       icon: Icons.assignment_ind_outlined,
                       onTap: () =>
                           _open(context, const TeacherAssignmentsPage()),
-                    ),
-                    _TeacherModuleCard(
-                      title: 'Teacher Attendance',
-                      icon: Icons.fact_check_outlined,
-                      onTap: () =>
-                          _open(context, const TeacherAttendancePage()),
                     ),
                     _TeacherModuleCard(
                       title: 'Leave Management',

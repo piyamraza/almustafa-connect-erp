@@ -13,6 +13,8 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
     required this._generatePayroll,
     required this._saveRecord,
     required this._updateStatus,
+    required this._applyIncrements,
+    required this._initializePayroll,
   }) : super(const PayrollInitial()) {
     on<LoadPayroll>(_load);
     on<SavePayrollProfileRequested>(_saveProfileRequested);
@@ -21,6 +23,7 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
     on<GeneratePayrollRequested>(_generateRequested);
     on<SavePayrollRecordRequested>(_saveRecordRequested);
     on<UpdatePayrollStatusRequested>(_updateStatusRequested);
+    on<ApplySalaryIncrementsRequested>(_applyIncrementsRequested);
   }
 
   final GetPayrollManagementData _getData;
@@ -30,10 +33,33 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
   final GenerateMonthlyPayroll _generatePayroll;
   final SavePayrollRecord _saveRecord;
   final UpdatePayrollStatus _updateStatus;
+  final ApplySalaryIncrements _applyIncrements;
+  final InitializeProfileBasedPayroll _initializePayroll;
 
   Future<void> _load(LoadPayroll event, Emitter<PayrollState> emit) async {
     emit(const PayrollLoading());
-    await _reload(emit);
+    try {
+      if (event.actorId.isNotEmpty) {
+        await _initializePayroll(event.actorId);
+      }
+      await _reload(emit);
+    } catch (error) {
+      emit(PayrollFailure(error.toString()));
+    }
+  }
+
+  Future<void> _applyIncrementsRequested(
+    ApplySalaryIncrementsRequested event,
+    Emitter<PayrollState> emit,
+  ) async {
+    await _execute(
+      emit,
+      () => _applyIncrements(
+        increments: event.increments,
+        actorId: event.actorId,
+      ),
+      'Salary increments applied.',
+    );
   }
 
   Future<void> _saveProfileRequested(
@@ -150,6 +176,8 @@ class PayrollBloc extends Bloc<PayrollEvent, PayrollState> {
         PayrollLoaded(
           profiles: data.profiles,
           records: data.records,
+          employees: data.employees,
+          salaryHistory: data.salaryHistory,
           message: message,
         ),
       );

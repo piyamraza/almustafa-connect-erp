@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
+import '../../domain/entities/salary_history_entity.dart';
 
 sealed class PayrollState extends Equatable {
   const PayrollState();
@@ -22,6 +23,8 @@ class PayrollLoaded extends PayrollState {
   const PayrollLoaded({
     required this.profiles,
     required this.records,
+    required this.employees,
+    required this.salaryHistory,
     this.isProcessing = false,
     this.message,
     this.error,
@@ -29,6 +32,8 @@ class PayrollLoaded extends PayrollState {
 
   final List<PayrollProfileEntity> profiles;
   final List<PayrollRecordEntity> records;
+  final List<PayrollEmployeeEntity> employees;
+  final List<SalaryHistoryEntity> salaryHistory;
   final bool isProcessing;
   final String? message;
   final String? error;
@@ -36,6 +41,8 @@ class PayrollLoaded extends PayrollState {
   PayrollLoaded copyWith({
     List<PayrollProfileEntity>? profiles,
     List<PayrollRecordEntity>? records,
+    List<PayrollEmployeeEntity>? employees,
+    List<SalaryHistoryEntity>? salaryHistory,
     bool? isProcessing,
     String? message,
     String? error,
@@ -43,13 +50,23 @@ class PayrollLoaded extends PayrollState {
   }) => PayrollLoaded(
     profiles: profiles ?? this.profiles,
     records: records ?? this.records,
+    employees: employees ?? this.employees,
+    salaryHistory: salaryHistory ?? this.salaryHistory,
     isProcessing: isProcessing ?? this.isProcessing,
     message: clearMessages ? null : message ?? this.message,
     error: clearMessages ? null : error ?? this.error,
   );
 
   @override
-  List<Object?> get props => [profiles, records, isProcessing, message, error];
+  List<Object?> get props => [
+    profiles,
+    records,
+    employees,
+    salaryHistory,
+    isProcessing,
+    message,
+    error,
+  ];
 }
 
 class PayrollFailure extends PayrollState {

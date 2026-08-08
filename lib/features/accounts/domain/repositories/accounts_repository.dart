@@ -6,6 +6,7 @@ import '../entities/monthly_profit_loss_entity.dart';
 import '../entities/payroll_auto_deductions_entity.dart';
 import '../entities/payroll_profile_entity.dart';
 import '../entities/payroll_record_entity.dart';
+import '../entities/salary_history_entity.dart';
 
 abstract class AccountsRepository {
   // ============================================================
@@ -66,6 +67,15 @@ abstract class AccountsRepository {
     String referenceNumber,
   });
 
+  Future<List<SalaryHistoryEntity>> getSalaryHistory();
+
+  Future<void> applySalaryIncrements({
+    required List<SalaryIncrementRequest> increments,
+    required String actorId,
+  });
+
+  Future<void> initializeProfileBasedPayroll({required String actorId});
+
   // ============================================================
   // Employee Finance Payroll Integration
   // ============================================================
@@ -109,9 +119,7 @@ abstract class AccountsRepository {
 
   Future<List<MonthlyProfitLossEntity>> getMonthlyProfitLoss();
 
-  Future<void> saveMonthlyProfitLoss(
-    MonthlyProfitLossEntity snapshot,
-  );
+  Future<void> saveMonthlyProfitLoss(MonthlyProfitLossEntity snapshot);
 
   // ============================================================
   // Cashbook

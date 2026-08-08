@@ -1,3 +1,5 @@
+enum StudentStatus { active, inactive, graduated }
+
 class StudentEntity {
   final String id;
   final String admissionNo;
@@ -33,6 +35,7 @@ class StudentEntity {
   final String profileImageUrl;
 
   final bool isActive;
+  final StudentStatus status;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -65,9 +68,11 @@ class StudentEntity {
     required this.address,
     required this.profileImageUrl,
     required this.isActive,
+    StudentStatus? status,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : status =
+           status ?? (isActive ? StudentStatus.active : StudentStatus.inactive);
 
   String get fullName => "$firstName $lastName";
 
@@ -99,6 +104,7 @@ class StudentEntity {
     String? address,
     String? profileImageUrl,
     bool? isActive,
+    StudentStatus? status,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -129,7 +135,16 @@ class StudentEntity {
       medicalAllergies: medicalAllergies ?? this.medicalAllergies,
       address: address ?? this.address,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      isActive: isActive ?? this.isActive,
+      isActive:
+          isActive ??
+          status == StudentStatus.active || (status == null && this.isActive),
+      status:
+          status ??
+          (isActive == null
+              ? this.status
+              : isActive
+              ? StudentStatus.active
+              : StudentStatus.inactive),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
