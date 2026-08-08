@@ -1,5 +1,73 @@
+﻿import '../../features/parent_portal/parent_fee_di.dart';
+import '../../features/parent_portal/parent_results_di.dart';
+import '../../features/parent_portal/parent_homework_di.dart';
+import '../../features/parent_portal/parent_attendance_di.dart';
+import '../../features/timeline/timeline_di.dart';
+import '../../features/parent_portal/data/services/parent_context_service_impl.dart';
+import '../../features/parent_portal/domain/services/parent_context_service.dart';
+import '../audit/data/datasources/audit_configuration_remote_datasource.dart';
+import '../audit/data/datasources/audit_remote_datasource.dart';
+import '../audit/data/repositories/audit_configuration_repository_impl.dart';
+import '../audit/data/repositories/audit_repository_impl.dart';
+import '../audit/data/services/audit_service_impl.dart';
+import '../audit/domain/repositories/audit_configuration_repository.dart';
+import '../audit/domain/repositories/audit_repository.dart';
+import '../audit/domain/services/audit_service.dart';
+import '../audit/presentation/bloc/audit_configuration_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../features/communication/data/datasources/push_delivery_log_remote_datasource.dart';
+import '../../features/communication/data/repositories/push_delivery_log_repository_impl.dart';
+import '../../features/communication/domain/repositories/push_delivery_log_repository.dart';
+import '../../features/communication/domain/usecases/get_push_history.dart';
+import '../../features/communication/domain/usecases/retry_failed_push.dart';
+import '../../features/communication/presentation/bloc/push_history_bloc.dart';
+import '../../features/communication/data/datasources/whatsapp_broadcast_remote_datasource.dart';
+import '../../features/communication/data/repositories/whatsapp_broadcast_repository_impl.dart';
+import '../../features/communication/data/services/firebase_callable_whatsapp_broadcast_sender_service.dart';
+import '../../features/communication/domain/repositories/whatsapp_broadcast_repository.dart';
+import '../../features/communication/domain/services/whatsapp_broadcast_sender_service.dart';
+import '../../features/communication/domain/usecases/manage_whatsapp_broadcasts.dart';
+import '../../features/communication/presentation/bloc/whatsapp_broadcast_bloc.dart';
+import '../../features/communication/data/datasources/whatsapp_remote_datasource.dart';
+import '../../features/communication/data/repositories/whatsapp_repository_impl.dart';
+import '../../features/communication/data/services/firebase_callable_whatsapp_sender_service.dart';
+import '../../features/communication/domain/repositories/whatsapp_repository.dart';
+import '../../features/communication/domain/services/whatsapp_sender_service.dart';
+import '../../features/communication/domain/usecases/manage_whatsapp.dart';
+import '../../features/communication/presentation/bloc/whatsapp_bloc.dart';
+import '../../features/communication/data/datasources/push_notification_request_remote_datasource.dart';
+import '../../features/communication/data/repositories/push_notification_request_repository_impl.dart';
+import '../../features/communication/data/services/firebase_callable_push_sender_service.dart';
+import '../../features/communication/data/services/firebase_push_topic_service.dart';
+import '../../features/communication/domain/repositories/push_notification_request_repository.dart';
+import '../../features/communication/domain/services/push_sender_service.dart';
+import '../../features/communication/domain/services/push_topic_service.dart';
+import '../../features/communication/domain/usecases/manage_push_topics.dart';
+import '../../features/communication/domain/usecases/send_push_notification.dart';
+import '../../features/communication/presentation/bloc/push_notification_bloc.dart';
+import '../../features/communication/data/datasources/push_device_token_remote_datasource.dart';
+import '../../features/communication/data/repositories/push_device_token_repository_impl.dart';
+import '../../features/communication/data/services/firebase_push_notification_service.dart';
+import '../../features/communication/domain/repositories/push_device_token_repository.dart';
+import '../../features/communication/domain/services/push_notification_service.dart';
+import '../../features/communication/domain/usecases/register_push_device.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../features/documents/data/datasources/document_template_remote_datasource.dart';
+import '../../features/documents/data/repositories/document_template_repository_impl.dart';
+import '../../features/documents/domain/repositories/document_template_repository.dart';
+import '../../features/documents/domain/services/default_document_placeholder_resolver.dart';
+import '../../features/documents/domain/services/document_placeholder_resolver.dart';
+import '../../features/documents/domain/services/document_template_validator.dart';
+import '../../features/documents/domain/usecases/delete_document_template.dart';
+import '../../features/documents/domain/usecases/get_default_document_template.dart';
+import '../../features/documents/domain/usecases/get_document_templates.dart';
+import '../../features/documents/domain/usecases/save_document_template.dart';
+import '../../features/documents/domain/usecases/set_default_document_template.dart';
+import '../../features/documents/domain/usecases/seed_birthday_document_template.dart';
+import '../../features/documents/domain/usecases/ensure_default_document_template.dart';
 
 import '../../features/academic_structure/data/datasources/academic_structure_remote_datasource.dart';
 import '../../features/academic_structure/data/repositories/academic_structure_repository_impl.dart';
@@ -8,6 +76,53 @@ import '../../features/academic_structure/domain/repositories/subject_component_
 import '../../features/academic_structure/domain/services/subject_component_exam_service.dart';
 import '../../features/academic_structure/presentation/bloc/subject_component_bloc.dart';
 import '../../features/academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../features/accounts/data/datasources/accounts_remote_datasource.dart';
+import '../../features/accounts/data/repositories/accounts_repository_impl.dart';
+import '../../features/accounts/domain/repositories/accounts_repository.dart';
+import '../../features/accounts/domain/usecases/get_accounts_overview.dart';
+import '../../features/accounts/presentation/bloc/accounts_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_expenses.dart';
+import '../../features/accounts/presentation/bloc/expense_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_payroll.dart';
+import '../../features/accounts/presentation/bloc/payroll_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_income.dart';
+import '../../features/accounts/presentation/bloc/income_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_profit_loss.dart';
+import '../../features/accounts/presentation/bloc/profit_loss_bloc.dart';
+import '../../features/accounts/domain/usecases/manage_cashbook.dart';
+import '../../features/accounts/presentation/bloc/cashbook_bloc.dart';
+import '../../features/accounts/data/services/accounts_report_service_impl.dart';
+import '../../features/accounts/domain/services/accounts_report_service.dart';
+import '../../features/accounts/domain/usecases/get_accounts_report_data.dart';
+import '../../features/accounts/presentation/bloc/accounts_reports_bloc.dart';
+import '../../features/accounts/data/repositories/teacher_finance_repository_impl.dart';
+import '../../features/accounts/domain/repositories/teacher_finance_repository.dart';
+import '../../features/communication/data/datasources/chat_remote_datasource.dart';
+import '../../features/communication/data/repositories/chat_repository_impl.dart';
+import '../../features/communication/domain/repositories/chat_repository.dart';
+import '../../features/communication/domain/usecases/manage_chat.dart';
+import '../../features/communication/presentation/bloc/chat_bloc.dart';
+import '../../features/communication/data/datasources/communication_audit_remote_datasource.dart';
+import '../../features/communication/data/repositories/communication_audit_repository_impl.dart';
+import '../../features/communication/domain/repositories/communication_audit_repository.dart';
+import '../../features/communication/domain/usecases/get_communication_analytics.dart';
+import '../../features/communication/presentation/bloc/communication_analytics_bloc.dart';
+import '../../features/communication/domain/usecases/get_communication_delivery_audit.dart';
+import '../../features/communication/presentation/bloc/communication_audit_bloc.dart';
+import '../../features/communication/data/datasources/communication_broadcast_remote_datasource.dart';
+import '../../features/communication/data/repositories/communication_broadcast_repository_impl.dart';
+import '../../features/communication/data/services/firebase_callable_communication_broadcast_sender_service.dart';
+import '../../features/communication/domain/repositories/communication_broadcast_repository.dart';
+import '../../features/communication/domain/services/communication_broadcast_sender_service.dart';
+import '../../features/communication/domain/usecases/manage_communication_broadcasts.dart';
+import '../../features/communication/presentation/bloc/communication_broadcast_bloc.dart';
+import '../../features/communication/data/datasources/communication_remote_datasource.dart';
+import '../../features/communication/data/repositories/communication_repository_impl.dart';
+import '../../features/communication/domain/repositories/communication_repository.dart';
+import '../../features/communication/domain/usecases/delete_communication_message.dart';
+import '../../features/communication/domain/usecases/get_communication_messages.dart';
+import '../../features/communication/domain/usecases/save_communication_message.dart';
+import '../../features/communication/presentation/bloc/communication_bloc.dart';
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
 import '../../features/attendance/domain/repositories/attendance_repository.dart';
@@ -146,12 +261,70 @@ import '../../features/staff/presentation/bloc/staff_attendance_bloc.dart';
 import '../../features/staff/presentation/bloc/staff_leave_bloc.dart';
 import '../../features/staff/presentation/bloc/staff_salary_bloc.dart';
 import '../../features/staff/presentation/bloc/staff_bloc.dart';
+import '../../features/school_store/data/datasources/store_payment_remote_datasource.dart';
+import '../../features/school_store/data/repositories/store_payment_repository_impl.dart';
+import '../../features/school_store/domain/repositories/store_payment_repository.dart';
+import '../../features/school_store/domain/usecases/get_store_reports.dart';
+import '../../features/school_store/presentation/bloc/store_reports_bloc.dart';
+import '../../features/school_store/domain/usecases/manage_store_payments.dart';
+import '../../features/school_store/presentation/bloc/store_payment_bloc.dart';
+import '../../features/school_store/data/datasources/store_sale_remote_datasource.dart';
+import '../../features/school_store/data/repositories/store_sale_repository_impl.dart';
+import '../../features/school_store/domain/repositories/store_sale_repository.dart';
+import '../../features/school_store/domain/usecases/manage_store_sales.dart';
+import '../../features/school_store/presentation/bloc/store_sale_bloc.dart';
+import '../../features/school_store/data/datasources/store_purchase_remote_datasource.dart';
+import '../../features/school_store/data/repositories/store_purchase_repository_impl.dart';
+import '../../features/school_store/domain/repositories/store_purchase_repository.dart';
+import '../../features/school_store/domain/usecases/manage_store_purchases.dart';
+import '../../features/school_store/presentation/bloc/store_purchase_bloc.dart';
+import '../../features/school_store/data/datasources/school_store_remote_datasource.dart';
+import '../../features/school_store/data/repositories/school_store_repository_impl.dart';
+import '../../features/school_store/domain/repositories/school_store_repository.dart';
+import '../../features/school_store/domain/usecases/manage_store_items.dart';
+import '../../features/school_store/presentation/bloc/school_store_bloc.dart';
+import '../../features/settings/data/datasources/backup_remote_datasource.dart';
+import '../../features/settings/data/repositories/backup_repository_impl.dart';
+import '../../features/settings/domain/repositories/backup_repository.dart';
+import '../../features/settings/domain/usecases/manage_backup_restore.dart';
+import '../../features/settings/presentation/bloc/backup_bloc.dart';
+import '../../features/settings/data/datasources/user_preferences_remote_datasource.dart';
+import '../../features/settings/data/repositories/user_preferences_repository_impl.dart';
+import '../../features/settings/domain/repositories/user_preferences_repository.dart';
+import '../../features/settings/domain/usecases/manage_user_preferences.dart';
+import '../../features/settings/presentation/bloc/user_preferences_bloc.dart';
+import '../../features/settings/data/datasources/security_remote_datasource.dart';
+import '../../features/settings/data/repositories/security_repository_impl.dart';
+import '../../features/settings/domain/repositories/security_repository.dart';
+import '../../features/settings/domain/usecases/manage_security.dart';
+import '../../features/settings/presentation/bloc/security_bloc.dart';
+import '../../features/settings/data/datasources/system_health_remote_datasource.dart';
+import '../../features/settings/data/repositories/system_health_repository_impl.dart';
+import '../../features/settings/domain/repositories/system_health_repository.dart';
+import '../../features/settings/domain/usecases/manage_system_health.dart';
+import '../../features/settings/presentation/bloc/system_health_bloc.dart';
+import '../../features/settings/data/datasources/settings_remote_datasource.dart';
+import '../../features/settings/data/repositories/settings_repository_impl.dart';
+import '../../features/settings/domain/repositories/settings_repository.dart';
+import '../../features/settings/domain/usecases/manage_settings.dart';
+import '../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../features/students/data/datasources/student_remote_datasource.dart';
 import '../../features/students/data/repositories/student_repository_impl.dart';
 import '../../features/students/domain/repositories/student_repository.dart';
 import '../../features/students/domain/usecases/get_student_by_id.dart';
 import '../../features/students/domain/usecases/get_students_by_class_and_section.dart';
 import '../../features/students/presentation/bloc/student_bloc.dart';
+import '../../features/school_engagement/data/datasources/engagement_remote_datasource.dart';
+import '../../features/school_engagement/data/repositories/engagement_repository_impl.dart';
+import '../../features/school_engagement/domain/repositories/engagement_repository.dart';
+import '../../features/school_engagement/domain/services/birthday_resolver_service.dart';
+import '../../features/school_engagement/domain/services/engagement_template_resolver.dart';
+import '../../features/school_engagement/domain/usecases/generate_birthday_card.dart';
+import '../../features/school_engagement/domain/usecases/get_birthday_history.dart';
+import '../../features/school_engagement/domain/usecases/get_today_birthdays.dart';
+import '../../features/school_engagement/domain/usecases/get_upcoming_birthdays.dart';
+import '../../features/school_engagement/domain/usecases/record_engagement_history.dart';
+import '../../features/school_engagement/domain/usecases/search_birthday_people.dart';
 import '../../features/timetable/data/services/timetable_report_export_service_impl.dart';
 import '../../features/timetable/data/repositories/teacher_availability_repository_impl.dart';
 import '../../features/timetable/data/datasources/timetable_remote_datasource.dart';
@@ -265,6 +438,42 @@ import '../../features/access_control/domain/services/access_control_service.dar
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
+  registerParentFeeDependencies(sl);
+  registerParentResultsDependencies(sl);
+  registerParentHomeworkDependencies(sl);
+  registerParentAttendanceDependencies(sl);
+  registerTimelineDependencies(sl);
+  sl.registerLazySingleton<AuditConfigurationRemoteDataSource>(
+    () => AuditConfigurationRemoteDataSourceImpl(sl<FirebaseFirestore>()),
+  );
+
+  sl.registerLazySingleton<AuditConfigurationRepository>(
+    () => AuditConfigurationRepositoryImpl(
+      sl<AuditConfigurationRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<AuditRemoteDataSource>(
+    () => AuditRemoteDataSource(),
+  );
+
+  sl.registerLazySingleton<AuditRepository>(
+    () => AuditRepositoryImpl(sl<AuditRemoteDataSource>()),
+  );
+
+  sl.registerLazySingleton<AuditService>(
+    () => AuditServiceImpl(
+      sl<AuditRepository>(),
+      sl<AccessControlService>(),
+      sl<AuditConfigurationRepository>(),
+    ),
+  );
+  sl.registerFactory<AuditConfigurationBloc>(
+    () => AuditConfigurationBloc(
+      sl<AuditConfigurationRepository>(),
+      sl<AuditRepository>(),
+    ),
+  );
   // =========================================================
   // Services
   // =========================================================
@@ -272,12 +481,83 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
   sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
+  sl.registerLazySingleton<FirebaseFunctions>(() => FirebaseFunctions.instance);
 
   sl.registerLazySingleton<FirebaseFirestoreService>(
     FirebaseFirestoreService.new,
   );
   sl.registerLazySingleton<FirebaseFirestore>(
     () => sl<FirebaseFirestoreService>().instance,
+  );
+
+
+  // =========================================================
+  // Document Engine
+  // =========================================================
+
+  sl.registerLazySingleton<DocumentPlaceholderResolver>(
+    DefaultDocumentPlaceholderResolver.new,
+  );
+
+  sl.registerLazySingleton<DocumentTemplateValidator>(
+    DocumentTemplateValidator.new,
+  );
+
+  sl.registerLazySingleton<DocumentTemplateRemoteDataSource>(
+    () => DocumentTemplateRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+    ),
+  );
+
+  sl.registerLazySingleton<DocumentTemplateRepository>(
+    () => DocumentTemplateRepositoryImpl(
+      sl<DocumentTemplateRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetDocumentTemplates>(
+    () => GetDocumentTemplates(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetDefaultDocumentTemplate>(
+    () => GetDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<SaveDocumentTemplate>(
+    () => SaveDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+      sl<DocumentTemplateValidator>(),
+    ),
+  );
+
+  sl.registerLazySingleton<DeleteDocumentTemplate>(
+    () => DeleteDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<SetDefaultDocumentTemplate>(
+    () => SetDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
+  );
+
+
+  sl.registerLazySingleton<SeedBirthdayDocumentTemplate>(
+    () => SeedBirthdayDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+      sl<DocumentTemplateValidator>(),
+    ),
+  );
+
+  sl.registerLazySingleton<EnsureDefaultDocumentTemplate>(
+    () => EnsureDefaultDocumentTemplate(
+      sl<DocumentTemplateRepository>(),
+    ),
   );
 
   // =========================================================
@@ -290,10 +570,219 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  sl.registerLazySingleton<GetStoreReports>(
+    () => GetStoreReports(
+      storeRepository: sl<SchoolStoreRepository>(),
+      purchaseRepository: sl<StorePurchaseRepository>(),
+      saleRepository: sl<StoreSaleRepository>(),
+      paymentRepository: sl<StorePaymentRepository>(),
+    ),
+  );
+  sl.registerFactory<StoreReportsBloc>(
+    () => StoreReportsBloc(sl<GetStoreReports>()),
+  );
+  sl.registerLazySingleton<StorePaymentRemoteDataSource>(
+    () => StorePaymentRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<StorePaymentRepository>(
+    () => StorePaymentRepositoryImpl(sl<StorePaymentRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetStorePaymentData>(
+    () => GetStorePaymentData(sl<StorePaymentRepository>()),
+  );
+  sl.registerLazySingleton<ReceiveStoreStudentPayment>(
+    () => ReceiveStoreStudentPayment(sl<StorePaymentRepository>()),
+  );
+  sl.registerLazySingleton<PayStoreSupplier>(
+    () => PayStoreSupplier(sl<StorePaymentRepository>()),
+  );
+  sl.registerFactory<StorePaymentBloc>(
+    () => StorePaymentBloc(
+      getData: sl<GetStorePaymentData>(),
+      receiveStudentPayment: sl<ReceiveStoreStudentPayment>(),
+      paySupplier: sl<PayStoreSupplier>(),
+    ),
+  );
+  sl.registerLazySingleton<StoreSaleRemoteDataSource>(
+    () => StoreSaleRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<StoreSaleRepository>(
+    () => StoreSaleRepositoryImpl(sl<StoreSaleRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetStoreStudents>(
+    () => GetStoreStudents(sl<StoreSaleRepository>()),
+  );
+  sl.registerLazySingleton<GetStoreSales>(
+    () => GetStoreSales(sl<StoreSaleRepository>()),
+  );
+  sl.registerLazySingleton<SaveStoreSale>(
+    () => SaveStoreSale(sl<StoreSaleRepository>()),
+  );
+  sl.registerFactory<StoreSaleBloc>(
+    () => StoreSaleBloc(
+      getStudents: sl<GetStoreStudents>(),
+      getItems: sl<GetStoreItems>(),
+      getSales: sl<GetStoreSales>(),
+      saveSale: sl<SaveStoreSale>(),
+    ),
+  );
+  sl.registerLazySingleton<StorePurchaseRemoteDataSource>(
+    () => StorePurchaseRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<StorePurchaseRepository>(
+    () => StorePurchaseRepositoryImpl(sl<StorePurchaseRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetStoreSuppliers>(
+    () => GetStoreSuppliers(sl<StorePurchaseRepository>()),
+  );
+  sl.registerLazySingleton<SaveStoreSupplier>(
+    () => SaveStoreSupplier(sl<StorePurchaseRepository>()),
+  );
+  sl.registerLazySingleton<GetStorePurchases>(
+    () => GetStorePurchases(sl<StorePurchaseRepository>()),
+  );
+  sl.registerLazySingleton<SaveStorePurchase>(
+    () => SaveStorePurchase(sl<StorePurchaseRepository>()),
+  );
+  sl.registerFactory<StorePurchaseBloc>(
+    () => StorePurchaseBloc(
+      getSuppliers: sl<GetStoreSuppliers>(),
+      saveSupplier: sl<SaveStoreSupplier>(),
+      getPurchases: sl<GetStorePurchases>(),
+      savePurchase: sl<SaveStorePurchase>(),
+      getItems: sl<GetStoreItems>(),
+    ),
+  );
+  sl.registerLazySingleton<SchoolStoreRemoteDataSource>(
+    () => SchoolStoreRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<SchoolStoreRepository>(
+    () => SchoolStoreRepositoryImpl(sl<SchoolStoreRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetStoreItems>(
+    () => GetStoreItems(sl<SchoolStoreRepository>()),
+  );
+  sl.registerLazySingleton<SaveStoreItem>(
+    () => SaveStoreItem(sl<SchoolStoreRepository>()),
+  );
+  sl.registerLazySingleton<DeleteStoreItem>(
+    () => DeleteStoreItem(sl<SchoolStoreRepository>()),
+  );
+  sl.registerFactory<SchoolStoreBloc>(
+    () => SchoolStoreBloc(
+      getItems: sl<GetStoreItems>(),
+      saveItem: sl<SaveStoreItem>(),
+      deleteItem: sl<DeleteStoreItem>(),
+    ),
+  );
+  sl.registerLazySingleton<BackupRemoteDataSource>(
+    () => BackupRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+      sl<FirebaseFunctions>(),
+    ),
+  );
+  sl.registerLazySingleton<BackupRepository>(
+    () => BackupRepositoryImpl(sl<BackupRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetBackupRestoreData>(
+    () => GetBackupRestoreData(sl<BackupRepository>()),
+  );
+  sl.registerLazySingleton<RequestBackup>(
+    () => RequestBackup(sl<BackupRepository>()),
+  );
+  sl.registerLazySingleton<RequestRestore>(
+    () => RequestRestore(sl<BackupRepository>()),
+  );
+  sl.registerFactory<BackupBloc>(
+    () => BackupBloc(
+      getData: sl<GetBackupRestoreData>(),
+      requestBackup: sl<RequestBackup>(),
+      requestRestore: sl<RequestRestore>(),
+    ),
+  );
+  sl.registerLazySingleton<UserPreferencesRemoteDataSource>(
+    () => UserPreferencesRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<UserPreferencesRepository>(
+    () => UserPreferencesRepositoryImpl(sl<UserPreferencesRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetUserPreferences>(
+    () => GetUserPreferences(sl<UserPreferencesRepository>()),
+  );
+  sl.registerLazySingleton<SaveUserPreferences>(
+    () => SaveUserPreferences(sl<UserPreferencesRepository>()),
+  );
+  sl.registerFactory<UserPreferencesBloc>(
+    () => UserPreferencesBloc(
+      getPreferences: sl<GetUserPreferences>(),
+      savePreferences: sl<SaveUserPreferences>(),
+    ),
+  );
+  sl.registerLazySingleton<SecurityRemoteDataSource>(
+    () => SecurityRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+      sl<FirebaseAuth>(),
+    ),
+  );
+  sl.registerLazySingleton<SecurityRepository>(
+    () => SecurityRepositoryImpl(sl<SecurityRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetSecurityData>(
+    () => GetSecurityData(sl<SecurityRepository>()),
+  );
+  sl.registerLazySingleton<ChangeUserPassword>(
+    () => ChangeUserPassword(sl<SecurityRepository>()),
+  );
+  sl.registerLazySingleton<RevokeUserSession>(
+    () => RevokeUserSession(sl<SecurityRepository>()),
+  );
+  sl.registerFactory<SecurityBloc>(
+    () => SecurityBloc(
+      getData: sl<GetSecurityData>(),
+      changePassword: sl<ChangeUserPassword>(),
+      revokeSession: sl<RevokeUserSession>(),
+    ),
+  );
+  sl.registerLazySingleton<SystemHealthRemoteDataSource>(
+    () => SystemHealthRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+      sl<FirebaseAuth>(),
+    ),
+  );
+  sl.registerLazySingleton<SystemHealthRepository>(
+    () => SystemHealthRepositoryImpl(sl<SystemHealthRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<CheckSystemHealth>(
+    () => CheckSystemHealth(sl<SystemHealthRepository>()),
+  );
+  sl.registerFactory<SystemHealthBloc>(
+    () => SystemHealthBloc(sl<CheckSystemHealth>()),
+  );
+  sl.registerLazySingleton<SettingsRemoteDataSource>(
+    () => SettingsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(sl<SettingsRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetSchoolSettings>(
+    () => GetSchoolSettings(sl<SettingsRepository>()),
+  );
+  sl.registerLazySingleton<SaveSchoolSettings>(
+    () => SaveSchoolSettings(sl<SettingsRepository>()),
+  );
+  sl.registerFactory<SettingsBloc>(
+    () => SettingsBloc(
+      getSettings: sl<GetSchoolSettings>(),
+      saveSettings: sl<SaveSchoolSettings>(),
+    ),
+  );
   sl.registerLazySingleton<StudentRemoteDataSource>(
     () => StudentRemoteDataSourceImpl(
       firestoreService: sl<FirebaseFirestoreService>(),
     ),
+  );
+  sl.registerLazySingleton<EngagementRemoteDataSource>(
+    () => EngagementRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
   );
 
   sl.registerLazySingleton<AttendanceRemoteDataSource>(
@@ -390,19 +879,33 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<StudentRepository>(
-    () =>
-        StudentRepositoryImpl(remoteDataSource: sl<StudentRemoteDataSource>()),
+    () => StudentRepositoryImpl(
+      remoteDataSource: sl<StudentRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
+  );
+  sl.registerLazySingleton<EngagementRepository>(
+    () => EngagementRepositoryImpl(sl<EngagementRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(
       remoteDataSource: sl<AttendanceRemoteDataSource>(),
+      auditService: sl<AuditService>(),
     ),
   );
 
   sl.registerLazySingleton<TeacherRepository>(
-    () =>
-        TeacherRepositoryImpl(remoteDataSource: sl<TeacherRemoteDataSource>()),
+    () => TeacherRepositoryImpl(
+      remoteDataSource: sl<TeacherRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
+  );
+  sl.registerLazySingleton<TeacherFinanceRepository>(
+    () => TeacherFinanceRepositoryImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<StaffRepository>(
@@ -469,7 +972,10 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<FeeReportService>(FeeReportServiceImpl.new);
   sl.registerLazySingleton<FeeDocumentService>(FeeDocumentServiceImpl.new);
   sl.registerLazySingleton<FeePaymentRepository>(
-    () => FeePaymentRepositoryImpl(sl<FirebaseFirestoreService>()),
+    () => FeePaymentRepositoryImpl(
+      firestoreService: sl<FirebaseFirestoreService>(),
+      auditService: sl<AuditService>(),
+    ),
   );
   sl.registerLazySingleton<MonthlyFeeDueRepository>(
     () => MonthlyFeeDueRepositoryImpl(sl<FirebaseFirestoreService>()),
@@ -487,6 +993,7 @@ Future<void> setupServiceLocator() async {
       sl<StudentRepository>(),
       sl<AdditionalChargeRepository>(),
       sl<StudentAdditionalChargeDueRepository>(),
+      sl<AcademicStructureRepository>(),
     ),
   );
 
@@ -503,7 +1010,10 @@ Future<void> setupServiceLocator() async {
     () => FeeStructureRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<ExamRepository>(
-    () => ExamRepositoryImpl(source: sl<ExamRemoteDataSource>()),
+    () => ExamRepositoryImpl(
+      source: sl<ExamRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+    ),
   );
 
   sl.registerLazySingleton<ExamSubjectSetupRepository>(
@@ -547,15 +1057,27 @@ Future<void> setupServiceLocator() async {
     () => ParentTimelineServiceImpl(sl<FirebaseFirestore>()),
   );
   sl.registerLazySingleton<ParentCommunicationService>(
-    () => ParentCommunicationServiceImpl(sl<FirebaseFirestore>()),
+    () => ParentCommunicationServiceImpl(
+      sl<FirebaseFirestore>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<ParentAcademicService>(
-    () => ParentAcademicServiceImpl(sl<FirebaseFirestore>()),
+    () => ParentAcademicServiceImpl(
+      sl<FirebaseFirestore>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<ParentPortalRepository>(
     () => ParentPortalRepositoryImpl(
       sl<FirebaseFirestoreService>(),
       sl<StudentRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ParentContextService>(
+    () => ParentContextServiceImpl(
+      sl<FirebaseAuth>(),
+      sl<ParentPortalRepository>(),
     ),
   );
   sl.registerLazySingleton<NoticeReceiptRepository>(
@@ -604,6 +1126,254 @@ Future<void> setupServiceLocator() async {
     () => AcademicCalendarRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
 
+  sl.registerLazySingleton<AccountsRemoteDataSource>(
+    () => AccountsRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<AccountsRepository>(
+    () => AccountsRepositoryImpl(
+      source: sl<AccountsRemoteDataSource>(),
+      auditService: sl<AuditService>(),
+      teacherFinanceRepository: sl<TeacherFinanceRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
+  sl.registerLazySingleton<WhatsAppBroadcastRemoteDataSource>(
+    () => WhatsAppBroadcastRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<WhatsAppBroadcastRepository>(
+    () => WhatsAppBroadcastRepositoryImpl(
+      sl<WhatsAppBroadcastRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<WhatsAppBroadcastSenderService>(
+    () =>
+        FirebaseCallableWhatsAppBroadcastSenderService(sl<FirebaseFunctions>()),
+  );
+  sl.registerLazySingleton<GetWhatsAppBroadcasts>(
+    () => GetWhatsAppBroadcasts(sl<WhatsAppBroadcastRepository>()),
+  );
+  sl.registerLazySingleton<QueueWhatsAppBroadcast>(
+    () => QueueWhatsAppBroadcast(
+      sl<WhatsAppBroadcastRepository>(),
+      sl<WhatsAppBroadcastSenderService>(),
+    ),
+  );
+  sl.registerLazySingleton<RetryWhatsAppBroadcast>(
+    () => RetryWhatsAppBroadcast(
+      sl<WhatsAppBroadcastRepository>(),
+      sl<WhatsAppBroadcastSenderService>(),
+    ),
+  );
+  sl.registerFactory<WhatsAppBroadcastBloc>(
+    () => WhatsAppBroadcastBloc(
+      getBroadcasts: sl<GetWhatsAppBroadcasts>(),
+      queueBroadcast: sl<QueueWhatsAppBroadcast>(),
+      retryBroadcast: sl<RetryWhatsAppBroadcast>(),
+    ),
+  );
+  sl.registerLazySingleton<WhatsAppRemoteDataSource>(
+    () => WhatsAppRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<WhatsAppRepository>(
+    () => WhatsAppRepositoryImpl(sl<WhatsAppRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<WhatsAppSenderService>(
+    () => FirebaseCallableWhatsAppSenderService(sl<FirebaseFunctions>()),
+  );
+  sl.registerLazySingleton<GetWhatsAppData>(
+    () => GetWhatsAppData(sl<WhatsAppRepository>()),
+  );
+  sl.registerLazySingleton<SaveWhatsAppTemplate>(
+    () => SaveWhatsAppTemplate(sl<WhatsAppRepository>()),
+  );
+  sl.registerLazySingleton<SendWhatsAppMessage>(
+    () => SendWhatsAppMessage(
+      sl<WhatsAppRepository>(),
+      sl<WhatsAppSenderService>(),
+    ),
+  );
+  sl.registerFactory<WhatsAppBloc>(
+    () => WhatsAppBloc(
+      getData: sl<GetWhatsAppData>(),
+      saveTemplate: sl<SaveWhatsAppTemplate>(),
+      sendMessage: sl<SendWhatsAppMessage>(),
+    ),
+  );
+  sl.registerLazySingleton<PushTopicService>(
+    () => FirebasePushTopicService(sl<PushNotificationService>()),
+  );
+  sl.registerLazySingleton<PushDeliveryLogRemoteDataSource>(
+    () => PushDeliveryLogRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<PushDeliveryLogRepository>(
+    () => PushDeliveryLogRepositoryImpl(sl<PushDeliveryLogRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetPushHistory>(
+    () => GetPushHistory(
+      sl<PushNotificationRequestRepository>(),
+      sl<PushDeliveryLogRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<RetryFailedPush>(
+    () => RetryFailedPush(
+      sl<PushNotificationRequestRepository>(),
+      sl<PushSenderService>(),
+    ),
+  );
+  sl.registerFactory<PushHistoryBloc>(
+    () => PushHistoryBloc(
+      getHistory: sl<GetPushHistory>(),
+      retryPush: sl<RetryFailedPush>(),
+    ),
+  );
+  sl.registerLazySingleton<PushNotificationRequestRemoteDataSource>(
+    () => PushNotificationRequestRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+    ),
+  );
+  sl.registerLazySingleton<PushNotificationRequestRepository>(
+    () => PushNotificationRequestRepositoryImpl(
+      sl<PushNotificationRequestRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<PushSenderService>(
+    () => FirebaseCallablePushSenderService(sl<FirebaseFunctions>()),
+  );
+  sl.registerLazySingleton<SubscribeCommunicationTopic>(
+    () => SubscribeCommunicationTopic(sl<PushTopicService>()),
+  );
+  sl.registerLazySingleton<UnsubscribeCommunicationTopic>(
+    () => UnsubscribeCommunicationTopic(sl<PushTopicService>()),
+  );
+  sl.registerLazySingleton<SendPushNotification>(
+    () => SendPushNotification(
+      sl<PushNotificationRequestRepository>(),
+      sl<PushSenderService>(),
+    ),
+  );
+  sl.registerFactory<PushNotificationBloc>(
+    () => PushNotificationBloc(
+      sendNotification: sl<SendPushNotification>(),
+      subscribeTopic: sl<SubscribeCommunicationTopic>(),
+      unsubscribeTopic: sl<UnsubscribeCommunicationTopic>(),
+    ),
+  );
+  sl.registerLazySingleton<PushNotificationService>(
+    () => FirebasePushNotificationService(sl<FirebaseMessaging>()),
+  );
+  sl.registerLazySingleton<PushDeviceTokenRemoteDataSource>(
+    () => PushDeviceTokenRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<PushDeviceTokenRepository>(
+    () => PushDeviceTokenRepositoryImpl(sl<PushDeviceTokenRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<RegisterPushDevice>(
+    () => RegisterPushDevice(
+      sl<PushNotificationService>(),
+      sl<PushDeviceTokenRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(sl<ChatRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<GetChatThreads>(
+    () => GetChatThreads(sl<ChatRepository>()),
+  );
+  sl.registerLazySingleton<GetChatMessages>(
+    () => GetChatMessages(sl<ChatRepository>()),
+  );
+  sl.registerLazySingleton<CreateChatThread>(
+    () => CreateChatThread(sl<ChatRepository>()),
+  );
+  sl.registerLazySingleton<SendChatMessage>(
+    () => SendChatMessage(sl<ChatRepository>()),
+  );
+  sl.registerLazySingleton<MarkChatThreadRead>(
+    () => MarkChatThreadRead(sl<ChatRepository>()),
+  );
+  sl.registerFactory<ChatBloc>(
+    () => ChatBloc(
+      getThreads: sl<GetChatThreads>(),
+      getMessages: sl<GetChatMessages>(),
+      createThread: sl<CreateChatThread>(),
+      sendMessage: sl<SendChatMessage>(),
+      markRead: sl<MarkChatThreadRead>(),
+    ),
+  );
+  sl.registerLazySingleton<CommunicationAuditRemoteDataSource>(
+    () =>
+        CommunicationAuditRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<CommunicationAuditRepository>(
+    () => CommunicationAuditRepositoryImpl(
+      sl<CommunicationAuditRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<GetCommunicationAnalytics>(
+    () => GetCommunicationAnalytics(sl<GetCommunicationDeliveryAudit>()),
+  );
+  sl.registerFactory<CommunicationAnalyticsBloc>(
+    () => CommunicationAnalyticsBloc(sl<GetCommunicationAnalytics>()),
+  );
+  sl.registerLazySingleton<GetCommunicationDeliveryAudit>(
+    () => GetCommunicationDeliveryAudit(
+      broadcastRepository: sl<CommunicationBroadcastRepository>(),
+      pushLogRepository: sl<PushDeliveryLogRepository>(),
+      whatsappRepository: sl<WhatsAppRepository>(),
+      auditRepository: sl<CommunicationAuditRepository>(),
+    ),
+  );
+  sl.registerFactory<CommunicationAuditBloc>(
+    () => CommunicationAuditBloc(sl<GetCommunicationDeliveryAudit>()),
+  );
+  sl.registerLazySingleton<CommunicationBroadcastRemoteDataSource>(
+    () => CommunicationBroadcastRemoteDataSourceImpl(
+      sl<FirebaseFirestoreService>(),
+    ),
+  );
+  sl.registerLazySingleton<CommunicationBroadcastRepository>(
+    () => CommunicationBroadcastRepositoryImpl(
+      sl<CommunicationBroadcastRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<CommunicationBroadcastSenderService>(
+    () => FirebaseCallableCommunicationBroadcastSenderService(
+      sl<FirebaseFunctions>(),
+    ),
+  );
+  sl.registerLazySingleton<GetCommunicationBroadcasts>(
+    () => GetCommunicationBroadcasts(sl<CommunicationBroadcastRepository>()),
+  );
+  sl.registerLazySingleton<QueueCommunicationBroadcast>(
+    () => QueueCommunicationBroadcast(
+      sl<CommunicationBroadcastRepository>(),
+      sl<CommunicationBroadcastSenderService>(),
+    ),
+  );
+  sl.registerLazySingleton<RetryCommunicationBroadcast>(
+    () => RetryCommunicationBroadcast(
+      sl<CommunicationBroadcastRepository>(),
+      sl<CommunicationBroadcastSenderService>(),
+    ),
+  );
+  sl.registerFactory<CommunicationBroadcastBloc>(
+    () => CommunicationBroadcastBloc(
+      getBroadcasts: sl<GetCommunicationBroadcasts>(),
+      queueBroadcast: sl<QueueCommunicationBroadcast>(),
+      retryBroadcast: sl<RetryCommunicationBroadcast>(),
+    ),
+  );
+  sl.registerLazySingleton<CommunicationRemoteDataSource>(
+    () => CommunicationRemoteDataSourceImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<CommunicationRepository>(
+    () => CommunicationRepositoryImpl(sl<CommunicationRemoteDataSource>()),
+  );
+
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
       source: sl<AcademicStructureRemoteDataSource>(),
@@ -624,6 +1394,137 @@ Future<void> setupServiceLocator() async {
   // =========================================================
   // Use Cases
   // =========================================================
+
+  sl.registerLazySingleton<BirthdayResolverService>(
+    BirthdayResolverService.new,
+  );
+
+  sl.registerLazySingleton<EngagementTemplateResolver>(
+    EngagementTemplateResolver.new,
+  );
+  sl.registerLazySingleton<GetTodayBirthdays>(
+    () => GetTodayBirthdays(
+      studentRepository: sl<StudentRepository>(),
+      birthdayResolver: sl<BirthdayResolverService>(),
+    ),
+  );
+  sl.registerLazySingleton<GetUpcomingBirthdays>(
+    () => GetUpcomingBirthdays(
+      studentRepository: sl<StudentRepository>(),
+      birthdayResolver: sl<BirthdayResolverService>(),
+    ),
+  );
+  sl.registerLazySingleton<SearchBirthdayPeople>(
+  () => SearchBirthdayPeople(
+    studentRepository:
+        sl<StudentRepository>(),
+    academicStructureRepository:
+        sl<AcademicStructureRepository>(),
+  ),
+);
+  sl.registerLazySingleton<GetBirthdayHistory>(
+    () => GetBirthdayHistory(repository: sl<EngagementRepository>()),
+  );
+  sl.registerLazySingleton<RecordEngagementHistory>(
+    () => RecordEngagementHistory(repository: sl<EngagementRepository>()),
+  );
+
+  sl.registerLazySingleton<GenerateBirthdayCard>(
+    () => GenerateBirthdayCard(
+      repository: sl<EngagementRepository>(),
+      templateResolver: sl<EngagementTemplateResolver>(),
+    ),
+  );
+  sl.registerLazySingleton<AccountsReportService>(
+    AccountsReportServiceImpl.new,
+  );
+  sl.registerLazySingleton<GetAccountsReportData>(
+    () => GetAccountsReportData(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetCashbookEntries>(
+    () => GetCashbookEntries(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SyncCashbook>(
+    () => SyncCashbook(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetProfitLossSnapshots>(
+    () => GetProfitLossSnapshots(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<GenerateMonthlyProfitLoss>(
+    () => GenerateMonthlyProfitLoss(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetIncomeEntries>(
+    () => GetIncomeEntries(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveIncomeEntry>(
+    () => SaveIncomeEntry(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<ReverseIncomeEntry>(
+    () => ReverseIncomeEntry(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SyncFeePaymentsToIncome>(
+    () => SyncFeePaymentsToIncome(
+      sl<AccountsRepository>(),
+      sl<FeePaymentRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetPayrollManagementData>(
+    () => GetPayrollManagementData(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SavePayrollProfile>(
+    () => SavePayrollProfile(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SetPayrollProfileActive>(
+    () => SetPayrollProfileActive(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<DeletePayrollProfile>(
+    () => DeletePayrollProfile(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GenerateMonthlyPayroll>(
+    () => GenerateMonthlyPayroll(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SavePayrollRecord>(
+    () => SavePayrollRecord(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<UpdatePayrollStatus>(
+    () => UpdatePayrollStatus(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetExpenseManagementData>(
+    () => GetExpenseManagementData(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveExpenseCategory>(
+    () => SaveExpenseCategory(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SetExpenseCategoryActive>(
+    () => SetExpenseCategoryActive(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<SaveExpense>(
+    () => SaveExpense(sl<AccountsRepository>()),
+  );
+  sl.registerLazySingleton<UpdateExpenseStatus>(
+    () => UpdateExpenseStatus(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<GetAccountsOverview>(
+    () => GetAccountsOverview(sl<AccountsRepository>()),
+  );
+
+  sl.registerLazySingleton<DeleteCommunicationMessage>(
+    () => DeleteCommunicationMessage(sl<CommunicationRepository>()),
+  );
+
+  sl.registerLazySingleton<GetCommunicationMessages>(
+    () => GetCommunicationMessages(sl<CommunicationRepository>()),
+  );
+  sl.registerLazySingleton<SaveCommunicationMessage>(
+    () => SaveCommunicationMessage(sl<CommunicationRepository>()),
+  );
 
   sl.registerLazySingleton<LoginUseCase>(
     () => LoginUseCase(sl<AuthenticationRepository>()),
@@ -718,6 +1619,7 @@ Future<void> setupServiceLocator() async {
       gradingRuleRepository: sl<GradingRuleRepository>(),
       resultRepository: sl<ExamResultRepository>(),
       componentService: sl<SubjectComponentExamService>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 
@@ -866,8 +1768,12 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<GetTeacherWorkloads>(
-    () =>
-        GetTeacherWorkloads(sl<TimetableRepository>(), sl<TeacherRepository>()),
+    () => GetTeacherWorkloads(
+      sl<TimetableRepository>(),
+      sl<TeacherRepository>(),
+      sl<TeacherAssignmentRepository>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
   sl.registerLazySingleton<GetTeacherTimetable>(
     () => GetTeacherTimetable(sl<TimetableRepository>()),
@@ -923,6 +1829,70 @@ Future<void> setupServiceLocator() async {
     () => AcademicCalendarBloc(sl<AcademicCalendarRepository>()),
   );
 
+  sl.registerFactory<AccountsReportsBloc>(
+    () => AccountsReportsBloc(
+      getReportData: sl<GetAccountsReportData>(),
+      reportService: sl<AccountsReportService>(),
+    ),
+  );
+
+  sl.registerFactory<CashbookBloc>(
+    () => CashbookBloc(
+      getEntries: sl<GetCashbookEntries>(),
+      syncCashbook: sl<SyncCashbook>(),
+    ),
+  );
+
+  sl.registerFactory<ProfitLossBloc>(
+    () => ProfitLossBloc(
+      getSnapshots: sl<GetProfitLossSnapshots>(),
+      generateMonthly: sl<GenerateMonthlyProfitLoss>(),
+    ),
+  );
+
+  sl.registerFactory<IncomeBloc>(
+    () => IncomeBloc(
+      getIncomeEntries: sl<GetIncomeEntries>(),
+      saveIncomeEntry: sl<SaveIncomeEntry>(),
+      reverseIncomeEntry: sl<ReverseIncomeEntry>(),
+      syncFeePayments: sl<SyncFeePaymentsToIncome>(),
+    ),
+  );
+
+  sl.registerFactory<PayrollBloc>(
+    () => PayrollBloc(
+      getData: sl<GetPayrollManagementData>(),
+      saveProfile: sl<SavePayrollProfile>(),
+      setProfileActive: sl<SetPayrollProfileActive>(),
+      deleteProfile: sl<DeletePayrollProfile>(),
+      generatePayroll: sl<GenerateMonthlyPayroll>(),
+      saveRecord: sl<SavePayrollRecord>(),
+      updateStatus: sl<UpdatePayrollStatus>(),
+    ),
+  );
+
+  sl.registerFactory<ExpenseBloc>(
+    () => ExpenseBloc(
+      getData: sl<GetExpenseManagementData>(),
+      saveCategory: sl<SaveExpenseCategory>(),
+      setCategoryActive: sl<SetExpenseCategoryActive>(),
+      saveExpense: sl<SaveExpense>(),
+      updateStatus: sl<UpdateExpenseStatus>(),
+    ),
+  );
+
+  sl.registerFactory<AccountsBloc>(
+    () => AccountsBloc(sl<GetAccountsOverview>()),
+  );
+
+  sl.registerFactory<CommunicationBloc>(
+    () => CommunicationBloc(
+      getMessages: sl<GetCommunicationMessages>(),
+      saveMessage: sl<SaveCommunicationMessage>(),
+      deleteMessage: sl<DeleteCommunicationMessage>(),
+    ),
+  );
+
   sl.registerFactory<AuthenticationBloc>(
     () => AuthenticationBloc(
       loginUseCase: sl<LoginUseCase>(),
@@ -939,7 +1909,10 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerLazySingleton<GenerateAttendanceReport>(
-    () => GenerateAttendanceReport(sl<AttendanceRepository>()),
+    () => GenerateAttendanceReport(
+      sl<AttendanceRepository>(),
+      sl<AcademicStructureRepository>(),
+    ),
   );
 
   sl.registerFactory<AttendanceReportBloc>(
@@ -1063,6 +2036,8 @@ Future<void> setupServiceLocator() async {
       deleteSetup: sl<DeleteExamSubjectSetup>(),
       examRepository: sl<ExamRepository>(),
       academicStructureRepository: sl<AcademicStructureRepository>(),
+      subjectSetupRepository: sl<ExamSubjectSetupRepository>(),
+      markRepository: sl<ExamMarkRepository>(),
     ),
   );
 
@@ -1072,9 +2047,12 @@ Future<void> setupServiceLocator() async {
       getSubjectSetupsForExam: sl<GetExamSubjectSetupsForExam>(),
       getStudentsByClassAndSection: sl<GetStudentsByClassAndSection>(),
       getExamMarks: sl<GetExamMarks>(),
+      getExamResults: sl<GetExamResults>(),
       saveExamMarks: sl<SaveExamMarks>(),
       deleteExamMark: sl<DeleteExamMark>(),
       componentService: sl<SubjectComponentExamService>(),
+      studentRepository: sl<StudentRepository>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 
@@ -1085,6 +2063,7 @@ Future<void> setupServiceLocator() async {
       getExamResults: sl<GetExamResults>(),
       generateExamResults: sl<GenerateExamResults>(),
       updateResultStatus: sl<UpdateExamResultStatus>(),
+      academicStructureRepository: sl<AcademicStructureRepository>(),
     ),
   );
 

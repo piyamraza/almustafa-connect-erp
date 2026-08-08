@@ -47,7 +47,9 @@ class AttendancePage extends StatelessWidget {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 2.0,
+                      // Keep enough vertical room for the icon, two lines of
+                      // text, and the action button at every grid width.
+                      mainAxisExtent: 230,
                     ),
                     itemBuilder: (context, index) {
                       switch (index) {
