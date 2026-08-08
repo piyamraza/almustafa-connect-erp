@@ -1,4 +1,4 @@
-import '../../domain/entities/teacher_entity.dart';
+﻿import '../../domain/entities/teacher_entity.dart';
 
 class TeacherModel extends TeacherEntity {
   const TeacherModel({
@@ -17,6 +17,7 @@ class TeacherModel extends TeacherEntity {
     required super.qualification,
     required super.specialization,
     required super.experienceYears,
+    super.monthlySalary = 0,
     required super.joiningDate,
     required super.isActive,
     required super.createdAt,
@@ -39,6 +40,7 @@ class TeacherModel extends TeacherEntity {
     qualification: map['qualification'] ?? '',
     specialization: map['specialization'] ?? '',
     experienceYears: (map['experienceYears'] as num?)?.toInt() ?? 0,
+    monthlySalary: (map['monthlySalary'] as num?)?.toDouble() ?? 0,
     joiningDate: DateTime.tryParse(map['joiningDate'] ?? '') ?? DateTime.now(),
     isActive: map['isActive'] ?? true,
     createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
@@ -61,6 +63,7 @@ class TeacherModel extends TeacherEntity {
     qualification: entity.qualification,
     specialization: entity.specialization,
     experienceYears: entity.experienceYears,
+    monthlySalary: entity.monthlySalary,
     joiningDate: entity.joiningDate,
     isActive: entity.isActive,
     createdAt: entity.createdAt,
@@ -83,9 +86,11 @@ class TeacherModel extends TeacherEntity {
     'qualification': qualification,
     'specialization': specialization,
     'experienceYears': experienceYears,
+    'monthlySalary': monthlySalary,
     'joiningDate': joiningDate.toIso8601String(),
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
 }
+

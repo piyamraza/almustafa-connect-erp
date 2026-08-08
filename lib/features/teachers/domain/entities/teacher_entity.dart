@@ -1,4 +1,4 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 class TeacherEntity extends Equatable {
   const TeacherEntity({
@@ -17,6 +17,7 @@ class TeacherEntity extends Equatable {
     required this.qualification,
     required this.specialization,
     required this.experienceYears,
+    this.monthlySalary = 0,
     required this.joiningDate,
     required this.isActive,
     required this.createdAt,
@@ -38,6 +39,7 @@ class TeacherEntity extends Equatable {
   final String qualification;
   final String specialization;
   final int experienceYears;
+  final double monthlySalary;
   final DateTime joiningDate;
   final bool isActive;
   final DateTime createdAt;
@@ -62,9 +64,11 @@ class TeacherEntity extends Equatable {
     qualification,
     specialization,
     experienceYears,
+    monthlySalary,
     joiningDate,
     isActive,
     createdAt,
     updatedAt,
   ];
 }
+

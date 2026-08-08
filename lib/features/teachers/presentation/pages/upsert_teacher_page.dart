@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:almustafa_connect_erp/core/contact/contact_number_helper.dart';
@@ -303,3 +303,4 @@ class _UpsertTeacherPageState extends State<UpsertTeacherPage> {
     ),
   );
 }
+

@@ -8,8 +8,6 @@ import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
 import '../../../staff/domain/entities/staff_salary_entity.dart';
 import '../../../staff/domain/repositories/staff_salary_repository.dart';
-import '../../../teachers/domain/entities/teacher_entity.dart';
-import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../../domain/entities/document_branding_entity.dart';
 import '../../domain/entities/document_data_entity.dart';
 import '../../domain/entities/document_type.dart';
@@ -63,58 +61,11 @@ class _SalarySlipPreviewPageState
   }
 
   Future<List<StaffSalaryEntity>> _loadSalaries() async {
-    final results = await Future.wait<Object>([
-      sl<StaffSalaryRepository>().getSalariesByMonth(
-        _selectedMonth,
-      ),
-      sl<TeacherRepository>().getTeachers(),
-    ]);
-
-    final staffSalaries =
-        results[0] as List<StaffSalaryEntity>;
-
-    final teachers =
-        results[1] as List<TeacherEntity>;
-
-    final salaries = <StaffSalaryEntity>[
-      ...staffSalaries,
-      ...teachers
-          .where(
-            (teacher) =>
-                teacher.isActive &&
-                teacher.monthlySalary > 0,
-          )
-          .map(
-            (teacher) => StaffSalaryEntity(
-              id:
-                  'teacher_${teacher.id}_${_selectedMonth.year}_${_selectedMonth.month}',
-              staffId: teacher.id,
-              staffCode: teacher.employeeId,
-              staffName: teacher.fullName,
-              designation: teacher.designation,
-              salaryMonth: DateTime(
-                _selectedMonth.year,
-                _selectedMonth.month,
-              ),
-              basicSalary: teacher.monthlySalary,
-              allowance: 0,
-              deduction: 0,
-              attendanceDeduction: 0,
-              grossSalary: teacher.monthlySalary,
-              netSalary: teacher.monthlySalary,
-              presentDays: 0,
-              absentDays: 0,
-              lateDays: 0,
-              leaveDays: 0,
-              paymentStatus:
-                  StaffSalaryPaymentStatus.unpaid,
-              paymentReference: '',
-              remarks: 'Teaching Staff',
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          ),
-    ];
+    final salaries =
+        await sl<StaffSalaryRepository>()
+            .getSalariesByMonth(
+      _selectedMonth,
+    );
 
     salaries.sort(
       (a, b) => a.staffName
@@ -283,7 +234,7 @@ class _SalarySlipPreviewPageState
               initialValue: _selectedSalary,
               isExpanded: true,
               decoration: const InputDecoration(
-                labelText: 'Teacher / Staff Salary',
+                labelText: 'Staff Salary',
                 border: OutlineInputBorder(),
               ),
               items: salaries
@@ -984,4 +935,3 @@ class _Failure extends StatelessWidget {
     );
   }
 }
-
