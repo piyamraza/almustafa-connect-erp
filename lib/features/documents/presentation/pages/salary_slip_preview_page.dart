@@ -7,9 +7,9 @@ import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
 import '../../../staff/domain/entities/staff_salary_entity.dart';
-import '../../../staff/domain/repositories/staff_salary_repository.dart';
-import '../../../teachers/domain/entities/teacher_entity.dart';
-import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../accounts/domain/entities/payroll_profile_entity.dart';
+import '../../../accounts/domain/entities/payroll_record_entity.dart';
+import '../../../accounts/domain/repositories/accounts_repository.dart';
 import '../../domain/entities/document_branding_entity.dart';
 import '../../domain/entities/document_data_entity.dart';
 import '../../domain/entities/document_type.dart';
@@ -63,66 +63,90 @@ class _SalarySlipPreviewPageState
   }
 
   Future<List<StaffSalaryEntity>> _loadSalaries() async {
-    final results = await Future.wait<Object>([
-      sl<StaffSalaryRepository>().getSalariesByMonth(
-        _selectedMonth,
-      ),
-      sl<TeacherRepository>().getTeachers(),
-    ]);
+    final payrollRecords =
+        await sl<AccountsRepository>().getPayrollRecords();
 
-    final staffSalaries =
-        results[0] as List<StaffSalaryEntity>;
+    final monthRecords = payrollRecords.where((record) {
+      return record.payrollMonth.year == _selectedMonth.year &&
+          record.payrollMonth.month == _selectedMonth.month &&
+          record.paymentStatus != PayrollPaymentStatus.cancelled;
+    }).toList();
 
-    final teachers =
-        results[1] as List<TeacherEntity>;
-
-    final salaries = <StaffSalaryEntity>[
-      ...staffSalaries,
-      ...teachers
-          .where(
-            (teacher) => teacher.isActive,
-          )
-          .map(
-            (teacher) => StaffSalaryEntity(
-              id:
-                  'teacher_${teacher.id}_${_selectedMonth.year}_${_selectedMonth.month}',
-              staffId: teacher.id,
-              staffCode: teacher.employeeId,
-              staffName: teacher.fullName,
-              designation: teacher.designation,
-              salaryMonth: DateTime(
-                _selectedMonth.year,
-                _selectedMonth.month,
-              ),
-              basicSalary: teacher.monthlySalary,
-              allowance: 0,
-              deduction: 0,
-              attendanceDeduction: 0,
-              grossSalary: teacher.monthlySalary,
-              netSalary: teacher.monthlySalary,
-              presentDays: 0,
-              absentDays: 0,
-              lateDays: 0,
-              leaveDays: 0,
-              paymentStatus:
-                  StaffSalaryPaymentStatus.unpaid,
-              paymentReference: '',
-              remarks: 'Teaching Staff',
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          ),
-    ];
+    final salaries = monthRecords.map((record) {
+      return StaffSalaryEntity(
+        id: record.id,
+        staffId: record.employeeId,
+        staffCode: record.employeeId,
+        staffName: record.employeeName,
+        designation: _employeeTypeLabel(record.employeeType),
+        salaryMonth: DateTime(
+          record.payrollMonth.year,
+          record.payrollMonth.month,
+        ),
+        basicSalary: record.basicSalary.toDouble(),
+        allowance: (record.allowances + record.bonus).toDouble(),
+        deduction: (record.deductions +
+                record.advanceDeduction +
+                record.loanDeduction)
+            .toDouble(),
+        attendanceDeduction: record.absenceDeduction.toDouble(),
+        grossSalary: record.grossSalary.toDouble(),
+        netSalary: record.netSalary.toDouble(),
+        presentDays: 0,
+        absentDays: 0,
+        lateDays: 0,
+        leaveDays: 0,
+        paymentStatus:
+            record.paymentStatus == PayrollPaymentStatus.paid
+                ? StaffSalaryPaymentStatus.paid
+                : StaffSalaryPaymentStatus.unpaid,
+        paymentDate: record.paymentDate,
+        paymentMethod: _mapPaymentMethod(record.paymentMethod),
+        paymentReference: record.referenceNumber,
+        remarks: record.remarks,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      );
+    }).toList();
 
     salaries.sort(
       (a, b) => a.staffName
           .toLowerCase()
-          .compareTo(
-            b.staffName.toLowerCase(),
-          ),
+          .compareTo(b.staffName.toLowerCase()),
     );
 
     return salaries;
+  }
+
+  String _employeeTypeLabel(PayrollEmployeeType type) {
+    return switch (type) {
+      PayrollEmployeeType.teacher => 'Teacher',
+      PayrollEmployeeType.administrativeStaff => 'Administrative Staff',
+      PayrollEmployeeType.supportStaff => 'Support Staff',
+      PayrollEmployeeType.other => 'Staff',
+    };
+  }
+
+  StaffSalaryPaymentMethod? _mapPaymentMethod(String value) {
+    final normalized = value
+        .trim()
+        .toLowerCase()
+        .replaceAll(' ', '')
+        .replaceAll('_', '')
+        .replaceAll('-', '');
+
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    return switch (normalized) {
+      'cash' => StaffSalaryPaymentMethod.cash,
+      'bank' || 'banktransfer' => StaffSalaryPaymentMethod.bankTransfer,
+      'easypaisa' => StaffSalaryPaymentMethod.easypaisa,
+      'jazzcash' => StaffSalaryPaymentMethod.jazzCash,
+      'cheque' || 'check' => StaffSalaryPaymentMethod.cheque,
+      _ => StaffSalaryPaymentMethod.other,
+    };
   }
 
   @override
@@ -281,7 +305,7 @@ class _SalarySlipPreviewPageState
               initialValue: _selectedSalary,
               isExpanded: true,
               decoration: const InputDecoration(
-                labelText: 'Teacher / Staff Salary',
+                labelText: 'Teacher / Staff Payroll',
                 border: OutlineInputBorder(),
               ),
               items: salaries
@@ -308,7 +332,7 @@ class _SalarySlipPreviewPageState
             if (salaries.isEmpty) ...[
               const SizedBox(height: 14),
               const Text(
-                'No salary records found for this month.',
+                'No generated payroll records found for this month.',
                 style: TextStyle(
                   color: _textSecondary,
                 ),
@@ -361,7 +385,7 @@ class _SalarySlipPreviewPageState
     final data = DocumentDataEntity(
       documentType: DocumentType.salarySlip,
       referenceId: salary.id,
-      referenceType: 'staff_salary',
+      referenceType: 'payroll_record',
       generatedAt: DateTime.now(),
       values: {
         'salary': {
@@ -771,7 +795,7 @@ class _Header extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Select salary month and staff salary record.',
+                  'Select salary month and payroll record.',
                   style: TextStyle(
                     fontSize: 13,
                     color: _textSecondary,

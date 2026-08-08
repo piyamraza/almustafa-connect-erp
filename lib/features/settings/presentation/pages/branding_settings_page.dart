@@ -1,4 +1,10 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -60,6 +66,10 @@ class _BrandingSettingsViewState
       TextEditingController();
 
   bool _initialized = false;
+
+  bool _isUploadingLogo = false;
+  bool _isUploadingSignature = false;
+  bool _isUploadingStamp = false;
 
   @override
   void dispose() {
@@ -179,6 +189,7 @@ class _BrandingSettingsViewState
                               .start,
                       children: [
                         const _PageHeader(),
+
                         const SizedBox(
                           height: 24,
                         ),
@@ -236,8 +247,10 @@ class _BrandingSettingsViewState
         builder: (context, constraints) {
           final fieldWidth =
               constraints.maxWidth >= 760
-              ? (constraints.maxWidth - 16) / 2
-              : constraints.maxWidth;
+                  ? (constraints.maxWidth -
+                          16) /
+                      2
+                  : constraints.maxWidth;
 
           return Wrap(
             spacing: 16,
@@ -250,7 +263,8 @@ class _BrandingSettingsViewState
                       _schoolNameController,
                   decoration:
                       const InputDecoration(
-                    labelText: 'School Name',
+                    labelText:
+                        'School Name',
                     prefixIcon: Icon(
                       Icons.business_outlined,
                     ),
@@ -259,7 +273,9 @@ class _BrandingSettingsViewState
                   ),
                   validator: (value) {
                     if (value == null ||
-                        value.trim().isEmpty) {
+                        value
+                            .trim()
+                            .isEmpty) {
                       return 'School name is required.';
                     }
 
@@ -267,6 +283,7 @@ class _BrandingSettingsViewState
                   },
                 ),
               ),
+
               SizedBox(
                 width: fieldWidth,
                 child: TextFormField(
@@ -282,38 +299,83 @@ class _BrandingSettingsViewState
                     border:
                         OutlineInputBorder(),
                   ),
+                  onChanged: (_) {
+                    setState(() {});
+                  },
                 ),
               ),
+
               SizedBox(
                 width: fieldWidth,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    _comingSoon(
-                      'School logo upload',
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.upload_file_outlined,
-                  ),
-                  label: const Text(
-                    'Upload School Logo',
+                  onPressed:
+                      _isUploadingLogo
+                          ? null
+                          : _uploadSchoolLogo,
+                  icon: _isUploadingLogo
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons
+                              .upload_file_outlined,
+                        ),
+                  label: Text(
+                    _isUploadingLogo
+                        ? 'Uploading...'
+                        : 'Upload School Logo',
                   ),
                 ),
               ),
+
               if (_schoolLogoController
                   .text
                   .trim()
                   .isNotEmpty)
                 SizedBox(
                   width: fieldWidth,
-                  child: _ImagePreview(
-                    title:
-                        'Current School Logo',
-                    imageUrl:
-                        _schoolLogoController
-                            .text
-                            .trim(),
-                    height: 120,
+                  child: Column(
+                    children: [
+                      _ImagePreview(
+                        title:
+                            'Current School Logo',
+                        imageUrl:
+                            _schoolLogoController
+                                .text
+                                .trim(),
+                        height: 120,
+                      ),
+
+                      const SizedBox(
+                        height: 8,
+                      ),
+
+                      Align(
+                        alignment:
+                            Alignment.centerLeft,
+                        child:
+                            OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _schoolLogoController
+                                  .clear();
+                            });
+                          },
+                          icon: const Icon(
+                            Icons
+                                .delete_outline,
+                          ),
+                          label: const Text(
+                            'Remove Logo',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -333,8 +395,10 @@ class _BrandingSettingsViewState
         builder: (context, constraints) {
           final fieldWidth =
               constraints.maxWidth >= 760
-              ? (constraints.maxWidth - 16) / 2
-              : constraints.maxWidth;
+                  ? (constraints.maxWidth -
+                          16) /
+                      2
+                  : constraints.maxWidth;
 
           return Wrap(
             spacing: 16,
@@ -357,6 +421,7 @@ class _BrandingSettingsViewState
                   ),
                 ),
               ),
+
               SizedBox(
                 width: fieldWidth,
                 child: TextFormField(
@@ -404,31 +469,47 @@ class _BrandingSettingsViewState
               border:
                   OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              setState(() {});
+            },
           ),
+
           const SizedBox(height: 16),
+
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               OutlinedButton.icon(
-                onPressed: () {
-                  _comingSoon(
-                    'Scanned signature upload',
-                  );
-                },
-                icon: const Icon(
-                  Icons.upload_file_outlined,
-                ),
-                label: const Text(
-                  'Upload Signature',
+                onPressed:
+                    _isUploadingSignature
+                        ? null
+                        : _uploadPrincipalSignature,
+                icon: _isUploadingSignature
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons
+                            .upload_file_outlined,
+                      ),
+                label: Text(
+                  _isUploadingSignature
+                      ? 'Uploading...'
+                      : 'Upload Signature',
                 ),
               ),
+
               OutlinedButton.icon(
-                onPressed: () {
-                  _comingSoon(
-                    'On-screen signature drawing',
-                  );
-                },
+                onPressed:
+                    _isUploadingSignature
+                        ? null
+                        : _drawPrincipalSignature,
                 icon: const Icon(
                   Icons.draw_outlined,
                 ),
@@ -436,6 +517,7 @@ class _BrandingSettingsViewState
                   'Draw Signature',
                 ),
               ),
+
               if (_principalSignatureController
                   .text
                   .trim()
@@ -456,11 +538,13 @@ class _BrandingSettingsViewState
                 ),
             ],
           ),
+
           if (_principalSignatureController
               .text
               .trim()
               .isNotEmpty) ...[
             const SizedBox(height: 18),
+
             _ImagePreview(
               title:
                   'Current Principal Signature',
@@ -499,25 +583,42 @@ class _BrandingSettingsViewState
               border:
                   OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              setState(() {});
+            },
           ),
+
           const SizedBox(height: 16),
+
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               OutlinedButton.icon(
-                onPressed: () {
-                  _comingSoon(
-                    'School stamp upload',
-                  );
-                },
-                icon: const Icon(
-                  Icons.upload_file_outlined,
-                ),
-                label: const Text(
-                  'Upload School Stamp',
+                onPressed:
+                    _isUploadingStamp
+                        ? null
+                        : _uploadSchoolStamp,
+                icon: _isUploadingStamp
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons
+                            .upload_file_outlined,
+                      ),
+                label: Text(
+                  _isUploadingStamp
+                      ? 'Uploading...'
+                      : 'Upload School Stamp',
                 ),
               ),
+
               if (_schoolStampController
                   .text
                   .trim()
@@ -538,11 +639,13 @@ class _BrandingSettingsViewState
                 ),
             ],
           ),
+
           if (_schoolStampController
               .text
               .trim()
               .isNotEmpty) ...[
             const SizedBox(height: 18),
+
             _ImagePreview(
               title:
                   'Current School Stamp',
@@ -561,15 +664,21 @@ class _BrandingSettingsViewState
   Widget _buildSaveButton(
     SettingsLoaded loaded,
   ) {
+    final uploading =
+        _isUploadingLogo ||
+        _isUploadingSignature ||
+        _isUploadingStamp;
+
     return FilledButton.icon(
       style: FilledButton.styleFrom(
         backgroundColor: _brandBlue,
       ),
-      onPressed: loaded.isSaving
-          ? null
-          : () => _save(
-                loaded.settings,
-              ),
+      onPressed:
+          loaded.isSaving || uploading
+              ? null
+              : () => _save(
+                    loaded.settings,
+                  ),
       icon: loaded.isSaving
           ? const SizedBox(
               width: 18,
@@ -590,6 +699,314 @@ class _BrandingSettingsViewState
     );
   }
 
+  Future<PlatformFile?>
+      _pickImage() async {
+    final result =
+        await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'png',
+        'jpg',
+        'jpeg',
+      ],
+      withData: true,
+    );
+
+    if (result == null ||
+        result.files.isEmpty) {
+      return null;
+    }
+
+    return result.files.single;
+  }
+
+  String _contentType(
+    String extension,
+  ) {
+    if (extension == 'png') {
+      return 'image/png';
+    }
+
+    return 'image/jpeg';
+  }
+
+  Future<String> _uploadBytes({
+    required Uint8List bytes,
+    required String fileName,
+    required String contentType,
+  }) async {
+    final storageRef =
+        FirebaseStorage.instance
+            .ref()
+            .child('school')
+            .child('branding')
+            .child(fileName);
+
+    await storageRef.putData(
+      bytes,
+      SettableMetadata(
+        contentType: contentType,
+      ),
+    );
+
+    return storageRef.getDownloadURL();
+  }
+
+  Future<void>
+      _uploadSchoolLogo() async {
+    try {
+      final file = await _pickImage();
+
+      if (file == null) {
+        return;
+      }
+
+      if (file.bytes == null) {
+        throw Exception(
+          'Unable to read selected image.',
+        );
+      }
+
+      setState(() {
+        _isUploadingLogo = true;
+      });
+
+      final extension =
+          file.extension
+                  ?.toLowerCase() ??
+              'png';
+
+      final downloadUrl =
+          await _uploadBytes(
+        bytes: file.bytes!,
+        fileName:
+            'school_logo.$extension',
+        contentType:
+            _contentType(extension),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _schoolLogoController.text =
+            downloadUrl;
+
+        _isUploadingLogo = false;
+      });
+
+      _showMessage(
+        'School logo uploaded successfully.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingLogo = false;
+      });
+
+      _showMessage(
+        'Logo upload failed: $e',
+      );
+    }
+  }
+
+  Future<void>
+      _uploadPrincipalSignature() async {
+    try {
+      final file = await _pickImage();
+
+      if (file == null) {
+        return;
+      }
+
+      if (file.bytes == null) {
+        throw Exception(
+          'Unable to read selected signature.',
+        );
+      }
+
+      setState(() {
+        _isUploadingSignature = true;
+      });
+
+      final extension =
+          file.extension
+                  ?.toLowerCase() ??
+              'png';
+
+      final downloadUrl =
+          await _uploadBytes(
+        bytes: file.bytes!,
+        fileName:
+            'principal_signature.$extension',
+        contentType:
+            _contentType(extension),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _principalSignatureController
+            .text = downloadUrl;
+
+        _isUploadingSignature = false;
+      });
+
+      _showMessage(
+        'Principal signature uploaded successfully.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingSignature = false;
+      });
+
+      _showMessage(
+        'Signature upload failed: $e',
+      );
+    }
+  }
+
+  Future<void>
+      _uploadSchoolStamp() async {
+    try {
+      final file = await _pickImage();
+
+      if (file == null) {
+        return;
+      }
+
+      if (file.bytes == null) {
+        throw Exception(
+          'Unable to read selected stamp.',
+        );
+      }
+
+      setState(() {
+        _isUploadingStamp = true;
+      });
+
+      final extension =
+          file.extension
+                  ?.toLowerCase() ??
+              'png';
+
+      final downloadUrl =
+          await _uploadBytes(
+        bytes: file.bytes!,
+        fileName:
+            'school_stamp.$extension',
+        contentType:
+            _contentType(extension),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _schoolStampController.text =
+            downloadUrl;
+
+        _isUploadingStamp = false;
+      });
+
+      _showMessage(
+        'School stamp uploaded successfully.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingStamp = false;
+      });
+
+      _showMessage(
+        'School stamp upload failed: $e',
+      );
+    }
+  }
+
+  Future<void>
+      _drawPrincipalSignature() async {
+    final bytes =
+        await showDialog<Uint8List>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return const _SignaturePadDialog();
+      },
+    );
+
+    if (bytes == null) {
+      return;
+    }
+
+    try {
+      setState(() {
+        _isUploadingSignature = true;
+      });
+
+      final downloadUrl =
+          await _uploadBytes(
+        bytes: bytes,
+        fileName:
+            'principal_signature.png',
+        contentType: 'image/png',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _principalSignatureController
+            .text = downloadUrl;
+
+        _isUploadingSignature = false;
+      });
+
+      _showMessage(
+        'Principal signature saved successfully.',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingSignature = false;
+      });
+
+      _showMessage(
+        'Signature save failed: $e',
+      );
+    }
+  }
+
+  void _showMessage(
+    String message,
+  ) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+  }
+
   void _save(
     SchoolSettingsEntity current,
   ) {
@@ -600,11 +1017,20 @@ class _BrandingSettingsViewState
 
     final updated = current.copyWith(
       schoolName:
-          _schoolNameController.text.trim(),
+          _schoolNameController
+              .text
+              .trim(),
+
       logoUrl:
-          _schoolLogoController.text.trim(),
+          _schoolLogoController
+              .text
+              .trim(),
+
       principalName:
-          _principalNameController.text.trim(),
+          _principalNameController
+              .text
+              .trim(),
+
       principalDesignation:
           _principalDesignationController
                   .text
@@ -614,12 +1040,17 @@ class _BrandingSettingsViewState
               : _principalDesignationController
                   .text
                   .trim(),
+
       principalSignatureUrl:
           _principalSignatureController
               .text
               .trim(),
+
       schoolStampUrl:
-          _schoolStampController.text.trim(),
+          _schoolStampController
+              .text
+              .trim(),
+
       updatedAt: DateTime.now(),
     );
 
@@ -629,19 +1060,268 @@ class _BrandingSettingsViewState
       ),
     );
   }
+}
 
-  void _comingSoon(
-    String feature,
-  ) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            '$feature will be connected next.',
+class _SignaturePadDialog
+    extends StatefulWidget {
+  const _SignaturePadDialog();
+
+  @override
+  State<_SignaturePadDialog>
+      createState() =>
+          _SignaturePadDialogState();
+}
+
+class _SignaturePadDialogState
+    extends State<_SignaturePadDialog> {
+  final GlobalKey _signatureKey =
+      GlobalKey();
+
+  final List<Offset?> _points = [];
+
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        'Draw Principal Signature',
+      ),
+      content: SizedBox(
+        width: 650,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Use mouse, touchpad or touch screen to draw the signature.',
+              style: TextStyle(
+                color: _textSecondary,
+              ),
+            ),
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            RepaintBoundary(
+              key: _signatureKey,
+              child: Container(
+                width: double.infinity,
+                height: 230,
+                color: Colors.white,
+                child: GestureDetector(
+                  behavior:
+                      HitTestBehavior.opaque,
+
+                  onPanStart: (details) {
+                    setState(() {
+                      _points.add(
+                        details.localPosition,
+                      );
+                    });
+                  },
+
+                  onPanUpdate: (details) {
+                    setState(() {
+                      _points.add(
+                        details.localPosition,
+                      );
+                    });
+                  },
+
+                  onPanEnd: (_) {
+                    setState(() {
+                      _points.add(null);
+                    });
+                  },
+
+                  child: CustomPaint(
+                    painter:
+                        _SignaturePainter(
+                      points: _points,
+                    ),
+                    size: Size.infinite,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(
+              height: 10,
+            ),
+
+            const Align(
+              alignment:
+                  Alignment.centerLeft,
+              child: Text(
+                'Draw inside the white box.',
+                style: TextStyle(
+                  color: _textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () {
+                  Navigator.of(context)
+                      .pop();
+                },
+          child:
+              const Text('Cancel'),
+        ),
+
+        TextButton.icon(
+          onPressed:
+              _saving
+                  ? null
+                  : () {
+                      setState(() {
+                        _points.clear();
+                      });
+                    },
+          icon: const Icon(
+            Icons.delete_outline,
+          ),
+          label:
+              const Text('Clear'),
+        ),
+
+        FilledButton.icon(
+          onPressed:
+              _saving || _points.isEmpty
+                  ? null
+                  : _saveSignature,
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.check,
+                ),
+          label: Text(
+            _saving
+                ? 'Saving...'
+                : 'Use Signature',
           ),
         ),
+      ],
+    );
+  }
+
+  Future<void> _saveSignature() async {
+    try {
+      setState(() {
+        _saving = true;
+      });
+
+      final boundary =
+          _signatureKey.currentContext
+                  ?.findRenderObject()
+              as RenderRepaintBoundary?;
+
+      if (boundary == null) {
+        throw Exception(
+          'Unable to capture signature.',
+        );
+      }
+
+      final image =
+          await boundary.toImage(
+        pixelRatio: 3,
       );
+
+      final byteData =
+          await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) {
+        throw Exception(
+          'Unable to create signature image.',
+        );
+      }
+
+      final bytes =
+          byteData.buffer.asUint8List();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop(bytes);
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to save signature: $e',
+            ),
+          ),
+        );
+    }
+  }
+}
+
+class _SignaturePainter
+    extends CustomPainter {
+  const _SignaturePainter({
+    required this.points,
+  });
+
+  final List<Offset?> points;
+
+  @override
+  void paint(
+    Canvas canvas,
+    Size size,
+  ) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 3
+      ..strokeCap =
+          StrokeCap.round
+      ..strokeJoin =
+          StrokeJoin.round;
+
+    for (var i = 0;
+        i < points.length - 1;
+        i++) {
+      if (points[i] != null &&
+          points[i + 1] != null) {
+        canvas.drawLine(
+          points[i]!,
+          points[i + 1]!,
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant _SignaturePainter oldDelegate,
+  ) {
+    return true;
   }
 }
 
@@ -655,7 +1335,9 @@ class _PageHeader extends StatelessWidget {
           CrossAxisAlignment.start,
       children: [
         DashboardNavigationButton(),
+
         SizedBox(width: 14),
+
         Expanded(
           child: Column(
             crossAxisAlignment:
@@ -670,7 +1352,9 @@ class _PageHeader extends StatelessWidget {
                   color: _textPrimary,
                 ),
               ),
+
               SizedBox(height: 4),
+
               Text(
                 'Manage the school identity used across cards, certificates and official documents.',
                 style: TextStyle(
@@ -738,9 +1422,11 @@ class _SettingsCard
                   color: _brandBlue,
                 ),
               ),
+
               const SizedBox(
                 width: 14,
               ),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment:
@@ -759,9 +1445,11 @@ class _SettingsCard
                                 .w700,
                       ),
                     ),
+
                     const SizedBox(
                       height: 3,
                     ),
+
                     Text(
                       subtitle,
                       style:
@@ -776,9 +1464,11 @@ class _SettingsCard
               ),
             ],
           ),
+
           const SizedBox(
             height: 22,
           ),
+
           child,
         ],
       ),
@@ -826,15 +1516,19 @@ class _ImagePreview
                   FontWeight.w600,
             ),
           ),
+
           const SizedBox(
             height: 10,
           ),
+
           SizedBox(
             height: height,
             width: double.infinity,
             child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
+  imageUrl,
+  fit: BoxFit.contain,
+  webHtmlElementStrategy:
+      WebHtmlElementStrategy.prefer,
               errorBuilder: (
                 context,
                 error,
@@ -852,9 +1546,11 @@ class _ImagePreview
                         color:
                             _textSecondary,
                       ),
+
                       SizedBox(
                         height: 6,
                       ),
+
                       Text(
                         'Image preview unavailable',
                         style:
@@ -901,9 +1597,11 @@ class _LoadFailure
               size: 44,
               color: Colors.red,
             ),
+
             const SizedBox(
               height: 12,
             ),
+
             const Text(
               'Unable to load Branding Settings',
               style: TextStyle(
@@ -913,9 +1611,11 @@ class _LoadFailure
                     FontWeight.w700,
               ),
             ),
+
             const SizedBox(
               height: 6,
             ),
+
             Text(
               message,
               textAlign:
@@ -926,9 +1626,11 @@ class _LoadFailure
                     _textSecondary,
               ),
             ),
+
             const SizedBox(
               height: 16,
             ),
+
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(
