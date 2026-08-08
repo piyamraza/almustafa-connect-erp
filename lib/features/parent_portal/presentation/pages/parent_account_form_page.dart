@@ -483,12 +483,16 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                     for (final student in filteredStudents)
                       CheckboxListTile(
                         value: _selectedStudentIds.contains(student.id),
-                        title: Text(student.fullName),
+                        title: Text(
+                          student.fatherName.trim().isEmpty
+                              ? student.fullName
+                              : '${student.fullName}  •  Father: ${student.fatherName}',
+                        ),
                         subtitle: Row(
                           children: [
                             Text(
-                              '${student.admissionNo} â€¢ '
-                              '${student.rollNumber} â€¢ ',
+                              '${student.admissionNo} • '
+                              '${student.rollNumber} • ',
                             ),
                             Expanded(
                               child: AcademicReferenceLabel(

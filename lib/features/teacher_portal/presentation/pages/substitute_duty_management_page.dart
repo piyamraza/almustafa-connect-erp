@@ -467,7 +467,7 @@ class _SubstituteDutyManagementPageState
                     ],
 
                     DropdownButtonFormField<String>(
-                      value: selectedClassId,
+                      initialValue: selectedClassId,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Class',
@@ -504,7 +504,7 @@ class _SubstituteDutyManagementPageState
                     const SizedBox(height: 10),
 
                     DropdownButtonFormField<String>(
-                      value: selectedSectionId,
+                      initialValue: selectedSectionId,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Section',
@@ -538,7 +538,7 @@ class _SubstituteDutyManagementPageState
                     const SizedBox(height: 10),
 
                     DropdownButtonFormField<String>(
-                      value: selectedSubjectId,
+                      initialValue: selectedSubjectId,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Subject',
@@ -572,7 +572,7 @@ class _SubstituteDutyManagementPageState
                       builder: (context) {
                         final periods = periodSlots();
                         return DropdownButtonFormField<String>(
-                          value: selectedPeriodId,
+                          initialValue: selectedPeriodId,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Period / Time',

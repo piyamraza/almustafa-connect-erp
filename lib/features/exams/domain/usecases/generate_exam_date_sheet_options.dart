@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/entities/subject_component_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../entities/exam_date_sheet_entity.dart';
@@ -16,12 +20,14 @@ class GenerateExamDateSheetOptions {
     this._assignmentRepository,
     this._dateSheetRepository,
     this._validator,
+    this._componentRepository,
   );
 
   final AcademicStructureRepository _academicRepository;
   final TeacherAssignmentRepository _assignmentRepository;
   final ExamDateSheetRepository _dateSheetRepository;
   final ValidateExamDateSheet _validator;
+  final SubjectComponentRepository _componentRepository;
 
   Future<List<ExamDateSheetGeneratedOption>> call({
     required ExamEntity exam,
@@ -37,6 +43,7 @@ class GenerateExamDateSheetOptions {
       _academicRepository.getSections(),
       _academicRepository.getSubjects(),
       _assignmentRepository.getAssignments(),
+      _componentRepository.getComponents(),
     ]);
 
     final classes =
@@ -60,6 +67,10 @@ class GenerateExamDateSheetOptions {
               _normalise(item.academicSession) ==
               _normalise(exam.academicSession),
         )
+        .toList(growable: false);
+
+    final components = (values[4] as List<SubjectComponentEntity>)
+        .where((item) => item.isActive)
         .toList(growable: false);
 
     final tasks = <_PaperTask>[];
@@ -90,14 +101,21 @@ class GenerateExamDateSheetOptions {
             continue;
           }
 
-          tasks.add(
-            _PaperTask(
-              academicClass: academicClass,
-              section: section,
-              subject: subject,
-              assignment: assignment,
-            ),
+          final examSubjects = _expandForExamination(
+            subject,
+            components,
           );
+
+          for (final examSubject in examSubjects) {
+            tasks.add(
+              _PaperTask(
+                academicClass: academicClass,
+                section: section,
+                subject: examSubject,
+                assignment: assignment,
+              ),
+            );
+          }
         }
       }
     }
@@ -324,6 +342,75 @@ class GenerateExamDateSheetOptions {
     return values;
   }
 
+  List<AcademicSubjectEntity> _expandForExamination(
+    AcademicSubjectEntity subject,
+    List<SubjectComponentEntity> components,
+  ) {
+    if (!subject.useComponentsInExamination) {
+      return [subject];
+    }
+
+    final active = components
+        .where(
+          (component) =>
+              component.isActive &&
+              component.parentSubjectId == subject.id,
+        )
+        .toList()
+      ..sort(
+        (first, second) =>
+            first.displayOrder.compareTo(second.displayOrder),
+      );
+
+    if (active.isEmpty) {
+      return [subject];
+    }
+
+    return active
+        .map(
+          (component) => subject.copyWith(
+            id: _componentSubjectId(subject, component),
+            name: _componentDisplayName(
+              subject.name,
+              component.componentName,
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  String _componentSubjectId(
+    AcademicSubjectEntity parent,
+    SubjectComponentEntity component,
+  ) {
+    final encodedParent = base64Url
+        .encode(utf8.encode(parent.name))
+        .replaceAll('=', '');
+    final reportFlag = parent.useComponentsInReportCard ? '1' : '0';
+
+    return 'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}';
+  }
+
+  String _componentDisplayName(
+    String parentName,
+    String componentName,
+  ) {
+    final parent = parentName.trim();
+    final component = componentName.trim();
+
+    if (parent.isEmpty) return component;
+    if (component.isEmpty) return parent;
+
+    final normalizedParent = _normalise(parent);
+    final normalizedComponent = _normalise(component);
+
+    if (normalizedComponent == normalizedParent ||
+        normalizedComponent.startsWith('$normalizedParent ')) {
+      return component;
+    }
+
+    return '$parent $component';
+  }
   List<AcademicSubjectEntity> _subjectsFor(
     List<AcademicSubjectEntity> subjects,
     String classId,

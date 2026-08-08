@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
@@ -8,7 +10,9 @@ import '../../../academic_calendar/domain/repositories/academic_calendar_reposit
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/entities/subject_component_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/entities/exam_date_sheet_entity.dart';
@@ -33,11 +37,13 @@ class _ManualExamDateSheetBuilderPageState
   final _titleController = TextEditingController();
   final _tableHeaderController = ScrollController();
   final _tableBodyController = ScrollController();
+  final _tableScrollbarController = ScrollController();
   bool _syncingTableScroll = false;
   List<ExamEntity> _exams = const [];
   List<AcademicClassEntity> _classes = const [];
   List<SectionEntity> _sections = const [];
   List<AcademicSubjectEntity> _subjects = const [];
+  List<SubjectComponentEntity> _components = const [];
   List<TeacherAssignmentEntity> _assignments = const [];
   List<ExamDateSheetPaperEntity> _papers = const [];
   List<DateTime> _calendarHolidays = const [];
@@ -55,6 +61,7 @@ class _ManualExamDateSheetBuilderPageState
     super.initState();
     _tableHeaderController.addListener(_syncHeaderToBody);
     _tableBodyController.addListener(_syncBodyToHeader);
+    _tableScrollbarController.addListener(_syncScrollbarToBody);
     final existing = widget.existing;
     if (existing != null) {
       _titleController.text = existing.title;
@@ -73,14 +80,22 @@ class _ManualExamDateSheetBuilderPageState
     _titleController.dispose();
     _tableHeaderController.dispose();
     _tableBodyController.dispose();
+    _tableScrollbarController.dispose();
     super.dispose();
   }
 
   void _syncHeaderToBody() =>
       _syncHorizontalScroll(_tableHeaderController, _tableBodyController);
 
-  void _syncBodyToHeader() =>
-      _syncHorizontalScroll(_tableBodyController, _tableHeaderController);
+  void _syncBodyToHeader() {
+    _syncHorizontalScroll(_tableBodyController, _tableHeaderController);
+    _syncHorizontalScroll(_tableBodyController, _tableScrollbarController);
+  }
+
+  void _syncScrollbarToBody() {
+    _syncHorizontalScroll(_tableScrollbarController, _tableBodyController);
+    _syncHorizontalScroll(_tableScrollbarController, _tableHeaderController);
+  }
 
   void _syncHorizontalScroll(ScrollController source, ScrollController target) {
     if (_syncingTableScroll || !source.hasClients || !target.hasClients) return;
@@ -97,6 +112,7 @@ class _ManualExamDateSheetBuilderPageState
         sl<AcademicStructureRepository>().getSections(),
         sl<AcademicStructureRepository>().getSubjects(),
         sl<TeacherAssignmentRepository>().getAssignments(),
+        sl<SubjectComponentRepository>().getComponents(),
       ]);
 
       if (!mounted) return;
@@ -134,6 +150,9 @@ class _ManualExamDateSheetBuilderPageState
         _sections = sections;
         _subjects = subjects;
         _assignments = values[4] as List<TeacherAssignmentEntity>;
+        _components = (values[5] as List<SubjectComponentEntity>)
+            .where((item) => item.isActive)
+            .toList();
         _calendarHolidays = calendarHolidays;
         if (!_isReadOnly) {
           _papers = _papers
@@ -260,7 +279,31 @@ class _ManualExamDateSheetBuilderPageState
             section: section,
             subject: subject,
           );
-          if (assignment != null) {
+
+          if (assignment == null) {
+            continue;
+          }
+
+          final components = _activeComponentsFor(subject);
+
+          if (subject.useComponentsInExamination && components.isNotEmpty) {
+            for (final component in components) {
+              rows.add(
+                _ManualPaperRow(
+                  academicClass: academicClass,
+                  section: section,
+                  subject: subject.copyWith(
+                    id: _componentSubjectId(subject, component),
+                    name: _componentDisplayName(
+                      subject.name,
+                      component.componentName,
+                    ),
+                  ),
+                  assignment: assignment,
+                ),
+              );
+            }
+          } else {
             rows.add(
               _ManualPaperRow(
                 academicClass: academicClass,
@@ -285,6 +328,56 @@ class _ManualExamDateSheetBuilderPageState
     return rows;
   }
 
+  List<SubjectComponentEntity> _activeComponentsFor(
+    AcademicSubjectEntity subject,
+  ) {
+    final values = _components
+        .where(
+          (component) =>
+              component.isActive &&
+              component.parentSubjectId == subject.id,
+        )
+        .toList()
+      ..sort(
+        (first, second) =>
+            first.displayOrder.compareTo(second.displayOrder),
+      );
+
+    return values;
+  }
+
+  String _componentSubjectId(
+    AcademicSubjectEntity parent,
+    SubjectComponentEntity component,
+  ) {
+    final encodedParent = base64Url
+        .encode(utf8.encode(parent.name))
+        .replaceAll('=', '');
+    final reportFlag = parent.useComponentsInReportCard ? '1' : '0';
+
+    return 'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}';
+  }
+
+  String _componentDisplayName(
+    String parentName,
+    String componentName,
+  ) {
+    final parent = parentName.trim();
+    final component = componentName.trim();
+
+    if (parent.isEmpty) return component;
+    if (component.isEmpty) return parent;
+
+    final normalizedParent = _normalise(parent);
+    final normalizedComponent = _normalise(component);
+
+    if (normalizedComponent == normalizedParent ||
+        normalizedComponent.startsWith('$normalizedParent ')) {
+      return component;
+    }
+
+    return '$parent $component';
+  }
   TeacherAssignmentEntity? _findAssignment({
     required ExamEntity exam,
     required AcademicClassEntity academicClass,
@@ -393,6 +486,13 @@ class _ManualExamDateSheetBuilderPageState
         _papers = _papers.where((paper) => paper.id != existing.id).toList();
         _validationResult = null;
       });
+      return;
+    }
+
+    final selectedIds = _selectedSubjectIds(column);
+    if (selectedIds.contains(subjectId) &&
+        existing?.subjectId != subjectId) {
+      _show('This subject is already selected for this class/section.');
       return;
     }
 
@@ -770,7 +870,7 @@ class _ManualExamDateSheetBuilderPageState
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'This date sheet is read-only. Use Publish Workflow â†’ Revise to create an editable draft.',
+                                'This date sheet is read-only. Use Publish Workflow ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Revise to create an editable draft.',
                               ),
                             ),
                           ],
@@ -901,6 +1001,24 @@ class _ManualExamDateSheetBuilderPageState
                                             _buildMatrixBodyRow(
                                               _matrixDates[index],
                                             ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 18,
+                                  child: Scrollbar(
+                                    controller: _tableScrollbarController,
+                                    thumbVisibility: true,
+                                    trackVisibility: true,
+                                    scrollbarOrientation:
+                                        ScrollbarOrientation.bottom,
+                                    child: SingleChildScrollView(
+                                      controller: _tableScrollbarController,
+                                      scrollDirection: Axis.horizontal,
+                                      child: SizedBox(
+                                        width: _matrixTableWidth,
+                                        height: 1,
                                       ),
                                     ),
                                   ),

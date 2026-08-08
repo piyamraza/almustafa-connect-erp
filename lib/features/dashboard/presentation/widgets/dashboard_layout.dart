@@ -416,16 +416,23 @@ class _DashboardData {
   final List<StaffAttendanceEntity> staffAttendance;
   final DateTime now;
 
-  int get activeStudents => students.where((student) => student.isActive).length;
-  int get presentStudents => todayAttendance
+  Set<String> get _activeStudentIds => students
+      .where((student) => student.isActive)
+      .map((student) => student.id)
+      .toSet();
+
+  Set<String> get _presentActiveStudentIds => todayAttendance
       .where(
         (item) =>
-            item.status == AttendanceStatus.present ||
-            item.status == AttendanceStatus.late,
+            _activeStudentIds.contains(item.studentId) &&
+            (item.status == AttendanceStatus.present ||
+                item.status == AttendanceStatus.late),
       )
       .map((item) => item.studentId)
-      .toSet()
-      .length;
+      .toSet();
+
+  int get activeStudents => _activeStudentIds.length;
+  int get presentStudents => _presentActiveStudentIds.length;
 
   int get presentTeachers => teacherAttendance
       .where((item) => item.status == TeacherAttendanceStatus.present)
@@ -480,15 +487,13 @@ class _DashboardData {
   }
 
   String get attendancePercentage {
-    if (todayAttendance.isEmpty) return 'No data';
-    final present = todayAttendance
-        .where(
-          (item) =>
-              item.status == AttendanceStatus.present ||
-              item.status == AttendanceStatus.late,
-        )
-        .length;
-    return '${(present * 100 / todayAttendance.length).toStringAsFixed(1)}%';
+    final activeIds = _activeStudentIds;
+    final hasActiveStudentAttendance = todayAttendance.any(
+      (item) => activeIds.contains(item.studentId),
+    );
+    if (activeIds.isEmpty || !hasActiveStudentAttendance) return 'No data';
+
+    return '${(presentStudents * 100 / activeIds.length).toStringAsFixed(1)}%';
   }
 
   List<_PendingAttendanceGroup> get pendingAttendanceGroups {

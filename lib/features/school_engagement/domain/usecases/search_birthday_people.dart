@@ -5,13 +5,10 @@ import '../entities/engagement_person_entity.dart';
 
 class SearchBirthdayPeople {
   const SearchBirthdayPeople({
-    required StudentRepository
-        studentRepository,
+    required this._studentRepository,
     required AcademicStructureRepository
         academicStructureRepository,
-  })  : _studentRepository =
-            studentRepository,
-        _academicStructureRepository =
+  })  : _academicStructureRepository =
             academicStructureRepository;
 
   final StudentRepository

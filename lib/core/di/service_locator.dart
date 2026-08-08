@@ -1,4 +1,4 @@
-﻿import '../../features/parent_portal/parent_fee_di.dart';
+import '../../features/parent_portal/parent_fee_di.dart';
 import '../../features/parent_portal/parent_results_di.dart';
 import '../../features/parent_portal/parent_homework_di.dart';
 import '../../features/parent_portal/parent_attendance_di.dart';
@@ -961,6 +961,7 @@ Future<void> setupServiceLocator() async {
       sl<TeacherAssignmentRepository>(),
       sl<ExamDateSheetRepository>(),
       sl<ValidateExamDateSheet>(),
+      sl<SubjectComponentRepository>(),
     ),
   );
   sl.registerLazySingleton<ExamDateSheetReportService>(

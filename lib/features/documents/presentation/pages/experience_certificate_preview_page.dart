@@ -1480,7 +1480,7 @@ class _TeacherPickerDialogState
                           results
                               .length,
                       separatorBuilder:
-                          (_, __) =>
+                          (_, _) =>
                               const Divider(
                         height: 1,
                       ),
@@ -1664,7 +1664,7 @@ class _StaffPickerDialogState
                           results
                               .length,
                       separatorBuilder:
-                          (_, __) =>
+                          (_, _) =>
                               const Divider(
                         height: 1,
                       ),

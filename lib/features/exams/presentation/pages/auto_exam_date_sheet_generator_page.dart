@@ -701,7 +701,7 @@ class _OptionCard extends StatelessWidget {
             Text('${option.papers.length} papers'),
             Text(
               '${_AutoExamDateSheetGeneratorViewState._date(option.startDate)}'
-              ' → '
+              ' â†’ '
               '${_AutoExamDateSheetGeneratorViewState._date(option.endDate)}',
             ),
             Text(
@@ -792,91 +792,115 @@ class _DateSheetMatrix {
   }
 }
 
-class _AutoDateSheetPreviewTable extends StatelessWidget {
+class _AutoDateSheetPreviewTable extends StatefulWidget {
   const _AutoDateSheetPreviewTable({required this.matrix});
 
   final _DateSheetMatrix matrix;
+
+  @override
+  State<_AutoDateSheetPreviewTable> createState() =>
+      _AutoDateSheetPreviewTableState();
+}
+
+class _AutoDateSheetPreviewTableState
+    extends State<_AutoDateSheetPreviewTable> {
   static const double _dateWidth = 112;
   static const double _classWidth = 112;
 
+  final ScrollController _horizontalController = ScrollController();
+
+  @override
+  void dispose() {
+    _horizontalController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final matrix = widget.matrix;
     final width = _dateWidth + matrix.columns.length * _classWidth;
+
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: width,
-          height: constraints.maxHeight,
-          child: Column(
-            children: [
-              Container(
-                height: 44,
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Row(
-                  children: [
-                    _box(
-                      context,
-                      width: _dateWidth,
-                      child: const Text(
-                        'Date',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    for (final column in matrix.columns)
+      builder: (context, constraints) => Scrollbar(
+        controller: _horizontalController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: SingleChildScrollView(
+          controller: _horizontalController,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            height: constraints.maxHeight,
+            child: Column(
+              children: [
+                Container(
+                  height: 44,
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Row(
+                    children: [
                       _box(
                         context,
-                        width: _classWidth,
-                        child: Text(
-                          column.label,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        width: _dateWidth,
+                        child: const Text(
+                          'Date',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: matrix.dates.length,
-                  itemBuilder: (context, index) {
-                    final date = matrix.dates[index];
-                    return SizedBox(
-                      height: 56,
-                      child: Row(
-                        children: [
-                          _box(
-                            context,
-                            width: _dateWidth,
-                            child: Text(
-                              '${_AutoExamDateSheetGeneratorViewState._date(date)}\n'
-                              '${_AutoExamDateSheetGeneratorViewState._fullDayName(date.weekday)}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
+                      for (final column in matrix.columns)
+                        _box(
+                          context,
+                          width: _classWidth,
+                          child: Text(
+                            column.label,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          for (final column in matrix.columns)
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: matrix.dates.length,
+                    itemBuilder: (context, index) {
+                      final date = matrix.dates[index];
+                      return SizedBox(
+                        height: 56,
+                        child: Row(
+                          children: [
                             _box(
                               context,
-                              width: _classWidth,
+                              width: _dateWidth,
                               child: Text(
-                                matrix.subjectsFor(date, column),
-                                textAlign: TextAlign.center,
+                                '${_AutoExamDateSheetGeneratorViewState._date(date)}\n'
+                                '${_AutoExamDateSheetGeneratorViewState._fullDayName(date.weekday)}',
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),
-                        ],
-                      ),
-                    );
-                  },
+                            for (final column in matrix.columns)
+                              _box(
+                                context,
+                                width: _classWidth,
+                                child: Text(
+                                  matrix.subjectsFor(date, column),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
   Widget _box(
     BuildContext context, {
     required double width,
