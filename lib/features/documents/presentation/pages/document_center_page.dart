@@ -9,6 +9,8 @@ import '../../../school_engagement/presentation/pages/school_engagement_page.dar
 import '../../../students/presentation/pages/students_page.dart';
 import '../../domain/entities/document_type.dart';
 import 'experience_certificate_preview_page.dart';
+import 'employee_card_preview_page.dart';
+import 'salary_slip_preview_page.dart';
 
 const _pageBackground = Color(0xFFF5F7FA);
 const _brandBlue = Color(0xFF0B63CE);
@@ -751,8 +753,17 @@ class _DocumentTypeCard extends StatelessWidget {
         return;
 
       case DocumentType.employeeCard:
+        _push(
+          context,
+          const EmployeeCardPreviewPage(),
+        );
+        return;
+
       case DocumentType.salarySlip:
-        _showFoundationMessage(context);
+        _push(
+          context,
+          const SalarySlipPreviewPage(),
+        );
         return;
     }
   }
@@ -865,3 +876,5 @@ class _DocumentCenterItem {
   final IconData icon;
   final _DocumentStatus status;
 }
+
+
