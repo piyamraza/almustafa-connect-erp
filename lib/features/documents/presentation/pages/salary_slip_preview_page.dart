@@ -80,9 +80,7 @@ class _SalarySlipPreviewPageState
       ...staffSalaries,
       ...teachers
           .where(
-            (teacher) =>
-                teacher.isActive &&
-                teacher.monthlySalary > 0,
+            (teacher) => teacher.isActive,
           )
           .map(
             (teacher) => StaffSalaryEntity(
@@ -984,4 +982,5 @@ class _Failure extends StatelessWidget {
     );
   }
 }
+
 
