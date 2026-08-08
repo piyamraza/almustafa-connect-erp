@@ -1,4 +1,11 @@
-enum EngagementPersonType { student, teacher, staff, principal, parent, other }
+enum EngagementPersonType {
+  student,
+  teacher,
+  staff,
+  principal,
+  parent,
+  other,
+}
 
 class EngagementPersonEntity {
   final String id;
@@ -7,6 +14,8 @@ class EngagementPersonEntity {
   final String gender;
   final DateTime dateOfBirth;
   final String profileImageUrl;
+
+  final String fatherName;
 
   final String? classId;
   final String? sectionId;
@@ -23,6 +32,7 @@ class EngagementPersonEntity {
     required this.gender,
     required this.dateOfBirth,
     required this.profileImageUrl,
+    this.fatherName = '',
     this.classId,
     this.sectionId,
     this.className,
@@ -31,15 +41,21 @@ class EngagementPersonEntity {
     required this.sourceReference,
   });
 
-  bool get isMale => gender.trim().toLowerCase() == 'male';
+  bool get isMale =>
+      gender.trim().toLowerCase() == 'male';
 
-  bool get isFemale => gender.trim().toLowerCase() == 'female';
+  bool get isFemale =>
+      gender.trim().toLowerCase() == 'female';
 
   String get classSectionLabel {
-    final classValue = className?.trim() ?? '';
-    final sectionValue = sectionName?.trim() ?? '';
+    final classValue =
+        className?.trim() ?? '';
 
-    if (classValue.isEmpty && sectionValue.isEmpty) {
+    final sectionValue =
+        sectionName?.trim() ?? '';
+
+    if (classValue.isEmpty &&
+        sectionValue.isEmpty) {
       return '';
     }
 
@@ -61,6 +77,7 @@ class EngagementPersonEntity {
     String? gender,
     DateTime? dateOfBirth,
     String? profileImageUrl,
+    String? fatherName,
     String? classId,
     String? sectionId,
     String? className,
@@ -70,17 +87,31 @@ class EngagementPersonEntity {
   }) {
     return EngagementPersonEntity(
       id: id ?? this.id,
-      personType: personType ?? this.personType,
-      displayName: displayName ?? this.displayName,
+      personType:
+          personType ?? this.personType,
+      displayName:
+          displayName ?? this.displayName,
       gender: gender ?? this.gender,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      classId: classId ?? this.classId,
-      sectionId: sectionId ?? this.sectionId,
-      className: className ?? this.className,
-      sectionName: sectionName ?? this.sectionName,
-      isActive: isActive ?? this.isActive,
-      sourceReference: sourceReference ?? this.sourceReference,
+      dateOfBirth:
+          dateOfBirth ?? this.dateOfBirth,
+      profileImageUrl:
+          profileImageUrl ??
+          this.profileImageUrl,
+      fatherName:
+          fatherName ?? this.fatherName,
+      classId:
+          classId ?? this.classId,
+      sectionId:
+          sectionId ?? this.sectionId,
+      className:
+          className ?? this.className,
+      sectionName:
+          sectionName ?? this.sectionName,
+      isActive:
+          isActive ?? this.isActive,
+      sourceReference:
+          sourceReference ??
+          this.sourceReference,
     );
   }
 }

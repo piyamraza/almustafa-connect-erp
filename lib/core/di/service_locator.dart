@@ -1415,8 +1415,13 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<SearchBirthdayPeople>(
-    () => SearchBirthdayPeople(studentRepository: sl<StudentRepository>()),
-  );
+  () => SearchBirthdayPeople(
+    studentRepository:
+        sl<StudentRepository>(),
+    academicStructureRepository:
+        sl<AcademicStructureRepository>(),
+  ),
+);
   sl.registerLazySingleton<GetBirthdayHistory>(
     () => GetBirthdayHistory(repository: sl<EngagementRepository>()),
   );
