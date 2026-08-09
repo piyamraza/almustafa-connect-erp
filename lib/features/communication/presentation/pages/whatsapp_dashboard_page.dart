@@ -10,6 +10,7 @@ import '../../domain/entities/whatsapp_template_entity.dart';
 import '../bloc/whatsapp_bloc.dart';
 import '../bloc/whatsapp_event.dart';
 import '../bloc/whatsapp_state.dart';
+import 'whatsapp_contact_lists_page.dart';
 
 class WhatsAppDashboardPage extends StatelessWidget {
   const WhatsAppDashboardPage({super.key});
@@ -79,6 +80,15 @@ class _WhatsAppDashboardView extends StatelessWidget {
                       onPressed: () => _showTemplateDialog(context),
                       icon: const Icon(Icons.add),
                       label: const Text('New Template'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const WhatsAppContactListsPage(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.contacts_outlined),
+                      label: const Text('Broadcast Contact Lists'),
                     ),
                   ],
                 ),

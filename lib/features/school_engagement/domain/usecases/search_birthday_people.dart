@@ -6,10 +6,8 @@ import '../entities/engagement_person_entity.dart';
 class SearchBirthdayPeople {
   const SearchBirthdayPeople({
     required this._studentRepository,
-    required AcademicStructureRepository
-        academicStructureRepository,
-  })  : _academicStructureRepository =
-            academicStructureRepository;
+    required this._academicStructureRepository,
+  });
 
   final StudentRepository
       _studentRepository;

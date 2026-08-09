@@ -487,7 +487,7 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${workload.employeeId} â€¢ ${workload.designation}',
+                  '${workload.employeeId} | ${workload.designation}',
                   style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
                   ),
@@ -630,7 +630,7 @@ class _TeacherWorkloadCard extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         Text(
-                          '${workload.employeeId} â€¢ ${workload.designation}',
+                          '${workload.employeeId} | ${workload.designation}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],

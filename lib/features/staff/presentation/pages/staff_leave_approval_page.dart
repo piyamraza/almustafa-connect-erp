@@ -52,7 +52,7 @@ class _StaffLeaveApprovalView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${leave.staffName} â€¢ '
+                  '${leave.staffName} | '
                   '${leave.totalDays.toStringAsFixed(
                     leave.totalDays ==
                             leave.totalDays.roundToDouble()

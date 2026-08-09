@@ -131,7 +131,7 @@ class StaffLeaveListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${leave.staffCode} â€¢ '
+                          '${leave.staffCode} | '
                           '${leave.designation}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -180,7 +180,7 @@ class StaffLeaveListItem extends StatelessWidget {
                       leave.totalDays == leave.totalDays.roundToDouble()
                           ? 0
                           : 1,
-                    )} day(s) â€¢ ${_durationLabel(leave.duration)}',
+                    )} day(s) | ${_durationLabel(leave.duration)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

@@ -294,7 +294,7 @@ class _MonthlyFeeCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          'Due ${_date(due.dueDate)} â€¢ '
+          'Due ${_date(due.dueDate)} | '
           'Outstanding ${_money(due.outstandingAmount)}',
         ),
         trailing: Chip(

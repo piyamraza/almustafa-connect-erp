@@ -145,8 +145,8 @@ class _CommunicationBroadcastViewState
                               ),
                               title: Text(item.title),
                               subtitle: Text(
-                                '${_label(item.audienceType.name)} â€¢ '
-                                '${item.channels.map((e) => _label(e.name)).join(', ')} â€¢ '
+                                '${_label(item.audienceType.name)} | '
+                                '${item.channels.map((e) => _label(e.name)).join(', ')} | '
                                 '${_label(item.status.name)}',
                               ),
                               trailing: canRetry

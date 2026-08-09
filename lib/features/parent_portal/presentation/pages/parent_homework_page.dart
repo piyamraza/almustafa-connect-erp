@@ -232,8 +232,8 @@ class _HomeworkCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${homework.subjectName} â€¢ '
-          '${homework.teacherName} â€¢ '
+          '${homework.subjectName} | '
+          '${homework.teacherName} | '
           'Due ${_date(homework.dueDate)}',
         ),
         trailing: Chip(label: Text(statusLabel)),

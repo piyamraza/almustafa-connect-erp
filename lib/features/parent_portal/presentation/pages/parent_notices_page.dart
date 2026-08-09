@@ -346,7 +346,7 @@ class _NoticeCard extends StatelessWidget {
         ),
         subtitle: Text(
           '${item.priority.toUpperCase()}'
-          '${item.publishAt == null ? '' : ' â€¢ ${_date(item.publishAt!)}'}',
+          '${item.publishAt == null ? '' : ' | ${_date(item.publishAt!)}'}',
         ),
         trailing: Icon(
           item.isRead

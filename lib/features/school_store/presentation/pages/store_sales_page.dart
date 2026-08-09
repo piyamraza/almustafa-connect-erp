@@ -70,7 +70,7 @@ class _StoreSalesView extends StatelessWidget {
                   ),
                   Chip(
                     label: Text(
-                      'Credit Rs. ${data.totalOutstanding.toStringAsFixed(0)}',
+                      'Amount Due Rs. ${data.totalOutstanding.toStringAsFixed(0)}',
                     ),
                   ),
                   Chip(
@@ -176,8 +176,8 @@ class _StoreSalesView extends StatelessWidget {
     BuildContext context,
     StoreSaleLoaded data,
   ) async {
-    var student = data.students.first;
-    final studentController = TextEditingController(text: student.name);
+    StoreStudentOptionEntity? student;
+    final studentController = TextEditingController();
     final availableItems = data.items
         .where((item) => item.currentStock > 0 && item.isActive)
         .toList();
@@ -205,6 +205,7 @@ class _StoreSalesView extends StatelessWidget {
                     readOnly: true,
                     decoration: const InputDecoration(
                       labelText: 'Student',
+                      hintText: 'Search and select student',
                       suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
                     onTap: () async {
@@ -289,7 +290,9 @@ class _StoreSalesView extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: student == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
               child: const Text('Save Sale'),
             ),
           ],
@@ -299,16 +302,17 @@ class _StoreSalesView extends StatelessWidget {
 
     if (save == true && context.mounted) {
       final now = DateTime.now();
+      final selectedStudent = student!;
 
       context.read<StoreSaleBloc>().add(
         SaveStoreSaleRequested(
           StoreSaleEntity(
             id: 'store_sale_${now.microsecondsSinceEpoch}',
-            studentId: student.id,
-            studentName: student.name,
-            admissionNo: student.admissionNo,
-            classId: student.classId,
-            sectionId: student.sectionId,
+            studentId: selectedStudent.id,
+            studentName: selectedStudent.name,
+            admissionNo: selectedStudent.admissionNo,
+            classId: selectedStudent.classId,
+            sectionId: selectedStudent.sectionId,
             itemId: item.id,
             itemName: item.name,
             quantity: int.tryParse(quantityController.text) ?? 0,
@@ -334,7 +338,7 @@ class _StoreSalesView extends StatelessWidget {
   static Future<StoreStudentOptionEntity?> _selectStudent(
     BuildContext context,
     List<StoreStudentOptionEntity> students, {
-    required StoreStudentOptionEntity selected,
+    required StoreStudentOptionEntity? selected,
   }) {
     final searchController = TextEditingController();
     var query = '';
@@ -383,7 +387,7 @@ class _StoreSalesView extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final student = filtered[index];
                               return ListTile(
-                                selected: student.id == selected.id,
+                                selected: student.id == selected?.id,
                                 title: Text(student.name),
                                 subtitle: Text(
                                   'Father: ${student.fatherName.isEmpty ? '-' : student.fatherName}\n'

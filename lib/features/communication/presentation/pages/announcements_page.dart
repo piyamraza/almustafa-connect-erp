@@ -153,9 +153,9 @@ class _AnnouncementsViewState extends State<_AnnouncementsView> {
                               ),
                               title: Text(message.title),
                               subtitle: Text(
-                                '${_label(message.audienceType.name)} â€¢ '
+                                '${_label(message.audienceType.name)} | '
                                 '${_label(message.status.name)}'
-                                '${message.isExpired ? ' â€¢ Expired' : ''}',
+                                '${message.isExpired ? ' | Expired' : ''}',
                               ),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (value) {

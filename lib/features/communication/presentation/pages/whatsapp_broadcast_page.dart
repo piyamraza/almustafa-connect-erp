@@ -112,8 +112,8 @@ class _WhatsAppBroadcastView extends StatelessWidget {
                               ),
                               title: Text(item.title),
                               subtitle: Text(
-                                '${item.audience.name} â€¢ '
-                                '${item.automationType.name} â€¢ '
+                                '${item.audience.name} | '
+                                '${item.automationType.name} | '
                                 '${item.status.name}',
                               ),
                               trailing:

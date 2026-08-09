@@ -6,7 +6,9 @@ import 'attendance_history_page.dart';
 import 'student_attendance_page.dart';
 import 'attendance_reports_page.dart';
 import '../../../teachers/presentation/pages/teacher_attendance_page.dart';
+import '../../../teachers/presentation/pages/teacher_attendance_history_page.dart';
 import '../../../staff/presentation/pages/staff_attendance_page.dart';
+import '../../../staff/presentation/pages/staff_attendance_history_page.dart';
 
 class AttendancePage extends StatelessWidget {
   const AttendancePage({super.key});
@@ -42,7 +44,7 @@ class AttendancePage extends StatelessWidget {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 6,
+                    itemCount: 8,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
@@ -112,6 +114,34 @@ class AttendancePage extends StatelessWidget {
                           );
                         case 4:
                           return _AttendanceCard(
+                            title: 'Teacher Attendance History',
+                            description:
+                                'Review attendance history for an individual teacher.',
+                            icon: Icons.history_edu_outlined,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TeacherAttendanceHistoryPage(),
+                              ),
+                            ),
+                          );
+                        case 5:
+                          return _AttendanceCard(
+                            title: 'Staff Attendance History',
+                            description:
+                                'Review attendance history for an individual staff member.',
+                            icon: Icons.manage_history_outlined,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const StaffAttendanceHistoryPage(),
+                              ),
+                            ),
+                          );
+                        case 6:
+                          return _AttendanceCard(
                             title: 'Student Attendance Records',
                             description:
                                 'View attendance for an individual student.',
@@ -123,7 +153,7 @@ class AttendancePage extends StatelessWidget {
                               ),
                             ),
                           );
-                        case 5:
+                        case 7:
                           return _AttendanceCard(
                             title: 'Attendance Reports',
                             description:

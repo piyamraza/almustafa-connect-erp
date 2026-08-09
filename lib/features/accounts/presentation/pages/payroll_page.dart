@@ -8,6 +8,7 @@ import '../../../authentication/domain/usecases/get_current_user_usecase.dart';
 import '../../domain/entities/payroll_profile_entity.dart';
 import '../../domain/entities/payroll_record_entity.dart';
 import '../../domain/entities/salary_history_entity.dart';
+import '../../domain/repositories/accounts_repository.dart';
 import '../bloc/payroll_bloc.dart';
 import '../bloc/payroll_event.dart';
 import '../bloc/payroll_state.dart';
@@ -223,20 +224,202 @@ class _PayrollViewState extends State<_PayrollView> {
                 Text(paid ? 'PAID' : 'GENERATED'),
               ],
             ),
-            if (!paid)
+            if (!paid) ...[
+              OutlinedButton.icon(
+                onPressed: () => _showAdjustmentDialog(context, record),
+                icon: const Icon(Icons.tune_outlined),
+                label: const Text('Adjustment'),
+              ),
               FilledButton(
                 onPressed: () => context.read<PayrollBloc>().add(
                   UpdatePayrollStatusRequested(
                     payrollId: record.id,
                     status: PayrollPaymentStatus.paid,
                     actorId: _actorId,
+                    paymentMethod: 'Cash',
                   ),
                 ),
                 child: const Text('Mark Paid'),
               ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _showAdjustmentDialog(
+    BuildContext context,
+    PayrollRecordEntity record,
+  ) async {
+    var advanceDeduction = record.advanceDeduction;
+    var loanDeduction = record.loanDeduction;
+
+    try {
+      final finance = await sl<AccountsRepository>().getPayrollAutoDeductions(
+        employeeId: record.employeeId,
+        employeeType: record.employeeType,
+        payrollMonth: record.payrollMonth,
+      );
+      advanceDeduction = finance.advanceDeduction;
+      loanDeduction = finance.loanDeduction;
+    } catch (_) {
+      // Existing record values remain available if finance refresh fails.
+    }
+
+    if (!context.mounted) return;
+
+    final deductionController = TextEditingController(
+      text: record.deductions.toString(),
+    );
+    final advanceController = TextEditingController(
+      text: advanceDeduction.toString(),
+    );
+    final loanController = TextEditingController(
+      text: loanDeduction.toString(),
+    );
+    final additionController = TextEditingController(
+      text: record.bonus.toString(),
+    );
+    final remarksController = TextEditingController(text: record.remarks);
+
+    int valueOf(TextEditingController controller) =>
+        int.tryParse(controller.text.trim()) ?? 0;
+
+    final adjusted = await showDialog<PayrollRecordEntity>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final deductions = valueOf(deductionController);
+          final advance = valueOf(advanceController);
+          final loan = valueOf(loanController);
+          final addition = valueOf(additionController);
+          final gross = record.basicSalary + addition;
+          final net = gross - deductions - advance - loan;
+
+          return AlertDialog(
+            title: Text('Salary Adjustment — ${record.employeeName}'),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Profile salary: ${_money(record.basicSalary)}',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _adjustmentField(
+                      controller: advanceController,
+                      label: 'Advance recovery',
+                      helper: 'Latest amount loaded from Employee Finance',
+                      onChanged: () => setDialogState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    _adjustmentField(
+                      controller: loanController,
+                      label: 'Loan recovery',
+                      onChanged: () => setDialogState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    _adjustmentField(
+                      controller: deductionController,
+                      label: 'Other deduction',
+                      onChanged: () => setDialogState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    _adjustmentField(
+                      controller: additionController,
+                      label: 'Salary addition',
+                      onChanged: () => setDialogState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: remarksController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Remarks',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Net payable salary'),
+                      trailing: Text(
+                        _money(net),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: net < 0
+                              ? Theme.of(context).colorScheme.error
+                              : null,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: net < 0
+                    ? null
+                    : () => Navigator.pop(
+                        dialogContext,
+                        record.copyWith(
+                          deductions: deductions,
+                          advanceDeduction: advance,
+                          loanDeduction: loan,
+                          bonus: addition,
+                          grossSalary: gross,
+                          netSalary: net,
+                          remarks: remarksController.text.trim(),
+                          updatedAt: DateTime.now(),
+                        ),
+                      ),
+                child: const Text('Save Adjustment'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    deductionController.dispose();
+    advanceController.dispose();
+    loanController.dispose();
+    additionController.dispose();
+    remarksController.dispose();
+
+    if (adjusted != null && context.mounted) {
+      context.read<PayrollBloc>().add(SavePayrollRecordRequested(adjusted));
+    }
+  }
+
+  Widget _adjustmentField({
+    required TextEditingController controller,
+    required String label,
+    required VoidCallback onChanged,
+    String? helper,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helper,
+        prefixText: 'Rs. ',
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: (_) => onChanged(),
     );
   }
 

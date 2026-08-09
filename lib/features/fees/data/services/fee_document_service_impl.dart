@@ -378,7 +378,7 @@ class FeeDocumentServiceImpl implements FeeDocumentService {
               ),
               if (payment.advanceAmount > 0)
                 _receiptRow(
-                  'New Advance Created',
+                  'New Advance Added',
                   _money(payment.advanceAmount),
                   bold: true,
                 ),

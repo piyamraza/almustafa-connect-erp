@@ -212,10 +212,10 @@ class GetCommunicationAnalytics {
     final recentActivity = <String>[
       ...data.auditEntries
           .take(10)
-          .map((entry) => '${entry.module} â€¢ ${entry.action.name}'),
+          .map((entry) => '${entry.module} | ${entry.action.name}'),
       ...data.broadcasts
           .take(10)
-          .map((entry) => '${entry.title} â€¢ ${entry.status.name}'),
+          .map((entry) => '${entry.title} | ${entry.status.name}'),
     ].take(12).toList();
 
     return CommunicationAnalyticsEntity(

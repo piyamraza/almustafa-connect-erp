@@ -95,8 +95,8 @@ class _PushNotificationHistoryView extends StatelessWidget {
                               ),
                               title: Text(request.title),
                               subtitle: Text(
-                                '${request.targetType.name} â€¢ '
-                                '${request.targetValue} â€¢ '
+                                '${request.targetType.name} | '
+                                '${request.targetValue} | '
                                 '${request.status.name}',
                               ),
                               trailing:

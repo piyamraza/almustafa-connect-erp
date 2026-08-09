@@ -31,6 +31,22 @@
         {"fieldPath": "fromAcademicSession", "order": "ASCENDING"},
         {"fieldPath": "finalExamId", "order": "ASCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "staff_attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "staffId", "order": "ASCENDING"},
+        {"fieldPath": "attendanceDate", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "teacher_attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "teacherId", "order": "ASCENDING"},
+        {"fieldPath": "attendanceDate", "order": "ASCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []

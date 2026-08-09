@@ -1,6 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../domain/entities/school_settings_entity.dart';
+import '../../domain/usecases/manage_settings.dart';
 
 const _pageBackground = Color(0xFFF5F7FA);
 const _brandBlue = Color(0xFF0B63CE);
@@ -24,6 +27,40 @@ class _AcademicSettingsPageState
 
   DateTime _sessionStart = DateTime(2026, 4, 1);
   DateTime _sessionEnd = DateTime(2027, 3, 31);
+  SchoolSettingsEntity? _settings;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final settings = await sl<GetSchoolSettings>()();
+      if (!mounted) return;
+      setState(() {
+        _settings = settings;
+        _sessionController.text = settings.currentSession;
+        _sessionStart = settings.sessionStartDate;
+        _sessionEnd = settings.sessionEndDate;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -36,7 +73,17 @@ class _AcademicSettingsPageState
     return Scaffold(
       backgroundColor: _pageBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+            ? Center(
+                child: FilledButton.icon(
+                  onPressed: _loadSettings,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry loading Academic Settings'),
+                ),
+              )
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Center(
             child: ConstrainedBox(
@@ -122,12 +169,15 @@ class _AcademicSettingsPageState
                         backgroundColor:
                             _brandBlue,
                       ),
-                      onPressed: _save,
-                      icon: const Icon(
-                        Icons.save_outlined,
-                      ),
-                      label: const Text(
-                        'Save Academic Settings',
+                      onPressed: _isSaving ? null : _save,
+                      icon: _isSaving
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined),
+                      label: Text(
+                        _isSaving ? 'Saving...' : 'Save Academic Settings',
                       ),
                     ),
                   ],
@@ -140,20 +190,48 @@ class _AcademicSettingsPageState
     );
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_formKey.currentState!
         .validate()) {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Academic Settings save will be connected after all Settings pages are ready.',
+    if (!_sessionEnd.isAfter(_sessionStart)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session end date must be after start date.'),
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    final current = _settings;
+    if (current == null || _isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final updated = current.copyWith(
+        currentSession: _sessionController.text.trim(),
+        sessionStartDate: _sessionStart,
+        sessionEndDate: _sessionEnd,
+        updatedAt: DateTime.now(),
+      );
+      await sl<SaveSchoolSettings>()(updated);
+      if (!mounted) return;
+      setState(() {
+        _settings = updated;
+        _isSaving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Academic Settings saved successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save Academic Settings: $error')),
+      );
+    }
   }
 }
 

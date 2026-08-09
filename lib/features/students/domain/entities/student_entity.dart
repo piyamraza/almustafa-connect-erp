@@ -1,5 +1,7 @@
 enum StudentStatus { active, inactive, graduated }
 
+enum StudentWhatsAppContact { father, mother, guardian }
+
 class StudentEntity {
   final String id;
   final String admissionNo;
@@ -26,6 +28,7 @@ class StudentEntity {
   final String guardianCnic;
   final String guardianPhone;
   final String guardianWhatsapp;
+  final StudentWhatsAppContact preferredWhatsAppContact;
   final String guardianEmail;
   final String bloodGroup;
   final String medicalAllergies;
@@ -62,6 +65,7 @@ class StudentEntity {
     this.guardianCnic = '',
     required this.guardianPhone,
     this.guardianWhatsapp = '',
+    this.preferredWhatsAppContact = StudentWhatsAppContact.guardian,
     required this.guardianEmail,
     this.bloodGroup = '',
     this.medicalAllergies = '',
@@ -75,6 +79,43 @@ class StudentEntity {
            status ?? (isActive ? StudentStatus.active : StudentStatus.inactive);
 
   String get fullName => "$firstName $lastName";
+
+  String get preferredWhatsAppNumber {
+    final numbers = <StudentWhatsAppContact, String>{
+      StudentWhatsAppContact.father: fatherWhatsapp.trim().isNotEmpty
+          ? fatherWhatsapp.trim()
+          : fatherPhone.trim(),
+      StudentWhatsAppContact.mother: motherWhatsapp.trim().isNotEmpty
+          ? motherWhatsapp.trim()
+          : motherPhone.trim(),
+      StudentWhatsAppContact.guardian: guardianWhatsapp.trim().isNotEmpty
+          ? guardianWhatsapp.trim()
+          : guardianPhone.trim(),
+    };
+    final preferred = numbers[preferredWhatsAppContact] ?? '';
+    if (preferred.isNotEmpty) return preferred;
+    for (final contact in const [
+      StudentWhatsAppContact.guardian,
+      StudentWhatsAppContact.father,
+      StudentWhatsAppContact.mother,
+    ]) {
+      final value = numbers[contact] ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  String get preferredWhatsAppContactName => switch (preferredWhatsAppContact) {
+    StudentWhatsAppContact.father => fatherName.trim().isEmpty
+        ? 'Father'
+        : fatherName.trim(),
+    StudentWhatsAppContact.mother => motherName.trim().isEmpty
+        ? 'Mother'
+        : motherName.trim(),
+    StudentWhatsAppContact.guardian => guardianName.trim().isEmpty
+        ? 'Guardian'
+        : guardianName.trim(),
+  };
 
   StudentEntity copyWith({
     String? id,
@@ -98,6 +139,7 @@ class StudentEntity {
     String? guardianCnic,
     String? guardianPhone,
     String? guardianWhatsapp,
+    StudentWhatsAppContact? preferredWhatsAppContact,
     String? guardianEmail,
     String? bloodGroup,
     String? medicalAllergies,
@@ -130,6 +172,8 @@ class StudentEntity {
       guardianCnic: guardianCnic ?? this.guardianCnic,
       guardianPhone: guardianPhone ?? this.guardianPhone,
       guardianWhatsapp: guardianWhatsapp ?? this.guardianWhatsapp,
+      preferredWhatsAppContact:
+          preferredWhatsAppContact ?? this.preferredWhatsAppContact,
       guardianEmail: guardianEmail ?? this.guardianEmail,
       bloodGroup: bloodGroup ?? this.bloodGroup,
       medicalAllergies: medicalAllergies ?? this.medicalAllergies,

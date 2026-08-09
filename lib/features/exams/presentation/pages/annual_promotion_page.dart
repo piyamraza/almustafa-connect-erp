@@ -61,11 +61,12 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
         _loading = false;
       });
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _error = '$error';
         });
+      }
     }
   }
 
@@ -82,17 +83,19 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
     if (value == null) return;
     try {
       final exams = await _service.finalExams(value);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _exams = exams;
           _loading = false;
         });
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _error = '$error';
         });
+      }
     }
   }
 
@@ -108,17 +111,19 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
         academicSession: _session!,
         finalExamId: _examId!,
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _preview = preview;
           _loading = false;
         });
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _error = _message(error);
         });
+      }
     }
   }
 
@@ -191,11 +196,12 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
       await _generatePreview();
       if (mounted) setState(() => _summary = summary);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _executing = false;
           _error = _message(error);
         });
+      }
     }
   }
 
@@ -616,10 +622,11 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
       item.warning = sections.length > 1 ? 'Select a target section.' : '';
     }
 
-    if (notify)
+    if (notify) {
       setState(change);
-    else
+    } else {
       change();
+    }
   }
 
   Widget _completionCard(AnnualPromotionExecutionSummary value) => Card(

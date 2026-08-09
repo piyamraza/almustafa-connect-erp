@@ -355,8 +355,8 @@ OutlinedButton.icon(
                                     value: _selectedDueIds.contains(due.id),
                                     title: Text(due.studentName),
                                     subtitle: Text(
-                                      '${due.admissionNo} â€¢ '
-                                      '${_monthName(due.month)} ${due.year} â€¢ '
+                                      '${due.admissionNo} | '
+                                      '${_monthName(due.month)} ${due.year} | '
                                       'Due ${_date(due.dueDate)}',
                                     ),
                                     secondary: Chip(

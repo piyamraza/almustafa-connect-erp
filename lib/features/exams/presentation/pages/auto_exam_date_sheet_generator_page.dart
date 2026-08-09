@@ -701,7 +701,7 @@ class _OptionCard extends StatelessWidget {
             Text('${option.papers.length} papers'),
             Text(
               '${_AutoExamDateSheetGeneratorViewState._date(option.startDate)}'
-              ' â†’ '
+              ' -> '
               '${_AutoExamDateSheetGeneratorViewState._date(option.endDate)}',
             ),
             Text(

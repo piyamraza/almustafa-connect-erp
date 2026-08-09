@@ -88,8 +88,8 @@ class CommunicationChannelComparison extends StatelessWidget {
                     LinearProgressIndicator(value: item.total / maximum),
                     const SizedBox(height: 4),
                     Text(
-                      'Sent ${item.sent} â€¢ Delivered ${item.delivered} â€¢ '
-                      'Read ${item.read} â€¢ Failed ${item.failed}',
+                      'Sent ${item.sent} | Delivered ${item.delivered} | '
+                      'Read ${item.read} | Failed ${item.failed}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],

@@ -80,10 +80,10 @@ class _CommunicationAuditView extends StatelessWidget {
                         ),
                         title: Text(item.title),
                         subtitle: Text(
-                          '${item.status.name} â€¢ '
-                          'Sent ${item.sentCount} â€¢ '
-                          'Delivered ${item.deliveredCount} â€¢ '
-                          'Read ${item.readCount} â€¢ '
+                          '${item.status.name} | '
+                          'Sent ${item.sentCount} | '
+                          'Delivered ${item.deliveredCount} | '
+                          'Read ${item.readCount} | '
                           'Failed ${item.failedCount}',
                         ),
                       ),
@@ -109,9 +109,9 @@ class _CommunicationAuditView extends StatelessWidget {
                         leading: const CircleAvatar(
                           child: Icon(Icons.history_outlined),
                         ),
-                        title: Text('${entry.module} â€¢ ${entry.action.name}'),
+                        title: Text('${entry.module} | ${entry.action.name}'),
                         subtitle: Text(
-                          '${entry.actorName.isEmpty ? entry.actorId : entry.actorName} â€¢ '
+                          '${entry.actorName.isEmpty ? entry.actorId : entry.actorName} | '
                           '${_date(entry.createdAt)}',
                         ),
                       ),

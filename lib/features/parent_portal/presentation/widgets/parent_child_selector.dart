@@ -77,7 +77,7 @@ class _SelectedChildCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${student.admissionNo} â€¢ '
+          '${student.admissionNo} | '
           '${student.classId}-${student.sectionId}',
         ),
         trailing: const Chip(label: Text('CURRENT CHILD')),

@@ -12,9 +12,8 @@ import '../../domain/repositories/annual_promotion_repository.dart';
 class AnnualPromotionRepositoryImpl implements AnnualPromotionRepository {
   const AnnualPromotionRepositoryImpl({
     required FirebaseFirestoreService firestoreService,
-    required FirebaseAuth auth,
-  }) : _service = firestoreService,
-       _auth = auth;
+    required this._auth,
+  }) : _service = firestoreService;
 
   final FirebaseFirestoreService _service;
   final FirebaseAuth _auth;
@@ -46,8 +45,9 @@ class AnnualPromotionRepositoryImpl implements AnnualPromotionRepository {
   }) async {
     _validatePreview(preview);
     final actorId = _auth.currentUser?.uid ?? '';
-    if (actorId.isEmpty)
+    if (actorId.isEmpty) {
       throw StateError('You must be signed in to promote students.');
+    }
     final runId = _runs.doc().id;
     final startedAt = DateTime.now().toUtc().toIso8601String();
     await _runs.doc(runId).set({
@@ -220,8 +220,9 @@ class AnnualPromotionRepositoryImpl implements AnnualPromotionRepository {
     AnnualPromotionPreviewItem item,
   ) async {
     final classId = item.targetClassId?.trim() ?? '';
-    if (classId.isEmpty)
+    if (classId.isEmpty) {
       throw StateError('${item.student.fullName}: target class is required.');
+    }
     final classSnapshot = await transaction.get(
       _service.collection(FirestorePaths.classes).doc(classId),
     );

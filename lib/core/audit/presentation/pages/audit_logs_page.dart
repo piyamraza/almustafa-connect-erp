@@ -349,11 +349,11 @@ class _AuditLogCard extends StatelessWidget {
       child: ExpansionTile(
         leading: CircleAvatar(child: Icon(_actionIcon(log.action))),
         title: Text(
-          '${log.module} â€¢ ${_AuditLogsPageState._actionLabel(log.action)}',
+          '${log.module} | ${_AuditLogsPageState._actionLabel(log.action)}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '$user â€¢ ${_dateTime(log.createdAt)}\n'
+          '$user | ${_dateTime(log.createdAt)}\n'
           'Record: ${log.recordId.isEmpty ? '-' : log.recordId}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

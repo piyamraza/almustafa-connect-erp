@@ -870,7 +870,7 @@ class _ManualExamDateSheetBuilderPageState
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'This date sheet is read-only. Use Publish Workflow ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Revise to create an editable draft.',
+                                'This date sheet is read-only. Use Publish Workflow -> Revise to create an editable draft.',
                               ),
                             ),
                           ],

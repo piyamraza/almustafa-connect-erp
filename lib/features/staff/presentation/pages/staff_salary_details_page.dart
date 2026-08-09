@@ -477,7 +477,7 @@ class _SalaryHeader extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '${salary.staffCode} â€¢ '
+                        '${salary.staffCode} | '
                         '${salary.designation}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

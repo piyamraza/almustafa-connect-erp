@@ -148,7 +148,7 @@ class _ParentResultsPageState extends State<ParentResultsPage> {
                   (result) => DropdownMenuItem<String>(
                     value: result.id,
                     child: Text(
-                      '${result.examName} â€¢ '
+                      '${result.examName} | '
                       '${result.percentage.toStringAsFixed(1)}%',
                     ),
                   ),

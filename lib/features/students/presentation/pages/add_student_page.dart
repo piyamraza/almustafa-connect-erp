@@ -80,6 +80,8 @@ class _AddStudentPageState extends State<AddStudentPage> {
   String? selectedSection;
   String? selectedGender;
   String? selectedBloodGroup;
+  StudentWhatsAppContact _preferredWhatsAppContact =
+      StudentWhatsAppContact.guardian;
 
   DateTime? selectedDate;
 
@@ -499,6 +501,7 @@ if (_imageBytes != null) {
       guardianCnic: _guardianCnicController.text.trim(),
       guardianPhone: _mobileController.text.trim(),
       guardianWhatsapp: _guardianWhatsappController.text.trim(),
+      preferredWhatsAppContact: _preferredWhatsAppContact,
       guardianEmail: _guardianEmailController.text.trim(),
       bloodGroup: selectedBloodGroup ?? '',
       medicalAllergies: _medicalAllergiesController.text.trim(),
@@ -565,6 +568,7 @@ if (_imageBytes != null) {
         : student.guardianWhatsapp;
     _guardianWhatsappSame =
         _guardianWhatsappController.text == _mobileController.text;
+    _preferredWhatsAppContact = student.preferredWhatsAppContact;
     _guardianEmailController.text = student.guardianEmail;
     _addressController.text = student.address;
 
@@ -916,6 +920,44 @@ if (_imageBytes != null) {
                           if (value) _syncGuardianWhatsapp();
                         });
                       },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    DropdownButtonFormField<StudentWhatsAppContact>(
+                      initialValue: _preferredWhatsAppContact,
+                      decoration: _inputDecoration(
+                        'Default WhatsApp Recipient',
+                        Icons.chat_outlined,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: StudentWhatsAppContact.father,
+                          child: Text('Father'),
+                        ),
+                        DropdownMenuItem(
+                          value: StudentWhatsAppContact.mother,
+                          child: Text('Mother'),
+                        ),
+                        DropdownMenuItem(
+                          value: StudentWhatsAppContact.guardian,
+                          child: Text('Guardian'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _preferredWhatsAppContact = value);
+                        }
+                      },
+                    ),
+
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        'School notifications will use this contact first. '
+                        'If its number is missing, another available parent '
+                        'number will be used.',
+                      ),
                     ),
 
                     const SizedBox(height: 35),

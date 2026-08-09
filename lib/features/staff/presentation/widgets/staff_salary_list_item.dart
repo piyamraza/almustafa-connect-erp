@@ -103,7 +103,7 @@ class StaffSalaryListItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${salary.staffCode} â€¢ '
+                          '${salary.staffCode} | '
                           '${salary.designation}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

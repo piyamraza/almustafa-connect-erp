@@ -993,8 +993,8 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                     value: _selectedDueIds.contains(due.id),
                     title: Text('${_monthName(due.month)} ${due.year}'),
                     subtitle: Text(
-                      'Net Rs. ${due.netPayable.toStringAsFixed(0)} â€¢ '
-                      'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} â€¢ '
+                      'Net Rs. ${due.netPayable.toStringAsFixed(0)} | '
+                      'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} | '
                       'Outstanding Rs. ${due.outstandingAmount.toStringAsFixed(0)}',
                     ),
                     secondary: Chip(label: Text(due.status.name.toUpperCase())),
@@ -1347,9 +1347,9 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                 value: _selectedAdditionalDueIds.contains(due.id),
                 title: Text(due.chargeTitle),
                 subtitle: Text(
-                  '${_label(due.chargeCategory.name)} â€¢ Due ${_date(due.dueDate)} â€¢ '
-                  'Net Rs. ${due.netPayable.toStringAsFixed(0)} â€¢ '
-                  'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} â€¢ '
+                  '${_label(due.chargeCategory.name)} | Due ${_date(due.dueDate)} | '
+                  'Net Rs. ${due.netPayable.toStringAsFixed(0)} | '
+                  'Paid Rs. ${due.paidAmount.toStringAsFixed(0)} | '
                   'Outstanding Rs. ${due.outstandingAmount.toStringAsFixed(0)}',
                 ),
                 secondary: Chip(label: Text(due.status.name.toUpperCase())),
@@ -1397,7 +1397,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                   DataColumn(label: Text('Method')),
                   DataColumn(label: Text('Paid')),
                   DataColumn(label: Text('Allocated')),
-                  DataColumn(label: Text('Advance Created')),
+                  DataColumn(label: Text('Advance Added')),
                   DataColumn(label: Text('Advance Used')),
                   DataColumn(label: Text('Reference')),
                   DataColumn(label: Text('Status')),
@@ -1798,7 +1798,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
         transactions.add(
           _LedgerTransaction(
             date: payment.paymentDate,
-            description: 'Advance Created - ${payment.receiptNumber}',
+            description: 'Advance Added - ${payment.receiptNumber}',
             debit: 0,
             credit: 0,
             advanceChange: payment.advanceAmount,
@@ -1894,17 +1894,20 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                               columns: const [
                                 DataColumn(label: Text('Date')),
                                 DataColumn(label: Text('Description')),
-                                DataColumn(label: Text('Debit'), numeric: true),
                                 DataColumn(
-                                  label: Text('Credit'),
+                                  label: Text('New Charges'),
                                   numeric: true,
                                 ),
                                 DataColumn(
-                                  label: Text('Receivable Balance'),
+                                  label: Text('Payment Received'),
                                   numeric: true,
                                 ),
                                 DataColumn(
-                                  label: Text('Advance Balance'),
+                                  label: Text('Amount Due'),
+                                  numeric: true,
+                                ),
+                                DataColumn(
+                                  label: Text('Advance Available'),
                                   numeric: true,
                                 ),
                               ],
@@ -1958,29 +1961,29 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                 children: [
                   Chip(
                     label: Text(
-                      'Opening Receivable: Rs. '
+                      'Previous Due: Rs. '
                       '${openingReceivable.toStringAsFixed(0)}',
                     ),
                   ),
                   Chip(
                     label: Text(
-                      'Period Debit: Rs. ${periodDebit.toStringAsFixed(0)}',
+                      'Total New Charges: Rs. ${periodDebit.toStringAsFixed(0)}',
                     ),
                   ),
                   Chip(
                     label: Text(
-                      'Period Credit: Rs. ${periodCredit.toStringAsFixed(0)}',
+                      'Total Payments: Rs. ${periodCredit.toStringAsFixed(0)}',
                     ),
                   ),
                   Chip(
                     label: Text(
-                      'Closing Receivable: Rs. '
+                      'Total Amount Due: Rs. '
                       '${receivableBalance.toStringAsFixed(0)}',
                     ),
                   ),
                   Chip(
                     label: Text(
-                      'Advance Created: Rs. '
+                      'Advance Added: Rs. '
                       '${periodAdvanceCreated.toStringAsFixed(0)}',
                     ),
                   ),
@@ -1992,7 +1995,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                   ),
                   Chip(
                     label: Text(
-                      'Closing Advance: Rs. '
+                      'Available Advance: Rs. '
                       '${advanceBalance.toStringAsFixed(0)}',
                     ),
                   ),
