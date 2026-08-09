@@ -8,6 +8,7 @@ import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
 import '../../domain/entities/student_entity.dart';
 import '../bloc/student_bloc.dart';
 import '../bloc/student_event.dart';
@@ -315,6 +316,31 @@ class _StudentsViewState extends State<_StudentsView> {
               onPressed: () => _showComingSoon('Student import'),
               icon: const Icon(Icons.upload_file_outlined),
               label: const Text('Import Students'),
+            ),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFE94883),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 16,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SchoolEngagementPage(),
+                ),
+              ),
+              icon: const Icon(Icons.cake_outlined, size: 22),
+              label: const Text('Birthdays'),
             ),
             OutlinedButton.icon(
               onPressed: () => _showComingSoon('Student export'),

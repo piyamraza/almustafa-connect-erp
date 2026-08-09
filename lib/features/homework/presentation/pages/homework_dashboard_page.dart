@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../domain/entities/homework_entity.dart';
 import '../bloc/homework_bloc.dart';
+import '../services/homework_diary_pdf_service.dart';
+import '../widgets/syllabus_management_tab.dart';
 import 'homework_form_page.dart';
 import 'homework_submissions_dashboard_page.dart';
 
@@ -29,8 +35,18 @@ class _HomeworkDashboardView extends StatefulWidget {
 
 class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
   final _session = TextEditingController(text: '2026-2027');
-  HomeworkStatus? _filter;
-  final Set<String> _selected = {};
+  DateTime _selectedDate = DateTime.now();
+  List<AcademicClassEntity> _classes = const [];
+  List<SectionEntity> _sections = const [];
+  List<AcademicSubjectEntity> _subjects = const [];
+  bool _structureLoading = true;
+  String? _structureError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStructure();
+  }
 
   @override
   void dispose() {
@@ -38,298 +54,459 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     super.dispose();
   }
 
-  void _load() {
-    _selected.clear();
-    context.read<HomeworkBloc>().add(
-      LoadHomework(_session.text.trim(), status: _filter),
-    );
+  Future<void> _loadStructure() async {
+    try {
+      final values = await Future.wait<Object>([
+        sl<AcademicStructureRepository>().getClasses(),
+        sl<AcademicStructureRepository>().getSections(),
+        sl<AcademicStructureRepository>().getSubjects(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _classes = values[0] as List<AcademicClassEntity>;
+        _sections = values[1] as List<SectionEntity>;
+        _subjects = values[2] as List<AcademicSubjectEntity>;
+        _structureLoading = false;
+        _structureError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _structureLoading = false;
+        _structureError = error.toString();
+      });
+    }
   }
 
-  Future<void> _open({
+  void _loadHomework() {
+    context.read<HomeworkBloc>().add(LoadHomework(_session.text.trim()));
+  }
+
+  Future<void> _pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Select daily homework date',
+    );
+    if (value != null) setState(() => _selectedDate = value);
+  }
+
+  Future<void> _openHomework({
     HomeworkEntity? existing,
-    HomeworkEntity? copyFrom,
+    String? classId,
+    String? sectionId,
+    String? subjectId,
   }) async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => HomeworkFormPage(
           existing: existing,
-          copyFrom: copyFrom,
           academicSession: _session.text.trim(),
+          initialClassId: classId,
+          initialSectionId: sectionId,
+          initialSubjectId: subjectId,
+          initialAssignedDate: _selectedDate,
         ),
       ),
     );
-
-    if (saved == true && mounted) {
-      _load();
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Homework saved successfully.')),
-        );
-    }
+    if (saved == true && mounted) _loadHomework();
   }
-
-  List<HomeworkEntity> _selectedItems(List<HomeworkEntity> items) =>
-      items.where((item) => _selected.contains(item.id)).toList();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Homework Management'),
-        actions: [const DashboardNavigationButton(),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Homework & Syllabus'),
+          actions: [
+            const DashboardNavigationButton(),
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(
                   builder: (_) => const HomeworkSubmissionsDashboardPage(),
                 ),
-              );
+              ),
+              icon: const Icon(Icons.assignment_turned_in_outlined),
+              label: const Text('Submissions'),
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.menu_book_outlined), text: 'Daily Homework'),
+              Tab(icon: Icon(Icons.school_outlined), text: 'Syllabus'),
+            ],
+          ),
+        ),
+        body: BlocConsumer<HomeworkBloc, HomeworkState>(
+          listener: (context, state) {
+            final message = switch (state) {
+              HomeworkLoaded(:final message) => message,
+              HomeworkError(:final message) => message,
+              _ => null,
+            };
+            if (message != null) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(content: Text(message)));
+            }
+          },
+          builder: (context, state) {
+            final items = state is HomeworkLoaded
+                ? state.items
+                : <HomeworkEntity>[];
+            return Stack(
+              children: [
+                TabBarView(
+                  children: [
+                    _dailyHomework(items),
+                    const SyllabusManagementTab(),
+                  ],
+                ),
+                if (state is HomeworkLoading) const LinearProgressIndicator(),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _dailyHomework(List<HomeworkEntity> items) {
+    if (_structureLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_structureError != null) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: _loadStructure,
+          icon: const Icon(Icons.refresh),
+          label: Text('Retry: $_structureError'),
+        ),
+      );
+    }
+
+    final rows =
+        _sections.where((section) {
+          final academicClass = _classById(section.classId);
+          return section.isActive && academicClass?.isActive == true;
+        }).toList()..sort((a, b) {
+          final classCompare = (_classById(a.classId)?.name ?? '').compareTo(
+            _classById(b.classId)?.name ?? '',
+          );
+          return classCompare != 0 ? classCompare : a.name.compareTo(b.name);
+        });
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: 190,
+                  child: TextField(
+                    controller: _session,
+                    decoration: const InputDecoration(
+                      labelText: 'Academic Session',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_today_outlined),
+                  label: Text(_date(_selectedDate)),
+                ),
+                FilledButton.icon(
+                  onPressed: _loadHomework,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Load'),
+                ),
+                const Chip(
+                  avatar: Icon(Icons.check_circle, color: Colors.green),
+                  label: Text('Homework added'),
+                ),
+                const Chip(
+                  avatar: Icon(Icons.add_circle_outline, color: Colors.orange),
+                  label: Text('Homework pending'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (rows.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(28),
+              child: Center(child: Text('No active classes found.')),
+            ),
+          )
+        else
+          for (final section in rows)
+            _classDiaryRow(section: section, items: items),
+      ],
+    );
+  }
+
+  Widget _classDiaryRow({
+    required SectionEntity section,
+    required List<HomeworkEntity> items,
+  }) {
+    final academicClass = _classById(section.classId)!;
+    final subjects = _subjectsFor(section);
+    final dailyItems = items
+        .where(
+          (item) =>
+              item.classId == academicClass.id &&
+              item.sectionId == section.id &&
+              _sameDay(item.assignedDate, _selectedDate),
+        )
+        .toList();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 150,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Class ${academicClass.name}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text('Section ${section.name}'),
+                ],
+              ),
+            ),
+            const VerticalDivider(),
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final subject in subjects)
+                    _subjectButton(
+                      academicClass: academicClass,
+                      section: section,
+                      subject: subject,
+                      existing: _homeworkForSubject(dailyItems, subject),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => _showPreview(
+                academicClass: academicClass,
+                section: section,
+                subjects: subjects,
+                items: dailyItems,
+              ),
+              icon: const Icon(Icons.visibility_outlined),
+              label: const Text('Preview'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _subjectButton({
+    required AcademicClassEntity academicClass,
+    required SectionEntity section,
+    required AcademicSubjectEntity subject,
+    required HomeworkEntity? existing,
+  }) {
+    final added = existing != null;
+    if (added) {
+      return FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF16A34A),
+          foregroundColor: Colors.white,
+        ),
+        onPressed: () => _openHomework(existing: existing),
+        icon: const Icon(Icons.check_circle_outline),
+        label: Text(subject.name),
+      );
+    }
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFB45309),
+        side: const BorderSide(color: Color(0xFFF59E0B)),
+      ),
+      onPressed: () => _openHomework(
+        classId: academicClass.id,
+        sectionId: section.id,
+        subjectId: subject.id,
+      ),
+      icon: const Icon(Icons.add_circle_outline),
+      label: Text(subject.name),
+    );
+  }
+
+  Future<void> _showPreview({
+    required AcademicClassEntity academicClass,
+    required SectionEntity section,
+    required List<AcademicSubjectEntity> subjects,
+    required List<HomeworkEntity> items,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${academicClass.name} - ${section.name} • Daily Diary'),
+        content: SizedBox(
+          width: 760,
+          height: 560,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _date(_selectedDate),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: subjects.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final subject = subjects[index];
+                    final homework = _homeworkForSubject(items, subject);
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: homework == null
+                            ? Colors.orange.shade50
+                            : Colors.green.shade50,
+                        child: Icon(
+                          homework == null ? Icons.menu_book : Icons.check,
+                          color: homework == null
+                              ? Colors.orange.shade800
+                              : Colors.green.shade700,
+                        ),
+                      ),
+                      title: Text(
+                        subject.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: homework == null
+                          ? const Text('No homework added')
+                          : Text(
+                              '${homework.title}\n${homework.description}'
+                              '${homework.instructions.isEmpty ? '' : '\n${homework.instructions}'}',
+                            ),
+                      isThreeLine: homework != null,
+                      trailing: homework == null
+                          ? null
+                          : IconButton(
+                              tooltip: 'Edit homework',
+                              onPressed: () {
+                                Navigator.pop(dialogContext);
+                                _openHomework(existing: homework);
+                              },
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton.icon(
+            onPressed: () async {
+              try {
+                await const HomeworkDiaryPdfService().generateAndShare(
+                  className: academicClass.name,
+                  sectionName: section.name,
+                  date: _selectedDate,
+                  subjects: [
+                    for (final subject in subjects)
+                      HomeworkDiarySubject(
+                        subjectName: subject.name,
+                        homework: _homeworkForSubject(items, subject),
+                      ),
+                  ],
+                );
+              } catch (error) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('PDF could not be generated: $error'),
+                    ),
+                  );
+                }
+              }
             },
-            icon: const Icon(Icons.assignment_turned_in_outlined),
-            label: const Text('Submissions'),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: const Text('Generate PDF'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _open(),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Homework'),
-      ),
-      body: BlocConsumer<HomeworkBloc, HomeworkState>(
-        listener: (context, state) {
-          final message = switch (state) {
-            HomeworkLoaded(:final message) => message,
-            HomeworkError(:final message) => message,
-            _ => null,
-          };
-          if (message != null) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(message)));
-          }
-        },
-        builder: (context, state) {
-          final loading = state is HomeworkLoading;
-          final items = state is HomeworkLoaded
-              ? state.items
-              : <HomeworkEntity>[];
-          final selectedItems = _selectedItems(items);
-          final tomorrow = DateTime.now().add(const Duration(days: 1));
-
-          return Stack(
-            children: [
-              ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 190,
-                            child: TextField(
-                              controller: _session,
-                              decoration: const InputDecoration(
-                                labelText: 'Academic Session',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 190,
-                            child: DropdownButtonFormField<HomeworkStatus?>(
-                              initialValue: _filter,
-                              decoration: const InputDecoration(
-                                labelText: 'Status',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('All'),
-                                ),
-                                ...HomeworkStatus.values.map(
-                                  (e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(e.name.toUpperCase()),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) =>
-                                  setState(() => _filter = value),
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: _load,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Load'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Chip(label: Text('Total: ${items.length}')),
-                      Chip(
-                        label: Text(
-                          'Draft: ${items.where((e) => e.status == HomeworkStatus.draft).length}',
-                        ),
-                      ),
-                      Chip(
-                        label: Text(
-                          'Published: ${items.where((e) => e.status == HomeworkStatus.published).length}',
-                        ),
-                      ),
-                      Chip(
-                        label: Text(
-                          'Overdue: ${items.where((e) => e.isOverdue).length}',
-                        ),
-                      ),
-                      Chip(
-                        label: Text(
-                          'Due Tomorrow: ${items.where((e) => _sameDay(e.dueDate, tomorrow)).length}',
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (selectedItems.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text('${selectedItems.length} selected'),
-                            FilledButton.tonal(
-                              onPressed: () => context.read<HomeworkBloc>().add(
-                                BulkChangeHomeworkStatus(
-                                  selectedItems,
-                                  HomeworkStatus.published,
-                                ),
-                              ),
-                              child: const Text('Publish'),
-                            ),
-                            FilledButton.tonal(
-                              onPressed: () => context.read<HomeworkBloc>().add(
-                                BulkChangeHomeworkStatus(
-                                  selectedItems,
-                                  HomeworkStatus.archived,
-                                ),
-                              ),
-                              child: const Text('Archive'),
-                            ),
-                            FilledButton.tonal(
-                              onPressed: () => context.read<HomeworkBloc>().add(
-                                BulkDeleteHomework(selectedItems),
-                              ),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  if (items.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: Text('No homework found.')),
-                      ),
-                    )
-                  else
-                    for (final item in items)
-                      Card(
-                        child: CheckboxListTile(
-                          value: _selected.contains(item.id),
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked ?? false) {
-                                _selected.add(item.id);
-                              } else {
-                                _selected.remove(item.id);
-                              }
-                            });
-                          },
-                          title: Text(item.title),
-                          subtitle: Text(
-                            '${item.className} - ${item.sectionName} • '
-                            '${item.subjectName} • ${item.teacherName}\n'
-                            'Assigned ${_date(item.assignedDate)} • '
-                            'Due ${_date(item.dueDate)} • '
-                            '${item.attachments.length} attachment(s)',
-                          ),
-                          secondary: PopupMenuButton<String>(
-                            onSelected: (action) {
-                              switch (action) {
-                                case 'edit':
-                                  _open(existing: item);
-                                case 'copy':
-                                  _open(copyFrom: item);
-                                case 'publish':
-                                  context.read<HomeworkBloc>().add(
-                                    ChangeHomeworkStatus(
-                                      item,
-                                      HomeworkStatus.published,
-                                    ),
-                                  );
-                                case 'archive':
-                                  context.read<HomeworkBloc>().add(
-                                    ChangeHomeworkStatus(
-                                      item,
-                                      HomeworkStatus.archived,
-                                    ),
-                                  );
-                                case 'delete':
-                                  context.read<HomeworkBloc>().add(
-                                    DeleteHomework(item.id),
-                                  );
-                              }
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'edit', child: Text('Edit')),
-                              PopupMenuItem(
-                                value: 'copy',
-                                child: Text('Copy Homework'),
-                              ),
-                              PopupMenuItem(
-                                value: 'publish',
-                                child: Text('Publish'),
-                              ),
-                              PopupMenuItem(
-                                value: 'archive',
-                                child: Text('Archive'),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  const SizedBox(height: 80),
-                ],
-              ),
-              if (loading) const LinearProgressIndicator(),
-            ],
-          );
-        },
-      ),
     );
+  }
+
+  AcademicClassEntity? _classById(String id) {
+    for (final item in _classes) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
+  List<AcademicSubjectEntity> _subjectsFor(SectionEntity section) {
+    final result = <String, AcademicSubjectEntity>{};
+    for (final subject in _subjects.where(
+      (item) =>
+          item.isActive &&
+          item.classId == section.classId &&
+          (item.sectionId == null || item.sectionId == section.id),
+    )) {
+      final key = subject.name.trim().toLowerCase();
+      final current = result[key];
+      if (current == null || subject.sectionId == section.id) {
+        result[key] = subject;
+      }
+    }
+    final values = result.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return values;
+  }
+
+  HomeworkEntity? _homeworkForSubject(
+    List<HomeworkEntity> items,
+    AcademicSubjectEntity subject,
+  ) {
+    final matches =
+        items
+            .where(
+              (item) =>
+                  item.subjectId == subject.id ||
+                  item.subjectName.trim().toLowerCase() ==
+                      subject.name.trim().toLowerCase(),
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return matches.isEmpty ? null : matches.first;
   }
 
   static bool _sameDay(DateTime a, DateTime b) =>

@@ -520,6 +520,12 @@ service cloud.firestore {
       allow delete: if hasPermission('homeworkReview');
     }
 
+    match /syllabus_entries/{document=**} {
+      allow read: if hasPermission('homeworkView');
+      allow create, update: if hasPermission('homeworkCreate');
+      allow delete: if hasPermission('homeworkReview');
+    }
+
     match /homework_submissions/{document=**} {
       allow read: if hasPermission('homeworkView')
           || (

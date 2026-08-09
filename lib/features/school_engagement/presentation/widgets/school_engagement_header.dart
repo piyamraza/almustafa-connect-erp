@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 
@@ -29,7 +29,7 @@ class SchoolEngagementHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'School Engagement & Celebrations',
+                    'Birthdays',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
@@ -38,11 +38,8 @@ class SchoolEngagementHeader extends StatelessWidget {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Manage birthdays, celebrations and school engagement activities',
-                    style: TextStyle(
-                      color: _textSecondary,
-                      fontSize: 15,
-                    ),
+                    'Manage student birthdays, wishes and birthday cards',
+                    style: TextStyle(color: _textSecondary, fontSize: 15),
                   ),
                 ],
               ),
@@ -70,11 +67,7 @@ class SchoolEngagementHeader extends StatelessWidget {
         if (constraints.maxWidth < 800) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              title,
-              const SizedBox(height: 18),
-              actions,
-            ],
+            children: [title, const SizedBox(height: 18), actions],
           );
         }
 

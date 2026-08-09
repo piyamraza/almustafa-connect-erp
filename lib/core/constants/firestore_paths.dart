@@ -67,6 +67,7 @@ class FirestorePaths {
   static const String academicCalendarEvents = 'academic_calendar_events';
   static const String academicYearConfigs = 'academic_year_configs';
   static const String homework = 'homework';
+  static const String syllabusEntries = 'syllabus_entries';
   static const String homeworkSubmissions = 'homework_submissions';
   static const String pushNotificationRequests = 'push_notification_requests';
   static const String pushDeviceTokens = 'push_device_tokens';

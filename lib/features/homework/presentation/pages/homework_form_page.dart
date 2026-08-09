@@ -16,11 +16,19 @@ class HomeworkFormPage extends StatefulWidget {
     required this.academicSession,
     this.existing,
     this.copyFrom,
+    this.initialClassId,
+    this.initialSectionId,
+    this.initialSubjectId,
+    this.initialAssignedDate,
   });
 
   final String academicSession;
   final HomeworkEntity? existing;
   final HomeworkEntity? copyFrom;
+  final String? initialClassId;
+  final String? initialSectionId;
+  final String? initialSubjectId;
+  final DateTime? initialAssignedDate;
 
   @override
   State<HomeworkFormPage> createState() => _HomeworkFormPageState();
@@ -58,15 +66,18 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
     _title = TextEditingController(text: source?.title ?? '');
     _description = TextEditingController(text: source?.description ?? '');
     _instructions = TextEditingController(text: source?.instructions ?? '');
-    _classId = source?.classId;
-    _sectionId = source?.sectionId;
-    _subjectId = source?.subjectId;
+    _classId = source?.classId ?? widget.initialClassId;
+    _sectionId = source?.sectionId ?? widget.initialSectionId;
+    _subjectId = source?.subjectId ?? widget.initialSubjectId;
     _teacherId = source?.teacherId;
     _assigned = widget.copyFrom == null
-        ? source?.assignedDate ?? DateTime.now()
+        ? source?.assignedDate ?? widget.initialAssignedDate ?? DateTime.now()
         : DateTime.now();
     _due = widget.copyFrom == null
-        ? source?.dueDate ?? DateTime.now().add(const Duration(days: 1))
+        ? source?.dueDate ??
+              (widget.initialAssignedDate ?? DateTime.now()).add(
+                const Duration(days: 1),
+              )
         : DateTime.now().add(const Duration(days: 1));
     _status = widget.existing?.status ?? HomeworkStatus.draft;
     _attachments.addAll(source?.attachments ?? const []);
@@ -346,7 +357,8 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()],
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
         title: Text(
           widget.existing != null
               ? 'Edit Homework'

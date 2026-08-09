@@ -386,6 +386,8 @@ import '../../features/academic_calendar/presentation/bloc/academic_calendar_blo
 
 import '../../features/homework/data/repositories/homework_repository_impl.dart';
 import '../../features/homework/domain/repositories/homework_repository.dart';
+import '../../features/homework/data/repositories/syllabus_repository_impl.dart';
+import '../../features/homework/domain/repositories/syllabus_repository.dart';
 import '../../features/homework/presentation/bloc/homework_bloc.dart';
 
 import 'package:firebase_storage/firebase_storage.dart';
@@ -1104,6 +1106,9 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<HomeworkRepository>(
     () => HomeworkRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<SyllabusRepository>(
+    () => SyllabusRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AcademicCalendarPolicyService>(
     () => AcademicCalendarPolicyServiceImpl(

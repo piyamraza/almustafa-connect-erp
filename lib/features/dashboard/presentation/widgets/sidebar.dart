@@ -23,7 +23,6 @@ import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.d
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../reports/presentation/pages/reports_dashboard_page.dart';
 import '../../../school_store/presentation/pages/school_store_dashboard_page.dart';
-import '../../../school_engagement/presentation/pages/school_engagement_page.dart';
 import '../../../settings/presentation/pages/settings_dashboard_page.dart';
 import '../../../students/presentation/pages/students_page.dart';
 import '../../../timetable/presentation/pages/timetable_dashboard_page.dart';
@@ -271,6 +270,18 @@ class _SidebarState extends State<Sidebar> {
                           page: const FeeManagementDashboardPage(),
                         ),
                       ),
+			if (_access.hasPermission(AppPermission.dateSheetsView))
+                      _menuTile(
+                        context,
+                        icon: Icons.calendar_month_outlined,
+                        title: 'Date Sheets',
+                        onTap: () => _open(
+                          context,
+                          permission: AppPermission.dateSheetsView,
+                          moduleName: 'Date Sheets',
+                          page: const ExamDateSheetDashboardPage(),
+                        ),
+                      ),
                     if (_access.hasPermission(AppPermission.examsView))
                       _menuTile(
                         context,
@@ -283,18 +294,7 @@ class _SidebarState extends State<Sidebar> {
                           page: const ExaminationDashboardPage(),
                         ),
                       ),
-                    if (_access.hasPermission(AppPermission.dateSheetsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.calendar_month_outlined,
-                        title: 'Date Sheets',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.dateSheetsView,
-                          moduleName: 'Date Sheets',
-                          page: const ExamDateSheetDashboardPage(),
-                        ),
-                      ),
+                    
                     if (_access.hasPermission(AppPermission.resultsView))
                       _menuTile(
                         context,
@@ -323,11 +323,11 @@ class _SidebarState extends State<Sidebar> {
                       _menuTile(
                         context,
                         icon: Icons.menu_book_outlined,
-                        title: 'Homework Management',
+                        title: 'Homework & Syllabus',
                         onTap: () => _open(
                           context,
                           permission: AppPermission.homeworkView,
-                          moduleName: 'Homework Management',
+                          moduleName: 'Homework & Syllabus',
                           page: const HomeworkDashboardPage(),
                         ),
                       ),
@@ -367,18 +367,6 @@ class _SidebarState extends State<Sidebar> {
                           page: const NoticesDashboardPage(),
                         ),
                       ),
-                    _menuTile(
-                      context,
-                      icon: Icons.cake_outlined,
-                      title: 'School Engagement',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const SchoolEngagementPage(),
-                          ),
-                        );
-                      },
-                    ),
                     _menuTile(
                       context,
                       icon: Icons.description_outlined,
@@ -523,7 +511,7 @@ class _SidebarState extends State<Sidebar> {
       'Date Sheets' => const Color(0xFF38BDF8),
       'Results' => const Color(0xFFFACC15),
       'Timetable' => const Color(0xFFA78BFA),
-      'Homework Management' => const Color(0xFFFB923C),
+      'Homework & Syllabus' => const Color(0xFFFB923C),
       'Academic Calendar' => const Color(0xFF22D3EE),
       'Notices & Circulars' => const Color(0xFFFB7185),
       'Communication' => const Color(0xFF06B6D4),
