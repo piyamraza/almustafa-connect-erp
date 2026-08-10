@@ -52,6 +52,43 @@ class _ParentPortalDashboardView extends StatelessWidget {
     }
   }
 
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ParentAccountEntity parent,
+  ) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete Parent Account?'),
+            content: Text(
+              'Delete ${parent.fullName}\'s parent portal account?\n\n'
+              'Linked student records will not be deleted. This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                  foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+                ),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete Account'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirmed && context.mounted) {
+      context.read<ParentPortalBloc>().add(DeleteParentAccount(parent.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,6 +165,7 @@ class _ParentPortalDashboardView extends StatelessWidget {
                     );
                   },
                   onEdit: (parent) => _openParentForm(context, parent),
+                  onDelete: (parent) => _confirmDelete(context, parent),
                 ),
               ),
               const VerticalDivider(width: 1),
@@ -153,12 +191,14 @@ class _ParentList extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onEdit,
+    required this.onDelete,
   });
 
   final List<ParentAccountEntity> parents;
   final ParentAccountEntity? selected;
   final ValueChanged<ParentAccountEntity> onSelect;
   final ValueChanged<ParentAccountEntity> onEdit;
+  final ValueChanged<ParentAccountEntity> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -210,10 +250,21 @@ class _ParentList extends StatelessWidget {
                             : parent.email,
                       ),
                       onTap: () => onSelect(parent),
-                      trailing: IconButton(
-                        tooltip: 'Edit',
-                        onPressed: () => onEdit(parent),
-                        icon: const Icon(Icons.edit_outlined),
+                      trailing: Wrap(
+                        spacing: 0,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edit',
+                            onPressed: () => onEdit(parent),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete parent account',
+                            color: Theme.of(context).colorScheme.error,
+                            onPressed: () => onDelete(parent),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
                       ),
                     );
                   },
