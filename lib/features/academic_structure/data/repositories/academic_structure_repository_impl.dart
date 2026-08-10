@@ -2,6 +2,7 @@ import '../../domain/entities/academic_class_entity.dart';
 import '../../domain/entities/academic_subject_entity.dart';
 import '../../domain/entities/section_entity.dart';
 import '../../domain/repositories/academic_structure_repository.dart';
+import '../../domain/services/academic_class_order.dart';
 import '../datasources/academic_structure_remote_datasource.dart';
 import '../models/academic_class_model.dart';
 import '../models/academic_subject_model.dart';
@@ -13,7 +14,10 @@ class AcademicStructureRepositoryImpl implements AcademicStructureRepository {
   final AcademicStructureRemoteDataSource _source;
 
   @override
-  Future<List<AcademicClassEntity>> getClasses() => _source.getClasses();
+  Future<List<AcademicClassEntity>> getClasses() async {
+    final classes = await _source.getClasses();
+    return List<AcademicClassEntity>.of(classes)..sort(compareAcademicClasses);
+  }
 
   @override
   Future<List<SectionEntity>> getSections() => _source.getSections();

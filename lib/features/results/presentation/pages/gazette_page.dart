@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -293,7 +294,10 @@ class _GazetteError extends StatelessWidget {
 List<ExamResultEntity> _gazetteRows(List<ExamResultEntity> values) {
   final rows = [...values];
   rows.sort((first, second) {
-    final classOrder = first.className.compareTo(second.className);
+    final classOrder = compareAcademicClassNames(
+      first.className,
+      second.className,
+    );
     if (classOrder != 0) return classOrder;
     final sectionOrder = first.sectionName.compareTo(second.sectionName);
     if (sectionOrder != 0) return sectionOrder;

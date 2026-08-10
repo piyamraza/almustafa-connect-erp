@@ -7,6 +7,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/fee_structure_entity.dart';
@@ -152,7 +153,10 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
 
       final structures = (values[1] as List<FeeStructureEntity>).toList()
         ..sort((a, b) {
-          final classCompare = a.className.compareTo(b.className);
+          final classCompare = compareAcademicClassNames(
+            a.className,
+            b.className,
+          );
           if (classCompare != 0) return classCompare;
           return a.sectionName.compareTo(b.sectionName);
         });
@@ -242,7 +246,9 @@ class _StudentFeeAssignmentViewState extends State<_StudentFeeAssignmentView> {
     }
 
     final values = map.values.toList()
-      ..sort((a, b) => a.className.compareTo(b.className));
+          ..sort(
+            (a, b) => compareAcademicClassNames(a.className, b.className),
+          );
 
     return values;
   }

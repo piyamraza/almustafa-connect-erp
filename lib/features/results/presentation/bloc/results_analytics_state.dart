@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../domain/entities/result_analytics_entity.dart';
@@ -75,7 +76,8 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
     }
     final classes = values.values.toList();
     classes.sort(
-      (first, second) => first.className.compareTo(second.className),
+      (first, second) =>
+          compareAcademicClassNames(first.className, second.className),
     );
     return classes;
   }

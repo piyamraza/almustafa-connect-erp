@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/academic_calendar_event_entity.dart';
 import '../../domain/repositories/academic_calendar_repository.dart';
 import '../bloc/academic_calendar_bloc.dart';
@@ -63,7 +64,7 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
       if (!mounted) return;
       setState(() {
         _classes = values.where((item) => item.isActive).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+          ..sort(compareAcademicClasses);
       });
     } catch (_) {}
   }

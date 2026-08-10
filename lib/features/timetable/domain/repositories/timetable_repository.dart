@@ -7,6 +7,12 @@ abstract class TimetableRepository {
   Future<TimetableConfigurationEntity?> getConfiguration({
     required String branchId,
     required String academicSession,
+    String? classId,
+  });
+
+  Future<List<TimetableConfigurationEntity>> getConfigurations({
+    required String branchId,
+    required String academicSession,
   });
 
   Future<void> saveConfiguration(TimetableConfigurationEntity configuration);

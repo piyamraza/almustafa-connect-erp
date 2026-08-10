@@ -4,6 +4,7 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../documents/presentation/pages/fee_receipt_preview_page.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
@@ -105,7 +106,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
           (values[1] as List<AcademicClassEntity>)
               .where((item) => item.isActive)
               .toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
+            ..sort(compareAcademicClasses);
 
       final sections =
           (values[2] as List<SectionEntity>)

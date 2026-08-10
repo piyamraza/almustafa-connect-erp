@@ -9,6 +9,7 @@ import '../../../academic_structure/domain/entities/academic_subject_entity.dart
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/entities/subject_component_entity.dart';
 import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/exam_entity.dart';
 import '../../domain/entities/exam_subject_setup_entity.dart';
 import '../../domain/repositories/exam_subject_setup_repository.dart';
@@ -852,7 +853,7 @@ class _ExamFormViewState extends State<_ExamFormView> {
   }
 
   Widget _configurationCard(ExamConfigurationLoaded data) {
-    final classes = [...data.classes]..sort((a, b) => a.name.compareTo(b.name));
+    final classes = [...data.classes]..sort(compareAcademicClasses);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),

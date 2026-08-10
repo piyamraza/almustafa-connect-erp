@@ -13,13 +13,15 @@ class LoadTimetableConfigurationEvent extends TimetableConfigurationEvent {
   const LoadTimetableConfigurationEvent({
     required this.branchId,
     required this.academicSession,
+    this.classId,
   });
 
   final String branchId;
   final String academicSession;
+  final String? classId;
 
   @override
-  List<Object> get props => [branchId, academicSession];
+  List<Object?> get props => [branchId, academicSession, classId];
 }
 
 class SaveTimetableConfigurationEvent extends TimetableConfigurationEvent {

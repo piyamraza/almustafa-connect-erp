@@ -45,6 +45,9 @@ class GenerateTimetableReport {
     final configuration = await _timetableRepository.getConfiguration(
       branchId: request.branchId,
       academicSession: request.academicSession,
+      classId: request.type == TimetableReportType.classTimetable
+          ? request.classId
+          : null,
     );
 
     if (configuration == null) {

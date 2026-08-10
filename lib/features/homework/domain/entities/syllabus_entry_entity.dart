@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 class SyllabusEntryEntity extends Equatable {
   const SyllabusEntryEntity({
     required this.id,
+    required this.planId,
     required this.academicSession,
     required this.syllabusTitle,
     required this.classId,
@@ -17,6 +18,7 @@ class SyllabusEntryEntity extends Equatable {
   });
 
   final String id;
+  final String planId;
   final String academicSession;
   final String syllabusTitle;
   final String classId;
@@ -32,6 +34,7 @@ class SyllabusEntryEntity extends Equatable {
   @override
   List<Object> get props => [
     id,
+    planId,
     academicSession,
     syllabusTitle,
     classId,

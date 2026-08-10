@@ -12,6 +12,7 @@ import '../../../academic_structure/domain/entities/academic_subject_entity.dart
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/entities/subject_component_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
@@ -124,7 +125,7 @@ class _ManualExamDateSheetBuilderPageState
           (values[1] as List<AcademicClassEntity>)
               .where((item) => item.isActive)
               .toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
+            ..sort(compareAcademicClasses);
       final sections =
           (values[2] as List<SectionEntity>)
               .where((item) => item.isActive)

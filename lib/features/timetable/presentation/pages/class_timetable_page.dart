@@ -7,6 +7,7 @@ import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/entities/class_timetable_entry_entity.dart';
@@ -105,7 +106,7 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
           (values[0] as List<AcademicClassEntity>)
               .where((value) => value.isActive)
               .toList()
-            ..sort((first, second) => first.name.compareTo(second.name));
+            ..sort(compareAcademicClasses);
       final sections =
           (values[1] as List<SectionEntity>)
               .where((value) => value.isActive)
@@ -117,9 +118,15 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
               .toList()
             ..sort((first, second) => first.name.compareTo(second.name));
       final assignments = values[3] as List<TeacherAssignmentEntity>;
-      final configuration = values[4] as TimetableConfigurationEntity?;
-
       final classId = classes.isEmpty ? null : classes.first.id;
+      final configuration = classId == null
+          ? values[4] as TimetableConfigurationEntity?
+          : await sl<TimetableRepository>().getConfiguration(
+              branchId: branchId,
+              academicSession: academicSession,
+              classId: classId,
+            );
+      if (!mounted) return;
       final classSections = sections
           .where((value) => value.classId == classId)
           .toList(growable: false);
@@ -168,7 +175,7 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
     );
   }
 
-  void _selectClass(String? classId) {
+  Future<void> _selectClass(String? classId) async {
     if (classId == null) {
       return;
     }
@@ -183,6 +190,13 @@ class _ClassTimetableViewState extends State<_ClassTimetableView> {
           : classSections.first.id;
       _cachedEntries = const [];
     });
+    final configuration = await sl<TimetableRepository>().getConfiguration(
+      branchId: _branchController.text.trim(),
+      academicSession: _sessionController.text.trim(),
+      classId: classId,
+    );
+    if (!mounted || _selectedClassId != classId) return;
+    setState(() => _configuration = configuration);
     _loadTimetable();
   }
 

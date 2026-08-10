@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import 'exam_date_sheet_entity.dart';
 
@@ -63,7 +64,7 @@ class ExamDateSheetReportRequest extends Equatable {
       if (date != 0) return date;
       final time = first.startMinutes.compareTo(second.startMinutes);
       if (time != 0) return time;
-      return first.className.compareTo(second.className);
+      return compareAcademicClassNames(first.className, second.className);
     });
   }
 

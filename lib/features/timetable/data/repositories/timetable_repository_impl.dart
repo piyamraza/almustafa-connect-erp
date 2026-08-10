@@ -16,12 +16,23 @@ class TimetableRepositoryImpl implements TimetableRepository {
   Future<TimetableConfigurationEntity?> getConfiguration({
     required String branchId,
     required String academicSession,
+    String? classId,
   }) {
     return _remoteDataSource.getConfiguration(
       branchId: branchId,
       academicSession: academicSession,
+      classId: classId,
     );
   }
+
+  @override
+  Future<List<TimetableConfigurationEntity>> getConfigurations({
+    required String branchId,
+    required String academicSession,
+  }) => _remoteDataSource.getConfigurations(
+    branchId: branchId,
+    academicSession: academicSession,
+  );
 
   @override
   Future<void> saveConfiguration(TimetableConfigurationEntity configuration) {

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
 
@@ -131,7 +132,10 @@ class PublishedResultsLoaded extends ResultsState {
       byId.putIfAbsent(result.classId, () => result);
     }
     final values = byId.values.toList(growable: false);
-    values.sort((first, second) => first.className.compareTo(second.className));
+    values.sort(
+      (first, second) =>
+          compareAcademicClassNames(first.className, second.className),
+    );
     return values;
   }
 

@@ -3,6 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../homework/domain/entities/homework_entity.dart';
+import '../../../homework/domain/entities/syllabus_entry_entity.dart';
+import '../../../homework/domain/entities/syllabus_plan_entity.dart';
+import '../../../homework/domain/repositories/syllabus_repository.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/parent_homework_summary.dart';
 import '../../domain/services/parent_homework_service.dart';
@@ -20,6 +23,8 @@ class _ParentHomeworkPageState extends State<ParentHomeworkPage> {
   final ParentHomeworkService _service = sl<ParentHomeworkService>();
 
   ParentHomeworkSummary? _summary;
+  List<SyllabusPlanEntity> _syllabusPlans = const [];
+  Map<String, List<SyllabusEntryEntity>> _syllabusEntries = const {};
   bool _loading = true;
   String? _errorMessage;
 
@@ -36,16 +41,39 @@ class _ParentHomeworkPageState extends State<ParentHomeworkPage> {
     });
 
     try {
-      final value = await _service.loadHomework(
-        academicSession: '2026-2027',
-        classId: widget.student.classId,
-        sectionId: widget.student.sectionId,
+      final results = await Future.wait<Object>([
+        _service.loadHomework(
+          academicSession: '2026-2027',
+          classId: widget.student.classId,
+          sectionId: widget.student.sectionId,
+        ),
+        sl<SyllabusRepository>().getPlans(
+          academicSession: '2026-2027',
+          publishedOnly: true,
+        ),
+      ]);
+      final plans = results[1] as List<SyllabusPlanEntity>;
+      final entryLists = await Future.wait(
+        plans.map(
+          (plan) => sl<SyllabusRepository>().getEntriesForPlan(plan.id),
+        ),
       );
 
       if (!mounted) return;
 
       setState(() {
-        _summary = value;
+        _summary = results[0] as ParentHomeworkSummary;
+        _syllabusPlans = plans;
+        _syllabusEntries = {
+          for (var index = 0; index < plans.length; index++)
+            plans[index].id: entryLists[index]
+                .where(
+                  (entry) =>
+                      entry.classId == widget.student.classId &&
+                      entry.sectionId == widget.student.sectionId,
+                )
+                .toList(),
+        };
         _loading = false;
       });
     } catch (error) {
@@ -108,6 +136,60 @@ class _ParentHomeworkPageState extends State<ParentHomeworkPage> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
         _HomeworkSummaryGrid(summary: summary),
+        const SizedBox(height: 18),
+        Text(
+          'Published Syllabus',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        if (_syllabusPlans.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(22),
+              child: Text(
+                'No published syllabus is available.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+        else
+          for (final plan in _syllabusPlans)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Card(
+                child: ExpansionTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.school_outlined),
+                  ),
+                  title: Text(
+                    plan.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(plan.academicSession),
+                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  children: [
+                    if ((_syllabusEntries[plan.id] ?? const []).isEmpty)
+                      const ListTile(
+                        title: Text(
+                          'No syllabus has been added for this class.',
+                        ),
+                      )
+                    else
+                      for (final entry in _syllabusEntries[plan.id] ?? const [])
+                        ListTile(
+                          leading: const Icon(Icons.menu_book_outlined),
+                          title: Text(
+                            entry.subjectName,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(entry.content),
+                        ),
+                  ],
+                ),
+              ),
+            ),
         const SizedBox(height: 18),
         Text(
           'Published Homework',

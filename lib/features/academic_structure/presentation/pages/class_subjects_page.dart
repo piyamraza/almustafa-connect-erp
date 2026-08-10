@@ -5,6 +5,7 @@ import '../../domain/entities/academic_class_entity.dart';
 import '../../domain/entities/academic_subject_entity.dart';
 import '../../domain/entities/section_entity.dart';
 import '../../domain/repositories/academic_structure_repository.dart';
+import '../../domain/services/academic_class_order.dart';
 import 'subject_components_page.dart';
 
 class ClassSubjectsPage extends StatefulWidget {
@@ -56,7 +57,7 @@ class _ClassSubjectsPageState extends State<ClassSubjectsPage> {
         (values[0] as List<AcademicClassEntity>)
             .where((academicClass) => academicClass.isActive)
             .toList()
-          ..sort((first, second) => first.name.compareTo(second.name));
+          ..sort(compareAcademicClasses);
     final allSections = values[1] as List<SectionEntity>;
     final sections =
         allSections

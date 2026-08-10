@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/exam_entity.dart';
@@ -72,7 +73,10 @@ class ExamMarksLoaded extends ExamMarksState {
     }
     final values = byName.values.toList(growable: false);
     return values
-      ..sort((first, second) => first.className.compareTo(second.className));
+      ..sort(
+        (first, second) =>
+            compareAcademicClassNames(first.className, second.className),
+      );
   }
 
   List<ExamSubjectSetupEntity> get availableSections {

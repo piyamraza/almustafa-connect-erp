@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../access_control/domain/entities/app_permission.dart';
+import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/syllabus_entry_entity.dart';
+import '../../domain/entities/syllabus_plan_entity.dart';
 import '../../domain/repositories/syllabus_repository.dart';
 import '../services/syllabus_pdf_service.dart';
 
@@ -23,22 +27,20 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
   List<SectionEntity> _sections = const [];
   List<AcademicSubjectEntity> _subjects = const [];
   List<SyllabusEntryEntity> _allEntries = const [];
+  List<SyllabusPlanEntity> _plans = const [];
+  SyllabusPlanEntity? _editingPlan;
   bool _loading = true;
   bool _saving = false;
   String? _error;
 
   List<SyllabusEntryEntity> get _entries {
-    final title = _title.text.trim().toLowerCase();
     return _allEntries
-        .where((item) => item.syllabusTitle.trim().toLowerCase() == title)
+        .where((item) => item.planId == _editingPlan?.id)
         .toList();
   }
 
-  List<String> get _savedTitles {
-    final values = _allEntries.map((item) => item.syllabusTitle.trim()).toSet()
-      ..removeWhere((item) => item.isEmpty);
-    return values.toList()..sort();
-  }
+  bool get _canManage =>
+      sl<AccessControlService>().hasPermission(AppPermission.homeworkCreate);
 
   @override
   void initState() {
@@ -66,6 +68,10 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         sl<SyllabusRepository>().getEntries(
           academicSession: _session.text.trim(),
         ),
+        sl<SyllabusRepository>().getPlans(
+          academicSession: _session.text.trim(),
+          publishedOnly: !_canManage,
+        ),
       ]);
       if (!mounted) return;
       setState(() {
@@ -73,6 +79,13 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         _sections = result[1] as List<SectionEntity>;
         _subjects = result[2] as List<AcademicSubjectEntity>;
         _allEntries = result[3] as List<SyllabusEntryEntity>;
+        _plans = result[4] as List<SyllabusPlanEntity>;
+        if (_editingPlan != null) {
+          _editingPlan = _plans
+              .where((item) => item.id == _editingPlan!.id)
+              .firstOrNull;
+          if (_editingPlan != null) _title.text = _editingPlan!.title;
+        }
         _loading = false;
       });
     } catch (error) {
@@ -96,11 +109,13 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         ),
       );
     }
+    if (_editingPlan == null) return _syllabusList();
     final rows =
         _sections.where((section) {
           return section.isActive && _class(section.classId)?.isActive == true;
         }).toList()..sort((a, b) {
-          final byClass = (_class(a.classId)?.name ?? '').compareTo(
+          final byClass = compareAcademicClassNames(
+            _class(a.classId)?.name ?? '',
             _class(b.classId)?.name ?? '',
           );
           return byClass != 0 ? byClass : a.name.compareTo(b.name);
@@ -113,24 +128,227 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
           children: [
             _toolbar(),
             const SizedBox(height: 14),
-            if (_title.text.trim().isEmpty)
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(
-                    child: Text(
-                      'Enter a syllabus name above, or open a saved syllabus.',
-                    ),
-                  ),
-                ),
-              )
-            else
-              for (final section in rows) _classRow(section),
+            for (final section in rows) _classRow(section),
           ],
         ),
         if (_saving) const LinearProgressIndicator(),
       ],
     );
+  }
+
+  Widget _syllabusList() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Syllabus Management',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _canManage
+                        ? 'Create, edit, preview and publish syllabus.'
+                        : 'Published syllabus shared by the school.',
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 180,
+              child: TextField(
+                controller: _session,
+                decoration: const InputDecoration(
+                  labelText: 'Academic Session',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              tooltip: 'Load session',
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+            ),
+            if (_canManage) ...[
+              const SizedBox(width: 10),
+              FilledButton.icon(
+                onPressed: _createPlan,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Syllabus'),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 18),
+        if (_plans.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: Text('No syllabus added yet.')),
+            ),
+          )
+        else
+          for (final plan in _plans)
+            Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Icon(
+                    plan.isPublished
+                        ? Icons.public_outlined
+                        : Icons.edit_note_outlined,
+                  ),
+                ),
+                title: Text(
+                  plan.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  '${plan.academicSession} • '
+                  '${plan.isPublished ? 'Published for teachers and parents' : 'Draft'}',
+                ),
+                onTap: () => setState(() {
+                  _editingPlan = plan;
+                  _title.text = plan.title;
+                }),
+                trailing: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (_canManage)
+                      Switch.adaptive(
+                        value: plan.isPublished,
+                        onChanged: (_) => _togglePublish(plan),
+                      ),
+                    if (_canManage)
+                      Text(plan.isPublished ? 'Published' : 'Publish'),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() {
+                        _editingPlan = plan;
+                        _title.text = plan.title;
+                      }),
+                      icon: Icon(
+                        _canManage
+                            ? Icons.edit_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      label: Text(_canManage ? 'Open' : 'View'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+
+  Future<void> _createPlan() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Syllabus'),
+          content: SizedBox(
+            width: 480,
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              onChanged: (_) => setDialogState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Syllabus Name',
+                hintText: 'Summer Vacations, Mid Term, Final Exam...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: controller.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(dialogContext, controller.text.trim()),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (name == null || !mounted) return;
+
+    final now = DateTime.now();
+    final plan = SyllabusPlanEntity(
+      id: sl<SyllabusRepository>().generatePlanId(),
+      academicSession: _session.text.trim(),
+      title: name,
+      isPublished: false,
+      createdAt: now,
+      updatedAt: now,
+    );
+    try {
+      await sl<SyllabusRepository>().savePlan(plan);
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      setState(() {
+        _editingPlan = _plans.where((item) => item.id == plan.id).firstOrNull;
+        _title.text = plan.title;
+      });
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Syllabus could not be created: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _togglePublish(SyllabusPlanEntity plan) async {
+    final publish = !plan.isPublished;
+    final now = DateTime.now();
+    try {
+      await sl<SyllabusRepository>().savePlan(
+        plan.copyWith(
+          isPublished: publish,
+          updatedAt: now,
+          publishedAt: publish ? now : null,
+          clearPublishedAt: !publish,
+        ),
+      );
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              publish
+                  ? 'Syllabus published for teachers and parents.'
+                  : 'Syllabus unpublished.',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Publish status could not be changed: $error'),
+          ),
+        );
+      }
+    }
   }
 
   Widget _toolbar() => Card(
@@ -141,46 +359,29 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         runSpacing: 12,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          SizedBox(
-            width: 180,
-            child: TextField(
-              controller: _session,
-              decoration: const InputDecoration(
-                labelText: 'Academic Session',
-                border: OutlineInputBorder(),
-              ),
-            ),
+          OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _editingPlan = null;
+              _title.clear();
+            }),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back to Syllabus List'),
           ),
-          SizedBox(
-            width: 320,
-            child: TextField(
-              controller: _title,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'Syllabus Name',
-                hintText: 'Summer Vacations, Mid Term, Final Exam...',
-                prefixIcon: Icon(Icons.title),
-                border: OutlineInputBorder(),
-              ),
-            ),
+          Text(
+            _editingPlan!.title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
-          FilledButton.icon(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Load'),
-          ),
-          if (_savedTitles.isNotEmpty)
-            PopupMenuButton<String>(
-              tooltip: 'Open saved syllabus',
-              onSelected: (value) => setState(() => _title.text = value),
-              itemBuilder: (_) => [
-                for (final title in _savedTitles)
-                  PopupMenuItem(value: title, child: Text(title)),
-              ],
-              child: const Chip(
-                avatar: Icon(Icons.folder_open_outlined),
-                label: Text('Saved Syllabus'),
-              ),
+          Chip(label: Text(_editingPlan!.academicSession)),
+          if (_canManage)
+            FilledButton.icon(
+              onPressed: () => setState(() {
+                _editingPlan = null;
+                _title.clear();
+              }),
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save & Return'),
             ),
           const Chip(
             avatar: Icon(Icons.check_circle, color: Colors.green),
@@ -267,7 +468,7 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
               foregroundColor: const Color(0xFFB45309),
               side: const BorderSide(color: Color(0xFFF59E0B)),
             ),
-            onPressed: callback,
+            onPressed: _canManage ? callback : null,
             icon: const Icon(Icons.add_circle_outline),
             label: Text(subject.name),
           )
@@ -275,7 +476,7 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF16A34A),
             ),
-            onPressed: callback,
+            onPressed: _canManage ? callback : null,
             icon: const Icon(Icons.check_circle_outline),
             label: Text(subject.name),
           );
@@ -342,8 +543,9 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         await sl<SyllabusRepository>().saveEntry(
           SyllabusEntryEntity(
             id: existing?.id ?? sl<SyllabusRepository>().generateId(),
+            planId: _editingPlan!.id,
             academicSession: _session.text.trim(),
-            syllabusTitle: _title.text.trim(),
+            syllabusTitle: _editingPlan!.title,
             classId: academicClass.id,
             className: academicClass.name,
             sectionId: section.id,

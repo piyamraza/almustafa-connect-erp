@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
@@ -562,8 +563,9 @@ class _DashboardData {
         .toList();
 
     pending.sort((first, second) {
-      final classComparison = first.className.toLowerCase().compareTo(
-        second.className.toLowerCase(),
+      final classComparison = compareAcademicClassNames(
+        first.className,
+        second.className,
       );
       if (classComparison != 0) {
         return classComparison;

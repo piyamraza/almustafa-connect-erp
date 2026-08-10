@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
@@ -57,7 +58,10 @@ class ExamResultRemoteDataSourceImpl implements ExamResultRemoteDataSource {
         .toList(growable: false);
 
     results.sort((first, second) {
-      final classOrder = first.className.compareTo(second.className);
+      final classOrder = compareAcademicClassNames(
+        first.className,
+        second.className,
+      );
 
       if (classOrder != 0) {
         return classOrder;

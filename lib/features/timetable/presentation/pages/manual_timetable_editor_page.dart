@@ -7,6 +7,7 @@ import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/entities/class_timetable_entry_entity.dart';
@@ -107,7 +108,7 @@ class _ManualTimetableEditorViewState
           (values[0] as List<AcademicClassEntity>)
               .where((item) => item.isActive)
               .toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
+            ..sort(compareAcademicClasses);
       final sections =
           (values[1] as List<SectionEntity>)
               .where((item) => item.isActive)
@@ -119,6 +120,14 @@ class _ManualTimetableEditorViewState
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
       final classId = classes.isEmpty ? null : classes.first.id;
+      final configuration = classId == null
+          ? values[4] as TimetableConfigurationEntity?
+          : await sl<TimetableRepository>().getConfiguration(
+              branchId: branchId,
+              academicSession: session,
+              classId: classId,
+            );
+      if (!mounted) return;
       final classSections = sections
           .where((item) => item.classId == classId)
           .toList(growable: false);
@@ -128,7 +137,7 @@ class _ManualTimetableEditorViewState
         _sections = sections;
         _subjects = subjects;
         _assignments = values[3] as List<TeacherAssignmentEntity>;
-        _configuration = values[4] as TimetableConfigurationEntity?;
+        _configuration = configuration;
         _allSessionEntries = values[5] as List<ClassTimetableEntryEntity>;
         _selectedClassId = classId;
         _selectedSectionId = classSections.isEmpty
@@ -164,6 +173,24 @@ class _ManualTimetableEditorViewState
         sectionId: sectionId,
       ),
     );
+  }
+
+  Future<void> _selectClass(String classId) async {
+    final sections = _sections
+        .where((item) => item.classId == classId)
+        .toList();
+    setState(() {
+      _selectedClassId = classId;
+      _selectedSectionId = sections.isEmpty ? null : sections.first.id;
+    });
+    final configuration = await sl<TimetableRepository>().getConfiguration(
+      branchId: _branchController.text.trim(),
+      academicSession: _sessionController.text.trim(),
+      classId: classId,
+    );
+    if (!mounted || _selectedClassId != classId) return;
+    setState(() => _configuration = configuration);
+    _loadSelectedClass();
   }
 
   List<SectionEntity> get _availableSections {
@@ -573,16 +600,7 @@ class _ManualTimetableEditorViewState
                 onChanged: busy
                     ? null
                     : (value) {
-                        final sections = _sections
-                            .where((item) => item.classId == value)
-                            .toList();
-                        setState(() {
-                          _selectedClassId = value;
-                          _selectedSectionId = sections.isEmpty
-                              ? null
-                              : sections.first.id;
-                        });
-                        _loadSelectedClass();
+                        if (value != null) _selectClass(value);
                       },
               ),
             ),

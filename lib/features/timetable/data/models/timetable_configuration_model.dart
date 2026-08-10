@@ -7,6 +7,7 @@ class TimetableConfigurationModel extends TimetableConfigurationEntity {
     required super.id,
     required super.branchId,
     required super.academicSession,
+    super.classIds,
     required super.workingDays,
     required super.schoolOpeningMinutes,
     required super.schoolClosingMinutes,
@@ -24,6 +25,9 @@ class TimetableConfigurationModel extends TimetableConfigurationEntity {
       id: map['id'] as String? ?? '',
       branchId: map['branchId'] as String? ?? '',
       academicSession: map['academicSession'] as String? ?? '',
+      classIds: (map['classIds'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<String>()
+          .toList(growable: false),
       workingDays: rawWorkingDays
           .whereType<num>()
           .map((day) => day.toInt())
@@ -50,6 +54,7 @@ class TimetableConfigurationModel extends TimetableConfigurationEntity {
       id: value.id,
       branchId: value.branchId,
       academicSession: value.academicSession,
+      classIds: value.classIds,
       workingDays: value.workingDays,
       schoolOpeningMinutes: value.schoolOpeningMinutes,
       schoolClosingMinutes: value.schoolClosingMinutes,
@@ -66,6 +71,7 @@ class TimetableConfigurationModel extends TimetableConfigurationEntity {
     'id': id,
     'branchId': branchId,
     'academicSession': academicSession,
+    'classIds': classIds,
     'workingDays': workingDays,
     'schoolOpeningMinutes': schoolOpeningMinutes,
     'schoolClosingMinutes': schoolClosingMinutes,

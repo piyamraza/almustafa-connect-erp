@@ -6,6 +6,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/fee_structure_entity.dart';
 import '../../domain/repositories/fee_structure_repository.dart';
 import '../bloc/fee_structure_bloc.dart';
@@ -62,9 +63,9 @@ class _FeeStructureViewState extends State<_FeeStructureView> {
       setState(() {
         _classes =
             (values[0] as List<AcademicClassEntity>)
-                .where((item) => item.isActive)
-                .toList()
-              ..sort((a, b) => a.name.compareTo(b.name));
+              .where((item) => item.isActive)
+              .toList()
+              ..sort(compareAcademicClasses);
         _sections =
             (values[1] as List<SectionEntity>)
                 .where((item) => item.isActive)

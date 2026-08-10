@@ -521,7 +521,19 @@ service cloud.firestore {
     }
 
     match /syllabus_entries/{document=**} {
-      allow read: if hasPermission('homeworkView');
+      allow read: if hasPermission('homeworkView')
+          || (
+            signedIn()
+            && resource.data.planId is string
+            && get(/databases/$(database)/documents/syllabus_plans/$(resource.data.planId)).data.isPublished == true
+          );
+      allow create, update: if hasPermission('homeworkCreate');
+      allow delete: if hasPermission('homeworkReview');
+    }
+
+    match /syllabus_plans/{document=**} {
+      allow read: if hasPermission('homeworkView')
+          || (signedIn() && resource.data.isPublished == true);
       allow create, update: if hasPermission('homeworkCreate');
       allow delete: if hasPermission('homeworkReview');
     }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../domain/entities/exam_entity.dart';
 import '../../domain/entities/exam_result_entity.dart';
@@ -127,7 +128,10 @@ class ExamResultsLoaded extends ExamResultsState {
     }
 
     final values = byName.values.toList(growable: false);
-    values.sort((first, second) => first.className.compareTo(second.className));
+    values.sort(
+      (first, second) =>
+          compareAcademicClassNames(first.className, second.className),
+    );
     return values;
   }
 
@@ -187,7 +191,10 @@ class ExamResultsLoaded extends ExamResultsState {
       return classMatches && sectionMatches;
     }).toList();
     values.sort((first, second) {
-      final classOrder = first.className.compareTo(second.className);
+      final classOrder = compareAcademicClassNames(
+        first.className,
+        second.className,
+      );
       if (classOrder != 0) return classOrder;
       final sectionOrder = first.sectionName.compareTo(second.sectionName);
       if (sectionOrder != 0) return sectionOrder;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -589,8 +590,9 @@ class _AutoExamDateSheetGeneratorViewState
 
     final columns = columnsByKey.values.toList()
       ..sort((first, second) {
-        final classComparison = first.className.toLowerCase().compareTo(
-          second.className.toLowerCase(),
+        final classComparison = compareAcademicClassNames(
+          first.className,
+          second.className,
         );
         return classComparison != 0
             ? classComparison

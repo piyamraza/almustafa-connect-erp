@@ -38,6 +38,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
 
   List<StudentEntity> _students = const <StudentEntity>[];
   final Set<String> _selectedStudentIds = <String>{};
+  final Set<String> _autoMatchedStudentIds = <String>{};
 
   bool _sameAsMobile = true;
   bool _isPrimaryContact = false;
@@ -175,6 +176,9 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
       if (!mounted) return;
 
       setState(() {
+        _autoMatchedStudentIds
+          ..clear()
+          ..addAll(values.map((student) => student.id));
         for (final student in values) {
           _selectedStudentIds.add(student.id);
         }
@@ -276,6 +280,17 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   @override
   Widget build(BuildContext context) {
     final filteredStudents = _filteredStudents;
+    final autoMatchedStudents = _students
+        .where((student) => _autoMatchedStudentIds.contains(student.id))
+        .toList()
+      ..sort(
+        (first, second) => first.fullName.toLowerCase().compareTo(
+          second.fullName.toLowerCase(),
+        ),
+      );
+    final otherStudents = filteredStudents
+        .where((student) => !_autoMatchedStudentIds.contains(student.id))
+        .toList(growable: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -290,6 +305,20 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(_saving ? 'Saving...' : 'Save Parent Account'),
+              ),
+            ),
+            const SizedBox(height: 18),
             _sectionTitle(context, 'Account & Identity'),
             const SizedBox(height: 10),
             _responsiveRow(
@@ -466,7 +495,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                   child: CircularProgressIndicator(),
                 ),
               )
-            else if (filteredStudents.isEmpty)
+            else if (filteredStudents.isEmpty && autoMatchedStudents.isEmpty)
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(24),
@@ -477,66 +506,124 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                 ),
               )
             else
-              Card(
-                child: Column(
-                  children: [
-                    for (final student in filteredStudents)
-                      CheckboxListTile(
-                        value: _selectedStudentIds.contains(student.id),
-                        title: Text(
-                          student.fatherName.trim().isEmpty
-                              ? student.fullName
-                              : '${student.fullName}  •  Father: ${student.fatherName}',
-                        ),
-                        subtitle: Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (autoMatchedStudents.isNotEmpty) ...[
+                    Card(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '${student.admissionNo} • '
-                              '${student.rollNumber} • ',
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${autoMatchedStudents.length} Auto-Matched Student(s)',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: AcademicReferenceLabel(
-                                classReference: student.classId,
-                                sectionReference: student.sectionId,
-                              ),
-                            ),
+                            const SizedBox(height: 8),
+                            for (
+                              var index = 0;
+                              index < autoMatchedStudents.length;
+                              index++
+                            ) ...[
+                              _studentTile(autoMatchedStudents[index]),
+                              if (index < autoMatchedStudents.length - 1)
+                                const Divider(height: 1),
+                            ],
                           ],
                         ),
-                        onChanged: (selected) {
-                          setState(() {
-                            if (selected ?? false) {
-                              _selectedStudentIds.add(student.id);
-                            } else {
-                              _selectedStudentIds.remove(student.id);
-                            }
-                          });
-                        },
                       ),
+                    ),
+                    const SizedBox(height: 10),
                   ],
-                ),
+                  if (otherStudents.isNotEmpty)
+                    Card(
+                      child: Column(
+                        children: [
+                          for (
+                            var index = 0;
+                            index < otherStudents.length;
+                            index++
+                          ) ...[
+                            _studentTile(otherStudents[index]),
+                            if (index < otherStudents.length - 1)
+                              const Divider(height: 1, indent: 16, endIndent: 16),
+                          ],
+                        ],
+                      ),
+                    ),
+                ],
               ),
             const SizedBox(height: 10),
             Text(
               '${_selectedStudentIds.length} student(s) selected',
               style: Theme.of(context).textTheme.titleSmall,
             ),
-            const SizedBox(height: 22),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save),
-                label: Text(_saving ? 'Saving...' : 'Save Parent Account'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _studentTile(StudentEntity student) {
+    final textTheme = Theme.of(context).textTheme;
+    return CheckboxListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      value: _selectedStudentIds.contains(student.id),
+      title: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          Text(
+            student.fullName,
+            style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          if (student.fatherName.trim().isNotEmpty)
+            Text(
+              'Father: ${student.fatherName}',
+              style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+        ],
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 5),
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Admission: ${student.admissionNo}'),
+            Text('Roll No: ${student.rollNumber}'),
+            AcademicReferenceLabel(
+              classReference: student.classId,
+              sectionReference: student.sectionId,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
       ),
+      onChanged: (selected) {
+        setState(() {
+          if (selected ?? false) {
+            _selectedStudentIds.add(student.id);
+          } else {
+            _selectedStudentIds.remove(student.id);
+          }
+        });
+      },
     );
   }
 

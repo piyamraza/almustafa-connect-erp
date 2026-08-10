@@ -14,12 +14,12 @@ import '../repositories/exam_result_repository.dart';
 class AnnualPromotionService {
   const AnnualPromotionService({
     required this._examRepository,
-    required ExamResultRepository resultRepository,
+    required this._resultRepository,
     required this._studentRepository,
     required this._structureRepository,
     required this._sessionRepository,
     required this._promotionRepository,
-  }) : _resultRepository = resultRepository;
+  });
 
   final ExamRepository _examRepository;
   final ExamResultRepository _resultRepository;

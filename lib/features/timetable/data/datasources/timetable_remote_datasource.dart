@@ -1,3 +1,5 @@
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
+
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/manual_timetable_change_entity.dart';
@@ -8,6 +10,11 @@ import '../models/timetable_version_model.dart';
 
 abstract class TimetableRemoteDataSource {
   Future<TimetableConfigurationModel?> getConfiguration({
+    required String branchId,
+    required String academicSession,
+    String? classId,
+  });
+  Future<List<TimetableConfigurationModel>> getConfigurations({
     required String branchId,
     required String academicSession,
   });
@@ -64,39 +71,72 @@ class TimetableRemoteDataSourceImpl implements TimetableRemoteDataSource {
   Future<TimetableConfigurationModel?> getConfiguration({
     required String branchId,
     required String academicSession,
+    String? classId,
+  }) async {
+    final configurations = await getConfigurations(
+      branchId: branchId,
+      academicSession: academicSession,
+    );
+    final requestedClassId = classId?.trim() ?? '';
+    if (requestedClassId.isNotEmpty) {
+      for (final configuration in configurations) {
+        if (configuration.classIds.contains(requestedClassId)) {
+          return configuration;
+        }
+      }
+    }
+    for (final configuration in configurations) {
+      if (configuration.classIds.isEmpty) {
+        return configuration;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<List<TimetableConfigurationModel>> getConfigurations({
+    required String branchId,
+    required String academicSession,
   }) async {
     final snapshot = await firestoreService
         .collection(FirestorePaths.timetableConfigurations)
         .where('branchId', isEqualTo: branchId.trim())
         .where('academicSession', isEqualTo: academicSession.trim())
-        .limit(1)
         .get();
-
-    if (snapshot.docs.isEmpty) {
-      return null;
-    }
-
-    final document = snapshot.docs.first;
-    return TimetableConfigurationModel.fromMap({
-      ...document.data(),
-      'id': document.id,
-    });
+    return snapshot.docs
+        .map(
+          (document) => TimetableConfigurationModel.fromMap({
+            ...document.data(),
+            'id': document.id,
+          }),
+        )
+        .where((configuration) => configuration.isActive)
+        .toList(growable: false);
   }
 
   @override
   Future<void> saveConfiguration(
     TimetableConfigurationModel configuration,
   ) async {
-    final existing = await getConfiguration(
+    final existingConfigurations = await getConfigurations(
       branchId: configuration.branchId,
       academicSession: configuration.academicSession,
     );
 
-    if (existing != null && existing.id != configuration.id) {
-      throw StateError(
-        'A timetable configuration already exists for '
-        '${configuration.academicSession}.',
+    for (final existing in existingConfigurations) {
+      if (existing.id == configuration.id) continue;
+      final bothDefault =
+          existing.classIds.isEmpty && configuration.classIds.isEmpty;
+      final overlappingClasses = existing.classIds.toSet().intersection(
+        configuration.classIds.toSet(),
       );
+      if (bothDefault || overlappingClasses.isNotEmpty) {
+        throw StateError(
+          bothDefault
+              ? 'A default timetable schedule already exists for this session.'
+              : 'One or more selected classes already have a timetable schedule.',
+        );
+      }
     }
 
     await firestoreService
@@ -414,7 +454,10 @@ class TimetableRemoteDataSourceImpl implements TimetableRemoteDataSource {
         if (periodComparison != 0) {
           return periodComparison;
         }
-        final classComparison = first.className.compareTo(second.className);
+        final classComparison = compareAcademicClassNames(
+          first.className,
+          second.className,
+        );
         if (classComparison != 0) {
           return classComparison;
         }

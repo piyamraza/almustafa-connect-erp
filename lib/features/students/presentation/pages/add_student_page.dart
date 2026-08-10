@@ -4,6 +4,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/student_entity.dart';
 import '../../domain/repositories/student_repository.dart';
 
@@ -231,7 +232,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
     final activeClasses =
         _academicClasses.where((item) => item.isActive).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+          ..sort(compareAcademicClasses);
     final index = activeClasses.indexWhere((item) => item.name == className);
     return (index + 1).clamp(1, 99).toString().padLeft(2, '0');
   }

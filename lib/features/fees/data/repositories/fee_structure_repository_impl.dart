@@ -1,3 +1,5 @@
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
+
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/fee_structure_entity.dart';
@@ -38,7 +40,10 @@ class FeeStructureRepositoryImpl implements FeeStructureRepository {
             )
             .toList()
           ..sort((a, b) {
-            final classCompare = a.className.compareTo(b.className);
+            final classCompare = compareAcademicClassNames(
+              a.className,
+              b.className,
+            );
             if (classCompare != 0) return classCompare;
             return a.sectionName.compareTo(b.sectionName);
           });

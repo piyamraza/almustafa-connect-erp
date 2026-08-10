@@ -5,6 +5,7 @@ import '../../domain/entities/syllabus_entry_entity.dart';
 class SyllabusEntryModel extends SyllabusEntryEntity {
   const SyllabusEntryModel({
     required super.id,
+    required super.planId,
     required super.academicSession,
     required super.syllabusTitle,
     required super.classId,
@@ -21,6 +22,7 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
   factory SyllabusEntryModel.fromEntity(SyllabusEntryEntity value) =>
       SyllabusEntryModel(
         id: value.id,
+        planId: value.planId,
         academicSession: value.academicSession,
         syllabusTitle: value.syllabusTitle,
         classId: value.classId,
@@ -37,6 +39,7 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
   factory SyllabusEntryModel.fromMap(Map<String, dynamic> map) =>
       SyllabusEntryModel(
         id: map['id'] as String? ?? '',
+        planId: map['planId'] as String? ?? '',
         academicSession: map['academicSession'] as String? ?? '',
         syllabusTitle: map['syllabusTitle'] as String? ?? '',
         classId: map['classId'] as String? ?? '',
@@ -52,6 +55,7 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
 
   Map<String, dynamic> toMap() => {
     'academicSession': academicSession,
+    'planId': planId,
     'syllabusTitle': syllabusTitle,
     'classId': classId,
     'className': className,

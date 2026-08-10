@@ -9,6 +9,7 @@ class GetTimetableConfiguration {
   Future<TimetableConfigurationEntity?> call({
     required String branchId,
     required String academicSession,
+    String? classId,
   }) {
     if (branchId.trim().isEmpty) {
       throw ArgumentError.value(branchId, 'branchId', 'Branch is required.');
@@ -24,6 +25,7 @@ class GetTimetableConfiguration {
     return _repository.getConfiguration(
       branchId: branchId.trim(),
       academicSession: academicSession.trim(),
+      classId: classId?.trim(),
     );
   }
 }

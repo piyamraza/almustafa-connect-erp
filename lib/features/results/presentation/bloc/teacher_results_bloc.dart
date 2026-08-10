@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
@@ -196,7 +197,10 @@ List<TeacherSubjectResultSummary> buildTeacherSubjectSummaries(
   summaries.sort((first, second) {
     final subject = first.subjectName.compareTo(second.subjectName);
     if (subject != 0) return subject;
-    final className = first.className.compareTo(second.className);
+    final className = compareAcademicClassNames(
+      first.className,
+      second.className,
+    );
     if (className != 0) return className;
     return first.sectionName.compareTo(second.sectionName);
   });

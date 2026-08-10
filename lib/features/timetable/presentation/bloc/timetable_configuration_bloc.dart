@@ -28,6 +28,7 @@ class TimetableConfigurationBloc
       final configuration = await _getTimetableConfiguration(
         branchId: event.branchId,
         academicSession: event.academicSession,
+        classId: event.classId,
       );
 
       if (configuration == null) {
@@ -58,6 +59,9 @@ class TimetableConfigurationBloc
       final savedConfiguration = await _getTimetableConfiguration(
         branchId: event.configuration.branchId,
         academicSession: event.configuration.academicSession,
+        classId: event.configuration.classIds.isEmpty
+            ? null
+            : event.configuration.classIds.first,
       );
 
       emit(

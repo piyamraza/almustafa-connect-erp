@@ -3,6 +3,9 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/timetable_configuration_entity.dart';
 import '../../domain/entities/timetable_period_entity.dart';
 import '../../domain/repositories/timetable_repository.dart';
@@ -44,6 +47,9 @@ class _TimetableConfigurationViewState
     DateTime.saturday,
   };
   final List<TimetablePeriodEntity> _periods = [];
+  List<AcademicClassEntity> _classes = const [];
+  final Set<String> _selectedClassIds = <String>{};
+  bool _creatingClassSchedule = false;
 
   TimeOfDay _openingTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _closingTime = const TimeOfDay(hour: 14, minute: 0);
@@ -55,9 +61,23 @@ class _TimetableConfigurationViewState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _loadConfiguration();
+        _initialize();
       }
     });
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final classes = await sl<AcademicStructureRepository>().getClasses();
+      if (!mounted) return;
+      setState(() {
+        _classes = classes.where((value) => value.isActive).toList()
+          ..sort(compareAcademicClasses);
+      });
+    } catch (error) {
+      if (mounted) _showMessage('Classes could not be loaded: $error');
+    }
+    if (mounted) _loadConfiguration();
   }
 
   @override
@@ -77,8 +97,34 @@ class _TimetableConfigurationViewState
       LoadTimetableConfigurationEvent(
         branchId: _branchController.text.trim(),
         academicSession: _sessionController.text.trim(),
+        classId: _selectedClassIds.isEmpty ? null : _selectedClassIds.first,
       ),
     );
+  }
+
+  void _selectClassScope(String classId, bool selected) {
+    final shouldLoadSchedule = selected && _selectedClassIds.isEmpty;
+    setState(() {
+      if (selected) {
+        _creatingClassSchedule = true;
+        _existingConfiguration = null;
+        _selectedClassIds.add(classId);
+      } else {
+        _selectedClassIds.remove(classId);
+      }
+    });
+    if (shouldLoadSchedule) {
+      _loadConfiguration();
+    }
+  }
+
+  void _selectDefaultSchedule() {
+    setState(() {
+      _creatingClassSchedule = false;
+      _existingConfiguration = null;
+      _selectedClassIds.clear();
+    });
+    _loadConfiguration();
   }
 
   Future<void> _pickOpeningTime() async {
@@ -102,17 +148,37 @@ class _TimetableConfigurationViewState
   }
 
   Future<void> _editPeriod([TimetablePeriodEntity? existing]) async {
+    _sortPeriods();
+    final scheduleStartMinutes = _periods.isEmpty
+        ? _toMinutes(_openingTime)
+        : _periods.first.startMinutes;
+    final existingIndex = existing == null
+        ? -1
+        : _periods.indexWhere((period) => period.id == existing.id);
+    final isFirstPeriod = existing == null
+        ? _periods.isEmpty
+        : existingIndex == 0;
+    final suggestedStartMinutes = existing != null
+        ? existing.startMinutes
+        : _periods.isEmpty
+        ? _toMinutes(_openingTime)
+        : _periods.last.endMinutes;
     final draft = await showDialog<_PeriodDraft>(
       context: context,
       builder: (_) => _PeriodEditorDialog(
         existing: existing,
         suggestedOrder: existing?.order ?? _periods.length + 1,
+        suggestedStartMinutes: suggestedStartMinutes,
+        canEditStartTime: isFirstPeriod,
       ),
     );
 
     if (draft == null || !mounted) {
       return;
     }
+    final updatedScheduleStartMinutes = isFirstPeriod
+        ? draft.startMinutes
+        : scheduleStartMinutes;
 
     final period = TimetablePeriodEntity(
       id: existing?.id ?? 'slot_${DateTime.now().microsecondsSinceEpoch}',
@@ -133,10 +199,15 @@ class _TimetableConfigurationViewState
         }
       }
       _sortPeriods();
+      _recalculatePeriodTimes(updatedScheduleStartMinutes);
     });
   }
 
   Future<void> _deletePeriod(TimetablePeriodEntity period) async {
+    _sortPeriods();
+    final scheduleStartMinutes = _periods.isEmpty
+        ? _toMinutes(_openingTime)
+        : _periods.first.startMinutes;
     final confirmed =
         await showDialog<bool>(
           context: context,
@@ -161,7 +232,11 @@ class _TimetableConfigurationViewState
       return;
     }
 
-    setState(() => _periods.removeWhere((value) => value.id == period.id));
+    setState(() {
+      _periods.removeWhere((value) => value.id == period.id);
+      _sortPeriods();
+      _recalculatePeriodTimes(scheduleStartMinutes);
+    });
   }
 
   void _sortPeriods() {
@@ -172,6 +247,23 @@ class _TimetableConfigurationViewState
       }
       return first.startMinutes.compareTo(second.startMinutes);
     });
+  }
+
+  void _recalculatePeriodTimes(int scheduleStartMinutes) {
+    if (_periods.isEmpty) {
+      return;
+    }
+
+    var nextStart = scheduleStartMinutes;
+    for (var index = 0; index < _periods.length; index++) {
+      final period = _periods[index];
+      final duration = period.durationMinutes;
+      _periods[index] = period.copyWith(
+        startMinutes: nextStart,
+        endMinutes: nextStart + duration,
+      );
+      nextStart += duration;
+    }
   }
 
   void _saveConfiguration() {
@@ -186,6 +278,10 @@ class _TimetableConfigurationViewState
       _showMessage('Add at least one timetable slot.');
       return;
     }
+    if (_creatingClassSchedule && _selectedClassIds.isEmpty) {
+      _showMessage('Select at least one class for this separate schedule.');
+      return;
+    }
 
     final now = DateTime.now();
     final openingMinutes = _toMinutes(_openingTime);
@@ -197,6 +293,7 @@ class _TimetableConfigurationViewState
       id: existing?.id ?? repository.generateConfigurationId(),
       branchId: _branchController.text.trim(),
       academicSession: _sessionController.text.trim(),
+      classIds: _selectedClassIds.toList(growable: false),
       workingDays: _workingDays.toList()..sort(),
       schoolOpeningMinutes: openingMinutes,
       schoolClosingMinutes: closingMinutes,
@@ -221,8 +318,18 @@ class _TimetableConfigurationViewState
   void _handleState(BuildContext context, TimetableConfigurationState state) {
     if (state is TimetableConfigurationLoaded) {
       final configuration = state.configuration;
+      final isDefaultTemplate =
+          _selectedClassIds.isNotEmpty && configuration.classIds.isEmpty;
       setState(() {
-        _existingConfiguration = configuration;
+        _existingConfiguration = isDefaultTemplate ? null : configuration;
+        if (!isDefaultTemplate) {
+          _selectedClassIds
+            ..clear()
+            ..addAll(configuration.classIds);
+          _creatingClassSchedule = configuration.classIds.isNotEmpty;
+        } else {
+          _creatingClassSchedule = true;
+        }
         _workingDays
           ..clear()
           ..addAll(configuration.workingDays);
@@ -236,6 +343,12 @@ class _TimetableConfigurationViewState
       if (state.successMessage != null) {
         _saveRequested = false;
         _showMessage(state.successMessage!);
+      }
+      if (isDefaultTemplate) {
+        _showMessage(
+          'No separate schedule exists for the selected class. '
+          'The default schedule was loaded as a template.',
+        );
       }
       return;
     }
@@ -305,6 +418,8 @@ class _TimetableConfigurationViewState
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _scopeCard(),
+                                const SizedBox(height: 16),
+                                _classScopeCard(),
                                 const SizedBox(height: 16),
                                 _workingDaysCard(),
                                 const SizedBox(height: 16),
@@ -446,6 +561,70 @@ class _TimetableConfigurationViewState
                 );
               }),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _classScopeCard() {
+    final isDefault =
+        _selectedClassIds.isEmpty && !_creatingClassSchedule;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Apply Schedule To Classes',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isDefault
+                  ? 'Default schedule: applies to every class without its own schedule.'
+                  : _selectedClassIds.isEmpty
+                  ? 'Click a class below. Its schedule will load automatically.'
+                  : 'Edit the periods below and save this class schedule.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            FilterChip(
+              selected: isDefault,
+              label: const Text('Default Schedule'),
+              avatar: const Icon(Icons.public, size: 18),
+              onSelected: (_) => _selectDefaultSchedule(),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final academicClass in _classes)
+                  FilterChip(
+                    selected: _selectedClassIds.contains(academicClass.id),
+                    label: Text(academicClass.name),
+                    onSelected: (selected) =>
+                        _selectClassScope(academicClass.id, selected),
+                  ),
+              ],
+            ),
+            if (_selectedClassIds.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${_selectedClassIds.length} class(es) selected. '
+                      'Change the timing/periods below, then press Save Configuration.',
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -614,10 +793,14 @@ class _PeriodEditorDialog extends StatefulWidget {
   const _PeriodEditorDialog({
     required this.existing,
     required this.suggestedOrder,
+    required this.suggestedStartMinutes,
+    required this.canEditStartTime,
   });
 
   final TimetablePeriodEntity? existing;
   final int suggestedOrder;
+  final int suggestedStartMinutes;
+  final bool canEditStartTime;
 
   @override
   State<_PeriodEditorDialog> createState() => _PeriodEditorDialogState();
@@ -627,8 +810,8 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _labelController;
   late final TextEditingController _orderController;
+  late final TextEditingController _durationController;
   late TimeOfDay _startTime;
-  late TimeOfDay _endTime;
   late TimetablePeriodType _type;
 
   @override
@@ -639,8 +822,10 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
     _orderController = TextEditingController(
       text: (existing?.order ?? widget.suggestedOrder).toString(),
     );
-    _startTime = _timeFromMinutes(existing?.startMinutes ?? 480);
-    _endTime = _timeFromMinutes(existing?.endMinutes ?? 520);
+    _durationController = TextEditingController(
+      text: (existing?.durationMinutes ?? 40).toString(),
+    );
+    _startTime = _timeFromMinutes(widget.suggestedStartMinutes);
     _type = existing?.type ?? TimetablePeriodType.teaching;
   }
 
@@ -648,6 +833,7 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
   void dispose() {
     _labelController.dispose();
     _orderController.dispose();
+    _durationController.dispose();
     super.dispose();
   }
 
@@ -661,26 +847,17 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
     }
   }
 
-  Future<void> _pickEndTime() async {
-    final selected = await showTimePicker(
-      context: context,
-      initialTime: _endTime,
-    );
-    if (selected != null && mounted) {
-      setState(() => _endTime = selected);
-    }
-  }
-
   void _save() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     final startMinutes = _minutesFromTime(_startTime);
-    final endMinutes = _minutesFromTime(_endTime);
-    if (endMinutes <= startMinutes) {
+    final durationMinutes = int.parse(_durationController.text.trim());
+    final endMinutes = startMinutes + durationMinutes;
+    if (endMinutes > 1440) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time.')),
+        const SnackBar(content: Text('Slot cannot end after midnight.')),
       );
       return;
     }
@@ -757,19 +934,47 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
                   },
                 ),
                 const SizedBox(height: 12),
+                TextFormField(
+                  controller: _durationController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Duration (minutes)',
+                    hintText: '40',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.timer_outlined),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (value) {
+                    final duration = int.tryParse(value?.trim() ?? '');
+                    return duration == null || duration < 1
+                        ? 'Enter a valid duration'
+                        : null;
+                  },
+                ),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
-                  runSpacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: _pickStartTime,
-                      icon: const Icon(Icons.schedule),
-                      label: Text('Start: ${_startTime.format(context)}'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _pickEndTime,
-                      icon: const Icon(Icons.schedule),
-                      label: Text('End: ${_endTime.format(context)}'),
+                    if (widget.canEditStartTime)
+                      OutlinedButton.icon(
+                        onPressed: _pickStartTime,
+                        icon: const Icon(Icons.schedule),
+                        label: Text('Start: ${_startTime.format(context)}'),
+                      )
+                    else
+                      Chip(
+                        avatar: const Icon(Icons.schedule, size: 18),
+                        label: Text(
+                          'Starts automatically: ${_startTime.format(context)}',
+                        ),
+                      ),
+                    Chip(
+                      avatar: const Icon(Icons.schedule, size: 18),
+                      label: Text(
+                        'Ends automatically: ${_calculatedEndTime.format(context)}',
+                      ),
                     ),
                   ],
                 ),
@@ -785,6 +990,13 @@ class _PeriodEditorDialogState extends State<_PeriodEditorDialog> {
         ),
         FilledButton(onPressed: _save, child: const Text('Save Slot')),
       ],
+    );
+  }
+
+  TimeOfDay get _calculatedEndTime {
+    final duration = int.tryParse(_durationController.text.trim()) ?? 0;
+    return _timeFromMinutes(
+      (_minutesFromTime(_startTime) + duration).clamp(0, 1439).toInt(),
     );
   }
 }
@@ -843,3 +1055,4 @@ String _weekdayName(int day) {
       return 'Unknown';
   }
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             

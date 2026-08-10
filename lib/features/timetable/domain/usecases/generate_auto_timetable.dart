@@ -4,6 +4,7 @@ import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../entities/auto_timetable_generation_entity.dart';
 import '../entities/class_timetable_entry_entity.dart';
+import '../entities/timetable_configuration_entity.dart';
 import '../repositories/timetable_repository.dart';
 
 class GenerateAutoTimetable {
@@ -28,7 +29,7 @@ class GenerateAutoTimetable {
     }
 
     final values = await Future.wait<Object?>([
-      _timetableRepository.getConfiguration(
+      _timetableRepository.getConfigurations(
         branchId: branchId,
         academicSession: session,
       ),
@@ -42,8 +43,9 @@ class GenerateAutoTimetable {
       _assignmentRepository.getAssignments(),
     ]);
 
-    final configuration = values[0] as dynamic;
-    if (configuration == null) {
+    final configurations =
+        values[0] as List<TimetableConfigurationEntity>;
+    if (configurations.isEmpty) {
       throw StateError('Timetable configuration was not found.');
     }
 
@@ -63,44 +65,89 @@ class GenerateAutoTimetable {
         )
         .toList();
 
-    final List<int> days =
-        (configuration.workingDays as Iterable<dynamic>)
-            .map<int>((day) => (day as num).toInt())
-            .toList()
-          ..sort();
-    final periods = configuration.orderedPeriods
-        .where((period) => period.isTeaching)
-        .toList(growable: false);
-
-    if (days.isEmpty || periods.isEmpty) {
-      throw StateError('No working days or teaching periods are configured.');
-    }
-
     final occupiedClassSlots = <String>{};
     final occupiedTeacherSlots = <String>{};
+    final teacherBusyTimes = <String, List<_TimeRange>>{};
+    final periodSlotById = <String, String>{
+      for (final configuration in configurations)
+        for (final period in configuration.periods)
+          period.id: '${period.startMinutes}-${period.endMinutes}',
+    };
 
     if (!request.replaceExisting) {
       for (final entry in existing) {
         occupiedClassSlots.add(
           '${entry.classId}|${entry.sectionId}|${entry.weekday}|${entry.periodId}',
         );
+        final timeSlot = periodSlotById[entry.periodId] ?? entry.periodId;
         occupiedTeacherSlots.add(
-          '${entry.teacherId}|${entry.weekday}|${entry.periodId}',
+          '${entry.teacherId}|${entry.weekday}|$timeSlot',
         );
+        dynamic period;
+        for (final configuration in configurations) {
+          for (final candidate in configuration.periods) {
+            if (candidate.id == entry.periodId) {
+              period = candidate;
+              break;
+            }
+          }
+          if (period != null) break;
+        }
+        if (period != null) {
+          teacherBusyTimes
+              .putIfAbsent(
+                '${entry.teacherId}|${entry.weekday}',
+                () => <_TimeRange>[],
+              )
+              .add(_TimeRange(period.startMinutes, period.endMinutes));
+        }
       }
     }
 
     final generated = <ClassTimetableEntryEntity>[];
     final warnings = <String>[];
     var classSectionCount = 0;
+    var totalAvailableSlots = 0;
 
     for (final academicClass in classes) {
+      TimetableConfigurationEntity? configuration;
+      for (final candidate in configurations) {
+        if (candidate.classIds.contains(academicClass.id)) {
+          configuration = candidate;
+          break;
+        }
+      }
+      if (configuration == null) {
+        for (final candidate in configurations) {
+          if (candidate.classIds.isEmpty) {
+            configuration = candidate;
+            break;
+          }
+        }
+      }
+      if (configuration == null) {
+        warnings.add(
+          '${academicClass.name}: No default or class-specific schedule found.',
+        );
+        continue;
+      }
+      final days = configuration.workingDays.toList()..sort();
+      final periods = configuration.orderedPeriods
+          .where((period) => period.isTeaching)
+          .toList(growable: false);
+      if (days.isEmpty || periods.isEmpty) {
+        warnings.add(
+          '${academicClass.name}: Schedule has no working days or teaching periods.',
+        );
+        continue;
+      }
       final classSections = sections
           .where((section) => section.classId == academicClass.id)
           .toList();
 
       for (final section in classSections) {
         classSectionCount++;
+        totalAvailableSlots += days.length * periods.length;
 
         final availableSubjects = _subjectsFor(
           subjects,
@@ -146,6 +193,7 @@ class GenerateAutoTimetable {
           final usedToday = <String, int>{};
 
           for (final period in periods) {
+            final timeSlot = '${period.startMinutes}-${period.endMinutes}';
             final classSlot =
                 '${academicClass.id}|${section.id}|$day|${period.id}';
             if (occupiedClassSlots.contains(classSlot)) {
@@ -162,9 +210,16 @@ class GenerateAutoTimetable {
                   (subjectCursor + attempt) % subjectAssignments.length;
               final candidate = subjectAssignments[index];
               final teacherSlot =
-                  '${candidate.assignment.teacherId}|$day|${period.id}';
+                  '${candidate.assignment.teacherId}|$day|$timeSlot';
 
-              if (occupiedTeacherSlots.contains(teacherSlot)) {
+              if (occupiedTeacherSlots.contains(teacherSlot) ||
+                  _teacherIsBusy(
+                    teacherBusyTimes,
+                    candidate.assignment.teacherId,
+                    day,
+                    period.startMinutes,
+                    period.endMinutes,
+                  )) {
                 continue;
               }
 
@@ -181,8 +236,11 @@ class GenerateAutoTimetable {
             selected ??= _firstAvailable(
               subjectAssignments,
               occupiedTeacherSlots,
+              teacherBusyTimes,
               day,
-              period.id,
+              timeSlot,
+              period.startMinutes,
+              period.endMinutes,
               subjectCursor,
             );
 
@@ -196,7 +254,7 @@ class GenerateAutoTimetable {
             }
 
             final teacherSlot =
-                '${selected.assignment.teacherId}|$day|${period.id}';
+                '${selected.assignment.teacherId}|$day|$timeSlot';
             final now = DateTime.now();
 
             final entry = ClassTimetableEntryEntity(
@@ -222,15 +280,18 @@ class GenerateAutoTimetable {
             generated.add(entry);
             occupiedClassSlots.add(classSlot);
             occupiedTeacherSlots.add(teacherSlot);
+            teacherBusyTimes
+                .putIfAbsent(
+                  '${selected.assignment.teacherId}|$day',
+                  () => <_TimeRange>[],
+                )
+                .add(_TimeRange(period.startMinutes, period.endMinutes));
             usedToday[selected.subject.id] =
                 (usedToday[selected.subject.id] ?? 0) + 1;
           }
         }
       }
     }
-
-    final int totalAvailableSlots =
-        (classSectionCount * days.length * periods.length).toInt();
 
     return AutoTimetableGenerationResult(
       generatedEntries: generated,
@@ -311,19 +372,39 @@ class GenerateAutoTimetable {
   _SubjectAssignment? _firstAvailable(
     List<_SubjectAssignment> values,
     Set<String> occupiedTeacherSlots,
+    Map<String, List<_TimeRange>> teacherBusyTimes,
     int day,
-    String periodId,
+    String timeSlot,
+    int startMinutes,
+    int endMinutes,
     int start,
   ) {
     for (var attempt = 0; attempt < values.length; attempt++) {
       final candidate = values[(start + attempt) % values.length];
-      final key = '${candidate.assignment.teacherId}|$day|$periodId';
-      if (!occupiedTeacherSlots.contains(key)) {
+      final key = '${candidate.assignment.teacherId}|$day|$timeSlot';
+      if (!occupiedTeacherSlots.contains(key) &&
+          !_teacherIsBusy(
+            teacherBusyTimes,
+            candidate.assignment.teacherId,
+            day,
+            startMinutes,
+            endMinutes,
+          )) {
         return candidate;
       }
     }
     return null;
   }
+
+  bool _teacherIsBusy(
+    Map<String, List<_TimeRange>> busyTimes,
+    String teacherId,
+    int day,
+    int startMinutes,
+    int endMinutes,
+  ) => busyTimes['$teacherId|$day']?.any(
+    (range) => startMinutes < range.end && endMinutes > range.start,
+  ) ?? false;
 
   String _normalise(String value) =>
       value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -345,4 +426,11 @@ class _SubjectAssignment {
 
   final AcademicSubjectEntity subject;
   final TeacherAssignmentEntity assignment;
+}
+
+class _TimeRange {
+  const _TimeRange(this.start, this.end);
+
+  final int start;
+  final int end;
 }

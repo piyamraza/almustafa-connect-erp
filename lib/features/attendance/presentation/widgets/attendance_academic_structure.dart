@@ -1,6 +1,7 @@
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 
 /// Read-only class and section data used by attendance screens.
 ///
@@ -67,7 +68,7 @@ class AttendanceAcademicStructure {
     final classes = values[0] as List<AcademicClassEntity>;
     final sections = values[1] as List<SectionEntity>;
     final sortedClasses = [...classes]
-      ..sort((first, second) => first.name.compareTo(second.name));
+      ..sort(compareAcademicClasses);
     return AttendanceAcademicStructure(
       classes: sortedClasses,
       sections: sections,

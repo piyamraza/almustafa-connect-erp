@@ -7,6 +7,7 @@ import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/homework_entity.dart';
 import '../bloc/homework_bloc.dart';
 import '../services/homework_diary_pdf_service.dart';
@@ -193,7 +194,8 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
           final academicClass = _classById(section.classId);
           return section.isActive && academicClass?.isActive == true;
         }).toList()..sort((a, b) {
-          final classCompare = (_classById(a.classId)?.name ?? '').compareTo(
+          final classCompare = compareAcademicClassNames(
+            _classById(a.classId)?.name ?? '',
             _classById(b.classId)?.name ?? '',
           );
           return classCompare != 0 ? classCompare : a.name.compareTo(b.name);

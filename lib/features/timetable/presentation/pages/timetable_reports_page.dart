@@ -6,6 +6,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../teachers/domain/entities/teacher_entity.dart';
 import '../../../teachers/domain/repositories/teacher_repository.dart';
 import '../../domain/entities/class_timetable_entry_entity.dart';
@@ -88,7 +89,7 @@ class _TimetableReportsViewState extends State<_TimetableReportsView> {
           (values[0] as List<AcademicClassEntity>)
               .where((value) => value.isActive)
               .toList()
-            ..sort((first, second) => first.name.compareTo(second.name));
+            ..sort(compareAcademicClasses);
       final sections =
           (values[1] as List<SectionEntity>)
               .where((value) => value.isActive)

@@ -7,6 +7,7 @@ class TimetableConfigurationEntity extends Equatable {
     required this.id,
     required this.branchId,
     required this.academicSession,
+    List<String> classIds = const <String>[],
     required List<int> workingDays,
     required this.schoolOpeningMinutes,
     required this.schoolClosingMinutes,
@@ -14,12 +15,18 @@ class TimetableConfigurationEntity extends Equatable {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
-  }) : workingDays = List<int>.unmodifiable(workingDays),
+  }) : classIds = List<String>.unmodifiable(classIds),
+       workingDays = List<int>.unmodifiable(workingDays),
        periods = List<TimetablePeriodEntity>.unmodifiable(periods);
 
   final String id;
   final String branchId;
   final String academicSession;
+  final List<String> classIds;
+
+  bool get isDefaultSchedule => classIds.isEmpty;
+  bool appliesToClass(String classId) =>
+      isDefaultSchedule || classIds.contains(classId);
 
   /// Uses DateTime weekday values: Monday = 1 and Sunday = 7.
   final List<int> workingDays;
@@ -54,6 +61,12 @@ class TimetableConfigurationEntity extends Equatable {
     }
     if (academicSession.trim().isEmpty) {
       errors.add('Academic session is required.');
+    }
+    if (classIds.any((id) => id.trim().isEmpty)) {
+      errors.add('Selected classes contain an invalid ID.');
+    }
+    if (classIds.toSet().length != classIds.length) {
+      errors.add('Selected classes cannot contain duplicates.');
     }
     if (workingDays.isEmpty) {
       errors.add('At least one working day is required.');
@@ -119,6 +132,7 @@ class TimetableConfigurationEntity extends Equatable {
     String? id,
     String? branchId,
     String? academicSession,
+    List<String>? classIds,
     List<int>? workingDays,
     int? schoolOpeningMinutes,
     int? schoolClosingMinutes,
@@ -131,6 +145,7 @@ class TimetableConfigurationEntity extends Equatable {
       id: id ?? this.id,
       branchId: branchId ?? this.branchId,
       academicSession: academicSession ?? this.academicSession,
+      classIds: classIds ?? this.classIds,
       workingDays: workingDays ?? this.workingDays,
       schoolOpeningMinutes: schoolOpeningMinutes ?? this.schoolOpeningMinutes,
       schoolClosingMinutes: schoolClosingMinutes ?? this.schoolClosingMinutes,
@@ -146,6 +161,7 @@ class TimetableConfigurationEntity extends Equatable {
     id,
     branchId,
     academicSession,
+    classIds,
     workingDays,
     schoolOpeningMinutes,
     schoolClosingMinutes,
