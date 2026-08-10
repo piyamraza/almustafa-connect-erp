@@ -1,19 +1,21 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../domain/entities/document_element_entity.dart';
 import '../../../domain/entities/document_element_style.dart';
+import '../../../domain/entities/document_element_type.dart';
 import '../document_element_value_resolver.dart';
 import '../document_render_context.dart';
 import 'element_renderer.dart';
 
 class ImageRenderer extends ElementRenderer {
-  const ImageRenderer(
-    this._valueResolver,
-  );
+  const ImageRenderer(this._valueResolver);
 
   final DocumentElementValueResolver _valueResolver;
+  static final Map<String, Future<Uint8List?>> _networkImageCache = {};
 
   @override
   Widget render({
@@ -29,10 +31,7 @@ class ImageRenderer extends ElementRenderer {
       return const SizedBox.shrink();
     }
 
-    final image = _buildImage(
-      value,
-      element,
-    );
+    final image = _buildImage(value, element);
 
     if (image == null) {
       return const SizedBox.shrink();
@@ -45,36 +44,22 @@ class ImageRenderer extends ElementRenderer {
         style.borderColor != null &&
         style.borderColor!.trim().isNotEmpty;
 
-    final isCircle =
-        style.shape ==
-        DocumentElementShape.circle;
+    final isCircle = style.shape == DocumentElementShape.circle;
 
-    final radius =
-        style.shape ==
-                DocumentElementShape
-                    .roundedRectangle
-            ? style.borderRadius
-            : 0.0;
+    final radius = style.shape == DocumentElementShape.roundedRectangle
+        ? style.borderRadius
+        : 0.0;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        shape: isCircle
-            ? BoxShape.circle
-            : BoxShape.rectangle,
-        borderRadius: isCircle
-            ? null
-            : BorderRadius.circular(
-                radius,
-              ),
+        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: isCircle ? null : BorderRadius.circular(radius),
         border: hasBorder
             ? Border.all(
-                color: _parseColor(
-                  style.borderColor,
-                  Colors.transparent,
-                ),
+                color: _parseColor(style.borderColor, Colors.transparent),
                 width: style.borderWidth,
               )
             : null,
@@ -83,13 +68,8 @@ class ImageRenderer extends ElementRenderer {
     );
   }
 
-  Widget? _buildImage(
-    dynamic value,
-    DocumentElementEntity element,
-  ) {
-    final fit = _boxFit(
-      element.style.imageFit,
-    );
+  Widget? _buildImage(dynamic value, DocumentElementEntity element) {
+    final fit = _boxFit(element.style.imageFit);
 
     if (value is Uint8List) {
       return Image.memory(
@@ -111,18 +91,16 @@ class ImageRenderer extends ElementRenderer {
       );
     }
 
-    final source =
-        value.toString().trim();
+    final source = value.toString().trim();
 
     if (source.isEmpty) {
       return null;
     }
 
-    final sourceType =
-        element.metadata['sourceType']
-            ?.toString()
-            .trim()
-            .toLowerCase();
+    final sourceType = element.metadata['sourceType']
+        ?.toString()
+        .trim()
+        .toLowerCase();
 
     if (sourceType == 'asset') {
       return Image.asset(
@@ -135,8 +113,7 @@ class ImageRenderer extends ElementRenderer {
     }
 
     if (source.startsWith('asset:')) {
-      final assetPath =
-          source.substring(6).trim();
+      final assetPath = source.substring(6).trim();
 
       if (assetPath.isEmpty) {
         return null;
@@ -151,19 +128,63 @@ class ImageRenderer extends ElementRenderer {
       );
     }
 
-    return Image.network(
-      source,
-      width: double.infinity,
-      height: double.infinity,
-      fit: fit,
-
-      // Required for Firebase Storage images
-      // when documents are rendered in Flutter Web.
-      webHtmlElementStrategy:
-          WebHtmlElementStrategy.prefer,
-
-      errorBuilder: _errorBuilder,
+    return FutureBuilder<Uint8List?>(
+      future: _networkImageCache.putIfAbsent(
+        source,
+        () => _downloadImageBytes(source),
+      ),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes != null && bytes.isNotEmpty) {
+          return Image.memory(
+            bytes,
+            width: double.infinity,
+            height: double.infinity,
+            fit: fit,
+            errorBuilder: _errorBuilder,
+          );
+        }
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox.shrink();
+        }
+        if (element.type == DocumentElementType.schoolLogo) {
+          return Image.asset(
+            'assets/images/logo.jpeg',
+            width: double.infinity,
+            height: double.infinity,
+            fit: fit,
+            errorBuilder: _errorBuilder,
+          );
+        }
+        return _errorBuilder(
+          context,
+          snapshot.error ?? StateError('Image could not be loaded.'),
+          null,
+        );
+      },
     );
+  }
+
+  Future<Uint8List?> _downloadImageBytes(String source) async {
+    try {
+      final response = await http.get(Uri.parse(source));
+      final contentType = response.headers['content-type'] ?? '';
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          response.bodyBytes.isNotEmpty &&
+          (contentType.isEmpty || contentType.startsWith('image/'))) {
+        return response.bodyBytes;
+      }
+    } catch (_) {
+      // Try authenticated Firebase Storage access below.
+    }
+    try {
+      return FirebaseStorage.instance
+          .refFromURL(source)
+          .getData(10 * 1024 * 1024);
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _errorBuilder(
@@ -172,38 +193,24 @@ class ImageRenderer extends ElementRenderer {
     StackTrace? stackTrace,
   ) {
     return const Center(
-      child: Icon(
-        Icons.broken_image_outlined,
-        color: Color(0xFF98A2B3),
-      ),
+      child: Icon(Icons.broken_image_outlined, color: Color(0xFF98A2B3)),
     );
   }
 
-  BoxFit _boxFit(
-    DocumentImageFit fit,
-  ) {
+  BoxFit _boxFit(DocumentImageFit fit) {
     return switch (fit) {
-      DocumentImageFit.contain =>
-        BoxFit.contain,
-      DocumentImageFit.cover =>
-        BoxFit.cover,
-      DocumentImageFit.fill =>
-        BoxFit.fill,
+      DocumentImageFit.contain => BoxFit.contain,
+      DocumentImageFit.cover => BoxFit.cover,
+      DocumentImageFit.fill => BoxFit.fill,
     };
   }
 
-  Color _parseColor(
-    String? value,
-    Color fallback,
-  ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+  Color _parseColor(String? value, Color fallback) {
+    if (value == null || value.trim().isEmpty) {
       return fallback;
     }
 
-    var hex = value
-        .replaceAll('#', '')
-        .trim();
+    var hex = value.replaceAll('#', '').trim();
 
     if (hex.length == 6) {
       hex = 'FF$hex';
@@ -213,10 +220,7 @@ class ImageRenderer extends ElementRenderer {
       return fallback;
     }
 
-    final parsed = int.tryParse(
-      hex,
-      radix: 16,
-    );
+    final parsed = int.tryParse(hex, radix: 16);
 
     if (parsed == null) {
       return fallback;

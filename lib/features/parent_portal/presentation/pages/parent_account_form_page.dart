@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/contact/contact_number_helper.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/contact_info_field.dart';
+import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../access_control/domain/entities/user_account_entity.dart';
+import '../../../access_control/domain/services/user_account_service.dart';
+import '../../../access_control/data/services/user_account_service_impl.dart';
 import '../../../academic_structure/presentation/widgets/academic_reference_label.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
@@ -23,6 +27,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
 
   final ParentPortalRepository _parentRepository = sl<ParentPortalRepository>();
   final StudentRepository _studentRepository = sl<StudentRepository>();
+  final UserAccountService _userAccountService = UserAccountServiceImpl();
 
   late final TextEditingController _userId;
   late final TextEditingController _name;
@@ -31,18 +36,17 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
   late final TextEditingController _email;
   late final TextEditingController _relationship;
   late final TextEditingController _branchId;
-  late final TextEditingController _emergencyName;
-  late final TextEditingController _emergencyPhone;
-  late final TextEditingController _emergencyRelationship;
   late final TextEditingController _studentSearch;
 
   List<StudentEntity> _students = const <StudentEntity>[];
+  List<UserAccountEntity> _availableParentUsers = const <UserAccountEntity>[];
   final Set<String> _selectedStudentIds = <String>{};
   final Set<String> _autoMatchedStudentIds = <String>{};
 
   bool _sameAsMobile = true;
   bool _isPrimaryContact = false;
   bool _loadingStudents = true;
+  bool _loadingParentUsers = true;
   bool _saving = false;
   String _accountStatus = ParentAccountEntity.accountStatusActive;
 
@@ -68,15 +72,6 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
       text: existing?.relationship ?? 'Guardian',
     );
     _branchId = TextEditingController(text: existing?.branchId ?? 'main');
-    _emergencyName = TextEditingController(
-      text: existing?.emergencyContactName ?? '',
-    );
-    _emergencyPhone = TextEditingController(
-      text: existing?.emergencyContactPhone ?? '',
-    );
-    _emergencyRelationship = TextEditingController(
-      text: existing?.emergencyContactRelationship ?? '',
-    );
     _studentSearch = TextEditingController()..addListener(_refreshStudentList);
 
     _selectedStudentIds.addAll(existing?.studentIds ?? const <String>[]);
@@ -86,6 +81,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
         ParentAccountEntity.accountStatusActive;
 
     _loadStudents();
+    _loadParentUsers();
   }
 
   @override
@@ -97,13 +93,44 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
     _email.dispose();
     _relationship.dispose();
     _branchId.dispose();
-    _emergencyName.dispose();
-    _emergencyPhone.dispose();
-    _emergencyRelationship.dispose();
     _studentSearch
       ..removeListener(_refreshStudentList)
       ..dispose();
     super.dispose();
+  }
+
+  Future<void> _loadParentUsers() async {
+    try {
+      final values = await Future.wait<Object>([
+        _userAccountService.listAccounts(),
+        _parentRepository.getParents(),
+      ]);
+      if (!mounted) return;
+
+      final users = values[0] as List<UserAccountEntity>;
+      final parents = values[1] as List<ParentAccountEntity>;
+      final currentParentId = widget.existing?.id;
+      final assignedUserIds = parents
+          .where((parent) => parent.id != currentParentId)
+          .map((parent) => parent.userId.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+
+      setState(() {
+        _availableParentUsers = users.where((user) {
+          final role = '${user.roleId} ${user.roleName}'.toLowerCase();
+          return role.contains('parent') &&
+              user.isActive &&
+              !user.disabled &&
+              !assignedUserIds.contains(user.uid);
+        }).toList(growable: false);
+        _loadingParentUsers = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingParentUsers = false);
+      _show('Parent login accounts could not be loaded: $error');
+    }
   }
 
   Future<void> _loadStudents() async {
@@ -125,6 +152,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
       _show(
         error
             .toString()
+            .replaceFirst('Bad state: ', '')
             .replaceFirst('StateError: ', '')
             .replaceFirst('Exception: ', ''),
       );
@@ -227,9 +255,10 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
             : _branchId.text.trim(),
         accountStatus: _accountStatus,
         isPrimaryContact: _isPrimaryContact,
-        emergencyContactName: _emergencyName.text.trim(),
-        emergencyContactPhone: _emergencyPhone.text.trim(),
-        emergencyContactRelationship: _emergencyRelationship.text.trim(),
+        emergencyContactName: old?.emergencyContactName ?? '',
+        emergencyContactPhone: old?.emergencyContactPhone ?? '',
+        emergencyContactRelationship:
+            old?.emergencyContactRelationship ?? '',
         isActive: _accountStatus == ParentAccountEntity.accountStatusActive,
         createdAt: old?.createdAt ?? now,
         updatedAt: now,
@@ -243,6 +272,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
       _show(
         error
             .toString()
+            .replaceFirst('Bad state: ', '')
             .replaceFirst('StateError: ', '')
             .replaceFirst('Exception: ', ''),
       );
@@ -299,6 +329,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
               ? 'Create Parent Account'
               : 'Edit Parent Account',
         ),
+        actions: const [DashboardNavigationButton()],
       ),
       body: Form(
         key: _formKey,
@@ -323,13 +354,58 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
             const SizedBox(height: 10),
             _responsiveRow(
               children: [
-                TextFormField(
-                  controller: _userId,
-                  decoration: const InputDecoration(
-                    labelText: 'Firebase User ID',
-                    helperText: 'Leave empty until a login is assigned.',
-                    border: OutlineInputBorder(),
+                DropdownButtonFormField<String>(
+                  initialValue: _userId.text.trim().isEmpty
+                      ? null
+                      : _userId.text.trim(),
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Parent Login Account',
+                    helperText: _loadingParentUsers
+                        ? 'Loading Parent-role accounts...'
+                        : 'Only unused Parent-role accounts are shown.',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.account_circle_outlined),
                   ),
+                  items: [
+                    if (_userId.text.trim().isNotEmpty &&
+                        !_availableParentUsers.any(
+                          (user) => user.uid == _userId.text.trim(),
+                        ))
+                      DropdownMenuItem(
+                        value: _userId.text.trim(),
+                        child: Text('Current login - ${_userId.text.trim()}'),
+                      ),
+                    for (final user in _availableParentUsers)
+                      DropdownMenuItem(
+                        value: user.uid,
+                        child: Text(
+                          '${user.displayName.trim().isEmpty ? user.email : user.displayName}'
+                          ' - ${user.email}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: _loadingParentUsers
+                      ? null
+                      : (value) {
+                          _userId.text = value ?? '';
+                          UserAccountEntity? selectedUser;
+                          for (final user in _availableParentUsers) {
+                            if (user.uid == value) {
+                              selectedUser = user;
+                              break;
+                            }
+                          }
+                          if (selectedUser != null) {
+                            if (_name.text.trim().isEmpty) {
+                              _name.text = selectedUser.displayName;
+                            }
+                            if (_email.text.trim().isEmpty) {
+                              _email.text = selectedUser.email;
+                            }
+                          }
+                        },
                 ),
                 TextFormField(
                   controller: _name,
@@ -417,7 +493,7 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Primary Contact'),
                   subtitle: const Text(
-                    'Preferred contact for school communication.',
+                    'If a student has multiple parents, contact this person first.',
                   ),
                   value: _isPrimaryContact,
                   onChanged: (value) {
@@ -425,35 +501,6 @@ class _ParentAccountFormPageState extends State<ParentAccountFormPage> {
                       _isPrimaryContact = value;
                     });
                   },
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _sectionTitle(context, 'Emergency Contact'),
-            const SizedBox(height: 10),
-            _responsiveRow(
-              children: [
-                TextFormField(
-                  controller: _emergencyName,
-                  decoration: const InputDecoration(
-                    labelText: 'Emergency Contact Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                TextFormField(
-                  controller: _emergencyPhone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Emergency Contact Phone',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                TextFormField(
-                  controller: _emergencyRelationship,
-                  decoration: const InputDecoration(
-                    labelText: 'Emergency Relationship',
-                    border: OutlineInputBorder(),
-                  ),
                 ),
               ],
             ),

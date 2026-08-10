@@ -30,7 +30,9 @@ class SchoolSettingsEntity extends Equatable {
     this.principalName = '',
     this.principalDesignation = 'Principal',
     this.principalSignatureUrl = '',
+    this.principalSignatureData = '',
     this.schoolStampUrl = '',
+    this.schoolStampData = '',
   });
 
   final String id;
@@ -71,7 +73,9 @@ class SchoolSettingsEntity extends Equatable {
   final String principalName;
   final String principalDesignation;
   final String principalSignatureUrl;
+  final String principalSignatureData;
   final String schoolStampUrl;
+  final String schoolStampData;
 
   SchoolSettingsEntity copyWith({
     String? id,
@@ -102,28 +106,24 @@ class SchoolSettingsEntity extends Equatable {
     String? principalName,
     String? principalDesignation,
     String? principalSignatureUrl,
+    String? principalSignatureData,
     String? schoolStampUrl,
+    String? schoolStampData,
   }) {
     return SchoolSettingsEntity(
       id: id ?? this.id,
       schoolName: schoolName ?? this.schoolName,
       schoolCode: schoolCode ?? this.schoolCode,
       currentSession: currentSession ?? this.currentSession,
-      sessionStartDate:
-          sessionStartDate ?? this.sessionStartDate,
-      sessionEndDate:
-          sessionEndDate ?? this.sessionEndDate,
+      sessionStartDate: sessionStartDate ?? this.sessionStartDate,
+      sessionEndDate: sessionEndDate ?? this.sessionEndDate,
       currency: currency ?? this.currency,
-      currencySymbol:
-          currencySymbol ?? this.currencySymbol,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
       dateFormat: dateFormat ?? this.dateFormat,
       timeFormat: timeFormat ?? this.timeFormat,
-      admissionPrefix:
-          admissionPrefix ?? this.admissionPrefix,
-      rollNumberPrefix:
-          rollNumberPrefix ?? this.rollNumberPrefix,
-      receiptPrefix:
-          receiptPrefix ?? this.receiptPrefix,
+      admissionPrefix: admissionPrefix ?? this.admissionPrefix,
+      rollNumberPrefix: rollNumberPrefix ?? this.rollNumberPrefix,
+      receiptPrefix: receiptPrefix ?? this.receiptPrefix,
       updatedAt: updatedAt ?? this.updatedAt,
       tagLine: tagLine ?? this.tagLine,
       address: address ?? this.address,
@@ -134,20 +134,16 @@ class SchoolSettingsEntity extends Equatable {
       email: email ?? this.email,
       website: website ?? this.website,
       logoUrl: logoUrl ?? this.logoUrl,
-      reportHeaderUrl:
-          reportHeaderUrl ?? this.reportHeaderUrl,
-      reportFooterUrl:
-          reportFooterUrl ?? this.reportFooterUrl,
-      principalName:
-          principalName ?? this.principalName,
-      principalDesignation:
-          principalDesignation ??
-          this.principalDesignation,
+      reportHeaderUrl: reportHeaderUrl ?? this.reportHeaderUrl,
+      reportFooterUrl: reportFooterUrl ?? this.reportFooterUrl,
+      principalName: principalName ?? this.principalName,
+      principalDesignation: principalDesignation ?? this.principalDesignation,
       principalSignatureUrl:
-          principalSignatureUrl ??
-          this.principalSignatureUrl,
-      schoolStampUrl:
-          schoolStampUrl ?? this.schoolStampUrl,
+          principalSignatureUrl ?? this.principalSignatureUrl,
+      principalSignatureData:
+          principalSignatureData ?? this.principalSignatureData,
+      schoolStampUrl: schoolStampUrl ?? this.schoolStampUrl,
+      schoolStampData: schoolStampData ?? this.schoolStampData,
     );
   }
 
@@ -181,6 +177,8 @@ class SchoolSettingsEntity extends Equatable {
     principalName,
     principalDesignation,
     principalSignatureUrl,
+    principalSignatureData,
     schoolStampUrl,
+    schoolStampData,
   ];
 }

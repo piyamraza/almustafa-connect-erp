@@ -1,9 +1,13 @@
-import 'dart:typed_data';
+import 'dart:convert';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../school_engagement/domain/entities/engagement_person_entity.dart';
 import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
@@ -43,15 +47,28 @@ class _BirthdayDocumentPreviewPageState
 
   final DocumentExportService _exportService = const DocumentExportService();
 
-  late Future<SchoolSettingsEntity> _settingsFuture;
+  late Future<_BirthdayPreviewAssets> _settingsFuture;
 
   bool _exporting = false;
+
+  late final TextEditingController _birthdayMessageController;
 
   @override
   void initState() {
     super.initState();
 
-    _settingsFuture = sl<GetSchoolSettings>()();
+    _birthdayMessageController = TextEditingController(
+      text:
+          'Wishing you a day filled with happiness, success and wonderful memories.',
+    );
+
+    _settingsFuture = _loadPreviewAssets();
+  }
+
+  @override
+  void dispose() {
+    _birthdayMessageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -63,7 +80,7 @@ class _BirthdayDocumentPreviewPageState
           children: [
             _PreviewHeader(personName: widget.person.displayName),
             Expanded(
-              child: FutureBuilder<SchoolSettingsEntity>(
+              child: FutureBuilder<_BirthdayPreviewAssets>(
                 future: _settingsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -77,16 +94,16 @@ class _BirthdayDocumentPreviewPageState
                     );
                   }
 
-                  final settings = snapshot.data;
+                  final assets = snapshot.data;
 
-                  if (settings == null) {
+                  if (assets == null) {
                     return _LoadFailure(
                       message: 'School Settings could not be loaded.',
                       onRetry: _reload,
                     );
                   }
 
-                  return _buildPreview(settings);
+                  return _buildPreview(assets);
                 },
               ),
             ),
@@ -96,14 +113,23 @@ class _BirthdayDocumentPreviewPageState
     );
   }
 
-  Widget _buildPreview(SchoolSettingsEntity settings) {
+  Widget _buildPreview(_BirthdayPreviewAssets assets) {
+    final settings = assets.settings;
     final template = _birthdayTemplateFor(widget.person);
 
     final branding = _buildBranding(settings);
 
-    final data = _buildBirthdayData(widget.person);
+    final data = _buildBirthdayData(
+      widget.person,
+      classSectionLabel: assets.classSectionLabel,
+    );
 
-    final values = _buildRenderValues(branding: branding, data: data);
+    final values = _buildRenderValues(
+      branding: branding,
+      data: data,
+      schoolLogo: assets.schoolLogo,
+      principalSignature: assets.principalSignature,
+    );
 
     final placeholderResolver = const DefaultDocumentPlaceholderResolver();
 
@@ -142,6 +168,20 @@ class _BirthdayDocumentPreviewPageState
           onPrint: _printPdf,
           onSharePdf: _sharePdf,
           onSharePng: _sharePng,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+          child: TextField(
+            controller: _birthdayMessageController,
+            maxLines: 3,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Edit Birthday Wish',
+              hintText: 'Write birthday wish message',
+              prefixIcon: Icon(Icons.edit_note_outlined),
+              border: OutlineInputBorder(),
+            ),
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -198,7 +238,7 @@ class _BirthdayDocumentPreviewPageState
 
     // PDF does not need the same very-high raster
     // resolution used for standalone PNG export.
-    final pngBytes = await _capturePng(pixelRatio: 1.5);
+    final pngBytes = await _capturePng(pixelRatio: 1.35);
 
     final aspectRatio = firstPage.width / firstPage.height;
 
@@ -211,7 +251,7 @@ class _BirthdayDocumentPreviewPageState
 
   Future<void> _savePng() async {
     await _runExport(() async {
-      final bytes = await _capturePng(pixelRatio: 3);
+      final bytes = await _capturePng(pixelRatio: 1.8);
 
       final path = await _exportService.savePng(
         bytes: bytes,
@@ -263,7 +303,7 @@ class _BirthdayDocumentPreviewPageState
 
   Future<void> _sharePng() async {
     await _runExport(() async {
-      final bytes = await _capturePng(pixelRatio: 3);
+      final bytes = await _capturePng(pixelRatio: 1.8);
 
       await _exportService.sharePng(
         bytes: bytes,
@@ -338,7 +378,10 @@ class _BirthdayDocumentPreviewPageState
     );
   }
 
-  DocumentDataEntity _buildBirthdayData(EngagementPersonEntity person) {
+  DocumentDataEntity _buildBirthdayData(
+    EngagementPersonEntity person, {
+    required String classSectionLabel,
+  }) {
     final age = _calculateAge(person.dateOfBirth, DateTime.now());
 
     return DocumentDataEntity(
@@ -353,11 +396,16 @@ class _BirthdayDocumentPreviewPageState
           'gender': person.gender,
           'class': person.className ?? '',
           'section': person.sectionName ?? '',
-          'classSection': person.classSectionLabel,
+          'classSection': classSectionLabel,
           'photo': person.profileImageUrl,
           'dateOfBirth': person.dateOfBirth.toIso8601String(),
         },
-        'birthday': {'age': age, 'message': _birthdayMessage(person)},
+        'birthday': {
+          'age': age,
+          'message': _birthdayMessageController.text.trim().isEmpty
+              ? _birthdayMessage(person)
+              : _birthdayMessageController.text.trim(),
+        },
       },
     );
   }
@@ -365,18 +413,139 @@ class _BirthdayDocumentPreviewPageState
   Map<String, dynamic> _buildRenderValues({
     required DocumentBrandingEntity branding,
     required DocumentDataEntity data,
+    required dynamic schoolLogo,
+    required dynamic principalSignature,
   }) {
     return {
       ...data.values,
       'branding': {
         'schoolName': branding.schoolName,
-        'schoolLogo': branding.schoolLogoUrl,
+        'schoolLogo': schoolLogo ?? branding.schoolLogoUrl,
         'principalName': branding.principalName,
         'principalDesignation': branding.principalDesignation,
-        'principalSignature': branding.principalSignatureUrl,
+        'principalSignature':
+            principalSignature ?? branding.principalSignatureUrl,
         'schoolStamp': branding.schoolStampUrl,
       },
     };
+  }
+
+  Future<_BirthdayPreviewAssets> _loadPreviewAssets() async {
+    final settings = await sl<GetSchoolSettings>()();
+    final academicRepository = sl<AcademicStructureRepository>();
+    final classes = await academicRepository.getClasses();
+    final sections = await academicRepository.getSections();
+
+    var className = widget.person.className?.trim() ?? '';
+    var sectionName = widget.person.sectionName?.trim() ?? '';
+
+    if (className.isEmpty) {
+      for (final item in classes) {
+        if (item.id == widget.person.classId ||
+            item.name == widget.person.classId) {
+          className = item.name;
+          break;
+        }
+      }
+    }
+    if (sectionName.isEmpty) {
+      for (final item in sections) {
+        if (item.id == widget.person.sectionId ||
+            item.name == widget.person.sectionId) {
+          sectionName = item.name;
+          break;
+        }
+      }
+    }
+    final classSectionLabel = [
+      className,
+      sectionName,
+    ].where((value) => value.isNotEmpty).join(' - ');
+
+    final images = await Future.wait<dynamic>([
+      _loadStorageImage(
+        settings.logoUrl,
+        fallbackAsset: 'assets/images/logo.jpeg',
+        fallbackStoragePaths: const [
+          'school/branding/school_logo.png',
+          'school/branding/school_logo.jpg',
+          'school/branding/school_logo.jpeg',
+        ],
+      ),
+      _loadStorageImage(
+        settings.principalSignatureUrl,
+        embeddedBase64: settings.principalSignatureData,
+        fallbackStoragePaths: const [
+          'school/branding/principal_signature.png',
+          'school/branding/principal_signature.jpg',
+          'school/branding/principal_signature.jpeg',
+        ],
+      ),
+    ]);
+
+    return _BirthdayPreviewAssets(
+      settings: settings,
+      schoolLogo: images[0],
+      principalSignature: images[1],
+      classSectionLabel: classSectionLabel,
+    );
+  }
+
+  Future<dynamic> _loadStorageImage(
+    String url, {
+    String? fallbackAsset,
+    String embeddedBase64 = '',
+    List<String> fallbackStoragePaths = const [],
+  }) async {
+    if (embeddedBase64.trim().isNotEmpty) {
+      try {
+        return base64Decode(embeddedBase64.trim());
+      } catch (_) {
+        // Fall through to legacy URL loading.
+      }
+    }
+
+    final source = url.trim();
+
+    if (source.isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(source));
+        if (response.statusCode >= 200 &&
+            response.statusCode < 300 &&
+            response.bodyBytes.isNotEmpty) {
+          return response.bodyBytes;
+        }
+      } catch (_) {
+        // Try authenticated Firebase Storage loading next.
+      }
+
+      try {
+        final bytes = await FirebaseStorage.instance
+            .refFromURL(source)
+            .getData(10 * 1024 * 1024);
+        if (bytes != null && bytes.isNotEmpty) return bytes;
+      } catch (_) {
+        // Try stable branding storage paths below.
+      }
+    }
+
+    for (final path in fallbackStoragePaths) {
+      try {
+        final bytes = await FirebaseStorage.instance
+            .ref(path)
+            .getData(10 * 1024 * 1024);
+        if (bytes != null && bytes.isNotEmpty) return bytes;
+      } catch (_) {
+        // The uploaded file may use another supported extension.
+      }
+    }
+
+    if (fallbackAsset != null) {
+      final data = await rootBundle.load(fallbackAsset);
+      return data.buffer.asUint8List();
+    }
+
+    return source.isEmpty ? null : source;
   }
 
   int _calculateAge(DateTime dateOfBirth, DateTime today) {
@@ -405,9 +574,23 @@ class _BirthdayDocumentPreviewPageState
 
   void _reload() {
     setState(() {
-      _settingsFuture = sl<GetSchoolSettings>()();
+      _settingsFuture = _loadPreviewAssets();
     });
   }
+}
+
+class _BirthdayPreviewAssets {
+  const _BirthdayPreviewAssets({
+    required this.settings,
+    this.schoolLogo,
+    this.principalSignature,
+    required this.classSectionLabel,
+  });
+
+  final SchoolSettingsEntity settings;
+  final dynamic schoolLogo;
+  final dynamic principalSignature;
+  final String classSectionLabel;
 }
 
 class _PreviewHeader extends StatelessWidget {

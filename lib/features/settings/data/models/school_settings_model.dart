@@ -29,10 +29,12 @@ class SchoolSettingsModel extends SchoolSettingsEntity {
     super.logoUrl,
     super.reportHeaderUrl,
     super.reportFooterUrl,
-super.principalName,
-super.principalDesignation,
-super.principalSignatureUrl,
-super.schoolStampUrl,
+    super.principalName,
+    super.principalDesignation,
+    super.principalSignatureUrl,
+    super.principalSignatureData,
+    super.schoolStampUrl,
+    super.schoolStampData,
   });
 
   factory SchoolSettingsModel.fromEntity(SchoolSettingsEntity entity) {
@@ -62,10 +64,12 @@ super.schoolStampUrl,
       logoUrl: entity.logoUrl,
       reportHeaderUrl: entity.reportHeaderUrl,
       reportFooterUrl: entity.reportFooterUrl,
-principalName: entity.principalName,
-principalDesignation: entity.principalDesignation,
-principalSignatureUrl: entity.principalSignatureUrl,
-schoolStampUrl: entity.schoolStampUrl,
+      principalName: entity.principalName,
+      principalDesignation: entity.principalDesignation,
+      principalSignatureUrl: entity.principalSignatureUrl,
+      principalSignatureData: entity.principalSignatureData,
+      schoolStampUrl: entity.schoolStampUrl,
+      schoolStampData: entity.schoolStampData,
     );
   }
 
@@ -102,13 +106,13 @@ schoolStampUrl: entity.schoolStampUrl,
       logoUrl: map['logoUrl'] as String? ?? '',
       reportHeaderUrl: map['reportHeaderUrl'] as String? ?? '',
       reportFooterUrl: map['reportFooterUrl'] as String? ?? '',
-principalName: map['principalName'] as String? ?? '',
-principalDesignation:
-    map['principalDesignation'] as String? ?? 'Principal',
-principalSignatureUrl:
-    map['principalSignatureUrl'] as String? ?? '',
-schoolStampUrl:
-    map['schoolStampUrl'] as String? ?? '',
+      principalName: map['principalName'] as String? ?? '',
+      principalDesignation:
+          map['principalDesignation'] as String? ?? 'Principal',
+      principalSignatureUrl: map['principalSignatureUrl'] as String? ?? '',
+      principalSignatureData: map['principalSignatureData'] as String? ?? '',
+      schoolStampUrl: map['schoolStampUrl'] as String? ?? '',
+      schoolStampData: map['schoolStampData'] as String? ?? '',
     );
   }
 
@@ -138,10 +142,12 @@ schoolStampUrl:
     'logoUrl': logoUrl,
     'reportHeaderUrl': reportHeaderUrl,
     'reportFooterUrl': reportFooterUrl,
-'principalName': principalName,
-'principalDesignation': principalDesignation,
-'principalSignatureUrl': principalSignatureUrl,
-'schoolStampUrl': schoolStampUrl,
+    'principalName': principalName,
+    'principalDesignation': principalDesignation,
+    'principalSignatureUrl': principalSignatureUrl,
+    'principalSignatureData': principalSignatureData,
+    'schoolStampUrl': schoolStampUrl,
+    'schoolStampData': schoolStampData,
     'schemaVersion': 1,
   };
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
@@ -127,7 +129,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.canvas,
       body: Row(
         children: [
           const SizedBox(width: 250, child: Sidebar()),
@@ -148,43 +150,106 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Dashboard',
-                                      style: theme.textTheme.headlineMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Live overview of Almustafa Connect ERP',
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                  ],
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 22,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryDark,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.20,
+                                  ),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: _isRefreshing ? null : _refresh,
-                                tooltip: 'Refresh dashboard',
-                                icon: _isRefreshing
-                                    ? const SizedBox.square(
-                                        dimension: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.refresh),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.20,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.dashboard_rounded,
+                                    color: Colors.white,
+                                    size: 27,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'School Dashboard',
+                                        style: theme.textTheme.headlineSmall
+                                            ?.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'A live overview of students, attendance and school operations',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.82,
+                                              ),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton.filledTonal(
+                                  onPressed: _isRefreshing ? null : _refresh,
+                                  tooltip: 'Refresh dashboard',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: 0.14,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    disabledForegroundColor: Colors.white70,
+                                  ),
+                                  icon: _isRefreshing
+                                      ? const SizedBox.square(
+                                          dimension: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.refresh_rounded),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 18),
                           _StatsGrid(data: data),
+                          const SizedBox(height: 14),
+                          _ClassAttendanceChart(data: data),
                           const SizedBox(height: 14),
                           _PendingAttendanceCard(
                             groups: data.pendingAttendanceGroups,
@@ -277,100 +342,161 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth < 650
+        final featuredColumns = constraints.maxWidth < 650
+            ? 1
+            : constraints.maxWidth < 1050
+            ? 2
+            : 4;
+        final operationalColumns = constraints.maxWidth < 650
             ? 1
             : constraints.maxWidth < 900
             ? 2
             : constraints.maxWidth < 1200
             ? 3
+            : constraints.maxWidth < 1450
+            ? 4
             : 5;
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: columns,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.5,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DashboardStatCard(
-              title: 'Total Active Students',
-              value: '${data.activeStudents}',
-              icon: Icons.school,
-              color: Colors.blue,
+            Text(
+              'Today at a glance',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            DashboardStatCard(
-              title: 'Present Students',
-              value: '${data.presentStudents}',
-              icon: Icons.how_to_reg,
-              color: Colors.cyan,
+            const SizedBox(height: 4),
+            Text(
+              'The most important indicators for today',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            DashboardStatCard(
-              title: 'Attendance %',
-              value: data.attendancePercentage,
-              icon: Icons.fact_check,
-              color: Colors.teal,
+            const SizedBox(height: 12),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: featuredColumns,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              mainAxisExtent: featuredColumns == 1 ? 170 : 180,
+              children: [
+                _FeaturedStatCard(
+                  title: 'Active Students',
+                  value: '${data.activeStudents}',
+                  detail: '${data.presentStudents} present today',
+                  icon: Icons.school_rounded,
+                  color: AppColors.primary,
+                ),
+                _FeaturedStatCard(
+                  title: 'Present Students',
+                  value: '${data.presentStudents}',
+                  detail: 'Present today',
+                  icon: Icons.how_to_reg_rounded,
+                  color: AppColors.info,
+                ),
+                _FeaturedStatCard(
+                  title: 'Attendance %',
+                  value: data.attendancePercentage,
+                  detail: 'Student attendance today',
+                  icon: Icons.fact_check_rounded,
+                  color: AppColors.success,
+                ),
+                _FeaturedStatCard(
+                  title: 'Pending Attendance',
+                  value: '${data.pendingAttendanceGroups.length}',
+                  detail: data.pendingAttendanceGroups.isEmpty
+                      ? 'All sections up to date'
+                      : '${data.pendingAttendanceGroups.length} sections pending',
+                  icon: Icons.pending_actions_rounded,
+                  color: data.pendingAttendanceGroups.isEmpty
+                      ? AppColors.success
+                      : AppColors.error,
+                ),
+              ],
             ),
-            DashboardStatCard(
-              title: 'Pending Attendance',
-              value: '${data.pendingAttendanceGroups.length}',
-              detail: data.pendingAttendanceGroups.isNotEmpty
-                  ? 'class sections need attention'
-                  : null,
-              icon: Icons.pending_actions_outlined,
-              color: data.pendingAttendanceGroups.isNotEmpty
-                  ? Colors.red
-                  : Colors.green,
+            const SizedBox(height: 20),
+            Text(
+              'Operations overview',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            DashboardStatCard(
-              title: 'Total Teachers',
-              value: '${data.teachers.length}',
-              icon: Icons.person,
-              color: Colors.green,
+            const SizedBox(height: 12),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: operationalColumns,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 12,
+              mainAxisExtent: 110,
+              children: [
+                DashboardStatCard(
+                  title: 'Total Teachers',
+                  value: '${data.teachers.length}',
+                  icon: Icons.person_rounded,
+                  color: const Color(0xFF42A54B),
+                ),
+                DashboardStatCard(
+                  title: 'Teachers Present',
+                  value: '${data.presentTeachers}',
+                  icon: Icons.co_present_rounded,
+                  color: AppColors.info,
+                ),
+                DashboardStatCard(
+                  title: 'Total Staff',
+                  value: '${data.staff.length}',
+                  icon: Icons.groups_rounded,
+                  color: const Color(0xFFE58A19),
+                ),
+                DashboardStatCard(
+                  title: 'Staff Present',
+                  value: '${data.presentStaff}',
+                  icon: Icons.badge_rounded,
+                  color: const Color(0xFFFF6B4A),
+                ),
+                DashboardStatCard(
+                  title: 'Active Classes',
+                  value:
+                      '${data.classes.where((item) => item.isActive).length}',
+                  icon: Icons.class_rounded,
+                  color: const Color(0xFF8B5BD6),
+                ),
+              ],
             ),
-            DashboardStatCard(
-              title: 'Present Teachers',
-              value: '${data.presentTeachers}',
-              icon: Icons.co_present_outlined,
-              color: Colors.teal,
-            ),
-            DashboardStatCard(
-              title: 'Total Staff',
-              value: '${data.staff.length}',
-              icon: Icons.groups,
-              color: Colors.orange,
-            ),
-            DashboardStatCard(
-              title: 'Present Staff',
-              value: '${data.presentStaff}',
-              icon: Icons.badge_outlined,
-              color: Colors.deepOrange,
-            ),
-            DashboardStatCard(
-              title: 'Active Classes',
-              value: '${data.classes.where((item) => item.isActive).length}',
-              icon: Icons.class_,
-              color: Colors.purple,
-            ),
-            DashboardStatCard(
-              title: "Today's Fee Collection",
-              value: _money(data.todayCollection),
-              detail: '${data.todayPaidStudents} students paid today',
-              icon: Icons.payments,
-              color: Colors.indigo,
-            ),
-            DashboardStatCard(
-              title: 'Monthly Fee Collection',
-              value: _money(data.monthCollection),
-              detail: '${data.monthPaidStudents} students paid this month',
-              icon: Icons.account_balance_wallet,
-              color: Colors.deepPurple,
-            ),
-            DashboardStatCard(
-              title: 'Pending Fees',
-              value: _money(data.pendingFees),
-              detail: '${data.pendingFeeStudents} students pending',
-              icon: Icons.warning_amber,
-              color: Colors.red,
+            const SizedBox(height: 20),
+            Text('Fee overview', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: constraints.maxWidth < 650
+                  ? 1
+                  : constraints.maxWidth < 1050
+                  ? 2
+                  : 3,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 12,
+              mainAxisExtent: 110,
+              children: [
+                DashboardStatCard(
+                  title: "Today's Fee Collection",
+                  value: _money(data.todayCollection),
+                  detail: '${data.todayPaidStudents} students paid today',
+                  icon: Icons.account_balance_wallet_rounded,
+                  color: AppColors.info,
+                ),
+                DashboardStatCard(
+                  title: 'Monthly Fee Collection',
+                  value: _money(data.monthCollection),
+                  detail: '${data.monthPaidStudents} students paid this month',
+                  icon: Icons.payments_rounded,
+                  color: const Color(0xFF6657D9),
+                ),
+                DashboardStatCard(
+                  title: 'Pending Fees',
+                  value: _money(data.pendingFees),
+                  detail: '${data.pendingFeeStudents} students pending',
+                  icon: Icons.warning_amber_rounded,
+                  color: data.pendingFees > 0
+                      ? AppColors.error
+                      : AppColors.success,
+                ),
+              ],
             ),
           ],
         );
@@ -386,6 +512,95 @@ class _StatsGrid extends StatelessWidget {
       buffer.write(digits[index]);
     }
     return 'Rs. $buffer';
+  }
+}
+
+class _FeaturedStatCard extends StatelessWidget {
+  const _FeaturedStatCard({
+    required this.title,
+    required this.value,
+    required this.detail,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final String value;
+  final String detail;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.10), Colors.white, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const Spacer(),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppColors.ink,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -857,10 +1072,7 @@ class _PendingAttendanceTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TextButton(
-            onPressed: onOpen,
-            child: const Text('Mark'),
-          ),
+          TextButton(onPressed: onOpen, child: const Text('Mark')),
         ],
       ),
     );
@@ -885,53 +1097,416 @@ class DashboardStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: color.withValues(alpha: 0.12),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            const SizedBox(width: 9),
+            Container(width: 5, color: color),
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withValues(alpha: 0.24),
+                            color.withValues(alpha: 0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(11),
+                        border: Border.all(
+                          color: color.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Icon(icon, color: color, size: 20),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(title, style: const TextStyle(fontSize: 12.5)),
-                  if (detail != null) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      detail!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(title, style: const TextStyle(fontSize: 12.5)),
+                          if (detail != null)
+                            Text(
+                              detail!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _ClassAttendanceChart extends StatelessWidget {
+  const _ClassAttendanceChart({required this.data});
+
+  final _DashboardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = _points();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.13)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.bar_chart_rounded,
+                  color: Colors.white,
+                  size: 23,
+                ),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Today's Class Attendance",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Present and absent students by class',
+                      style: TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const _ChartLegend(color: AppColors.primary, label: 'Present'),
+              const SizedBox(width: 14),
+              const _ChartLegend(color: Color(0xFFFF8A5B), label: 'Absent'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          if (points.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 34),
+              decoration: BoxDecoration(
+                color: AppColors.canvas,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.query_stats_rounded,
+                    color: AppColors.primary,
+                    size: 34,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Class attendance will appear after attendance is marked.',
+                    style: TextStyle(color: AppColors.inkMuted),
+                  ),
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              height: 285,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: points.length < 7 ? 900 : points.length * 105,
+                  child: BarChart(
+                    BarChartData(
+                      minY: 0,
+                      maxY: 100,
+                      alignment: BarChartAlignment.spaceAround,
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 25,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                          color: AppColors.border.withValues(alpha: 0.75),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            interval: 25,
+                            getTitlesWidget: (value, meta) => Text(
+                              '${value.toInt()}%',
+                              style: const TextStyle(
+                                color: AppColors.inkMuted,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index < 0 || index >= points.length) {
+                                return const SizedBox.shrink();
+                              }
+                              return SideTitleWidget(
+                                meta: meta,
+                                space: 9,
+                                child: Text(
+                                  points[index].className,
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => AppColors.ink,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final point = points[group.x];
+                            return BarTooltipItem(
+                              '${point.className}\n',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text:
+                                      '${point.present} present • ${point.absent} absent',
+                                  style: const TextStyle(
+                                    color: Color(0xFFD8E6FF),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      barGroups: [
+                        for (var index = 0; index < points.length; index++)
+                          BarChartGroupData(
+                            x: index,
+                            barRods: [
+                              BarChartRodData(
+                                toY: 100,
+                                width: 24,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(7),
+                                ),
+                                rodStackItems: [
+                                  BarChartRodStackItem(
+                                    0,
+                                    points[index].presentPercentage,
+                                    AppColors.primary,
+                                  ),
+                                  BarChartRodStackItem(
+                                    points[index].presentPercentage,
+                                    100,
+                                    const Color(0xFFFF8A5B),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    duration: const Duration(milliseconds: 650),
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<_ClassAttendancePoint> _points() {
+    final activeClasses = data.classes.where((item) => item.isActive).toList()
+      ..sort(
+        (first, second) => compareAcademicClassNames(first.name, second.name),
+      );
+    final result = <_ClassAttendancePoint>[];
+
+    for (final academicClass in activeClasses) {
+      final recordsByStudent = <String, AttendanceStatus>{};
+      for (final record in data.todayAttendance) {
+        final sameClass =
+            record.classId == academicClass.id ||
+            record.classId.trim().toLowerCase() ==
+                academicClass.name.trim().toLowerCase();
+        final sameDay =
+            record.attendanceDate.year == data.now.year &&
+            record.attendanceDate.month == data.now.month &&
+            record.attendanceDate.day == data.now.day;
+        if (sameClass && sameDay) {
+          recordsByStudent[record.studentId] = record.status;
+        }
+      }
+      if (recordsByStudent.isEmpty) continue;
+
+      final present = recordsByStudent.values
+          .where(
+            (status) =>
+                status == AttendanceStatus.present ||
+                status == AttendanceStatus.late,
+          )
+          .length;
+      result.add(
+        _ClassAttendancePoint(
+          className: academicClass.name,
+          present: present,
+          absent: recordsByStudent.length - present,
+        ),
+      );
+    }
+    return result;
+  }
+}
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.inkMuted,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClassAttendancePoint {
+  const _ClassAttendancePoint({
+    required this.className,
+    required this.present,
+    required this.absent,
+  });
+
+  final String className;
+  final int present;
+  final int absent;
+
+  double get presentPercentage {
+    final total = present + absent;
+    return total == 0 ? 0 : present * 100 / total;
   }
 }
 
@@ -946,50 +1521,121 @@ class RecentAdmissionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.13)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Recent Admissions',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const _SectionHeading(
+              title: 'Recent Admissions',
+              subtitle: 'Newest students enrolled in school',
+              icon: Icons.person_add_alt_1_rounded,
+              color: AppColors.primary,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             if (students.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No student admissions found.')),
+              const _DashboardEmptyState(
+                icon: Icons.school_outlined,
+                color: AppColors.primary,
+                message: 'No student admissions found.',
               )
             else
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Admission #')),
-                    DataColumn(label: Text('Student')),
-                    DataColumn(label: Text('Class')),
-                  ],
-                  rows: students.map((student) {
-                    var className = student.classId;
-                    for (final academicClass in classes) {
-                      if (academicClass.id == student.classId ||
-                          academicClass.name == student.classId) {
-                        className = academicClass.name;
-                      }
-                    }
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(student.admissionNo)),
-                        DataCell(Text(student.fullName)),
-                        DataCell(Text(className)),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
+              ...students.indexed.map((entry) {
+                final index = entry.$1;
+                final student = entry.$2;
+                var className = student.classId;
+                for (final academicClass in classes) {
+                  if (academicClass.id == student.classId ||
+                      academicClass.name == student.classId) {
+                    className = academicClass.name;
+                  }
+                }
+                final rowColor = index.isEven
+                    ? AppColors.primary.withValues(alpha: 0.035)
+                    : Colors.white;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: rowColor,
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        child: Text(
+                          student.fullName.trim().isEmpty
+                              ? '?'
+                              : student.fullName.trim()[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              student.fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              student.admissionNo,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withValues(alpha: 0.11),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          className,
+                          style: const TextStyle(
+                            color: AppColors.info,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -1005,8 +1651,17 @@ class UpcomingBirthdaysCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       title: 'Upcoming Birthdays',
+      subtitle: 'Celebrations in the next 30 days',
+      icon: Icons.cake_rounded,
+      color: const Color(0xFFE54868),
       children: students.isEmpty
-          ? const [Text('No birthdays in the next 30 days.')]
+          ? const [
+              _DashboardEmptyState(
+                icon: Icons.cake_outlined,
+                color: Color(0xFFE54868),
+                message: 'No birthdays in the next 30 days.',
+              ),
+            ]
           : students
                 .map(
                   (student) => ListTile(
@@ -1034,8 +1689,17 @@ class LatestNoticesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       title: 'Latest Notices',
+      subtitle: 'Recently published announcements',
+      icon: Icons.campaign_rounded,
+      color: const Color(0xFFE58A19),
       children: notices.isEmpty
-          ? const [Text('No published notices found.')]
+          ? const [
+              _DashboardEmptyState(
+                icon: Icons.notifications_none_rounded,
+                color: Color(0xFFE58A19),
+                message: 'No published notices found.',
+              ),
+            ]
           : notices
                 .map(
                   (notice) => ListTile(
@@ -1113,27 +1777,146 @@ class QuickActionsCard extends StatelessWidget {
 
 class _SectionCard extends StatelessWidget {
   final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final Color color;
   final List<Widget> children;
 
-  const _SectionCard({required this.title, required this.children});
+  const _SectionCard({
+    required this.title,
+    required this.children,
+    this.subtitle,
+    this.icon,
+    this.color = AppColors.primary,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.08), Colors.white, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            _SectionHeading(
+              title: title,
+              subtitle: subtitle,
+              icon: icon ?? Icons.dashboard_customize_rounded,
+              color: color,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             ...children,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.title,
+    required this.icon,
+    required this.color,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [color, color.withValues(alpha: 0.72)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.22),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: Colors.white, size: 21),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (subtitle != null)
+                Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashboardEmptyState extends StatelessWidget {
+  const _DashboardEmptyState({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.055),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 30),
+          const SizedBox(height: 7),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.inkMuted, fontSize: 12.5),
+          ),
+        ],
       ),
     );
   }

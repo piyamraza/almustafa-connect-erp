@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../access_control/domain/entities/app_permission.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../access_control/presentation/pages/roles_permissions_page.dart';
@@ -148,23 +149,21 @@ class _SidebarState extends State<Sidebar> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF5FF), Color(0xFFCFE7FF)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.sidebarTop, AppColors.sidebarBottom],
         ),
       ),
       child: _access.isLoading || !_access.isLoaded
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF102A43)),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : ScrollbarTheme(
               data: ScrollbarThemeData(
-                thumbColor: WidgetStateProperty.all(const Color(0xFF102A43)),
-                trackColor: WidgetStateProperty.all(const Color(0xFF9FC8EE)),
-                trackBorderColor: WidgetStateProperty.all(
-                  const Color(0xFF79ACD8),
+                thumbColor: WidgetStateProperty.all(
+                  Colors.white.withValues(alpha: 0.35),
                 ),
-                thickness: WidgetStateProperty.all(8),
+                trackColor: WidgetStateProperty.all(Colors.transparent),
+                trackBorderColor: WidgetStateProperty.all(Colors.transparent),
+                thickness: WidgetStateProperty.all(5),
                 radius: const Radius.circular(8),
               ),
               child: Scrollbar(
@@ -175,19 +174,70 @@ class _SidebarState extends State<Sidebar> {
                 child: ListView(
                   controller: _scrollController,
                   primary: false,
-                  padding: const EdgeInsets.fromLTRB(0, 16, 12, 16),
+                  padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(6, 4, 6, 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.school_rounded,
+                              color: AppColors.primary,
+                              size: 27,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Almustafa',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'CONNECT ERP',
+                                  style: TextStyle(
+                                    color: Color(0xFFBFD7FF),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       child: Text(
                         'MAIN MENU',
                         style: TextStyle(
-                          color: Color(0xFF183B5B),
+                          color: Color(0xFF9FC1F1),
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.5,
                         ),
                       ),
                     ),
@@ -270,7 +320,7 @@ class _SidebarState extends State<Sidebar> {
                           page: const FeeManagementDashboardPage(),
                         ),
                       ),
-			if (_access.hasPermission(AppPermission.dateSheetsView))
+                    if (_access.hasPermission(AppPermission.dateSheetsView))
                       _menuTile(
                         context,
                         icon: Icons.calendar_month_outlined,
@@ -294,7 +344,7 @@ class _SidebarState extends State<Sidebar> {
                           page: const ExaminationDashboardPage(),
                         ),
                       ),
-                    
+
                     if (_access.hasPermission(AppPermission.resultsView))
                       _menuTile(
                         context,
@@ -451,7 +501,10 @@ class _SidebarState extends State<Sidebar> {
                           page: const SettingsDashboardPage(),
                         ),
                       ),
-                    const Divider(height: 28),
+                    Divider(
+                      height: 28,
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
                     _menuTile(
                       context,
                       icon: Icons.logout_outlined,
@@ -472,28 +525,12 @@ class _SidebarState extends State<Sidebar> {
     required VoidCallback onTap,
   }) {
     final color = _menuColor(title);
-
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.28)),
-        ),
-        child: Icon(icon, color: color, size: 21),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFF17324D),
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: color.withValues(alpha: 0.10),
+    final isLogout = title == 'Logout' || title == 'Logging out...';
+    return _SidebarMenuTile(
+      icon: icon,
+      title: title,
+      color: color,
+      isLogout: isLogout,
       onTap: onTap,
     );
   }
@@ -526,5 +563,100 @@ class _SidebarState extends State<Sidebar> {
       'Logging out...' => const Color(0xFFDC2626),
       _ => const Color(0xFF94A3B8),
     };
+  }
+}
+
+class _SidebarMenuTile extends StatefulWidget {
+  const _SidebarMenuTile({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.isLogout,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+  final bool isLogout;
+  final VoidCallback onTap;
+
+  @override
+  State<_SidebarMenuTile> createState() => _SidebarMenuTileState();
+}
+
+class _SidebarMenuTileState extends State<_SidebarMenuTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        margin: const EdgeInsets.only(bottom: 3),
+        decoration: BoxDecoration(
+          color: _hovered
+              ? Colors.white.withValues(alpha: 0.16)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _hovered
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.transparent,
+          ),
+          boxShadow: _hovered
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : const [],
+        ),
+        transform: Matrix4.translationValues(_hovered ? 3 : 0, 0, 0),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 2,
+          ),
+          leading: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: widget.isLogout
+                  ? AppColors.error.withValues(alpha: _hovered ? 0.28 : 0.18)
+                  : Colors.white.withValues(alpha: _hovered ? 0.20 : 0.11),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: _hovered ? 0.24 : 0.10),
+              ),
+            ),
+            child: Icon(
+              widget.icon,
+              color: widget.isLogout ? const Color(0xFFFFA5B4) : widget.color,
+              size: 17,
+            ),
+          ),
+          title: Text(
+            widget.title,
+            style: TextStyle(
+              color: widget.isLogout ? const Color(0xFFFFBDC8) : Colors.white,
+              fontWeight: _hovered ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 13.5,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          onTap: widget.onTap,
+        ),
+      ),
+    );
   }
 }

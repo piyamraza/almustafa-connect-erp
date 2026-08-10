@@ -41,14 +41,14 @@ class _ParentPortalDashboardView extends StatelessWidget {
     BuildContext context, [
     ParentAccountEntity? existing,
   ]) async {
-    final value = await Navigator.of(context).push<ParentAccountEntity>(
-      MaterialPageRoute(
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => ParentAccountFormPage(existing: existing),
       ),
     );
 
-    if (value != null && context.mounted) {
-      context.read<ParentPortalBloc>().add(SaveParentAccount(value));
+    if (saved == true && context.mounted) {
+      context.read<ParentPortalBloc>().add(const LoadParentAccounts());
     }
   }
 
