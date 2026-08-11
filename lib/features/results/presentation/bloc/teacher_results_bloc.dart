@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../../exams/domain/services/result_subject_grouping_service.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/entities/teacher_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
@@ -11,12 +12,13 @@ import '../../domain/usecases/get_published_results.dart';
 import 'teacher_results_event.dart';
 import 'teacher_results_state.dart';
 
-class TeacherResultsBloc extends Bloc<TeacherResultsEvent, TeacherResultsState> {
+class TeacherResultsBloc
+    extends Bloc<TeacherResultsEvent, TeacherResultsState> {
   TeacherResultsBloc({
     required this._teacherRepository,
     required this._assignmentRepository,
     required this._getPublishedResults,
-  })  : super(const TeacherResultsInitial()) {
+  }) : super(const TeacherResultsInitial()) {
     on<LoadTeacherResults>(_onLoad);
     on<RefreshTeacherResults>(_onRefresh);
     on<SelectTeacherForResults>(_onSelectTeacher);
@@ -53,18 +55,22 @@ class TeacherResultsBloc extends Bloc<TeacherResultsEvent, TeacherResultsState> 
     emit(current.copyWith(isLoading: true));
     try {
       final data = await _loadData();
-      final session = data.availableSessions.contains(current.selectedAcademicSession)
+      final session =
+          data.availableSessions.contains(current.selectedAcademicSession)
           ? current.selectedAcademicSession
           : null;
-      final examId = data.results.any(
-        (result) =>
-            (session == null || result.academicSession == session) &&
-            result.examId == current.selectedExamId,
-      )
+      final examId =
+          data.results.any(
+            (result) =>
+                (session == null || result.academicSession == session) &&
+                result.examId == current.selectedExamId,
+          )
           ? current.selectedExamId
           : null;
-      final teacherId = data.availableTeachers
-              .any((teacher) => teacher.id == current.selectedTeacherId)
+      final teacherId =
+          data.availableTeachers.any(
+            (teacher) => teacher.id == current.selectedTeacherId,
+          )
           ? current.selectedTeacherId
           : null;
       emit(
@@ -159,13 +165,14 @@ List<TeacherSubjectResultSummary> buildTeacherSubjectSummaries(
     final subjectResults = <_TeacherSubjectMark>[];
     final studentSubjectKeys = <String>{};
     for (final result in state.filteredResults.where(
-      (item) =>
-          _sameClass(item, assignment) && _sameSection(item, assignment),
+      (item) => _sameClass(item, assignment) && _sameSection(item, assignment),
     )) {
-      for (final subject in result.subjectResults.where(
-        (item) => _sameText(item.subjectName, subjectName),
-      )) {
-        if (!studentSubjectKeys.add('${result.id}|${subject.subjectId}')) continue;
+      for (final subject in ResultSubjectGroupingService.group(
+        result.subjectResults,
+      ).where((item) => _sameText(item.subjectName, subjectName))) {
+        if (!studentSubjectKeys.add('${result.id}|${subject.subjectId}')) {
+          continue;
+        }
         subjectResults.add(
           _TeacherSubjectMark(
             percentage: subject.totalMarks == 0
@@ -211,7 +218,10 @@ bool _sameClass(ExamResultEntity result, TeacherAssignmentEntity assignment) =>
     _sameText(result.classId, assignment.classId) ||
     _sameText(result.className, assignment.classId);
 
-bool _sameSection(ExamResultEntity result, TeacherAssignmentEntity assignment) =>
+bool _sameSection(
+  ExamResultEntity result,
+  TeacherAssignmentEntity assignment,
+) =>
     _sameText(result.sectionId, assignment.sectionId) ||
     _sameText(result.sectionName, assignment.sectionId);
 

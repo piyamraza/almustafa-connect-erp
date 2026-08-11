@@ -13,9 +13,7 @@ class SubjectResultModel extends SubjectResultEntity {
     required super.remarks,
   });
 
-  factory SubjectResultModel.fromEntity(
-    SubjectResultEntity value,
-  ) {
+  factory SubjectResultModel.fromEntity(SubjectResultEntity value) {
     return SubjectResultModel(
       subjectId: value.subjectId,
       subjectName: value.subjectName,
@@ -27,16 +25,12 @@ class SubjectResultModel extends SubjectResultEntity {
     );
   }
 
-  factory SubjectResultModel.fromMap(
-    Map<String, dynamic> map,
-  ) {
+  factory SubjectResultModel.fromMap(Map<String, dynamic> map) {
     return SubjectResultModel(
       subjectId: map['subjectId'] as String? ?? '',
       subjectName: map['subjectName'] as String? ?? '',
-      totalMarks:
-          ExamResultModel.number(map['totalMarks']),
-      obtainedMarks:
-          ExamResultModel.number(map['obtainedMarks']),
+      totalMarks: ExamResultModel.number(map['totalMarks']),
+      obtainedMarks: ExamResultModel.number(map['obtainedMarks']),
       isAbsent: map['isAbsent'] as bool? ?? false,
       isPassed: map['isPassed'] as bool? ?? false,
       remarks: map['remarks'] as String? ?? '',
@@ -95,12 +89,11 @@ class ExamResultModel extends ExamResultEntity {
     super.unlockedAt,
     super.unlockedBy,
     super.unlockReason,
+    super.teacherRemarks,
     super.principalRemarks,
   });
 
-  factory ExamResultModel.fromEntity(
-    ExamResultEntity value,
-  ) {
+  factory ExamResultModel.fromEntity(ExamResultEntity value) {
     return ExamResultModel(
       id: value.id,
       examId: value.examId,
@@ -139,25 +132,24 @@ class ExamResultModel extends ExamResultEntity {
       unlockedAt: value.unlockedAt,
       unlockedBy: value.unlockedBy,
       unlockReason: value.unlockReason,
+      teacherRemarks: value.teacherRemarks,
       principalRemarks: value.principalRemarks,
     );
   }
 
-  factory ExamResultModel.fromMap(
-    Map<String, dynamic> map,
-  ) {
+  factory ExamResultModel.fromMap(Map<String, dynamic> map) {
     final now = DateTime.now();
     final rawSubjects = map['subjectResults'];
 
     final subjectResults = rawSubjects is List
         ? rawSubjects
-            .whereType<Map>()
-            .map(
-              (value) => SubjectResultModel.fromMap(
-                Map<String, dynamic>.from(value),
-              ),
-            )
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (value) => SubjectResultModel.fromMap(
+                  Map<String, dynamic>.from(value),
+                ),
+              )
+              .toList(growable: false)
         : const <SubjectResultEntity>[];
 
     final status = statusFromValue(map['status']);
@@ -169,63 +161,44 @@ class ExamResultModel extends ExamResultEntity {
       id: map['id'] as String? ?? '',
       examId: map['examId'] as String? ?? '',
       examName: map['examName'] as String? ?? '',
-      academicSession:
-          map['academicSession'] as String? ?? '',
+      academicSession: map['academicSession'] as String? ?? '',
       classId: map['classId'] as String? ?? '',
       className: map['className'] as String? ?? '',
       sectionId: map['sectionId'] as String? ?? '',
-      sectionName:
-          map['sectionName'] as String? ?? '',
+      sectionName: map['sectionName'] as String? ?? '',
       studentId: map['studentId'] as String? ?? '',
-      studentName:
-          map['studentName'] as String? ?? '',
-      rollNumber:
-          map['rollNumber'] as String? ?? '',
-      admissionNo:
-          map['admissionNo'] as String? ?? '',
+      studentName: map['studentName'] as String? ?? '',
+      rollNumber: map['rollNumber'] as String? ?? '',
+      admissionNo: map['admissionNo'] as String? ?? '',
       subjectResults: subjectResults,
-      grandTotalMarks:
-          number(map['grandTotalMarks']),
-      grandObtainedMarks:
-          number(map['grandObtainedMarks']),
+      grandTotalMarks: number(map['grandTotalMarks']),
+      grandObtainedMarks: number(map['grandObtainedMarks']),
       percentage: number(map['percentage']),
       grade: map['grade'] as String? ?? '-',
       isPassed: map['isPassed'] as bool? ?? false,
-      classPosition:
-          integer(map['classPosition']),
-      sectionPosition:
-          integer(map['sectionPosition']),
+      classPosition: integer(map['classPosition']),
+      sectionPosition: integer(map['sectionPosition']),
       overallRank: integer(map['overallRank']),
       status: status,
       createdAt: createdAt,
       updatedAt: updatedAt,
       generatedAt:
           date(map['generatedAt']) ??
-              _legacyGeneratedAt(
-                status: status,
-                createdAt: createdAt,
-              ),
-      generatedBy:
-          map['generatedBy'] as String? ?? '',
+          _legacyGeneratedAt(status: status, createdAt: createdAt),
+      generatedBy: map['generatedBy'] as String? ?? '',
       verifiedAt: date(map['verifiedAt']),
-      verifiedBy:
-          map['verifiedBy'] as String? ?? '',
+      verifiedBy: map['verifiedBy'] as String? ?? '',
       approvedAt: date(map['approvedAt']),
-      approvedBy:
-          map['approvedBy'] as String? ?? '',
+      approvedBy: map['approvedBy'] as String? ?? '',
       publishedAt: publishedAt,
-      publishedBy:
-          map['publishedBy'] as String? ?? '',
+      publishedBy: map['publishedBy'] as String? ?? '',
       lockedAt: date(map['lockedAt']),
-      lockedBy:
-          map['lockedBy'] as String? ?? '',
+      lockedBy: map['lockedBy'] as String? ?? '',
       unlockedAt: date(map['unlockedAt']),
-      unlockedBy:
-          map['unlockedBy'] as String? ?? '',
-      unlockReason:
-          map['unlockReason'] as String? ?? '',
-      principalRemarks:
-          map['principalRemarks'] as String? ?? '',
+      unlockedBy: map['unlockedBy'] as String? ?? '',
+      unlockReason: map['unlockReason'] as String? ?? '',
+      teacherRemarks: map['teacherRemarks'] as String? ?? '',
+      principalRemarks: map['principalRemarks'] as String? ?? '',
     );
   }
 
@@ -244,10 +217,7 @@ class ExamResultModel extends ExamResultEntity {
       'rollNumber': rollNumber,
       'admissionNo': admissionNo,
       'subjectResults': subjectResults
-          .map(
-            (value) =>
-                SubjectResultModel.fromEntity(value).toMap(),
-          )
+          .map((value) => SubjectResultModel.fromEntity(value).toMap())
           .toList(growable: false),
       'grandTotalMarks': grandTotalMarks,
       'grandObtainedMarks': grandObtainedMarks,
@@ -260,22 +230,20 @@ class ExamResultModel extends ExamResultEntity {
       'status': status.name,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'generatedAt':
-          generatedAt?.toIso8601String(),
+      'generatedAt': generatedAt?.toIso8601String(),
       'generatedBy': generatedBy,
       'verifiedAt': verifiedAt?.toIso8601String(),
       'verifiedBy': verifiedBy,
       'approvedAt': approvedAt?.toIso8601String(),
       'approvedBy': approvedBy,
-      'publishedAt':
-          publishedAt?.toIso8601String(),
+      'publishedAt': publishedAt?.toIso8601String(),
       'publishedBy': publishedBy,
       'lockedAt': lockedAt?.toIso8601String(),
       'lockedBy': lockedBy,
-      'unlockedAt':
-          unlockedAt?.toIso8601String(),
+      'unlockedAt': unlockedAt?.toIso8601String(),
       'unlockedBy': unlockedBy,
       'unlockReason': unlockReason,
+      'teacherRemarks': teacherRemarks,
       'principalRemarks': principalRemarks,
       'schemaVersion': 2,
     };

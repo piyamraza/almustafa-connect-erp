@@ -156,8 +156,8 @@ class AnnualPromotionRepositoryImpl implements AnnualPromotionRepository {
       final currentResultUpdatedAt = _dateText(resultData['updatedAt']);
       if (resultData['examId'] != preview.examId ||
           resultData['academicSession'] != preview.fromSession ||
-          resultData['studentId'] != item.student.id ||
-          resultData['classId'] != item.previousClassId ||
+          resultData['studentId'] != item.result!.studentId ||
+          resultData['classId'] != item.result!.classId ||
           resultData['isPassed'] != item.result!.isPassed ||
           currentResultUpdatedAt !=
               item.result!.updatedAt.toUtc().toIso8601String() ||

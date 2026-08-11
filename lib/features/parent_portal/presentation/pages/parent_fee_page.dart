@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../fees/domain/entities/monthly_fee_due_entity.dart';
@@ -82,7 +83,10 @@ class _ParentFeePageState extends State<ParentFeePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.student.fullName} Fee Status')),
+      appBar: AppBar(
+        title: Text('${widget.student.fullName} Fee Status'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }

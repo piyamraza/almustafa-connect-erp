@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
@@ -9,19 +10,15 @@ class TeacherLeaveDutiesPage extends StatefulWidget {
   const TeacherLeaveDutiesPage({super.key});
 
   @override
-  State<TeacherLeaveDutiesPage> createState() =>
-      _TeacherLeaveDutiesPageState();
+  State<TeacherLeaveDutiesPage> createState() => _TeacherLeaveDutiesPageState();
 }
 
-class _TeacherLeaveDutiesPageState
-    extends State<TeacherLeaveDutiesPage> {
-  final TeacherDutyRepository _repository =
-      TeacherDutyRepository();
+class _TeacherLeaveDutiesPageState extends State<TeacherLeaveDutiesPage> {
+  final TeacherDutyRepository _repository = TeacherDutyRepository();
 
   late Future<_TeacherDutyData> _future;
 
-  String get _email =>
-      sl<AccessControlService>().currentUserEmail ?? '';
+  String get _email => sl<AccessControlService>().currentUserEmail ?? '';
 
   @override
   void initState() {
@@ -31,17 +28,12 @@ class _TeacherLeaveDutiesPageState
 
   Future<_TeacherDutyData> _load() async {
     final values = await Future.wait<Object>([
-      _repository.getLeaveRequests(
-        teacherEmail: _email,
-      ),
-      _repository.getDuties(
-        substituteTeacherEmail: _email,
-      ),
+      _repository.getLeaveRequests(teacherEmail: _email),
+      _repository.getDuties(substituteTeacherEmail: _email),
     ]);
 
     return _TeacherDutyData(
-      leaveRequests:
-          values[0] as List<TeacherLeaveRequestEntity>,
+      leaveRequests: values[0] as List<TeacherLeaveRequestEntity>,
       duties: values[1] as List<SubstituteDutyEntity>,
     );
   }
@@ -56,6 +48,7 @@ class _TeacherLeaveDutiesPageState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leave & Substitute Duties'),
+        actions: const [DashboardNavigationButton()],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showLeaveDialog,
@@ -66,9 +59,7 @@ class _TeacherLeaveDutiesPageState
         future: _future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!;
@@ -76,21 +67,17 @@ class _TeacherLeaveDutiesPageState
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 Text(
                   'Temporary Duties',
-                  style:
-                      Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 if (data.duties.isEmpty)
                   const Card(
                     child: ListTile(
-                      title: Text(
-                        'No substitute duties assigned.',
-                      ),
+                      title: Text('No substitute duties assigned.'),
                     ),
                   ),
                 ...data.duties.map(
@@ -111,42 +98,34 @@ class _TeacherLeaveDutiesPageState
                         '${duty.room.isEmpty ? '' : '\nRoom: ${duty.room}'}',
                       ),
                       isThreeLine: true,
-                      trailing: const Chip(
-                        label: Text('Substitute'),
-                      ),
+                      trailing: const Chip(label: Text('Substitute')),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'My Leave Requests',
-                  style:
-                      Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 if (data.leaveRequests.isEmpty)
                   const Card(
                     child: ListTile(
-                      title: Text(
-                        'No leave requests submitted.',
-                      ),
+                      title: Text('No leave requests submitted.'),
                     ),
                   ),
                 ...data.leaveRequests.map(
                   (leave) => Card(
                     child: ListTile(
                       leading: const CircleAvatar(
-                        child:
-                            Icon(Icons.event_busy_outlined),
+                        child: Icon(Icons.event_busy_outlined),
                       ),
                       title: Text(
                         '${_date(leave.fromDate)} to '
                         '${_date(leave.toDate)}',
                       ),
                       subtitle: Text(leave.reason),
-                      trailing: Chip(
-                        label: Text(leave.status.name),
-                      ),
+                      trailing: Chip(label: Text(leave.status.name)),
                     ),
                   ),
                 ),
@@ -161,14 +140,12 @@ class _TeacherLeaveDutiesPageState
   Future<void> _showLeaveDialog() async {
     var fromDate = DateTime.now();
     var toDate = DateTime.now();
-    final reasonController =
-        TextEditingController();
+    final reasonController = TextEditingController();
 
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) =>
-            AlertDialog(
+        builder: (context, setDialogState) => AlertDialog(
           title: const Text('Apply for Leave'),
           content: SizedBox(
             width: 500,
@@ -178,70 +155,54 @@ class _TeacherLeaveDutiesPageState
                 ListTile(
                   title: const Text('From Date'),
                   subtitle: Text(_date(fromDate)),
-                  trailing:
-                      const Icon(Icons.calendar_today),
+                  trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
-                    final selected =
-                        await showDatePicker(
+                    final selected = await showDatePicker(
                       context: context,
                       firstDate: DateTime.now().subtract(
                         const Duration(days: 30),
                       ),
-                      lastDate: DateTime.now().add(
-                        const Duration(days: 365),
-                      ),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
                       initialDate: fromDate,
                     );
                     if (selected != null) {
-                      setDialogState(
-                        () => fromDate = selected,
-                      );
+                      setDialogState(() => fromDate = selected);
                     }
                   },
                 ),
                 ListTile(
                   title: const Text('To Date'),
                   subtitle: Text(_date(toDate)),
-                  trailing:
-                      const Icon(Icons.calendar_today),
+                  trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
-                    final selected =
-                        await showDatePicker(
+                    final selected = await showDatePicker(
                       context: context,
                       firstDate: fromDate,
-                      lastDate: DateTime.now().add(
-                        const Duration(days: 365),
-                      ),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
                       initialDate: toDate.isBefore(fromDate)
                           ? fromDate
                           : toDate,
                     );
                     if (selected != null) {
-                      setDialogState(
-                        () => toDate = selected,
-                      );
+                      setDialogState(() => toDate = selected);
                     }
                   },
                 ),
                 TextField(
                   controller: reasonController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Reason'),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Submit'),
             ),
           ],
@@ -250,13 +211,10 @@ class _TeacherLeaveDutiesPageState
     );
 
     if (save == true && mounted) {
-      if (_email.trim().isEmpty ||
-          reasonController.text.trim().isEmpty) {
+      if (_email.trim().isEmpty || reasonController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Teacher email and reason are required.',
-            ),
+            content: Text('Teacher email and reason are required.'),
           ),
         );
       } else {
@@ -281,10 +239,7 @@ class _TeacherLeaveDutiesPageState
 }
 
 class _TeacherDutyData {
-  const _TeacherDutyData({
-    required this.leaveRequests,
-    required this.duties,
-  });
+  const _TeacherDutyData({required this.leaveRequests, required this.duties});
 
   final List<TeacherLeaveRequestEntity> leaveRequests;
   final List<SubstituteDutyEntity> duties;

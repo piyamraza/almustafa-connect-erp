@@ -401,6 +401,7 @@ class GenerateExamResults {
       unlockedBy: existingResult?.unlockedBy ?? '',
       unlockReason: existingResult?.unlockReason ?? '',
       principalRemarks: existingResult?.principalRemarks ?? '',
+      teacherRemarks: existingResult?.teacherRemarks ?? '',
     );
   }
 

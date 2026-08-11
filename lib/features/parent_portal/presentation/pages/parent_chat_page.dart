@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,7 +30,10 @@ class ParentChatPage extends StatelessWidget {
 
     if (parentUserId.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Messages')),
+        appBar: AppBar(
+          title: const Text('Messages'),
+          actions: const [DashboardNavigationButton()],
+        ),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(24),
@@ -104,7 +108,10 @@ class _ParentChatViewState extends State<_ParentChatView> {
 
         if (state is ChatFailure) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Messages')),
+            appBar: AppBar(
+              title: const Text('Messages'),
+              actions: const [DashboardNavigationButton()],
+            ),
             body: Center(child: Text(state.message)),
           );
         }
@@ -146,7 +153,10 @@ class _ParentChatViewState extends State<_ParentChatView> {
               );
 
         return Scaffold(
-          appBar: AppBar(title: Text('${widget.student.fullName} Messages')),
+          appBar: AppBar(
+            title: Text('${widget.student.fullName} Messages'),
+            actions: const [DashboardNavigationButton()],
+          ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _createTeacherThread(context),
             icon: const Icon(Icons.add_comment_outlined),
@@ -486,6 +496,7 @@ class _ParentThreadViewState extends State<_ParentThreadView> {
               ? 'Parent-Teacher Chat'
               : state.thread.title,
         ),
+        actions: const [DashboardNavigationButton()],
       ),
       body: Column(
         children: [

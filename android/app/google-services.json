@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "983054782159",
-    "project_id": "almustafa-connect-erp",
-    "storage_bucket": "almustafa-connect-erp.firebasestorage.app"
+    "project_number": "99360173438",
+    "project_id": "almustafa-connect-erp-8686f",
+    "storage_bucket": "almustafa-connect-erp-8686f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:983054782159:android:59cc0940028951a4ba71ba",
+        "mobilesdk_app_id": "1:99360173438:android:13c74de77f933b50b2972f",
         "android_client_info": {
           "package_name": "com.example.almustafa_connect_erp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "99360173438-8m7qh5tvbjpqjegk1qp3iqe6skmd6ei1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyACDc22x1-_EYQQ8GvT8sY5pMHnhMaZGyg"
+          "current_key": "AIzaSyDVN-CZfSj3T3B-irYiWPZ7K8sBO0MbTWg"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "99360173438-8m7qh5tvbjpqjegk1qp3iqe6skmd6ei1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

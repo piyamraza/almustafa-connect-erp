@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../../core/widgets/app_page_layout.dart';
 import '../bloc/accounts_bloc.dart';
 import '../bloc/accounts_event.dart';
 import '../bloc/accounts_state.dart';
@@ -81,11 +82,12 @@ class _AccountsDashboardView extends StatelessWidget {
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-                  sliver: SliverToBoxAdapter(
-                    child: Text(
-                      'Accounts Modules',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                  sliver: const SliverToBoxAdapter(
+                    child: AppPageHeader(
+                      title: 'Accounts Modules',
+                      description:
+                          'Manage income, expenses, payroll, cashbook and financial reporting.',
+                      icon: Icons.account_balance_rounded,
                     ),
                   ),
                 ),
@@ -284,38 +286,13 @@ class _AccountsModuleGrid extends StatelessWidget {
           delegate: SliverChildBuilderDelegate((context, index) {
             final module = modules[index];
 
-            return Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute<void>(builder: (_) => module.page));
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(module.icon, size: 24),
-                      const SizedBox(height: 8),
-                      Text(
-                        module.title,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(module.description),
-                      const Spacer(),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: Icon(Icons.arrow_forward, size: 18),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return AppModuleCard(
+              title: module.title,
+              description: module.description,
+              icon: module.icon,
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute<void>(builder: (_) => module.page)),
             );
           }, childCount: modules.length),
         );

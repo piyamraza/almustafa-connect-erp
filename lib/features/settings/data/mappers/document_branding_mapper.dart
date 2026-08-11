@@ -1,4 +1,4 @@
-﻿import '../../../documents/domain/entities/document_branding_entity.dart';
+import '../../../documents/domain/entities/document_branding_entity.dart';
 import '../../domain/entities/school_settings_entity.dart';
 
 class DocumentBrandingMapper {
@@ -11,12 +11,11 @@ class DocumentBrandingMapper {
       schoolName: settings.schoolName,
       schoolLogoUrl: settings.logoUrl,
       principalName: settings.principalName,
-      principalDesignation:
-          settings.principalDesignation,
-      principalSignatureUrl:
-          settings.principalSignatureUrl,
-      schoolStampUrl:
-          settings.schoolStampUrl,
+      principalDesignation: settings.principalDesignation,
+      principalSignatureUrl: settings.principalSignatureUrl,
+      principalSignatureData: settings.principalSignatureData,
+      schoolStampUrl: settings.schoolStampUrl,
+      schoolStampData: settings.schoolStampData,
     );
   }
 
@@ -27,14 +26,14 @@ class DocumentBrandingMapper {
       'branding': {
         'schoolName': settings.schoolName,
         'schoolLogo': settings.logoUrl,
-        'principalName':
-            settings.principalName,
-        'principalDesignation':
-            settings.principalDesignation,
-        'principalSignature':
-            settings.principalSignatureUrl,
-        'schoolStamp':
-            settings.schoolStampUrl,
+        'principalName': settings.principalName,
+        'principalDesignation': settings.principalDesignation,
+        'principalSignature': settings.principalSignatureData.trim().isNotEmpty
+            ? settings.principalSignatureData
+            : settings.principalSignatureUrl,
+        'schoolStamp': settings.schoolStampData.trim().isNotEmpty
+            ? settings.schoolStampData
+            : settings.schoolStampUrl,
       },
     };
   }

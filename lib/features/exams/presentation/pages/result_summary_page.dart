@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../authentication/domain/usecases/get_current_user_usecase.dart';
 import '../../domain/entities/exam_result_entity.dart';
+import '../../domain/repositories/exam_result_repository.dart';
 import '../bloc/exam_results_bloc.dart';
 import '../bloc/exam_results_event.dart';
 import '../bloc/exam_results_state.dart';
@@ -865,14 +866,113 @@ class _ResultStatusWithDetails extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: ResultStatusChip(status: result.status)),
-        IconButton(
-          tooltip: 'Workflow details',
-          visualDensity: VisualDensity.compact,
-          onPressed: () => _showDetails(context),
-          icon: const Icon(Icons.info_outline, size: 19),
+        PopupMenuButton<String>(
+          tooltip: 'Result options',
+          iconSize: 19,
+          onSelected: (value) {
+            if (value == 'workflow') _showDetails(context);
+            if (value == 'feedback') _editFeedback(context);
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(
+              value: 'workflow',
+              child: ListTile(
+                dense: true,
+                leading: Icon(Icons.info_outline),
+                title: Text('Workflow details'),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'feedback',
+              enabled: !result.isLocked,
+              child: const ListTile(
+                dense: true,
+                leading: Icon(Icons.rate_review_outlined),
+                title: Text('Teacher & Principal Feedback'),
+              ),
+            ),
+          ],
         ),
       ],
     );
+  }
+
+  Future<void> _editFeedback(BuildContext context) async {
+    final teacherController = TextEditingController(
+      text: result.teacherRemarks,
+    );
+    final principalController = TextEditingController(
+      text: result.principalRemarks,
+    );
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${result.studentName} — Feedback'),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: teacherController,
+                maxLines: 3,
+                maxLength: 250,
+                decoration: const InputDecoration(
+                  labelText: 'Class Teacher Remarks',
+                  hintText: 'e.g. Good progress. Keep practising handwriting.',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: principalController,
+                maxLines: 3,
+                maxLength: 250,
+                decoration: const InputDecoration(
+                  labelText: 'Principal Remarks',
+                  hintText: 'e.g. Promoted. Excellent effort.',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Save Feedback'),
+          ),
+        ],
+      ),
+    );
+    if (saved != true || !context.mounted) return;
+    try {
+      await sl<ExamResultRepository>().saveResults([
+        result.copyWith(
+          teacherRemarks: teacherController.text.trim(),
+          principalRemarks: principalController.text.trim(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      if (!context.mounted) return;
+      context.read<ExamResultsBloc>().add(const RefreshResultSummary());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Feedback saved successfully.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save feedback: $error')),
+      );
+    } finally {
+      teacherController.dispose();
+      principalController.dispose();
+    }
   }
 
   Future<void> _showDetails(BuildContext context) {

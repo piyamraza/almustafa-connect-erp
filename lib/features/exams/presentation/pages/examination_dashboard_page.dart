@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
+import 'package:almustafa_connect_erp/core/widgets/app_page_layout.dart';
 
 import 'exams_page.dart';
 import 'marks_entry_page.dart';
 import 'result_summary_page.dart';
 import 'annual_promotion_page.dart';
+import 'question_paper_module_page.dart';
 
 class ExaminationDashboardPage extends StatelessWidget {
   const ExaminationDashboardPage({super.key});
 
   static const List<_ExaminationModule> _modules = [
+    _ExaminationModule(
+      title: 'Question Papers',
+      description:
+          'Build a question bank and generate objective and subjective papers.',
+      icon: Icons.quiz_outlined,
+      isAvailable: true,
+    ),
     _ExaminationModule(
       title: 'Exams',
       description: 'Create and manage examination schedules.',
@@ -53,43 +62,40 @@ class ExaminationDashboardPage extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1500),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _modules.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: _cardAspectRatio(
-                        width: constraints.maxWidth,
-                        columns: columns,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AppPageHeader(
+                        title: 'Examination Workspace',
+                        description:
+                            'Prepare exams and papers, enter marks, review results and manage promotions.',
+                        icon: Icons.fact_check_rounded,
                       ),
-                    ),
-                    itemBuilder: (context, index) {
-                      final module = _modules[index];
-                      return _ExaminationModuleCard(
-                        module: module,
-                        onOpen: module.isAvailable
-                            ? () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) {
-                                    if (module.title == 'Exams') {
-                                      return const ExamsPage();
-                                    }
-                                    if (module.title == 'Marks Entry') {
-                                      return const MarksEntryPage();
-                                    }
-                                    if (module.title == 'Annual Promotion') {
-                                      return const AnnualPromotionPage();
-                                    }
-                                    return const ResultSummaryPage();
-                                  },
-                                ),
-                              )
-                            : null,
-                      );
-                    },
+                      const SizedBox(height: 22),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _modules.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: _cardAspectRatio(
+                            width: constraints.maxWidth,
+                            columns: columns,
+                          ),
+                        ),
+                        itemBuilder: (context, index) {
+                          final module = _modules[index];
+                          return AppModuleCard(
+                            title: module.title,
+                            description: module.description,
+                            icon: module.icon,
+                            onTap: () => _openModule(context, module),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -98,6 +104,17 @@ class ExaminationDashboardPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _openModule(BuildContext context, _ExaminationModule module) {
+    final page = switch (module.title) {
+      'Exams' => const ExamsPage(),
+      'Marks Entry' => const MarksEntryPage(),
+      'Annual Promotion' => const AnnualPromotionPage(),
+      'Question Papers' => const QuestionPaperModulePage(),
+      _ => const ResultSummaryPage(),
+    };
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   int _columnCount(double width) {
@@ -136,89 +153,4 @@ class _ExaminationModule {
   final String description;
   final IconData icon;
   final bool isAvailable;
-}
-
-class _ExaminationModuleCard extends StatelessWidget {
-  const _ExaminationModuleCard({required this.module, required this.onOpen});
-
-  final _ExaminationModule module;
-  final VoidCallback? onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final isAvailable = module.isAvailable;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isAvailable
-                          ? colors.primaryContainer
-                          : colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      module.icon,
-                      color: isAvailable
-                          ? colors.onPrimaryContainer
-                          : colors.onSurfaceVariant,
-                    ),
-                  ),
-                  if (!isAvailable)
-                    Chip(
-                      label: const Text('Coming Soon'),
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: colors.secondaryContainer,
-                      labelStyle: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSecondaryContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                module.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                module.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: onOpen,
-                  child: Text(isAvailable ? 'Open' : 'Coming Soon'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

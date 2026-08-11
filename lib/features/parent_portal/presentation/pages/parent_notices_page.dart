@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -21,35 +22,27 @@ class ParentNoticesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ParentCommunicationBloc(
-        sl<ParentCommunicationService>(),
-      )..add(
-          LoadParentCommunicationDashboard(
-            parent: parent,
-            student: student,
-            academicSession: '2026-2027',
+      create: (_) =>
+          ParentCommunicationBloc(sl<ParentCommunicationService>())..add(
+            LoadParentCommunicationDashboard(
+              parent: parent,
+              student: student,
+              academicSession: '2026-2027',
+            ),
           ),
-        ),
-      child: _ParentNoticesView(
-        parent: parent,
-        student: student,
-      ),
+      child: _ParentNoticesView(parent: parent, student: student),
     );
   }
 }
 
 class _ParentNoticesView extends StatefulWidget {
-  const _ParentNoticesView({
-    required this.parent,
-    required this.student,
-  });
+  const _ParentNoticesView({required this.parent, required this.student});
 
   final ParentAccountEntity parent;
   final StudentEntity student;
 
   @override
-  State<_ParentNoticesView> createState() =>
-      _ParentNoticesViewState();
+  State<_ParentNoticesView> createState() => _ParentNoticesViewState();
 }
 
 class _ParentNoticesViewState extends State<_ParentNoticesView> {
@@ -60,16 +53,13 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.student.fullName} Notices'),
+        actions: const [DashboardNavigationButton()],
       ),
-      body: BlocBuilder<
-          ParentCommunicationBloc,
-          ParentCommunicationState>(
+      body: BlocBuilder<ParentCommunicationBloc, ParentCommunicationState>(
         builder: (context, state) {
           if (state is ParentCommunicationLoading ||
               state is ParentCommunicationInitial) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (state is ParentCommunicationError) {
@@ -81,10 +71,7 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
                   children: [
                     const Icon(Icons.error_outline, size: 54),
                     const SizedBox(height: 12),
-                    Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(state.message, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: () => _reload(context),
@@ -97,17 +84,14 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
             );
           }
 
-          final dashboard =
-              (state as ParentCommunicationLoaded).dashboard;
+          final dashboard = (state as ParentCommunicationLoaded).dashboard;
           final notices = _filtered(dashboard.notices);
 
           return RefreshIndicator(
             onRefresh: () async => _reload(context),
             child: ListView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
-              padding:
-                  const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
               children: [
                 _NoticeSummary(dashboard: dashboard),
                 const SizedBox(height: 16),
@@ -118,18 +102,9 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text('All Notices'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'unread',
-                      child: Text('Unread'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'read',
-                      child: Text('Read'),
-                    ),
+                    DropdownMenuItem(value: 'all', child: Text('All Notices')),
+                    DropdownMenuItem(value: 'unread', child: Text('Unread')),
+                    DropdownMenuItem(value: 'read', child: Text('Read')),
                     DropdownMenuItem(
                       value: 'important',
                       child: Text('Important / Urgent'),
@@ -157,35 +132,28 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
                 else
                   ...notices.map(
                     (notice) => Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: _NoticeCard(
                         item: notice,
                         onRead: () {
-                          context
-                              .read<ParentCommunicationBloc>()
-                              .add(
-                                ReadParentNotice(
-                                  parent: widget.parent,
-                                  student: widget.student,
-                                  academicSession:
-                                      '2026-2027',
-                                  noticeId: notice.id,
-                                ),
-                              );
+                          context.read<ParentCommunicationBloc>().add(
+                            ReadParentNotice(
+                              parent: widget.parent,
+                              student: widget.student,
+                              academicSession: '2026-2027',
+                              noticeId: notice.id,
+                            ),
+                          );
                         },
                         onAcknowledge: () {
-                          context
-                              .read<ParentCommunicationBloc>()
-                              .add(
-                                AcknowledgeParentNotice(
-                                  parent: widget.parent,
-                                  student: widget.student,
-                                  academicSession:
-                                      '2026-2027',
-                                  noticeId: notice.id,
-                                ),
-                              );
+                          context.read<ParentCommunicationBloc>().add(
+                            AcknowledgeParentNotice(
+                              parent: widget.parent,
+                              student: widget.student,
+                              academicSession: '2026-2027',
+                              noticeId: notice.id,
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -200,53 +168,43 @@ class _ParentNoticesViewState extends State<_ParentNoticesView> {
 
   void _reload(BuildContext context) {
     context.read<ParentCommunicationBloc>().add(
-          LoadParentCommunicationDashboard(
-            parent: widget.parent,
-            student: widget.student,
-            academicSession: '2026-2027',
-          ),
-        );
+      LoadParentCommunicationDashboard(
+        parent: widget.parent,
+        student: widget.student,
+        academicSession: '2026-2027',
+      ),
+    );
   }
 
-  List<ParentNoticeItemEntity> _filtered(
-    List<ParentNoticeItemEntity> values,
-  ) {
-    return values.where((item) {
-      return switch (_filter) {
-        'unread' => !item.isRead,
-        'read' => item.isRead,
-        'important' =>
-          ['important', 'urgent', 'emergency']
-              .contains(item.priority.toLowerCase()),
-        'pending' =>
-          item.acknowledgementRequired &&
-              !item.isAcknowledged,
-        _ => true,
-      };
-    }).toList(growable: false);
+  List<ParentNoticeItemEntity> _filtered(List<ParentNoticeItemEntity> values) {
+    return values
+        .where((item) {
+          return switch (_filter) {
+            'unread' => !item.isRead,
+            'read' => item.isRead,
+            'important' => [
+              'important',
+              'urgent',
+              'emergency',
+            ].contains(item.priority.toLowerCase()),
+            'pending' => item.acknowledgementRequired && !item.isAcknowledged,
+            _ => true,
+          };
+        })
+        .toList(growable: false);
   }
 }
 
 class _NoticeSummary extends StatelessWidget {
-  const _NoticeSummary({
-    required this.dashboard,
-  });
+  const _NoticeSummary({required this.dashboard});
 
   final ParentCommunicationDashboardEntity dashboard;
 
   @override
   Widget build(BuildContext context) {
     final items = [
-      (
-        'Total',
-        dashboard.notices.length,
-        Icons.campaign_outlined,
-      ),
-      (
-        'Unread',
-        dashboard.unreadNoticeCount,
-        Icons.mark_email_unread_outlined,
-      ),
+      ('Total', dashboard.notices.length, Icons.campaign_outlined),
+      ('Unread', dashboard.unreadNoticeCount, Icons.mark_email_unread_outlined),
       (
         'Pending Ack.',
         dashboard.pendingAcknowledgementCount,
@@ -256,20 +214,17 @@ class _NoticeSummary extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns =
-            constraints.maxWidth >= 700 ? 3 : 1;
+        final columns = constraints.maxWidth >= 700 ? 3 : 1;
 
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
-          gridDelegate:
-              SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio:
-                columns == 1 ? 3.4 : 1.8,
+            childAspectRatio: columns == 1 ? 3.4 : 1.8,
           ),
           itemBuilder: (context, index) {
             final item = items[index];
@@ -283,20 +238,13 @@ class _NoticeSummary extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${item.$2}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           Text(item.$1),
                         ],
@@ -340,8 +288,7 @@ class _NoticeCard extends StatelessWidget {
         title: Text(
           item.title,
           style: TextStyle(
-            fontWeight:
-                item.isRead ? FontWeight.w500 : FontWeight.bold,
+            fontWeight: item.isRead ? FontWeight.w500 : FontWeight.bold,
           ),
         ),
         subtitle: Text(
@@ -356,20 +303,14 @@ class _NoticeCard extends StatelessWidget {
         onExpansionChanged: (expanded) {
           if (expanded && !item.isRead) onRead();
         },
-        childrenPadding:
-            const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(item.message),
-          ),
+          Align(alignment: Alignment.centerLeft, child: Text(item.message)),
           if (item.attachmentUrls.isNotEmpty) ...[
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                'Attachments: ${item.attachmentUrls.length}',
-              ),
+              child: Text('Attachments: ${item.attachmentUrls.length}'),
             ),
           ],
           if (item.acknowledgementRequired) ...[
@@ -378,8 +319,7 @@ class _NoticeCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: item.isAcknowledged
                   ? const Chip(
-                      avatar:
-                          Icon(Icons.check_circle_outline),
+                      avatar: Icon(Icons.check_circle_outline),
                       label: Text('Acknowledged'),
                     )
                   : FilledButton.icon(

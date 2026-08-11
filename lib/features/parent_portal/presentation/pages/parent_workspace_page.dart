@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../authentication/domain/usecases/logout_usecase.dart';
@@ -31,6 +32,7 @@ class ParentWorkspacePage extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Parent Portal'),
             actions: [
+              const DashboardNavigationButton(),
               IconButton(
                 tooltip: 'Notifications',
                 onPressed: () => _open(

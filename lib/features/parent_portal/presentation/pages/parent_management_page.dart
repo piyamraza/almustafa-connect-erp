@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/parent_account_entity.dart';
@@ -147,6 +148,7 @@ class _ParentManagementPageState extends State<ParentManagementPage> {
       appBar: AppBar(
         title: const Text('Parent Management'),
         actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _isLoading ? null : _loadParents,

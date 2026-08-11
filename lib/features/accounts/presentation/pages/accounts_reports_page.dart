@@ -101,28 +101,40 @@ class _AccountsReportsViewState extends State<_AccountsReportsView> {
                                 },
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: exporting
-                                    ? null
-                                    : () => _pickFromDate(context),
-                                icon: const Icon(Icons.date_range_outlined),
-                                label: Text('From: ${_date(_fromDate)}'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: exporting
-                                    ? null
-                                    : () => _pickToDate(context),
-                                icon: const Icon(Icons.event_outlined),
-                                label: Text('To: ${_date(_toDate)}'),
-                              ),
-                            ),
-                          ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final from = OutlinedButton.icon(
+                              onPressed: exporting
+                                  ? null
+                                  : () => _pickFromDate(context),
+                              icon: const Icon(Icons.date_range_outlined),
+                              label: Text('From: ${_date(_fromDate)}'),
+                            );
+                            final to = OutlinedButton.icon(
+                              onPressed: exporting
+                                  ? null
+                                  : () => _pickToDate(context),
+                              icon: const Icon(Icons.event_outlined),
+                              label: Text('To: ${_date(_toDate)}'),
+                            );
+                            if (constraints.maxWidth < 520) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  from,
+                                  const SizedBox(height: 10),
+                                  to,
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(child: from),
+                                const SizedBox(width: 12),
+                                Expanded(child: to),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 24),
                         if (exporting) const LinearProgressIndicator(),

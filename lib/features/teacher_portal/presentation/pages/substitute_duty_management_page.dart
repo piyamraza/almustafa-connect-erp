@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -48,7 +49,10 @@ class _SubstituteDutyManagementPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Substitute Duties')),
+      appBar: AppBar(
+        title: const Text('Substitute Duties'),
+        actions: const [DashboardNavigationButton()],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignDialog,
         icon: const Icon(Icons.add),
@@ -68,11 +72,18 @@ class _SubstituteDutyManagementPageState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 12),
                     const Text('Unable to load substitute duties.'),
                     const SizedBox(height: 8),
-                    Text(snapshot.error.toString(), textAlign: TextAlign.center),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: _refresh,
@@ -176,7 +187,8 @@ class _SubstituteDutyManagementPageState
                       ),
                       title: Text(
                         '${_classSectionLabel(duty.className, duty.sectionName)} '
-                        '${duty.subjectName}'.trim(),
+                                '${duty.subjectName}'
+                            .trim(),
                       ),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -313,11 +325,12 @@ class _SubstituteDutyManagementPageState
             .where('teacherId', isEqualTo: originalTeacher!.id)
             .get();
 
-        final slots = snapshot.docs
-            .map((doc) => _TimetableSlot.fromMap(doc.id, doc.data()))
-            .where((slot) => slot.weekday == date.weekday)
-            .toList()
-          ..sort((a, b) => a.periodOrder.compareTo(b.periodOrder));
+        final slots =
+            snapshot.docs
+                .map((doc) => _TimetableSlot.fromMap(doc.id, doc.data()))
+                .where((slot) => slot.weekday == date.weekday)
+                .toList()
+              ..sort((a, b) => a.periodOrder.compareTo(b.periodOrder));
 
         setDialogState(() {
           availableSlots = slots;
@@ -787,10 +800,7 @@ class _SubstituteDutyManagementPageState
     return result;
   }
 
-  static String _teacherName(
-    List<TeacherEntity> teachers,
-    String identifier,
-  ) {
+  static String _teacherName(List<TeacherEntity> teachers, String identifier) {
     final value = identifier.trim().toLowerCase();
 
     if (value.isEmpty) return 'Unknown Teacher';
@@ -876,9 +886,7 @@ class _TeacherPickerField extends StatelessWidget {
               ? teacher!.fullName
               : 'Select $label',
           style: TextStyle(
-            color: teacher == null
-                ? Theme.of(context).hintColor
-                : null,
+            color: teacher == null ? Theme.of(context).hintColor : null,
           ),
         ),
       ),
@@ -901,10 +909,7 @@ class _TimetableSlot {
     required this.periodOrder,
   });
 
-  factory _TimetableSlot.fromMap(
-    String id,
-    Map<String, dynamic> map,
-  ) {
+  factory _TimetableSlot.fromMap(String id, Map<String, dynamic> map) {
     return _TimetableSlot(
       id: id,
       weekday: (map['weekday'] as num?)?.toInt() ?? 0,

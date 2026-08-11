@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../../core/widgets/app_page_layout.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
@@ -306,93 +307,40 @@ class _StudentsViewState extends State<_StudentsView> {
   }
 
   Widget _buildHeader() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final actions = Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _showComingSoon('Student import'),
-              icon: const Icon(Icons.upload_file_outlined),
-              label: const Text('Import Students'),
+    return AppPageHeader(
+      title: 'Students',
+      description: 'Manage admissions, profiles and student records',
+      icon: Icons.school_rounded,
+      actions: [
+        const DashboardNavigationButton(),
+        OutlinedButton.icon(
+          onPressed: () => _showComingSoon('Student import'),
+          icon: const Icon(Icons.upload_file_outlined),
+          label: const Text('Import Students'),
+        ),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFE94883),
+          ),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SchoolEngagementPage(),
             ),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFE94883),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 16,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SchoolEngagementPage(),
-                ),
-              ),
-              icon: const Icon(Icons.cake_outlined, size: 22),
-              label: const Text('Birthdays'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () => _showComingSoon('Student export'),
-              icon: const Icon(Icons.download_outlined),
-              label: const Text('Export'),
-            ),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: _brandBlue),
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Student'),
-            ),
-          ],
-        );
-        final title = Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const DashboardNavigationButton(),
-            const SizedBox(width: 14),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Students',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    color: _textPrimary,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Manage admissions, profiles and student records',
-                  style: TextStyle(color: _textSecondary, fontSize: 15),
-                ),
-              ],
-            ),
-          ],
-        );
-        if (constraints.maxWidth < 760) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [title, const SizedBox(height: 18), actions],
-          );
-        }
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [title, actions],
-        );
-      },
+          ),
+          icon: const Icon(Icons.cake_outlined),
+          label: const Text('Birthdays'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => _showComingSoon('Student export'),
+          icon: const Icon(Icons.download_outlined),
+          label: const Text('Export'),
+        ),
+        FilledButton.icon(
+          onPressed: () => _openEditor(),
+          icon: const Icon(Icons.add),
+          label: const Text('Add Student'),
+        ),
+      ],
     );
   }
 

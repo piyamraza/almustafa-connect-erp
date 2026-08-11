@@ -1,4 +1,4 @@
-﻿import '../../domain/entities/teacher_entity.dart';
+import '../../domain/entities/teacher_entity.dart';
 
 class TeacherModel extends TeacherEntity {
   const TeacherModel({
@@ -6,6 +6,7 @@ class TeacherModel extends TeacherEntity {
     required super.employeeId,
     required super.firstName,
     required super.lastName,
+    super.fatherName,
     required super.gender,
     required super.cnic,
     required super.dateOfBirth,
@@ -29,6 +30,7 @@ class TeacherModel extends TeacherEntity {
     employeeId: map['employeeId'] ?? '',
     firstName: map['firstName'] ?? '',
     lastName: map['lastName'] ?? '',
+    fatherName: map['fatherName'] ?? '',
     gender: map['gender'] ?? '',
     cnic: map['cnic'] ?? '',
     dateOfBirth: DateTime.tryParse(map['dateOfBirth'] ?? '') ?? DateTime.now(),
@@ -52,6 +54,7 @@ class TeacherModel extends TeacherEntity {
     employeeId: entity.employeeId,
     firstName: entity.firstName,
     lastName: entity.lastName,
+    fatherName: entity.fatherName,
     gender: entity.gender,
     cnic: entity.cnic,
     dateOfBirth: entity.dateOfBirth,
@@ -75,6 +78,7 @@ class TeacherModel extends TeacherEntity {
     'employeeId': employeeId,
     'firstName': firstName,
     'lastName': lastName,
+    'fatherName': fatherName,
     'gender': gender,
     'cnic': cnic,
     'dateOfBirth': dateOfBirth.toIso8601String(),
@@ -93,4 +97,3 @@ class TeacherModel extends TeacherEntity {
     'updatedAt': updatedAt.toIso8601String(),
   };
 }
-

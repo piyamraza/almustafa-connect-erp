@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../domain/entities/engagement_person_entity.dart';
 
@@ -8,10 +10,7 @@ const _textPrimary = Color(0xFF182230);
 const _textSecondary = Color(0xFF667085);
 
 class BirthdayCardPreviewPage extends StatelessWidget {
-  const BirthdayCardPreviewPage({
-    super.key,
-    required this.person,
-  });
+  const BirthdayCardPreviewPage({super.key, required this.person});
 
   final EngagementPersonEntity person;
 
@@ -23,14 +22,13 @@ class BirthdayCardPreviewPage extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: _textPrimary,
         title: const Text('Birthday Card Preview'),
+        actions: const [DashboardNavigationButton()],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 900,
-            ),
+            constraints: const BoxConstraints(maxWidth: 900),
             child: Column(
               children: [
                 _BirthdayCard(person: person),
@@ -46,9 +44,7 @@ class BirthdayCardPreviewPage extends StatelessWidget {
 }
 
 class _BirthdayCard extends StatelessWidget {
-  const _BirthdayCard({
-    required this.person,
-  });
+  const _BirthdayCard({required this.person});
 
   final EngagementPersonEntity person;
 
@@ -72,10 +68,7 @@ class _BirthdayCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              secondary,
-            ],
+            colors: [Colors.white, secondary],
           ),
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
@@ -110,18 +103,12 @@ class _BirthdayCard extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 5,
-                    child: _BirthdayMessage(
-                      person: person,
-                      primary: primary,
-                    ),
+                    child: _BirthdayMessage(person: person, primary: primary),
                   ),
                   const SizedBox(width: 28),
                   Expanded(
                     flex: 4,
-                    child: _StudentPortrait(
-                      person: person,
-                      primary: primary,
-                    ),
+                    child: _StudentPortrait(person: person, primary: primary),
                   ),
                 ],
               ),
@@ -134,10 +121,7 @@ class _BirthdayCard extends StatelessWidget {
 }
 
 class _BirthdayMessage extends StatelessWidget {
-  const _BirthdayMessage({
-    required this.person,
-    required this.primary,
-  });
+  const _BirthdayMessage({required this.person, required this.primary});
 
   final EngagementPersonEntity person;
   final Color primary;
@@ -148,11 +132,7 @@ class _BirthdayMessage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.celebration,
-          color: primary,
-          size: 42,
-        ),
+        Icon(Icons.celebration, color: primary, size: 42),
         const SizedBox(height: 18),
         Text(
           'HAPPY BIRTHDAY',
@@ -176,18 +156,11 @@ class _BirthdayMessage extends StatelessWidget {
         const SizedBox(height: 18),
         const Text(
           'Wishing you a wonderful birthday filled with happiness, success and beautiful memories.',
-          style: TextStyle(
-            color: _textSecondary,
-            fontSize: 16,
-            height: 1.5,
-          ),
+          style: TextStyle(color: _textSecondary, fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 24),
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(30),
@@ -208,18 +181,14 @@ class _BirthdayMessage extends StatelessWidget {
 }
 
 class _StudentPortrait extends StatelessWidget {
-  const _StudentPortrait({
-    required this.person,
-    required this.primary,
-  });
+  const _StudentPortrait({required this.person, required this.primary});
 
   final EngagementPersonEntity person;
   final Color primary;
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto =
-        person.profileImageUrl.trim().isNotEmpty;
+    final hasPhoto = person.profileImageUrl.trim().isNotEmpty;
 
     return Center(
       child: Container(
@@ -229,10 +198,7 @@ class _StudentPortrait extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: primary.withValues(alpha: 0.25),
-            width: 2,
-          ),
+          border: Border.all(color: primary.withValues(alpha: 0.25), width: 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -247,19 +213,11 @@ class _StudentPortrait extends StatelessWidget {
               ? Image.network(
                   person.profileImageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (
-                    context,
-                    error,
-                    stackTrace,
-                  ) {
-                    return _PhotoPlaceholder(
-                      primary: primary,
-                    );
+                  errorBuilder: (context, error, stackTrace) {
+                    return _PhotoPlaceholder(primary: primary);
                   },
                 )
-              : _PhotoPlaceholder(
-                  primary: primary,
-                ),
+              : _PhotoPlaceholder(primary: primary),
         ),
       ),
     );
@@ -267,9 +225,7 @@ class _StudentPortrait extends StatelessWidget {
 }
 
 class _PhotoPlaceholder extends StatelessWidget {
-  const _PhotoPlaceholder({
-    required this.primary,
-  });
+  const _PhotoPlaceholder({required this.primary});
 
   final Color primary;
 
@@ -289,9 +245,7 @@ class _PhotoPlaceholder extends StatelessWidget {
 }
 
 class _ActionBar extends StatelessWidget {
-  const _ActionBar({
-    required this.person,
-  });
+  const _ActionBar({required this.person});
 
   final EngagementPersonEntity person;
 
@@ -303,37 +257,23 @@ class _ActionBar extends StatelessWidget {
       runSpacing: 12,
       children: [
         OutlinedButton.icon(
-          onPressed: () => _comingSoon(
-            context,
-            'Image generation',
-          ),
+          onPressed: () => _comingSoon(context, 'Image generation'),
           icon: const Icon(Icons.image_outlined),
           label: const Text('Generate Image'),
         ),
         OutlinedButton.icon(
-          onPressed: () => _comingSoon(
-            context,
-            'PDF generation',
-          ),
+          onPressed: () => _comingSoon(context, 'PDF generation'),
           icon: const Icon(Icons.picture_as_pdf_outlined),
           label: const Text('PDF'),
         ),
         OutlinedButton.icon(
-          onPressed: () => _comingSoon(
-            context,
-            'Printing',
-          ),
+          onPressed: () => _comingSoon(context, 'Printing'),
           icon: const Icon(Icons.print_outlined),
           label: const Text('Print'),
         ),
         FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: _brandBlue,
-          ),
-          onPressed: () => _comingSoon(
-            context,
-            'WhatsApp sharing',
-          ),
+          style: FilledButton.styleFrom(backgroundColor: _brandBlue),
+          onPressed: () => _comingSoon(context, 'WhatsApp sharing'),
           icon: const Icon(Icons.share_outlined),
           label: const Text('Share'),
         ),
@@ -341,10 +281,7 @@ class _ActionBar extends StatelessWidget {
     );
   }
 
-  void _comingSoon(
-    BuildContext context,
-    String feature,
-  ) {
+  void _comingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -356,10 +293,7 @@ class _ActionBar extends StatelessWidget {
 }
 
 class _DecorativeCircle extends StatelessWidget {
-  const _DecorativeCircle({
-    required this.size,
-    required this.color,
-  });
+  const _DecorativeCircle({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -369,10 +303,7 @@ class _DecorativeCircle extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

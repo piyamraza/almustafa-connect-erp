@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../exams/domain/entities/exam_subject_setup_entity.dart';
+import '../../../exams/domain/services/result_subject_grouping_service.dart';
 import '../entities/result_analytics_entity.dart';
 
 /// Pure, read-only aggregations over finalized published result records.
@@ -32,7 +33,10 @@ class ResultsAnalyticsCalculator {
   ) {
     final rows = <SubjectStudentAnalysisRow>[];
     for (final result in filteredResults(data, filter)) {
-      for (final subject in result.subjectResults) {
+      for (final group in ResultSubjectGroupingService.group(
+        result.subjectResults,
+      )) {
+        final subject = group.combined;
         if (filter.subjectName != null &&
             !_sameText(subject.subjectName, filter.subjectName!)) {
           continue;
@@ -138,7 +142,10 @@ class ResultsAnalyticsCalculator {
       });
     final subjectTotals = <String, List<double>>{};
     for (final result in ordered) {
-      for (final subject in result.subjectResults) {
+      for (final group in ResultSubjectGroupingService.group(
+        result.subjectResults,
+      )) {
+        final subject = group.combined;
         if (subject.isAbsent || subject.totalMarks == 0) continue;
         subjectTotals
             .putIfAbsent(subject.subjectName, () => <double>[])

@@ -7,6 +7,7 @@ class StaffEntity extends Equatable {
     required this.firstName,
     required this.lastName,
     required this.fatherName,
+    this.dateOfBirth,
     required this.cnic,
     required this.phone,
     this.whatsappNumber = '',
@@ -25,6 +26,7 @@ class StaffEntity extends Equatable {
   final String firstName;
   final String lastName;
   final String fatherName;
+  final DateTime? dateOfBirth;
   final String cnic;
   final String phone;
   final String whatsappNumber;
@@ -45,6 +47,7 @@ class StaffEntity extends Equatable {
     String? firstName,
     String? lastName,
     String? fatherName,
+    DateTime? dateOfBirth,
     String? cnic,
     String? phone,
     String? whatsappNumber,
@@ -63,6 +66,7 @@ class StaffEntity extends Equatable {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       fatherName: fatherName ?? this.fatherName,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       cnic: cnic ?? this.cnic,
       phone: phone ?? this.phone,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
@@ -78,12 +82,13 @@ class StaffEntity extends Equatable {
   }
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     id,
     staffId,
     firstName,
     lastName,
     fatherName,
+    dateOfBirth,
     cnic,
     phone,
     whatsappNumber,

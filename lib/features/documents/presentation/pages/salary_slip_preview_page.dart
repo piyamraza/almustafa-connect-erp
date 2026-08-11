@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -10,6 +10,8 @@ import '../../../staff/domain/entities/staff_salary_entity.dart';
 import '../../../accounts/domain/entities/payroll_profile_entity.dart';
 import '../../../accounts/domain/entities/payroll_record_entity.dart';
 import '../../../accounts/domain/repositories/accounts_repository.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../staff/domain/repositories/staff_repository.dart';
 import '../../domain/entities/document_branding_entity.dart';
 import '../../domain/entities/document_data_entity.dart';
 import '../../domain/entities/document_type.dart';
@@ -17,6 +19,7 @@ import '../../domain/services/default_document_placeholder_resolver.dart';
 import '../../templates/salary_slip/salary_slip_template_v1.dart';
 import '../export/document_export_service.dart';
 import '../renderer/document_element_visibility_resolver.dart';
+import '../renderer/document_branding_image_values.dart';
 import '../renderer/document_render_context.dart';
 import '../renderer/document_renderer_registry_factory.dart';
 import '../renderer/flutter_document_renderer.dart';
@@ -28,29 +31,24 @@ const _textSecondary = Color(0xFF667085);
 const _borderColor = Color(0xFFE1E6ED);
 
 class SalarySlipPreviewPage extends StatefulWidget {
-  const SalarySlipPreviewPage({
-    super.key,
-  });
+  const SalarySlipPreviewPage({super.key});
 
   @override
-  State<SalarySlipPreviewPage> createState() =>
-      _SalarySlipPreviewPageState();
+  State<SalarySlipPreviewPage> createState() => _SalarySlipPreviewPageState();
 }
 
-class _SalarySlipPreviewPageState
-    extends State<SalarySlipPreviewPage> {
+class _SalarySlipPreviewPageState extends State<SalarySlipPreviewPage> {
   final GlobalKey _documentBoundaryKey = GlobalKey();
 
-  final DocumentExportService _exportService =
-      const DocumentExportService();
+  final DocumentExportService _exportService = const DocumentExportService();
 
   late Future<SchoolSettingsEntity> _settingsFuture;
   late Future<List<StaffSalaryEntity>> _salaryFuture;
 
-  DateTime _selectedMonth =
-      DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   StaffSalaryEntity? _selectedSalary;
+  final Map<String, String> _fatherNamesByEmployeeId = {};
 
   bool _exporting = false;
 
@@ -63,8 +61,26 @@ class _SalarySlipPreviewPageState
   }
 
   Future<List<StaffSalaryEntity>> _loadSalaries() async {
-    final payrollRecords =
-        await sl<AccountsRepository>().getPayrollRecords();
+    final results = await Future.wait<dynamic>([
+      sl<AccountsRepository>().getPayrollRecords(),
+      sl<TeacherRepository>().getTeachers(),
+      sl<StaffRepository>().getStaff(),
+    ]);
+    final payrollRecords = results[0] as List<PayrollRecordEntity>;
+    final teachers = results[1] as List;
+    final staffMembers = results[2] as List;
+
+    _fatherNamesByEmployeeId.clear();
+    for (final teacher in teachers) {
+      final fatherName = teacher.fatherName.toString().trim();
+      _fatherNamesByEmployeeId[teacher.id.toString()] = fatherName;
+      _fatherNamesByEmployeeId[teacher.employeeId.toString()] = fatherName;
+    }
+    for (final staff in staffMembers) {
+      final fatherName = staff.fatherName.toString().trim();
+      _fatherNamesByEmployeeId[staff.id.toString()] = fatherName;
+      _fatherNamesByEmployeeId[staff.staffId.toString()] = fatherName;
+    }
 
     final monthRecords = payrollRecords.where((record) {
       return record.payrollMonth.year == _selectedMonth.year &&
@@ -85,10 +101,9 @@ class _SalarySlipPreviewPageState
         ),
         basicSalary: record.basicSalary.toDouble(),
         allowance: (record.allowances + record.bonus).toDouble(),
-        deduction: (record.deductions +
-                record.advanceDeduction +
-                record.loanDeduction)
-            .toDouble(),
+        deduction:
+            (record.deductions + record.advanceDeduction + record.loanDeduction)
+                .toDouble(),
         attendanceDeduction: record.absenceDeduction.toDouble(),
         grossSalary: record.grossSalary.toDouble(),
         netSalary: record.netSalary.toDouble(),
@@ -96,10 +111,9 @@ class _SalarySlipPreviewPageState
         absentDays: 0,
         lateDays: 0,
         leaveDays: 0,
-        paymentStatus:
-            record.paymentStatus == PayrollPaymentStatus.paid
-                ? StaffSalaryPaymentStatus.paid
-                : StaffSalaryPaymentStatus.unpaid,
+        paymentStatus: record.paymentStatus == PayrollPaymentStatus.paid
+            ? StaffSalaryPaymentStatus.paid
+            : StaffSalaryPaymentStatus.unpaid,
         paymentDate: record.paymentDate,
         paymentMethod: _mapPaymentMethod(record.paymentMethod),
         paymentReference: record.referenceNumber,
@@ -110,9 +124,7 @@ class _SalarySlipPreviewPageState
     }).toList();
 
     salaries.sort(
-      (a, b) => a.staffName
-          .toLowerCase()
-          .compareTo(b.staffName.toLowerCase()),
+      (a, b) => a.staffName.toLowerCase().compareTo(b.staffName.toLowerCase()),
     );
 
     return salaries;
@@ -160,15 +172,10 @@ class _SalarySlipPreviewPageState
             Expanded(
               child: FutureBuilder<SchoolSettingsEntity>(
                 future: _settingsFuture,
-                builder: (
-                  context,
-                  settingsSnapshot,
-                ) {
+                builder: (context, settingsSnapshot) {
                   if (settingsSnapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (settingsSnapshot.hasError ||
@@ -176,36 +183,29 @@ class _SalarySlipPreviewPageState
                     return _Failure(
                       message:
                           settingsSnapshot.error?.toString() ??
-                              'School settings could not be loaded.',
+                          'School settings could not be loaded.',
                       onRetry: _reloadSettings,
                     );
                   }
 
                   return FutureBuilder<List<StaffSalaryEntity>>(
                     future: _salaryFuture,
-                    builder: (
-                      context,
-                      salarySnapshot,
-                    ) {
+                    builder: (context, salarySnapshot) {
                       if (salarySnapshot.connectionState ==
                           ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (salarySnapshot.hasError) {
                         return _Failure(
-                          message:
-                              salarySnapshot.error.toString(),
+                          message: salarySnapshot.error.toString(),
                           onRetry: _reloadSalaries,
                         );
                       }
 
                       return _buildBody(
                         settingsSnapshot.data!,
-                        salarySnapshot.data ??
-                            const <StaffSalaryEntity>[],
+                        salarySnapshot.data ?? const <StaffSalaryEntity>[],
                       );
                     },
                   );
@@ -223,10 +223,7 @@ class _SalarySlipPreviewPageState
     List<StaffSalaryEntity> salaries,
   ) {
     return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
+      builder: (context, constraints) {
         final wide = constraints.maxWidth >= 900;
 
         final selector = _buildSelector(salaries);
@@ -242,10 +239,7 @@ class _SalarySlipPreviewPageState
               children: [
                 selector,
                 const SizedBox(height: 20),
-                SizedBox(
-                  height: 900,
-                  child: preview,
-                ),
+                SizedBox(height: 900, child: preview),
               ],
             ),
           );
@@ -269,9 +263,7 @@ class _SalarySlipPreviewPageState
     );
   }
 
-  Widget _buildSelector(
-    List<StaffSalaryEntity> salaries,
-  ) {
+  Widget _buildSelector(List<StaffSalaryEntity> salaries) {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -281,12 +273,9 @@ class _SalarySlipPreviewPageState
           children: [
             Text(
               'Select Salary Record',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
 
@@ -294,8 +283,7 @@ class _SalarySlipPreviewPageState
               contentPadding: EdgeInsets.zero,
               title: const Text('Salary Month'),
               subtitle: Text(_formatMonth(_selectedMonth)),
-              trailing:
-                  const Icon(Icons.calendar_month_outlined),
+              trailing: const Icon(Icons.calendar_month_outlined),
               onTap: _selectMonth,
             ),
 
@@ -310,11 +298,10 @@ class _SalarySlipPreviewPageState
               ),
               items: salaries
                   .map(
-                    (salary) =>
-                        DropdownMenuItem<StaffSalaryEntity>(
+                    (salary) => DropdownMenuItem<StaffSalaryEntity>(
                       value: salary,
                       child: Text(
-                        '${salary.staffName} • ${salary.staffCode}',
+                        '${salary.staffName} • ${_fatherNameLabel(salary)}',
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -333,26 +320,20 @@ class _SalarySlipPreviewPageState
               const SizedBox(height: 14),
               const Text(
                 'No generated payroll records found for this month.',
-                style: TextStyle(
-                  color: _textSecondary,
-                ),
+                style: TextStyle(color: _textSecondary),
               ),
             ],
 
             if (_selectedSalary != null) ...[
               const SizedBox(height: 18),
-              _InfoRow(
-                label: 'Employee',
-                value: _selectedSalary!.staffName,
-              ),
+              _InfoRow(label: 'Employee', value: _selectedSalary!.staffName),
               _InfoRow(
                 label: 'Designation',
                 value: _selectedSalary!.designation,
               ),
               _InfoRow(
                 label: 'Net Salary',
-                value:
-                    'Rs. ${_money(_selectedSalary!.netSalary)}',
+                value: 'Rs. ${_money(_selectedSalary!.netSalary)}',
               ),
               _InfoRow(
                 label: 'Status',
@@ -365,9 +346,12 @@ class _SalarySlipPreviewPageState
     );
   }
 
-  Widget _buildPreview(
-    SchoolSettingsEntity settings,
-  ) {
+  String _fatherNameLabel(StaffSalaryEntity salary) {
+    final fatherName = _fatherNamesByEmployeeId[salary.staffId]?.trim() ?? '';
+    return fatherName.isEmpty ? 'Father name not available' : fatherName;
+  }
+
+  Widget _buildPreview(SchoolSettingsEntity settings) {
     final salary = _selectedSalary!;
     final template = buildSalarySlipTemplateV1();
 
@@ -375,11 +359,11 @@ class _SalarySlipPreviewPageState
       schoolName: settings.schoolName,
       schoolLogoUrl: settings.logoUrl,
       principalName: settings.principalName,
-      principalDesignation:
-          settings.principalDesignation,
-      principalSignatureUrl:
-          settings.principalSignatureUrl,
+      principalDesignation: settings.principalDesignation,
+      principalSignatureUrl: settings.principalSignatureUrl,
+      principalSignatureData: settings.principalSignatureData,
       schoolStampUrl: settings.schoolStampUrl,
+      schoolStampData: settings.schoolStampData,
     );
 
     final data = DocumentDataEntity(
@@ -397,8 +381,7 @@ class _SalarySlipPreviewPageState
           'basicSalary': _money(salary.basicSalary),
           'allowance': _money(salary.allowance),
           'deduction': _money(salary.deduction),
-          'attendanceDeduction':
-              _money(salary.attendanceDeduction),
+          'attendanceDeduction': _money(salary.attendanceDeduction),
           'grossSalary': _money(salary.grossSalary),
           'netSalary': _money(salary.netSalary),
           'presentDays': salary.presentDays.toString(),
@@ -422,24 +405,19 @@ class _SalarySlipPreviewPageState
         'schoolName': branding.schoolName,
         'schoolLogo': branding.schoolLogoUrl,
         'principalName': branding.principalName,
-        'principalDesignation':
-            branding.principalDesignation,
-        'principalSignature':
-            branding.principalSignatureUrl,
-        'schoolStamp': branding.schoolStampUrl,
+        'principalDesignation': branding.principalDesignation,
+        'principalSignature': principalSignatureImageValue(branding),
+        'schoolStamp': schoolStampImageValue(branding),
       },
     };
 
-    final placeholderResolver =
-        const DefaultDocumentPlaceholderResolver();
+    final placeholderResolver = const DefaultDocumentPlaceholderResolver();
 
     final renderer = FlutterDocumentRenderer(
-      registry:
-          DocumentRendererRegistryFactory.create(
+      registry: DocumentRendererRegistryFactory.create(
         placeholderResolver: placeholderResolver,
       ),
-      visibilityResolver:
-          DocumentElementVisibilityResolver(
+      visibilityResolver: DocumentElementVisibilityResolver(
         placeholderResolver,
       ),
     );
@@ -463,8 +441,7 @@ class _SalarySlipPreviewPageState
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             child: Center(
               child: RepaintBoundary(
                 key: _documentBoundaryKey,
@@ -473,8 +450,7 @@ class _SalarySlipPreviewPageState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final page
-                          in template.orderedPages)
+                      for (final page in template.orderedPages)
                         DocumentCanvas(
                           page: page,
                           renderContext: renderContext,
@@ -508,8 +484,7 @@ class _SalarySlipPreviewPageState
     }
 
     setState(() {
-      _selectedMonth =
-          DateTime(selected.year, selected.month);
+      _selectedMonth = DateTime(selected.year, selected.month);
       _selectedSalary = null;
       _salaryFuture = _loadSalaries();
     });
@@ -539,26 +514,19 @@ class _SalarySlipPreviewPageState
   }
 
   String _formatDate(DateTime date) {
-    final day =
-        date.day.toString().padLeft(2, '0');
-    final month =
-        date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
     return '$day/$month/${date.year}';
   }
 
-  String _paymentStatus(
-    StaffSalaryEntity salary,
-  ) {
-    return salary.paymentStatus ==
-            StaffSalaryPaymentStatus.paid
+  String _paymentStatus(StaffSalaryEntity salary) {
+    return salary.paymentStatus == StaffSalaryPaymentStatus.paid
         ? 'Paid'
         : 'Unpaid';
   }
 
-  String _paymentMethod(
-    StaffSalaryEntity salary,
-  ) {
+  String _paymentMethod(StaffSalaryEntity salary) {
     final method = salary.paymentMethod;
 
     if (method == null) {
@@ -567,22 +535,15 @@ class _SalarySlipPreviewPageState
 
     return switch (method) {
       StaffSalaryPaymentMethod.cash => 'Cash',
-      StaffSalaryPaymentMethod.bankTransfer =>
-        'Bank Transfer',
-      StaffSalaryPaymentMethod.easypaisa =>
-        'Easypaisa',
-      StaffSalaryPaymentMethod.jazzCash =>
-        'JazzCash',
-      StaffSalaryPaymentMethod.cheque =>
-        'Cheque',
-      StaffSalaryPaymentMethod.other =>
-        'Other',
+      StaffSalaryPaymentMethod.bankTransfer => 'Bank Transfer',
+      StaffSalaryPaymentMethod.easypaisa => 'Easypaisa',
+      StaffSalaryPaymentMethod.jazzCash => 'JazzCash',
+      StaffSalaryPaymentMethod.cheque => 'Cheque',
+      StaffSalaryPaymentMethod.other => 'Other',
     };
   }
 
-  Future<Uint8List> _capturePng({
-    required double pixelRatio,
-  }) {
+  Future<Uint8List> _capturePng({required double pixelRatio}) {
     return _exportService.capturePng(
       boundaryKey: _documentBoundaryKey,
       pixelRatio: pixelRatio,
@@ -591,23 +552,18 @@ class _SalarySlipPreviewPageState
 
   Future<Uint8List> _buildPdf() async {
     if (_selectedSalary == null) {
-      throw StateError(
-        'Select a salary record first.',
-      );
+      throw StateError('Select a salary record first.');
     }
 
     final template = buildSalarySlipTemplateV1();
     final page = template.orderedPages.first;
 
-    final png = await _capturePng(
-      pixelRatio: 2,
-    );
+    final png = await _capturePng(pixelRatio: 2);
 
     return _exportService.createPdfFromPng(
       pngBytes: png,
       aspectRatio: page.width / page.height,
-      title:
-          'Salary Slip - ${_selectedSalary!.staffName}',
+      title: 'Salary Slip - ${_selectedSalary!.staffName}',
     );
   }
 
@@ -622,9 +578,7 @@ class _SalarySlipPreviewPageState
       );
 
       if (path != null) {
-        _success(
-          'Salary Slip PDF saved successfully.',
-        );
+        _success('Salary Slip PDF saved successfully.');
       }
     });
   }
@@ -634,17 +588,13 @@ class _SalarySlipPreviewPageState
       final salary = _selectedSalary!;
 
       final path = await _exportService.savePng(
-        bytes: await _capturePng(
-          pixelRatio: 2,
-        ),
+        bytes: await _capturePng(pixelRatio: 2),
         fileName:
             '${_baseName(salary)}_${salary.salaryMonth.year}_${salary.salaryMonth.month}_salary_slip',
       );
 
       if (path != null) {
-        _success(
-          'Salary Slip PNG saved successfully.',
-        );
+        _success('Salary Slip PNG saved successfully.');
       }
     });
   }
@@ -653,8 +603,7 @@ class _SalarySlipPreviewPageState
     await _runExport(() async {
       await _exportService.printPdf(
         bytes: await _buildPdf(),
-        name:
-            'Salary Slip - ${_selectedSalary!.staffName}',
+        name: 'Salary Slip - ${_selectedSalary!.staffName}',
       );
     });
   }
@@ -665,8 +614,7 @@ class _SalarySlipPreviewPageState
 
       await _exportService.sharePdf(
         bytes: await _buildPdf(),
-        fileName:
-            '${_baseName(salary)}_salary_slip.pdf',
+        fileName: '${_baseName(salary)}_salary_slip.pdf',
       );
     });
   }
@@ -676,22 +624,15 @@ class _SalarySlipPreviewPageState
       final salary = _selectedSalary!;
 
       await _exportService.sharePng(
-        bytes: await _capturePng(
-          pixelRatio: 2,
-        ),
-        fileName:
-            '${_baseName(salary)}_salary_slip.png',
-        text:
-            'Salary Slip - ${salary.staffName}',
+        bytes: await _capturePng(pixelRatio: 2),
+        fileName: '${_baseName(salary)}_salary_slip.png',
+        text: 'Salary Slip - ${salary.staffName}',
       );
     });
   }
 
-  Future<void> _runExport(
-    Future<void> Function() action,
-  ) async {
-    if (_exporting ||
-        _selectedSalary == null) {
+  Future<void> _runExport(Future<void> Function() action) async {
+    if (_exporting || _selectedSalary == null) {
       return;
     }
 
@@ -708,12 +649,7 @@ class _SalarySlipPreviewPageState
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content:
-                Text('Export failed: $error'),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text('Export failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -723,9 +659,7 @@ class _SalarySlipPreviewPageState
     }
   }
 
-  String _baseName(
-    StaffSalaryEntity salary,
-  ) {
+  String _baseName(StaffSalaryEntity salary) {
     return _exportService.safeFileName(
       salary.staffName,
       fallback: 'salary_slip',
@@ -739,15 +673,12 @@ class _SalarySlipPreviewPageState
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _reloadSettings() {
     setState(() {
-      _settingsFuture =
-          sl<GetSchoolSettings>()();
+      _settingsFuture = sl<GetSchoolSettings>()();
     });
   }
 
@@ -766,15 +697,10 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: _borderColor,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: _borderColor)),
       ),
       child: const Row(
         children: [
@@ -782,8 +708,7 @@ class _Header extends StatelessWidget {
           SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Salary Slip',
@@ -796,10 +721,7 @@ class _Header extends StatelessWidget {
                 SizedBox(height: 3),
                 Text(
                   'Select salary month and payroll record.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: _textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13, color: _textSecondary),
                 ),
               ],
             ),
@@ -811,10 +733,7 @@ class _Header extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -822,28 +741,18 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 7,
-      ),
+      padding: const EdgeInsets.only(bottom: 7),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 95,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: _textSecondary,
-              ),
-            ),
+            child: Text(label, style: const TextStyle(color: _textSecondary)),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -873,11 +782,7 @@ class _ExportToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       color: Colors.white,
       child: Wrap(
         spacing: 10,
@@ -885,26 +790,18 @@ class _ExportToolbar extends StatelessWidget {
         alignment: WrapAlignment.end,
         children: [
           OutlinedButton.icon(
-            onPressed:
-                busy ? null : onSavePdf,
-            icon: const Icon(
-              Icons.picture_as_pdf_outlined,
-            ),
+            onPressed: busy ? null : onSavePdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
             label: const Text('Save PDF'),
           ),
           OutlinedButton.icon(
-            onPressed:
-                busy ? null : onSavePng,
-            icon: const Icon(
-              Icons.image_outlined,
-            ),
+            onPressed: busy ? null : onSavePng,
+            icon: const Icon(Icons.image_outlined),
             label: const Text('Save PNG'),
           ),
           OutlinedButton.icon(
             onPressed: busy ? null : onPrint,
-            icon: const Icon(
-              Icons.print_outlined,
-            ),
+            icon: const Icon(Icons.print_outlined),
             label: const Text('Print'),
           ),
           PopupMenuButton<String>(
@@ -917,20 +814,11 @@ class _ExportToolbar extends StatelessWidget {
               }
             },
             itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'pdf',
-                child: Text('Share PDF'),
-              ),
-              PopupMenuItem(
-                value: 'png',
-                child: Text('Share PNG'),
-              ),
+              PopupMenuItem(value: 'pdf', child: Text('Share PDF')),
+              PopupMenuItem(value: 'png', child: Text('Share PNG')),
             ],
             child: const Chip(
-              avatar: Icon(
-                Icons.share_outlined,
-                size: 18,
-              ),
+              avatar: Icon(Icons.share_outlined, size: 18),
               label: Text('Share'),
             ),
           ),
@@ -949,17 +837,11 @@ class _EmptyPreview extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 68,
-            color: _textSecondary,
-          ),
+          Icon(Icons.receipt_long_outlined, size: 68, color: _textSecondary),
           SizedBox(height: 14),
           Text(
             'Select a salary record to preview the Salary Slip.',
-            style: TextStyle(
-              color: _textSecondary,
-            ),
+            style: TextStyle(color: _textSecondary),
           ),
         ],
       ),
@@ -968,10 +850,7 @@ class _EmptyPreview extends StatelessWidget {
 }
 
 class _Failure extends StatelessWidget {
-  const _Failure({
-    required this.message,
-    required this.onRetry,
-  });
+  const _Failure({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -984,16 +863,9 @@ class _Failure extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onRetry,
@@ -1006,5 +878,3 @@ class _Failure extends StatelessWidget {
     );
   }
 }
-
-

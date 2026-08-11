@@ -127,12 +127,28 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isMobile = MediaQuery.sizeOf(context).width < 900;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
+      appBar: isMobile
+          ? AppBar(
+              title: const Text('School Dashboard'),
+              actions: [
+                IconButton(
+                  onPressed: _isRefreshing ? null : _refresh,
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh_rounded, size: 21),
+                ),
+              ],
+            )
+          : null,
+      drawer: isMobile
+          ? const Drawer(width: 286, child: SafeArea(child: Sidebar()))
+          : null,
       body: Row(
         children: [
-          const SizedBox(width: 250, child: Sidebar()),
+          if (!isMobile) const SizedBox(width: 250, child: Sidebar()),
           Expanded(
             child: SafeArea(
               child: FutureBuilder<_DashboardData>(
@@ -146,15 +162,20 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                     onRefresh: _refresh,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      padding: EdgeInsets.fromLTRB(
+                        isMobile ? 12 : 20,
+                        isMobile ? 12 : 16,
+                        isMobile ? 12 : 20,
+                        16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 22,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 16 : 24,
+                              vertical: isMobile ? 16 : 22,
                             ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
@@ -179,8 +200,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             child: Row(
                               children: [
                                 Container(
-                                  width: 52,
-                                  height: 52,
+                                  width: isMobile ? 42 : 52,
+                                  height: isMobile ? 42 : 52,
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.14),
                                     borderRadius: BorderRadius.circular(15),
@@ -193,7 +214,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                   child: const Icon(
                                     Icons.dashboard_rounded,
                                     color: Colors.white,
-                                    size: 27,
+                                    size: 23,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -210,46 +231,49 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                               fontWeight: FontWeight.w800,
                                             ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'A live overview of students, attendance and school operations',
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.82,
+                                      if (!isMobile) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'A live overview of students, attendance and school operations',
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.82,
+                                                ),
                                               ),
-                                            ),
-                                      ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
-                                IconButton.filledTonal(
-                                  onPressed: _isRefreshing ? null : _refresh,
-                                  tooltip: 'Refresh dashboard',
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: 0.14,
+                                if (!isMobile)
+                                  IconButton.filledTonal(
+                                    onPressed: _isRefreshing ? null : _refresh,
+                                    tooltip: 'Refresh dashboard',
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                      foregroundColor: Colors.white,
+                                      disabledForegroundColor: Colors.white70,
                                     ),
-                                    foregroundColor: Colors.white,
-                                    disabledForegroundColor: Colors.white70,
+                                    icon: _isRefreshing
+                                        ? const SizedBox.square(
+                                            dimension: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.refresh_rounded),
                                   ),
-                                  icon: _isRefreshing
-                                      ? const SizedBox.square(
-                                          dimension: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.refresh_rounded),
-                                ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 18),
                           _StatsGrid(data: data),
                           const SizedBox(height: 14),
-                          _ClassAttendanceChart(data: data),
+                          _DashboardCharts(data: data),
                           const SizedBox(height: 14),
                           _PendingAttendanceCard(
                             groups: data.pendingAttendanceGroups,
@@ -282,8 +306,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                   children: [
                                     admissions,
                                     const SizedBox(height: 14),
-                                    UpcomingBirthdaysCard(
-                                      students: data.upcomingBirthdays,
+                                    _UpcomingBirthdaysCard(
+                                      birthdays: data.upcomingBirthdays,
                                     ),
                                     const SizedBox(height: 14),
                                     LatestNoticesCard(
@@ -300,8 +324,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                   Expanded(flex: 2, child: admissions),
                                   const SizedBox(width: 14),
                                   Expanded(
-                                    child: UpcomingBirthdaysCard(
-                                      students: data.upcomingBirthdays,
+                                    child: _UpcomingBirthdaysCard(
+                                      birthdays: data.upcomingBirthdays,
                                     ),
                                   ),
                                   const SizedBox(width: 14),
@@ -351,10 +375,6 @@ class _StatsGrid extends StatelessWidget {
             ? 1
             : constraints.maxWidth < 900
             ? 2
-            : constraints.maxWidth < 1200
-            ? 3
-            : constraints.maxWidth < 1450
-            ? 4
             : 5;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,29 +685,60 @@ class _DashboardData {
       (students.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
           .take(4)
           .toList();
-  List<StudentEntity> get upcomingBirthdays {
-    int days(StudentEntity student) {
-      var birthday = DateTime(
-        now.year,
-        student.dateOfBirth.month,
-        student.dateOfBirth.day,
-      );
+  List<_DashboardBirthday> get upcomingBirthdays {
+    int days(DateTime dateOfBirth) {
+      var birthday = DateTime(now.year, dateOfBirth.month, dateOfBirth.day);
       if (birthday.isBefore(DateTime(now.year, now.month, now.day))) {
-        birthday = DateTime(
-          now.year + 1,
-          student.dateOfBirth.month,
-          student.dateOfBirth.day,
-        );
+        birthday = DateTime(now.year + 1, dateOfBirth.month, dateOfBirth.day);
       }
       return birthday.difference(DateTime(now.year, now.month, now.day)).inDays;
     }
 
+    final classNames = {for (final item in classes) item.id: item.name};
     final values =
-        students
-            .where((student) => student.isActive && days(student) <= 30)
-            .toList()
-          ..sort((a, b) => days(a).compareTo(days(b)));
-    return values.take(2).toList();
+        <_DashboardBirthday>[
+          ...students
+              .where((item) => item.isActive)
+              .map(
+                (item) => _DashboardBirthday(
+                  id: item.id,
+                  name: item.fullName,
+                  dateOfBirth: item.dateOfBirth,
+                  type: _BirthdayPersonType.student,
+                  details: [
+                    if (item.fatherName.trim().isNotEmpty)
+                      'Father: ${item.fatherName.trim()}',
+                    'Class: ${classNames[item.classId] ?? item.classId}',
+                  ].join('  •  '),
+                ),
+              ),
+          ...teachers
+              .where((item) => item.isActive)
+              .map(
+                (item) => _DashboardBirthday(
+                  id: item.id,
+                  name: item.fullName,
+                  dateOfBirth: item.dateOfBirth,
+                  type: _BirthdayPersonType.teacher,
+                  details: item.designation.trim(),
+                ),
+              ),
+          ...staff
+              .where((item) => item.isActive && item.dateOfBirth != null)
+              .map(
+                (item) => _DashboardBirthday(
+                  id: item.id,
+                  name: item.fullName,
+                  dateOfBirth: item.dateOfBirth!,
+                  type: _BirthdayPersonType.staff,
+                  details: item.designation.trim(),
+                ),
+              ),
+        ].where((item) => days(item.dateOfBirth) <= 10).toList()..sort((a, b) {
+          final dateOrder = days(a.dateOfBirth).compareTo(days(b.dateOfBirth));
+          return dateOrder != 0 ? dateOrder : a.name.compareTo(b.name);
+        });
+    return List.unmodifiable(values);
   }
 
   List<NoticeEntity> get latestNotices {
@@ -1183,6 +1234,35 @@ class DashboardStatCard extends StatelessWidget {
   }
 }
 
+class _DashboardCharts extends StatelessWidget {
+  const _DashboardCharts({required this.data});
+
+  final _DashboardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final attendance = _ClassAttendanceChart(data: data);
+        final fees = _ClassFeeCollectionChart(data: data);
+        if (constraints.maxWidth < 1050) {
+          return Column(
+            children: [attendance, const SizedBox(height: 14), fees],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: attendance),
+            const SizedBox(width: 14),
+            Expanded(child: fees),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _ClassAttendanceChart extends StatelessWidget {
   const _ClassAttendanceChart({required this.data});
 
@@ -1286,11 +1366,10 @@ class _ClassAttendanceChart extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 285,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: points.length < 7 ? 900 : points.length * 105,
+              height: 250,
+              child: LayoutBuilder(
+                builder: (context, constraints) => SizedBox(
+                  width: constraints.maxWidth,
                   child: BarChart(
                     BarChartData(
                       minY: 0,
@@ -1345,7 +1424,7 @@ class _ClassAttendanceChart extends StatelessWidget {
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: AppColors.ink,
-                                    fontSize: 11,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -1388,7 +1467,7 @@ class _ClassAttendanceChart extends StatelessWidget {
                             barRods: [
                               BarChartRodData(
                                 toY: 100,
-                                width: 24,
+                                width: 14,
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(7),
                                 ),
@@ -1460,6 +1539,288 @@ class _ClassAttendanceChart extends StatelessWidget {
       );
     }
     return result;
+  }
+}
+
+class _ClassFeeCollectionChart extends StatelessWidget {
+  const _ClassFeeCollectionChart({required this.data});
+
+  final _DashboardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = _points();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF0F9D74).withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F9D74).withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF047857)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.payments_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Class Fee Collection',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Paid and pending students this month',
+                      style: TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const _ChartLegend(color: Color(0xFF10B981), label: 'Paid'),
+              const SizedBox(width: 12),
+              const _ChartLegend(color: Color(0xFFFFB020), label: 'Pending'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          if (points.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 34),
+              decoration: BoxDecoration(
+                color: AppColors.canvas,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.receipt_long_rounded,
+                    color: Color(0xFF0F9D74),
+                    size: 34,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Current month fee dues have not been generated yet.',
+                    style: TextStyle(color: AppColors.inkMuted),
+                  ),
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              height: 250,
+              child: LayoutBuilder(
+                builder: (context, constraints) => SizedBox(
+                  width: constraints.maxWidth,
+                  child: BarChart(
+                    BarChartData(
+                      minY: 0,
+                      maxY: 100,
+                      alignment: BarChartAlignment.spaceAround,
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 25,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                          color: AppColors.border.withValues(alpha: 0.75),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            interval: 25,
+                            getTitlesWidget: (value, meta) => Text(
+                              '${value.toInt()}%',
+                              style: const TextStyle(
+                                color: AppColors.inkMuted,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index < 0 || index >= points.length) {
+                                return const SizedBox.shrink();
+                              }
+                              return SideTitleWidget(
+                                meta: meta,
+                                space: 9,
+                                child: Text(
+                                  points[index].className,
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => AppColors.ink,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final point = points[group.x];
+                            return BarTooltipItem(
+                              '${point.className}\n',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text:
+                                      '${point.paid} paid • ${point.pending} pending',
+                                  style: const TextStyle(
+                                    color: Color(0xFFDDF8ED),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      barGroups: [
+                        for (var index = 0; index < points.length; index++)
+                          BarChartGroupData(
+                            x: index,
+                            barRods: [
+                              BarChartRodData(
+                                toY: 100,
+                                width: 14,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(7),
+                                ),
+                                rodStackItems: [
+                                  BarChartRodStackItem(
+                                    0,
+                                    points[index].paidPercentage,
+                                    const Color(0xFF10B981),
+                                  ),
+                                  BarChartRodStackItem(
+                                    points[index].paidPercentage,
+                                    100,
+                                    const Color(0xFFFFB020),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    duration: const Duration(milliseconds: 650),
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<_ClassFeePoint> _points() {
+    final activeClasses = data.classes.where((item) => item.isActive).toList()
+      ..sort((a, b) => compareAcademicClassNames(a.name, b.name));
+    final result = <_ClassFeePoint>[];
+    for (final academicClass in activeClasses) {
+      final duesByStudent = <String, MonthlyFeeDueEntity>{};
+      for (final due in data.dues) {
+        final sameClass =
+            due.classId == academicClass.id ||
+            due.classId.trim().toLowerCase() ==
+                academicClass.name.trim().toLowerCase();
+        if (sameClass &&
+            due.year == data.now.year &&
+            due.month == data.now.month &&
+            due.status != MonthlyFeeDueStatus.cancelled) {
+          duesByStudent[due.studentId] = due;
+        }
+      }
+      if (duesByStudent.isEmpty) continue;
+      final paid = duesByStudent.values
+          .where((due) => due.outstandingAmount <= 0)
+          .length;
+      result.add(
+        _ClassFeePoint(
+          className: academicClass.name,
+          paid: paid,
+          pending: duesByStudent.length - paid,
+        ),
+      );
+    }
+    return result;
+  }
+}
+
+class _ClassFeePoint {
+  const _ClassFeePoint({
+    required this.className,
+    required this.paid,
+    required this.pending,
+  });
+
+  final String className;
+  final int paid;
+  final int pending;
+
+  double get paidPercentage {
+    final total = paid + pending;
+    return total == 0 ? 0 : paid * 100 / total;
   }
 }
 
@@ -1643,40 +2004,101 @@ class RecentAdmissionsCard extends StatelessWidget {
   }
 }
 
-class UpcomingBirthdaysCard extends StatelessWidget {
-  const UpcomingBirthdaysCard({super.key, required this.students});
-  final List<StudentEntity> students;
+class _UpcomingBirthdaysCard extends StatelessWidget {
+  const _UpcomingBirthdaysCard({required this.birthdays});
+  final List<_DashboardBirthday> birthdays;
 
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
       title: 'Upcoming Birthdays',
-      subtitle: 'Celebrations in the next 30 days',
+      subtitle: 'Celebrations in the next 10 days',
       icon: Icons.cake_rounded,
       color: const Color(0xFFE54868),
-      children: students.isEmpty
+      children: birthdays.isEmpty
           ? const [
               _DashboardEmptyState(
                 icon: Icons.cake_outlined,
                 color: Color(0xFFE54868),
-                message: 'No birthdays in the next 30 days.',
+                message: 'No birthdays in the next 10 days.',
               ),
             ]
-          : students
+          : birthdays
                 .map(
-                  (student) => ListTile(
+                  (birthday) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const CircleAvatar(
                       backgroundColor: Color(0xFFFFE8EF),
                       child: Icon(Icons.cake, color: Color(0xFFE54868)),
                     ),
-                    title: Text(student.fullName),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            birthday.name,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        _BirthdayTypeBadge(type: birthday.type),
+                      ],
+                    ),
                     subtitle: Text(
-                      '${student.dateOfBirth.day}/${student.dateOfBirth.month}',
+                      [
+                        '${birthday.dateOfBirth.day}/${birthday.dateOfBirth.month}',
+                        if (birthday.details.isNotEmpty) birthday.details,
+                      ].join('  •  '),
                     ),
                   ),
                 )
                 .toList(),
+    );
+  }
+}
+
+enum _BirthdayPersonType { student, teacher, staff }
+
+class _DashboardBirthday {
+  const _DashboardBirthday({
+    required this.id,
+    required this.name,
+    required this.dateOfBirth,
+    required this.type,
+    required this.details,
+  });
+
+  final String id;
+  final String name;
+  final DateTime dateOfBirth;
+  final _BirthdayPersonType type;
+  final String details;
+}
+
+class _BirthdayTypeBadge extends StatelessWidget {
+  const _BirthdayTypeBadge({required this.type});
+
+  final _BirthdayPersonType type;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (type) {
+      _BirthdayPersonType.student => ('Student', const Color(0xFF2563EB)),
+      _BirthdayPersonType.teacher => ('Teacher', const Color(0xFF7C3AED)),
+      _BirthdayPersonType.staff => ('Staff', const Color(0xFF0F9D74)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

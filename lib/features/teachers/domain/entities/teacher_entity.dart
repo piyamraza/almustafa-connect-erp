@@ -1,4 +1,4 @@
-﻿import 'package:equatable/equatable.dart';
+import 'package:equatable/equatable.dart';
 
 class TeacherEntity extends Equatable {
   const TeacherEntity({
@@ -6,6 +6,7 @@ class TeacherEntity extends Equatable {
     required this.employeeId,
     required this.firstName,
     required this.lastName,
+    this.fatherName = '',
     required this.gender,
     required this.cnic,
     required this.dateOfBirth,
@@ -28,6 +29,7 @@ class TeacherEntity extends Equatable {
   final String employeeId;
   final String firstName;
   final String lastName;
+  final String fatherName;
   final String gender;
   final String cnic;
   final DateTime dateOfBirth;
@@ -53,6 +55,7 @@ class TeacherEntity extends Equatable {
     employeeId,
     firstName,
     lastName,
+    fatherName,
     gender,
     cnic,
     dateOfBirth,
@@ -71,4 +74,3 @@ class TeacherEntity extends Equatable {
     updatedAt,
   ];
 }
-

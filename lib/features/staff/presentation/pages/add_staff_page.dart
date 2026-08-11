@@ -55,6 +55,7 @@ class _AddStaffViewState extends State<_AddStaffView> {
       firstName: data.firstName,
       lastName: data.lastName,
       fatherName: data.fatherName,
+      dateOfBirth: data.dateOfBirth,
       cnic: data.cnic,
       phone: data.phone,
       whatsappNumber: data.whatsappNumber,

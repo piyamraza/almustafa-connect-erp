@@ -4,6 +4,7 @@ import 'package:almustafa_connect_erp/features/academic_structure/domain/service
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../domain/entities/result_analytics_entity.dart';
 import '../../domain/usecases/results_analytics_calculator.dart';
+import '../../../exams/domain/services/result_subject_grouping_service.dart';
 
 sealed class ResultsAnalyticsState extends Equatable {
   const ResultsAnalyticsState();
@@ -107,7 +108,9 @@ class ResultsAnalyticsLoaded extends ResultsAnalyticsState {
       data,
       filter.copyWith(clearSubject: true, clearStudent: true),
     )) {
-      for (final subject in result.subjectResults) {
+      for (final subject in ResultSubjectGroupingService.group(
+        result.subjectResults,
+      )) {
         if (subject.subjectName.trim().isNotEmpty) {
           values.add(subject.subjectName);
         }

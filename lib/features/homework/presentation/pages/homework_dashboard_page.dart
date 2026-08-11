@@ -124,15 +124,16 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
           title: const Text('Homework & Syllabus'),
           actions: [
             const DashboardNavigationButton(),
-            TextButton.icon(
-              onPressed: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const HomeworkSubmissionsDashboardPage(),
+            if (MediaQuery.sizeOf(context).width >= 620)
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const HomeworkSubmissionsDashboardPage(),
+                  ),
                 ),
+                icon: const Icon(Icons.assignment_turned_in_outlined),
+                label: const Text('Submissions'),
               ),
-              icon: const Icon(Icons.assignment_turned_in_outlined),
-              label: const Text('Submissions'),
-            ),
           ],
           bottom: const TabBar(
             tabs: [
@@ -278,11 +279,11 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 150,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 650;
+            final heading = SizedBox(
+              width: compact ? double.infinity : 150,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -295,25 +296,21 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
                   Text('Section ${section.name}'),
                 ],
               ),
-            ),
-            const VerticalDivider(),
-            Expanded(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final subject in subjects)
-                    _subjectButton(
-                      academicClass: academicClass,
-                      section: section,
-                      subject: subject,
-                      existing: _homeworkForSubject(dailyItems, subject),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.tonalIcon(
+            );
+            final subjectList = Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final subject in subjects)
+                  _subjectButton(
+                    academicClass: academicClass,
+                    section: section,
+                    subject: subject,
+                    existing: _homeworkForSubject(dailyItems, subject),
+                  ),
+              ],
+            );
+            final preview = FilledButton.tonalIcon(
               onPressed: () => _showPreview(
                 academicClass: academicClass,
                 section: section,
@@ -322,8 +319,66 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
               ),
               icon: const Icon(Icons.visibility_outlined),
               label: const Text('Preview'),
-            ),
-          ],
+            );
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  heading,
+                  const SizedBox(height: 10),
+                  subjectList,
+                  const SizedBox(height: 10),
+                  preview,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Class ${academicClass.name}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text('Section ${section.name}'),
+                    ],
+                  ),
+                ),
+                const VerticalDivider(),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final subject in subjects)
+                        _subjectButton(
+                          academicClass: academicClass,
+                          section: section,
+                          subject: subject,
+                          existing: _homeworkForSubject(dailyItems, subject),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.tonalIcon(
+                  onPressed: () => _showPreview(
+                    academicClass: academicClass,
+                    section: section,
+                    subjects: subjects,
+                    items: dailyItems,
+                  ),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('Preview'),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

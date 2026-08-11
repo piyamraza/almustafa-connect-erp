@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/dashboard_navigation_button.dart';
+import '../../../../core/widgets/app_page_layout.dart';
 import '../../../fees/presentation/pages/fee_challan_page.dart';
 import '../../../fees/presentation/pages/fee_collection_page.dart';
 import '../../../results/presentation/pages/merit_list_page.dart';
@@ -12,8 +13,8 @@ import 'experience_certificate_preview_page.dart';
 import 'employee_card_preview_page.dart';
 import 'salary_slip_preview_page.dart';
 
-const _pageBackground = Color(0xFFF5F7FA);
-const _brandBlue = Color(0xFF0B63CE);
+const _pageBackground = Color(0xFFF4F7FC);
+const _brandBlue = Color(0xFF1765E8);
 const _borderColor = Color(0xFFE1E6ED);
 const _textPrimary = Color(0xFF182230);
 const _textSecondary = Color(0xFF667085);
@@ -45,6 +46,10 @@ class _DocumentCenterPageState extends State<DocumentCenterPage> {
 
     return Scaffold(
       backgroundColor: _pageBackground,
+      appBar: AppBar(
+        title: const Text('Document Center'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -263,47 +268,12 @@ class _DocumentCenterHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const title = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Document Center',
-              style: TextStyle(
-                color: _textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 3),
-            Text(
-              'Create, preview and manage school documents through one universal engine.',
-              style: TextStyle(color: _textSecondary, fontSize: 13),
-            ),
-          ],
-        );
-
-        if (constraints.maxWidth < 720) {
-          return const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DashboardNavigationButton(),
-              SizedBox(height: 10),
-              title,
-            ],
-          );
-        }
-
-        return const Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DashboardNavigationButton(),
-            SizedBox(width: 12),
-            Expanded(child: title),
-          ],
-        );
-      },
+    return const AppModuleHero(
+      title: 'Smart Document Center',
+      description: 'Create, preview and manage every school document.',
+      icon: Icons.folder_copy_rounded,
+      decorativeIcon: Icons.description_rounded,
+      colors: [Color(0xFF246BFD), Color(0xFF113E91)],
     );
   }
 }
@@ -325,45 +295,72 @@ class _SearchAndCategories extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: controller,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            labelText: 'Search Documents',
-            hintText: 'Search fee, result, certificate, ID card...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: controller.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Clear search',
-                    onPressed: onClear,
-                    icon: const Icon(Icons.close),
-                  ),
-            border: const OutlineInputBorder(),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _borderColor),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D0F3D77),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            onChanged: onSearchChanged,
+            decoration: InputDecoration(
+              labelText: 'Search Documents',
+              hintText: 'Search fee, result, certificate, ID card...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: controller.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: onClear,
+                      icon: const Icon(Icons.close),
+                    ),
+              filled: true,
+              fillColor: const Color(0xFFF7F9FD),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: BorderSide.none,
+              ),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final category in _DocumentCategory.values)
-              ChoiceChip(
-                label: Text(category.label),
-                selected: selectedCategory == category,
-                onSelected: (_) => onCategoryChanged(category),
-              ),
-          ],
-        ),
-      ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final category in _DocumentCategory.values)
+                ChoiceChip(
+                  avatar: Icon(category.icon, size: 17),
+                  label: Text(category.label),
+                  selected: selectedCategory == category,
+                  selectedColor: _brandBlue.withValues(alpha: .14),
+                  side: BorderSide(
+                    color: selectedCategory == category
+                        ? _brandBlue.withValues(alpha: .35)
+                        : _borderColor,
+                  ),
+                  onSelected: (_) => onCategoryChanged(category),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -420,16 +417,31 @@ class _DocumentGroupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = group.category.color;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          group.title,
-          style: const TextStyle(
-            color: _textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(group.category.icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              group.title,
+              style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 2),
         Text(
@@ -465,89 +477,129 @@ class _DocumentGroupSection extends StatelessWidget {
   }
 }
 
-class _DocumentTypeCard extends StatelessWidget {
+class _DocumentTypeCard extends StatefulWidget {
   const _DocumentTypeCard({required this.item});
 
   final _DocumentCenterItem item;
 
   @override
-  Widget build(BuildContext context) {
-    final ready = item.status == _DocumentStatus.ready;
+  State<_DocumentTypeCard> createState() => _DocumentTypeCardState();
+}
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _open(context),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: _borderColor),
-            borderRadius: BorderRadius.circular(12),
+class _DocumentTypeCardState extends State<_DocumentTypeCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final ready = item.status == _DocumentStatus.ready;
+    final color = _documentColor(item.type);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: color.withValues(alpha: _hovered ? .42 : .18),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: _hovered ? .16 : .07),
+              blurRadius: _hovered ? 22 : 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => _open(context),
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: _brandBlue.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(item.icon, color: _brandBlue, size: 19),
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(item.icon, color: color, size: 24),
+                      ),
+                      const Spacer(),
+                      _StatusBadge(status: item.status),
+                    ],
                   ),
-                  const Spacer(),
-                  _StatusBadge(status: item.status),
-                ],
-              ),
-              const SizedBox(height: 9),
-              Text(
-                item.title,
-                style: const TextStyle(
-                  color: _textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.description,
-                style: const TextStyle(
-                  color: _textSecondary,
-                  fontSize: 11,
-                  height: 1.25,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
+                  const SizedBox(height: 12),
                   Text(
-                    ready ? 'Open' : 'View',
+                    item.title,
                     style: const TextStyle(
-                      color: _brandBlue,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  const Icon(Icons.arrow_forward, size: 14, color: _brandBlue),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.description,
+                    style: const TextStyle(
+                      color: _textSecondary,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        ready ? 'Open' : 'View',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Icon(Icons.arrow_forward_rounded, size: 15, color: color),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  Color _documentColor(DocumentType type) {
+    final index = DocumentType.values.indexOf(type);
+    const colors = [
+      Color(0xFF246BFD),
+      Color(0xFF8B5CF6),
+      Color(0xFF0AA47A),
+      Color(0xFFEF6C45),
+      Color(0xFF06A7C6),
+      Color(0xFFEC4899),
+      Color(0xFFF59E0B),
+    ];
+    return colors[index % colors.length];
+  }
+
   void _open(BuildContext context) {
-    switch (item.type) {
+    switch (widget.item.type) {
       case DocumentType.birthdayCard:
         _push(context, const SchoolEngagementPage());
         return;
@@ -634,6 +686,20 @@ extension _DocumentCategoryX on _DocumentCategory {
       _DocumentCategory.staff => 'Staff',
     };
   }
+
+  IconData get icon => switch (this) {
+    _DocumentCategory.all => Icons.grid_view_rounded,
+    _DocumentCategory.student => Icons.school_rounded,
+    _DocumentCategory.academic => Icons.auto_stories_rounded,
+    _DocumentCategory.staff => Icons.badge_rounded,
+  };
+
+  Color get color => switch (this) {
+    _DocumentCategory.all => _brandBlue,
+    _DocumentCategory.student => const Color(0xFF246BFD),
+    _DocumentCategory.academic => const Color(0xFF8B5CF6),
+    _DocumentCategory.staff => const Color(0xFF0AA47A),
+  };
 }
 
 class _DocumentGroup {

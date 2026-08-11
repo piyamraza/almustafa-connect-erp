@@ -42,7 +42,8 @@ class _MeritListViewState extends State<_MeritListView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Merit List'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () => context.read<ResultsBloc>().add(
@@ -233,6 +234,7 @@ class _MeritTable extends StatelessWidget {
         return Card(
           clipBehavior: Clip.antiAlias,
           child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             child: DataTable(
               headingRowColor: WidgetStatePropertyAll(
                 Theme.of(context).colorScheme.surfaceContainerHighest,

@@ -58,8 +58,15 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
       if (!mounted) return;
       setState(() {
         _sessions = sessions;
-        _loading = false;
+        _error = sessions.isEmpty
+            ? 'No Final Exam session was found. Create a Final Exam or publish its result first.'
+            : null;
       });
+      if (sessions.isNotEmpty) {
+        await _selectSession(sessions.last);
+      } else if (mounted) {
+        setState(() => _loading = false);
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -87,6 +94,12 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
         setState(() {
           _exams = exams;
           _loading = false;
+          _error = exams.isEmpty
+              ? 'No Final Exam / Final Result was found for $value.'
+              : null;
+          if (exams.length == 1) {
+            _examId = exams.single.id;
+          }
         });
       }
     } catch (error) {
@@ -134,7 +147,7 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
     return preview.items
         .where((item) {
           return (_classFilter == null ||
-                  item.previousClassId == _classFilter) &&
+                  _matchesClassFilter(item, _classFilter!)) &&
               (_actionFilter == null || item.action == _actionFilter) &&
               (_resultFilter == null || item.resultStatus == _resultFilter) &&
               (query.isEmpty ||
@@ -523,10 +536,7 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
             items:
                 (item.action == AnnualPromotionAction.promote
                         ? preview.classes.skip(
-                            preview.classes.indexWhere(
-                                  (value) => value.id == item.previousClassId,
-                                ) +
-                                1,
+                            _classIndex(item.previousClassId) + 1,
                           )
                         : preview.classes.where(
                             (value) => value.id == item.targetClassId,
@@ -585,15 +595,24 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
       item.action = action;
       item.warning = '';
       if (action == AnnualPromotionAction.retain) {
-        item.targetClassId = item.previousClassId;
-        item.targetSectionId = item.previousSectionId;
+        final classIndex = _classIndex(item.previousClassId);
+        item.targetClassId = classIndex < 0
+            ? null
+            : _preview!.classes[classIndex].id;
+        item.targetSectionId = _preview!.sections
+            .where(
+              (section) =>
+                  section.classId == item.targetClassId &&
+                  (_same(section.id, item.previousSectionId) ||
+                      _same(section.name, item.previousSectionId)),
+            )
+            .firstOrNull
+            ?.id;
       } else if (action == AnnualPromotionAction.noAction) {
         item.targetClassId = null;
         item.targetSectionId = null;
       } else if (action == AnnualPromotionAction.promote) {
-        final index = _preview!.classes.indexWhere(
-          (value) => value.id == item.previousClassId,
-        );
+        final index = _classIndex(item.previousClassId);
         if (index < 0 || index + 1 >= _preview!.classes.length) {
           item.warning = 'Select a target class.';
           item.targetClassId = null;
@@ -649,10 +668,43 @@ class _AnnualPromotionPageState extends State<AnnualPromotionPage> {
     ),
   );
 
-  String _className(String id) =>
-      _preview!.classes.where((item) => item.id == id).firstOrNull?.name ?? id;
-  String _sectionName(String id) =>
-      _preview!.sections.where((item) => item.id == id).firstOrNull?.name ?? '';
+  bool _matchesClassFilter(AnnualPromotionPreviewItem item, String classId) {
+    final selected = _preview!.classes
+        .where((value) => value.id == classId)
+        .firstOrNull;
+    if (selected == null) return false;
+    final source = item.result?.classId ?? item.previousClassId;
+    return _same(source, selected.id) || _same(source, selected.name);
+  }
+
+  int _classIndex(String value) {
+    final byName = _preview!.classes.indexWhere(
+      (item) => _same(item.name, value),
+    );
+    return byName >= 0
+        ? byName
+        : _preview!.classes.indexWhere((item) => _same(item.id, value));
+  }
+
+  String _className(String value) {
+    final index = _classIndex(value);
+    return index < 0 ? value : _preview!.classes[index].name;
+  }
+
+  String _sectionName(String value) {
+    final byName = _preview!.sections
+        .where((item) => _same(item.name, value))
+        .firstOrNull;
+    return byName?.name ??
+        _preview!.sections
+            .where((item) => _same(item.id, value))
+            .firstOrNull
+            ?.name ??
+        '';
+  }
+
+  bool _same(String first, String second) =>
+      first.trim().toLowerCase() == second.trim().toLowerCase();
   String _message(Object error) =>
       error.toString().replaceFirst('Bad state: ', '');
   String _actionLabel(AnnualPromotionAction value) => switch (value) {

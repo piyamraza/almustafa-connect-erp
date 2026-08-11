@@ -20,17 +20,33 @@ class SchoolStoreDashboardPage extends StatelessWidget {
   );
 }
 
-class _View extends StatelessWidget {
+class _View extends StatefulWidget {
   const _View();
+
+  @override
+  State<_View> createState() => _ViewState();
+}
+
+class _ViewState extends State<_View> {
+  final _searchController = TextEditingController();
+  StoreItemCategory? _category;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFFF4F7FC),
     appBar: AppBar(
       title: const Text('School Store'),
       actions: const [DashboardNavigationButton()],
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _dialog(context),
-      icon: const Icon(Icons.add),
+      icon: const Icon(Icons.add_rounded),
       label: const Text('Add Item'),
     ),
     body: BlocConsumer<SchoolStoreBloc, SchoolStoreState>(
@@ -45,149 +61,186 @@ class _View extends StatelessWidget {
         if (s is SchoolStoreInitial || s is SchoolStoreLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (s is SchoolStoreFailure) return Center(child: Text(s.message));
-        final d = s as SchoolStoreLoaded;
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+        if (s is SchoolStoreFailure) {
+          return Center(child: Text(s.message));
+        }
+        final data = s as SchoolStoreLoaded;
+        final query = _searchController.text.trim().toLowerCase();
+        final items = data.items.where((item) {
+          final matchesQuery =
+              query.isEmpty ||
+              '${item.name} ${item.itemCode} ${item.category.name}'
+                  .toLowerCase()
+                  .contains(query);
+          return matchesQuery &&
+              (_category == null || item.category == _category);
+        }).toList();
+        final profitValue = data.items.fold<double>(
+          0,
+          (sum, item) => sum + item.unitProfit * item.currentStock,
+        );
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final kpiColumns = constraints.maxWidth >= 1050
+                ? 4
+                : constraints.maxWidth >= 620
+                ? 2
+                : 1;
+            final itemColumns = constraints.maxWidth >= 1220
+                ? 3
+                : constraints.maxWidth >= 760
+                ? 2
+                : 1;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               children: [
-                _card(
-                  c,
-                  'Items',
-                  '${d.items.length}',
-                  Icons.inventory_2_outlined,
-                ),
-                _card(
-                  c,
-                  'Balance Stock',
-                  '${d.totalStock}',
-                  Icons.warehouse_outlined,
-                ),
-                _card(
-                  c,
-                  'Low Stock',
-                  '${d.lowStockItems}',
-                  Icons.warning_amber_outlined,
-                ),
-                _card(
-                  c,
-                  'Stock Value',
-                  'Rs. ${d.stockValue.toStringAsFixed(0)}',
-                  Icons.account_balance_wallet_outlined,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  Navigator.of(c).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const StorePurchasesPage(),
+                const _StoreHero(),
+                const SizedBox(height: 18),
+                GridView.count(
+                  crossAxisCount: kpiColumns,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 2.65,
+                  children: [
+                    _StoreKpi(
+                      'Total Items',
+                      '${data.items.length}',
+                      Icons.inventory_2_rounded,
+                      const Color(0xFF246BFD),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.local_shipping_outlined),
-                label: const Text('Suppliers & Purchases'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  Navigator.of(c).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const StoreSalesPage(),
+                    _StoreKpi(
+                      'Units in Stock',
+                      '${data.totalStock}',
+                      Icons.warehouse_rounded,
+                      const Color(0xFF0AA47A),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.point_of_sale),
-                label: const Text('Student Sales'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  Navigator.of(c).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const StorePaymentsPage(),
+                    _StoreKpi(
+                      'Low Stock',
+                      '${data.lowStockItems}',
+                      Icons.warning_amber_rounded,
+                      const Color(0xFFEF6C45),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Payments & Outstanding'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  Navigator.of(c).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const StoreReportsPage(),
+                    _StoreKpi(
+                      'Stock Value',
+                      'Rs. ${data.stockValue.toStringAsFixed(0)}',
+                      Icons.account_balance_wallet_rounded,
+                      const Color(0xFF8B5CF6),
+                      helper:
+                          'Potential margin Rs. ${profitValue.toStringAsFixed(0)}',
                     ),
-                  );
-                },
-                icon: const Icon(Icons.bar_chart_outlined),
-                label: const Text('Reports'),
-              ),
-            ),
-            const SizedBox(height: 18),
-            ...d.items.map(
-              (e) => Card(
-                child: ListTile(
-                  title: Text(e.name),
-                  subtitle: Text(
-                    '${e.category.name} | Purchase Rs. ${e.purchasePrice.toStringAsFixed(0)} | Sale Rs. ${e.salePrice.toStringAsFixed(0)}',
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Store Operations',
+                  style: TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF14213D),
                   ),
-                  trailing: Text('Stock ${e.currentStock}'),
-                  onTap: () => _dialog(c, existing: e),
                 ),
-              ),
-            ),
-          ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StoreAction(
+                        'Suppliers & Purchases',
+                        Icons.local_shipping_rounded,
+                        const Color(0xFF246BFD),
+                        () => _open(c, const StorePurchasesPage()),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _StoreAction(
+                        'Student Sales',
+                        Icons.point_of_sale_rounded,
+                        const Color(0xFF0AA47A),
+                        () => _open(c, const StoreSalesPage()),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _StoreAction(
+                        'Payments & Outstanding',
+                        Icons.payments_rounded,
+                        const Color(0xFFF59E0B),
+                        () => _open(c, const StorePaymentsPage()),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _StoreAction(
+                        'Reports',
+                        Icons.bar_chart_rounded,
+                        const Color(0xFF8B5CF6),
+                        () => _open(c, const StoreReportsPage()),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Inventory',
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF14213D),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${items.length} items',
+                      style: TextStyle(color: Colors.blueGrey.shade600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _StoreFilters(
+                  controller: _searchController,
+                  category: _category,
+                  onSearch: (_) => setState(() {}),
+                  onCategory: (value) => setState(() => _category = value),
+                  onClear: () => setState(() {
+                    _searchController.clear();
+                    _category = null;
+                  }),
+                ),
+                const SizedBox(height: 14),
+                if (items.isEmpty)
+                  const _EmptyInventory()
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: itemColumns,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      mainAxisExtent: 164,
+                    ),
+                    itemBuilder: (_, index) => _InventoryCard(
+                      item: items[index],
+                      onTap: () => _dialog(c, existing: items[index]),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     ),
   );
 
-  static Widget _card(BuildContext c, String t, String v, IconData i) =>
-      SizedBox(
-        width: 220,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                CircleAvatar(child: Icon(i)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(t),
-                      Text(
-                        v,
-                        style: Theme.of(c).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+  static void _open(BuildContext context, Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
   static Future<void> _dialog(
     BuildContext context, {
@@ -307,3 +360,453 @@ class _View extends StatelessWidget {
     l.dispose();
   }
 }
+
+class _StoreHero extends StatelessWidget {
+  const _StoreHero();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 136,
+    padding: const EdgeInsets.symmetric(horizontal: 26),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF176BEF), Color(0xFF0B3D91)],
+      ),
+      borderRadius: BorderRadius.circular(25),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x30176BEF),
+          blurRadius: 25,
+          offset: Offset(0, 10),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 66,
+          height: 66,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(
+            Icons.storefront_rounded,
+            color: Colors.white,
+            size: 37,
+          ),
+        ),
+        const SizedBox(width: 20),
+        const Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'School Store Command Center',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Inventory, purchases, student sales and payments in one place.',
+                style: TextStyle(color: Color(0xFFE8F1FF), fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+        Icon(
+          Icons.shopping_bag_rounded,
+          size: 98,
+          color: Colors.white.withValues(alpha: .08),
+        ),
+      ],
+    ),
+  );
+}
+
+class _StoreKpi extends StatelessWidget {
+  const _StoreKpi(this.label, this.value, this.icon, this.color, {this.helper});
+  final String label, value;
+  final IconData icon;
+  final Color color;
+  final String? helper;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(19),
+      border: Border.all(color: color.withValues(alpha: .18)),
+      boxShadow: [
+        BoxShadow(
+          color: color.withValues(alpha: .07),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: color, size: 26),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF14213D),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(label, style: TextStyle(color: Colors.blueGrey.shade600)),
+              if (helper != null)
+                Text(
+                  helper!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _StoreAction extends StatelessWidget {
+  const _StoreAction(this.label, this.icon, this.color, this.onTap);
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 92,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: .22)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: Icon(icon, color: color, size: 30),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF14213D),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(Icons.arrow_forward_rounded, color: color, size: 19),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _StoreFilters extends StatelessWidget {
+  const _StoreFilters({
+    required this.controller,
+    required this.category,
+    required this.onSearch,
+    required this.onCategory,
+    required this.onClear,
+  });
+  final TextEditingController controller;
+  final StoreItemCategory? category;
+  final ValueChanged<String> onSearch;
+  final ValueChanged<StoreItemCategory?> onCategory;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(17),
+      border: Border.all(color: const Color(0xFFE0E7F2)),
+    ),
+    child: Wrap(
+      spacing: 12,
+      runSpacing: 10,
+      children: [
+        SizedBox(
+          width: 360,
+          child: TextField(
+            controller: controller,
+            onChanged: onSearch,
+            decoration: InputDecoration(
+              hintText: 'Search item, code or category...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: const Color(0xFFF7F9FD),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 210,
+          child: DropdownButtonFormField<StoreItemCategory?>(
+            initialValue: category,
+            decoration: InputDecoration(
+              labelText: 'Category',
+              filled: true,
+              fillColor: const Color(0xFFF7F9FD),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            items: [
+              const DropdownMenuItem(
+                value: null,
+                child: Text('All Categories'),
+              ),
+              ...StoreItemCategory.values.map(
+                (value) => DropdownMenuItem(
+                  value: value,
+                  child: Text(_categoryLabel(value)),
+                ),
+              ),
+            ],
+            onChanged: onCategory,
+          ),
+        ),
+        if (controller.text.isNotEmpty || category != null)
+          TextButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.filter_alt_off_rounded),
+            label: const Text('Clear'),
+          ),
+      ],
+    ),
+  );
+}
+
+class _InventoryCard extends StatelessWidget {
+  const _InventoryCard({required this.item, required this.onTap});
+  final StoreItemEntity item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final low = item.isLowStock;
+    final color = low ? const Color(0xFFEF4444) : const Color(0xFF0AA47A);
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(19),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(19),
+        child: Container(
+          padding: const EdgeInsets.all(17),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(color: color.withValues(alpha: .2)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0B173D6B),
+                blurRadius: 14,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF246BFD).withValues(alpha: .11),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_rounded,
+                      color: Color(0xFF246BFD),
+                      size: 23,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF14213D),
+                          ),
+                        ),
+                        Text(
+                          _categoryLabel(item.category),
+                          style: TextStyle(color: Colors.blueGrey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: .1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      low ? 'Low Stock' : 'In Stock',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  _InventoryValue(
+                    'Purchase',
+                    'Rs. ${item.purchasePrice.toStringAsFixed(0)}',
+                  ),
+                  _InventoryValue(
+                    'Sale',
+                    'Rs. ${item.salePrice.toStringAsFixed(0)}',
+                  ),
+                  _InventoryValue(
+                    'Profit',
+                    'Rs. ${item.unitProfit.toStringAsFixed(0)}',
+                  ),
+                  _InventoryValue(
+                    'Stock',
+                    '${item.currentStock}',
+                    accent: color,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InventoryValue extends StatelessWidget {
+  const _InventoryValue(this.label, this.value, {this.accent});
+  final String label, value;
+  final Color? accent;
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.blueGrey.shade500, fontSize: 11),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            color: accent ?? const Color(0xFF33415C),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _EmptyInventory extends StatelessWidget {
+  const _EmptyInventory();
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 180,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE0E7F2)),
+    ),
+    child: const Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.inventory_2_outlined, size: 44, color: Color(0xFF94A3B8)),
+        SizedBox(height: 9),
+        Text(
+          'No inventory items found.',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF475569),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+String _categoryLabel(StoreItemCategory category) => switch (category) {
+  StoreItemCategory.book => 'Books',
+  StoreItemCategory.copy => 'Copies',
+  StoreItemCategory.diary => 'Diaries',
+  StoreItemCategory.stationery => 'Stationery',
+  StoreItemCategory.other => 'Other',
+};

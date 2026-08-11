@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../attendance/domain/entities/attendance_entity.dart';
@@ -74,7 +75,10 @@ class _ParentAttendancePageState extends State<ParentAttendancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.student.fullName} Attendance')),
+      appBar: AppBar(
+        title: Text('${widget.student.fullName} Attendance'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }

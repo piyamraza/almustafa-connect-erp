@@ -1,10 +1,11 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
+import '../../../exams/domain/services/result_subject_grouping_service.dart';
 import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
 import '../../domain/entities/document_branding_entity.dart';
@@ -26,24 +27,18 @@ const _brandBlue = Color(0xFF0B63CE);
 const _borderColor = Color(0xFFE1E6ED);
 
 class ResultCardPreviewPage extends StatefulWidget {
-  const ResultCardPreviewPage({
-    super.key,
-    required this.result,
-  });
+  const ResultCardPreviewPage({super.key, required this.result});
 
   final ExamResultEntity result;
 
   @override
-  State<ResultCardPreviewPage> createState() =>
-      _ResultCardPreviewPageState();
+  State<ResultCardPreviewPage> createState() => _ResultCardPreviewPageState();
 }
 
-class _ResultCardPreviewPageState
-    extends State<ResultCardPreviewPage> {
+class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
   final GlobalKey _documentBoundaryKey = GlobalKey();
 
-  final DocumentExportService _exportService =
-      const DocumentExportService();
+  final DocumentExportService _exportService = const DocumentExportService();
 
   late Future<SchoolSettingsEntity> _settingsFuture;
 
@@ -62,18 +57,13 @@ class _ResultCardPreviewPageState
       body: SafeArea(
         child: Column(
           children: [
-            _PreviewHeader(
-              studentName: widget.result.studentName,
-            ),
+            _PreviewHeader(studentName: widget.result.studentName),
             Expanded(
               child: FutureBuilder<SchoolSettingsEntity>(
                 future: _settingsFuture,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (snapshot.hasError) {
@@ -87,8 +77,7 @@ class _ResultCardPreviewPageState
 
                   if (settings == null) {
                     return _LoadFailure(
-                      message:
-                          'School Settings could not be loaded.',
+                      message: 'School Settings could not be loaded.',
                       onRetry: _reload,
                     );
                   }
@@ -103,9 +92,7 @@ class _ResultCardPreviewPageState
     );
   }
 
-  Widget _buildPreview(
-    SchoolSettingsEntity settings,
-  ) {
+  Widget _buildPreview(SchoolSettingsEntity settings) {
     final template = buildResultCardTemplateV1();
     final branding = _buildBranding(settings);
     final data = _buildDocumentData();
@@ -114,28 +101,26 @@ class _ResultCardPreviewPageState
       ...data.values,
       'branding': {
         'schoolName': branding.schoolName,
+        'schoolAddress': settings.address,
         'schoolLogo': branding.schoolLogoUrl,
         'principalName': branding.principalName,
-        'principalDesignation':
-            branding.principalDesignation,
-        'principalSignature':
-            branding.principalSignatureUrl,
-        'schoolStamp': branding.schoolStampUrl,
+        'principalDesignation': branding.principalDesignation,
+        // Printed cards use clean signature lines. This avoids broken-image
+        // placeholders when branding contains an expired or unsupported URL.
+        'principalSignature': '',
+        'schoolStamp': '',
       },
     };
 
-    final placeholderResolver =
-        const DefaultDocumentPlaceholderResolver();
+    final placeholderResolver = const DefaultDocumentPlaceholderResolver();
 
-    final registry =
-        DocumentRendererRegistryFactory.create(
+    final registry = DocumentRendererRegistryFactory.create(
       placeholderResolver: placeholderResolver,
     );
 
     final renderer = FlutterDocumentRenderer(
       registry: registry,
-      visibilityResolver:
-          DocumentElementVisibilityResolver(
+      visibilityResolver: DocumentElementVisibilityResolver(
         placeholderResolver,
       ),
     );
@@ -159,9 +144,7 @@ class _ResultCardPreviewPageState
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.only(
-              bottom: 32,
-            ),
+            padding: const EdgeInsets.only(bottom: 32),
             child: Center(
               child: RepaintBoundary(
                 key: _documentBoundaryKey,
@@ -170,8 +153,7 @@ class _ResultCardPreviewPageState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final page
-                          in template.orderedPages)
+                      for (final page in template.orderedPages)
                         DocumentCanvas(
                           page: page,
                           renderContext: renderContext,
@@ -191,17 +173,13 @@ class _ResultCardPreviewPageState
     );
   }
 
-  DocumentBrandingEntity _buildBranding(
-    SchoolSettingsEntity settings,
-  ) {
+  DocumentBrandingEntity _buildBranding(SchoolSettingsEntity settings) {
     return DocumentBrandingEntity(
       schoolName: settings.schoolName,
       schoolLogoUrl: settings.logoUrl,
       principalName: settings.principalName,
-      principalDesignation:
-          settings.principalDesignation,
-      principalSignatureUrl:
-          settings.principalSignatureUrl,
+      principalDesignation: settings.principalDesignation,
+      principalSignatureUrl: settings.principalSignatureUrl,
       schoolStampUrl: settings.schoolStampUrl,
     );
   }
@@ -220,55 +198,51 @@ class _ResultCardPreviewPageState
           'name': result.studentName,
           'admissionNo': result.admissionNo,
           'rollNumber': result.rollNumber,
-          'classSection':
-              '${result.className} - ${result.sectionName}',
+          'classSection': '${result.className} - ${result.sectionName}',
         },
         'result': {
           'examName': result.examName,
           'academicSession': result.academicSession,
           'subjectLines': _subjectLines(result),
-          'totalMarks':
-              _number(result.grandTotalMarks),
-          'obtainedMarks':
-              _number(result.grandObtainedMarks),
-          'percentage':
-              result.percentage.toStringAsFixed(2),
+          'totalMarks': _number(result.grandTotalMarks),
+          'obtainedMarks': _number(result.grandObtainedMarks),
+          'percentage': result.percentage.toStringAsFixed(2),
           'grade': result.grade,
-          'status':
-              result.isPassed ? 'PASS' : 'FAIL',
-          'classPosition':
-              _position(result.classPosition),
-          'sectionPosition':
-              _position(result.sectionPosition),
-          'overallRank':
-              _position(result.overallRank),
-          'principalRemarks':
-              result.principalRemarks.trim().isEmpty
-                  ? '-'
-                  : result.principalRemarks.trim(),
+          'status': result.isPassed ? 'PASS' : 'FAIL',
+          'classPosition': _position(result.classPosition),
+          'sectionPosition': _position(result.sectionPosition),
+          'overallRank': _position(result.overallRank),
+          'principalRemarks': result.principalRemarks.trim().isEmpty
+              ? '-'
+              : result.principalRemarks.trim(),
+          'teacherRemarks': result.teacherRemarks.trim().isEmpty
+              ? '-'
+              : result.teacherRemarks.trim(),
         },
       },
     );
   }
 
-  String _subjectLines(
-    ExamResultEntity result,
-  ) {
-    return result.subjectResults.map((subject) {
-      final name =
-          subject.subjectName.padRight(28);
-      final marks =
-          '${_number(subject.obtainedMarks)} / ${_number(subject.totalMarks)}'
-              .padRight(18);
+  String _subjectLines(ExamResultEntity result) {
+    return ResultSubjectGroupingService.group(result.subjectResults)
+        .map((subject) {
+          final name = subject.subjectName.padRight(16);
+          final components = subject.components
+              .map(
+                (component) => component.isAbsent
+                    ? '${component.label}: Absent'
+                    : '${component.label}: ${_number(component.obtainedMarks)}/${_number(component.totalMarks)}',
+              )
+              .join(' | ')
+              .padRight(35);
+          final total =
+              'Total: ${_number(subject.obtainedMarks)}/${_number(subject.totalMarks)}'
+                  .padRight(20);
+          final percentage = '${subject.percentage.toStringAsFixed(1)}%';
 
-      final status = subject.isAbsent
-          ? 'ABSENT'
-          : subject.isPassed
-              ? 'PASS'
-              : 'FAIL';
-
-      return '$name$marks$status';
-    }).join('\n');
+          return '$name | $components | $total | $percentage';
+        })
+        .join('\n');
   }
 
   String _number(double value) {
@@ -283,9 +257,7 @@ class _ResultCardPreviewPageState
     return value <= 0 ? '-' : value.toString();
   }
 
-  Future<Uint8List> _capturePng({
-    required double pixelRatio,
-  }) {
+  Future<Uint8List> _capturePng({required double pixelRatio}) {
     return _exportService.capturePng(
       boundaryKey: _documentBoundaryKey,
       pixelRatio: pixelRatio,
@@ -296,41 +268,31 @@ class _ResultCardPreviewPageState
     final template = buildResultCardTemplateV1();
 
     if (template.orderedPages.isEmpty) {
-      throw StateError(
-        'Result Card template has no pages.',
-      );
+      throw StateError('Result Card template has no pages.');
     }
 
     final page = template.orderedPages.first;
 
-    final pngBytes = await _capturePng(
-      pixelRatio: 1.5,
-    );
+    final pngBytes = await _capturePng(pixelRatio: 1.5);
 
     return _exportService.createPdfFromPng(
       pngBytes: pngBytes,
       aspectRatio: page.width / page.height,
-      title:
-          'Result Card - ${widget.result.studentName}',
+      title: 'Result Card - ${widget.result.studentName}',
     );
   }
 
   Future<void> _savePng() async {
     await _runExport(() async {
-      final bytes = await _capturePng(
-        pixelRatio: 3,
-      );
+      final bytes = await _capturePng(pixelRatio: 3);
 
       final path = await _exportService.savePng(
         bytes: bytes,
-        fileName:
-            '${_baseFileName()}_result_card',
+        fileName: '${_baseFileName()}_result_card',
       );
 
       if (path != null) {
-        _showSuccess(
-          'Result Card PNG saved successfully.',
-        );
+        _showSuccess('Result Card PNG saved successfully.');
       }
     });
   }
@@ -339,14 +301,11 @@ class _ResultCardPreviewPageState
     await _runExport(() async {
       final path = await _exportService.savePdf(
         bytes: await _buildPdf(),
-        fileName:
-            '${_baseFileName()}_result_card',
+        fileName: '${_baseFileName()}_result_card',
       );
 
       if (path != null) {
-        _showSuccess(
-          'Result Card PDF saved successfully.',
-        );
+        _showSuccess('Result Card PDF saved successfully.');
       }
     });
   }
@@ -355,8 +314,7 @@ class _ResultCardPreviewPageState
     await _runExport(() async {
       await _exportService.printPdf(
         bytes: await _buildPdf(),
-        name:
-            'Result Card - ${widget.result.studentName}',
+        name: 'Result Card - ${widget.result.studentName}',
       );
     });
   }
@@ -365,8 +323,7 @@ class _ResultCardPreviewPageState
     await _runExport(() async {
       await _exportService.sharePdf(
         bytes: await _buildPdf(),
-        fileName:
-            '${_baseFileName()}_result_card.pdf',
+        fileName: '${_baseFileName()}_result_card.pdf',
       );
     });
   }
@@ -374,20 +331,14 @@ class _ResultCardPreviewPageState
   Future<void> _sharePng() async {
     await _runExport(() async {
       await _exportService.sharePng(
-        bytes: await _capturePng(
-          pixelRatio: 3,
-        ),
-        fileName:
-            '${_baseFileName()}_result_card.png',
-        text:
-            'Result Card - ${widget.result.studentName}',
+        bytes: await _capturePng(pixelRatio: 3),
+        fileName: '${_baseFileName()}_result_card.png',
+        text: 'Result Card - ${widget.result.studentName}',
       );
     });
   }
 
-  Future<void> _runExport(
-    Future<void> Function() action,
-  ) async {
+  Future<void> _runExport(Future<void> Function() action) async {
     if (_exporting) return;
 
     setState(() {
@@ -401,13 +352,7 @@ class _ResultCardPreviewPageState
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Export failed: $error',
-            ),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text('Export failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -429,25 +374,18 @@ class _ResultCardPreviewPageState
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _reload() {
     setState(() {
-      _settingsFuture =
-          sl<GetSchoolSettings>()();
+      _settingsFuture = sl<GetSchoolSettings>()();
     });
   }
 }
 
 class _PreviewHeader extends StatelessWidget {
-  const _PreviewHeader({
-    required this.studentName,
-  });
+  const _PreviewHeader({required this.studentName});
 
   final String studentName;
 
@@ -455,15 +393,10 @@ class _PreviewHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: _borderColor,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: _borderColor)),
       ),
       child: Row(
         children: [
@@ -471,8 +404,7 @@ class _PreviewHeader extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Result Card Preview',
@@ -485,10 +417,7 @@ class _PreviewHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   'Result Card for $studentName',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: _textSecondary,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: _textSecondary),
                 ),
               ],
             ),
@@ -520,27 +449,17 @@ class _ExportToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: _borderColor,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: _borderColor)),
       ),
       child: Wrap(
         spacing: 10,
         runSpacing: 10,
         alignment: WrapAlignment.end,
         children: [
-          if (busy)
-            const CircularProgressIndicator(
-              strokeWidth: 2,
-            ),
+          if (busy) const CircularProgressIndicator(strokeWidth: 2),
           OutlinedButton.icon(
             onPressed: busy ? null : onSavePng,
             icon: const Icon(Icons.image_outlined),
@@ -548,9 +467,7 @@ class _ExportToolbar extends StatelessWidget {
           ),
           OutlinedButton.icon(
             onPressed: busy ? null : onSavePdf,
-            icon: const Icon(
-              Icons.picture_as_pdf_outlined,
-            ),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
             label: const Text('Save PDF'),
           ),
           OutlinedButton.icon(
@@ -569,26 +486,14 @@ class _ExportToolbar extends StatelessWidget {
               }
             },
             itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: _ShareFormat.pdf,
-                child: Text('Share PDF'),
-              ),
-              PopupMenuItem(
-                value: _ShareFormat.png,
-                child: Text('Share PNG'),
-              ),
+              PopupMenuItem(value: _ShareFormat.pdf, child: Text('Share PDF')),
+              PopupMenuItem(value: _ShareFormat.png, child: Text('Share PNG')),
             ],
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
-                color: busy
-                    ? Colors.grey.shade300
-                    : _brandBlue,
-                borderRadius:
-                    BorderRadius.circular(20),
+                color: busy ? Colors.grey.shade300 : _brandBlue,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Text(
                 'Share',
@@ -605,16 +510,10 @@ class _ExportToolbar extends StatelessWidget {
   }
 }
 
-enum _ShareFormat {
-  pdf,
-  png,
-}
+enum _ShareFormat { pdf, png }
 
 class _LoadFailure extends StatelessWidget {
-  const _LoadFailure({
-    required this.message,
-    required this.onRetry,
-  });
+  const _LoadFailure({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -627,11 +526,7 @@ class _LoadFailure extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 12),
             const Text(
               'Unable to load Result Card',
@@ -645,9 +540,7 @@ class _LoadFailure extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _textSecondary,
-              ),
+              style: const TextStyle(color: _textSecondary),
             ),
             const SizedBox(height: 18),
             FilledButton.icon(

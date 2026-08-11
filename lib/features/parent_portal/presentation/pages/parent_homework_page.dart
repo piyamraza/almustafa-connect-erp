@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -92,7 +93,10 @@ class _ParentHomeworkPageState extends State<ParentHomeworkPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.student.fullName} Homework')),
+      appBar: AppBar(
+        title: Text('${widget.student.fullName} Homework'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }

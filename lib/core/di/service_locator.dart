@@ -144,6 +144,7 @@ import '../../features/exams/data/datasources/exam_result_remote_datasource.dart
 import '../../features/exams/data/datasources/exam_subject_setup_remote_datasource.dart';
 import '../../features/exams/data/datasources/grading_rule_remote_datasource.dart';
 import '../../features/exams/data/repositories/exam_mark_repository_impl.dart';
+import '../../features/exams/data/repositories/question_paper_repository.dart';
 import '../../features/exams/data/services/exam_date_sheet_report_service_impl.dart';
 import '../../features/exams/data/repositories/exam_date_sheet_repository_impl.dart';
 import '../../features/fees/data/services/fee_report_service_impl.dart';
@@ -1387,6 +1388,12 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<AcademicStructureRepository>(
     () => AcademicStructureRepositoryImpl(
       source: sl<AcademicStructureRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<QuestionPaperRepository>(
+    () => QuestionPaperRepository(
+      sl<FirebaseFirestoreService>(),
+      sl<FirebaseStorage>(),
     ),
   );
 

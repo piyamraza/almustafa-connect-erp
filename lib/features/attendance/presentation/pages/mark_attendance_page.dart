@@ -202,11 +202,13 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
     final query = _searchController.text.trim().toLowerCase();
     final structure = _academicStructure;
     final filtered = students.where((student) {
-      final classMatches = student.classId == _selectedClass ||
+      final classMatches =
+          student.classId == _selectedClass ||
           (structure != null &&
               structure.className(student.classId) ==
                   structure.className(_selectedClass!));
-      final sectionMatches = _selectedSection == null ||
+      final sectionMatches =
+          _selectedSection == null ||
           student.sectionId == _selectedSection ||
           (structure != null &&
               structure.sectionName(student.sectionId) ==
@@ -270,7 +272,8 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
       ],
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(actions: const [DashboardNavigationButton()],
+          appBar: AppBar(
+            actions: const [DashboardNavigationButton()],
             title: const Text('Mark Attendance'),
             leading: _isChoosingClass
                 ? null
@@ -363,8 +366,11 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                       return Center(child: Text(state.message));
                     }
                     if (state is! StudentLoaded) return const SizedBox();
-                    final attendanceState = context.read<AttendanceBloc>().state;
-                    final attendanceRecords = attendanceState is AttendanceLoaded
+                    final attendanceState = context
+                        .read<AttendanceBloc>()
+                        .state;
+                    final attendanceRecords =
+                        attendanceState is AttendanceLoaded
                         ? attendanceState.attendance
                         : const <AttendanceEntity>[];
                     return _isChoosingClass
@@ -540,15 +546,17 @@ class _ClassGrid extends StatelessWidget {
               Expanded(
                 child: query.isNotEmpty
                     ? _StudentSearchResults(
-                      students: found,
-                      onStudentSelected: onStudentSelected,
-                      classLabel: classLabel,
-                      sectionLabel: sectionLabel,
+                        students: found,
+                        onStudentSelected: onStudentSelected,
+                        classLabel: classLabel,
+                        sectionLabel: sectionLabel,
                       )
                     : GridView.builder(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
-                          childAspectRatio: 2.25,
+                          childAspectRatio: constraints.maxWidth < 700
+                              ? 1.65
+                              : 2.25,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                         ),
@@ -568,7 +576,10 @@ class _ClassGrid extends StatelessWidget {
                           final markedStudentIds = attendanceRecords
                               .where(
                                 (record) =>
-                                    _sameDay(record.attendanceDate, selectedDate) &&
+                                    _sameDay(
+                                      record.attendanceDate,
+                                      selectedDate,
+                                    ) &&
                                     studentIds.contains(record.studentId),
                               )
                               .map((record) => record.studentId)
@@ -582,46 +593,87 @@ class _ClassGrid extends StatelessWidget {
                               ? Colors.green.shade700
                               : isPartial
                               ? Colors.orange.shade800
-                              : null;
-                          return Card(
-                            color: isComplete
-                                ? Colors.green.shade50
-                                : isPartial
-                                ? Colors.orange.shade50
-                                : null,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: statusColor?.withValues(alpha: 0.45) ??
-                                    Theme.of(context).colorScheme.outlineVariant,
+                              : const Color(0xFF1769E8);
+                          final palette = <Color>[
+                            const Color(0xFF1769E8),
+                            const Color(0xFF7C3AED),
+                            const Color(0xFF0F9D74),
+                            const Color(0xFFF59E0B),
+                            const Color(0xFFEC4899),
+                          ];
+                          final accent = isComplete || isPartial
+                              ? statusColor
+                              : palette[index % palette.length];
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  accent.withValues(alpha: 0.15),
+                                  Colors.white,
+                                ],
                               ),
+                              borderRadius: BorderRadius.circular(17),
+                              border: Border.all(
+                                color: accent.withValues(alpha: 0.30),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: accent.withValues(alpha: 0.09),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                             ),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(17),
                               onTap: () => onClassSelected(academicClass),
-                              child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      isComplete
-                                          ? Icons.check_circle_outline
-                                          : isPartial
-                                          ? Icons.pending_outlined
-                                          : Icons.groups_outlined,
-                                      size: 20,
-                                      color: statusColor,
+                                    Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        color: accent,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        isComplete
+                                            ? Icons.check_rounded
+                                            : isPartial
+                                            ? Icons.pending_actions_rounded
+                                            : Icons.groups_rounded,
+                                        size: 19,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 7),
                                     Text(
                                       _displayClassName(academicClass.name),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleSmall,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '$count student${count == 1 ? '' : 's'}',
+                                      isComplete
+                                          ? '$count/$count marked'
+                                          : '${markedStudentIds.length}/$count marked',
+                                      style: TextStyle(
+                                        color: accent,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ],
                                 ),

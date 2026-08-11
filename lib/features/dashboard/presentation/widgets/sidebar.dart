@@ -154,367 +154,375 @@ class _SidebarState extends State<Sidebar> {
           colors: [AppColors.sidebarTop, AppColors.sidebarBottom],
         ),
       ),
-      child: _access.isLoading || !_access.isLoaded
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : ScrollbarTheme(
-              data: ScrollbarThemeData(
-                thumbColor: WidgetStateProperty.all(
-                  Colors.white.withValues(alpha: 0.35),
+      child: Material(
+        type: MaterialType.transparency,
+        child: _access.isLoading || !_access.isLoaded
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : ScrollbarTheme(
+                data: ScrollbarThemeData(
+                  thumbColor: WidgetStateProperty.all(
+                    Colors.white.withValues(alpha: 0.35),
+                  ),
+                  trackColor: WidgetStateProperty.all(Colors.transparent),
+                  trackBorderColor: WidgetStateProperty.all(Colors.transparent),
+                  thickness: WidgetStateProperty.all(5),
+                  radius: const Radius.circular(8),
                 ),
-                trackColor: WidgetStateProperty.all(Colors.transparent),
-                trackBorderColor: WidgetStateProperty.all(Colors.transparent),
-                thickness: WidgetStateProperty.all(5),
-                radius: const Radius.circular(8),
-              ),
-              child: Scrollbar(
-                controller: _scrollController,
-                thumbVisibility: true,
-                trackVisibility: true,
-                interactive: true,
-                child: ListView(
+                child: Scrollbar(
                   controller: _scrollController,
-                  primary: false,
-                  padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(6, 4, 6, 20),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.school_rounded,
-                              color: AppColors.primary,
-                              size: 27,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Almustafa',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  interactive: true,
+                  child: ListView(
+                    controller: _scrollController,
+                    primary: false,
+                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(6, 4, 6, 20),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 5),
                                   ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'CONNECT ERP',
-                                  style: TextStyle(
-                                    color: Color(0xFFBFD7FF),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.4,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.school_rounded,
+                                color: AppColors.primary,
+                                size: 27,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      child: Text(
-                        'MAIN MENU',
-                        style: TextStyle(
-                          color: Color(0xFF9FC1F1),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Almustafa',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'CONNECT ERP',
+                                    style: TextStyle(
+                                      color: Color(0xFFBFD7FF),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    if (_access.isBootstrapAccess)
                       const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
                         child: Text(
-                          'Bootstrap access: assign this user a role.',
+                          'MAIN MENU',
                           style: TextStyle(
-                            color: Colors.amberAccent,
-                            fontSize: 12,
+                            color: Color(0xFF9FC1F1),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ),
-                    if (_access.hasPermission(AppPermission.studentsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.school,
-                        title: 'Students',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.studentsView,
-                          moduleName: 'Students',
-                          page: const StudentsPage(),
+                      if (_access.isBootstrapAccess)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Text(
+                            'Bootstrap access: assign this user a role.',
+                            style: TextStyle(
+                              color: Colors.amberAccent,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
-                      ),
-                    if (_access.hasPermission(AppPermission.teachersView) ||
-                        _access.hasPermission(AppPermission.staffView))
+                      if (_access.hasPermission(AppPermission.studentsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.school,
+                          title: 'Students',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.studentsView,
+                            moduleName: 'Students',
+                            page: const StudentsPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.teachersView) ||
+                          _access.hasPermission(AppPermission.staffView))
+                        _menuTile(
+                          context,
+                          icon: Icons.badge_outlined,
+                          title: 'Employee / HR',
+                          onTap: () {
+                            final permission =
+                                _access.hasPermission(AppPermission.staffView)
+                                ? AppPermission.staffView
+                                : AppPermission.teachersView;
+
+                            _open(
+                              context,
+                              permission: permission,
+                              moduleName: 'Employee / HR',
+                              page: const EmployeeHrPage(),
+                            );
+                          },
+                        ),
+                      if (_access.hasPermission(AppPermission.classesView))
+                        _menuTile(
+                          context,
+                          icon: Icons.class_,
+                          title: 'Classes',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.classesView,
+                            moduleName: 'Classes',
+                            page: const ClassSectionManagementPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.attendanceView))
+                        _menuTile(
+                          context,
+                          icon: Icons.fact_check,
+                          title: 'Attendance',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.attendanceView,
+                            moduleName: 'Attendance',
+                            page: const AttendancePage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.feesView))
+                        _menuTile(
+                          context,
+                          icon: Icons.payments,
+                          title: 'Fee Management',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.feesView,
+                            moduleName: 'Fee Management',
+                            page: const FeeManagementDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.dateSheetsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.calendar_month_outlined,
+                          title: 'Date Sheets',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.dateSheetsView,
+                            moduleName: 'Date Sheets',
+                            page: const ExamDateSheetDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.examsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.quiz,
+                          title: 'Examinations',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.examsView,
+                            moduleName: 'Examinations',
+                            page: const ExaminationDashboardPage(),
+                          ),
+                        ),
+
+                      if (_access.hasPermission(AppPermission.resultsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.grade,
+                          title: 'Results',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.resultsView,
+                            moduleName: 'Results',
+                            page: const ResultsModulePage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.timetableView))
+                        _menuTile(
+                          context,
+                          icon: Icons.schedule,
+                          title: 'Timetable',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.timetableView,
+                            moduleName: 'Timetable',
+                            page: const TimetableDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.homeworkView))
+                        _menuTile(
+                          context,
+                          icon: Icons.menu_book_outlined,
+                          title: 'Homework & Syllabus',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.homeworkView,
+                            moduleName: 'Homework & Syllabus',
+                            page: const HomeworkDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.calendarView))
+                        _menuTile(
+                          context,
+                          icon: Icons.calendar_today_outlined,
+                          title: 'Academic Calendar',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.calendarView,
+                            moduleName: 'Academic Calendar',
+                            page: const AcademicCalendarPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.noticesView))
+                        _menuTile(
+                          context,
+                          icon: Icons.forum_outlined,
+                          title: 'Communication',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.noticesView,
+                            moduleName: 'Communication',
+                            page: const CommunicationDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.noticesView))
+                        _menuTile(
+                          context,
+                          icon: Icons.campaign_outlined,
+                          title: 'Notices & Circulars',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.noticesView,
+                            moduleName: 'Notices & Circulars',
+                            page: const NoticesDashboardPage(),
+                          ),
+                        ),
                       _menuTile(
                         context,
-                        icon: Icons.badge_outlined,
-                        title: 'Employee / HR',
+                        icon: Icons.description_outlined,
+                        title: 'Document Center',
                         onTap: () {
-                          final permission =
-                              _access.hasPermission(AppPermission.staffView)
-                              ? AppPermission.staffView
-                              : AppPermission.teachersView;
-
-                          _open(
-                            context,
-                            permission: permission,
-                            moduleName: 'Employee / HR',
-                            page: const EmployeeHrPage(),
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const DocumentCenterPage(),
+                            ),
                           );
                         },
                       ),
-                    if (_access.hasPermission(AppPermission.classesView))
-                      _menuTile(
-                        context,
-                        icon: Icons.class_,
-                        title: 'Classes',
-                        onTap: () => _open(
+                      if (_access.hasPermission(AppPermission.parentsView))
+                        _menuTile(
                           context,
-                          permission: AppPermission.classesView,
-                          moduleName: 'Classes',
-                          page: const ClassSectionManagementPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.attendanceView))
-                      _menuTile(
-                        context,
-                        icon: Icons.fact_check,
-                        title: 'Attendance',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.attendanceView,
-                          moduleName: 'Attendance',
-                          page: const AttendancePage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.feesView))
-                      _menuTile(
-                        context,
-                        icon: Icons.payments,
-                        title: 'Fee Management',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.feesView,
-                          moduleName: 'Fee Management',
-                          page: const FeeManagementDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.dateSheetsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.calendar_month_outlined,
-                        title: 'Date Sheets',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.dateSheetsView,
-                          moduleName: 'Date Sheets',
-                          page: const ExamDateSheetDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.examsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.quiz,
-                        title: 'Examinations',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.examsView,
-                          moduleName: 'Examinations',
-                          page: const ExaminationDashboardPage(),
-                        ),
-                      ),
-
-                    if (_access.hasPermission(AppPermission.resultsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.grade,
-                        title: 'Results',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.resultsView,
-                          moduleName: 'Results',
-                          page: const ResultsModulePage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.timetableView))
-                      _menuTile(
-                        context,
-                        icon: Icons.schedule,
-                        title: 'Timetable',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.timetableView,
-                          moduleName: 'Timetable',
-                          page: const TimetableDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.homeworkView))
-                      _menuTile(
-                        context,
-                        icon: Icons.menu_book_outlined,
-                        title: 'Homework & Syllabus',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.homeworkView,
-                          moduleName: 'Homework & Syllabus',
-                          page: const HomeworkDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.calendarView))
-                      _menuTile(
-                        context,
-                        icon: Icons.calendar_today_outlined,
-                        title: 'Academic Calendar',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.calendarView,
-                          moduleName: 'Academic Calendar',
-                          page: const AcademicCalendarPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.noticesView))
-                      _menuTile(
-                        context,
-                        icon: Icons.forum_outlined,
-                        title: 'Communication',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.noticesView,
-                          moduleName: 'Communication',
-                          page: const CommunicationDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.noticesView))
-                      _menuTile(
-                        context,
-                        icon: Icons.campaign_outlined,
-                        title: 'Notices & Circulars',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.noticesView,
-                          moduleName: 'Notices & Circulars',
-                          page: const NoticesDashboardPage(),
-                        ),
-                      ),
-                    _menuTile(
-                      context,
-                      icon: Icons.description_outlined,
-                      title: 'Document Center',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const DocumentCenterPage(),
+                          icon: Icons.family_restroom,
+                          title: 'Parents',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.parentsView,
+                            moduleName: 'Parent Portal',
+                            page: const ParentPortalDashboardPage(),
                           ),
-                        );
-                      },
-                    ),
-                    if (_access.hasPermission(AppPermission.parentsView))
+                        ),
+                      if (_access.hasPermission(AppPermission.reportsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.account_balance_outlined,
+                          title: 'Accounts & Payroll',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.reportsView,
+                            moduleName: 'Accounts & Payroll',
+                            page: const AccountsDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.reportsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.storefront_outlined,
+                          title: 'School Store',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.reportsView,
+                            moduleName: 'School Store',
+                            page: const SchoolStoreDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.reportsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.assessment,
+                          title: 'Reports',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.reportsView,
+                            moduleName: 'Reports',
+                            page: const ReportsDashboardPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.rolesManage))
+                        _menuTile(
+                          context,
+                          icon: Icons.admin_panel_settings_outlined,
+                          title: 'Roles & Permissions',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.rolesManage,
+                            moduleName: 'Roles & Permissions',
+                            page: const RolesPermissionsPage(),
+                          ),
+                        ),
+                      if (_access.hasPermission(AppPermission.settingsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.settings,
+                          title: 'Settings',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.settingsView,
+                            moduleName: 'Settings',
+                            page: const SettingsDashboardPage(),
+                          ),
+                        ),
+                      Divider(
+                        height: 28,
+                        color: Colors.white.withValues(alpha: 0.12),
+                      ),
                       _menuTile(
                         context,
-                        icon: Icons.family_restroom,
-                        title: 'Parents',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.parentsView,
-                          moduleName: 'Parent Portal',
-                          page: const ParentPortalDashboardPage(),
-                        ),
+                        icon: Icons.logout_outlined,
+                        title: _loggingOut ? 'Logging out...' : 'Logout',
+                        onTap: _loggingOut ? () {} : _logout,
                       ),
-                    if (_access.hasPermission(AppPermission.reportsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.account_balance_outlined,
-                        title: 'Accounts & Payroll',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.reportsView,
-                          moduleName: 'Accounts & Payroll',
-                          page: const AccountsDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.reportsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.storefront_outlined,
-                        title: 'School Store',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.reportsView,
-                          moduleName: 'School Store',
-                          page: const SchoolStoreDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.reportsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.assessment,
-                        title: 'Reports',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.reportsView,
-                          moduleName: 'Reports',
-                          page: const ReportsDashboardPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.rolesManage))
-                      _menuTile(
-                        context,
-                        icon: Icons.admin_panel_settings_outlined,
-                        title: 'Roles & Permissions',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.rolesManage,
-                          moduleName: 'Roles & Permissions',
-                          page: const RolesPermissionsPage(),
-                        ),
-                      ),
-                    if (_access.hasPermission(AppPermission.settingsView))
-                      _menuTile(
-                        context,
-                        icon: Icons.settings,
-                        title: 'Settings',
-                        onTap: () => _open(
-                          context,
-                          permission: AppPermission.settingsView,
-                          moduleName: 'Settings',
-                          page: const SettingsDashboardPage(),
-                        ),
-                      ),
-                    Divider(
-                      height: 28,
-                      color: Colors.white.withValues(alpha: 0.12),
-                    ),
-                    _menuTile(
-                      context,
-                      icon: Icons.logout_outlined,
-                      title: _loggingOut ? 'Logging out...' : 'Logout',
-                      onTap: _loggingOut ? () {} : _logout,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -619,42 +627,47 @@ class _SidebarMenuTileState extends State<_SidebarMenuTile> {
               : const [],
         ),
         transform: Matrix4.translationValues(_hovered ? 3 : 0, 0, 0),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 2,
-          ),
-          leading: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: widget.isLogout
-                  ? AppColors.error.withValues(alpha: _hovered ? 0.28 : 0.18)
-                  : Colors.white.withValues(alpha: _hovered ? 0.20 : 0.11),
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: _hovered ? 0.24 : 0.10),
+        child: Material(
+          type: MaterialType.transparency,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 2,
+            ),
+            leading: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: widget.isLogout
+                    ? AppColors.error.withValues(alpha: _hovered ? 0.28 : 0.18)
+                    : Colors.white.withValues(alpha: _hovered ? 0.20 : 0.11),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: _hovered ? 0.24 : 0.10),
+                ),
+              ),
+              child: Icon(
+                widget.icon,
+                color: widget.isLogout ? const Color(0xFFFFA5B4) : widget.color,
+                size: 17,
               ),
             ),
-            child: Icon(
-              widget.icon,
-              color: widget.isLogout ? const Color(0xFFFFA5B4) : widget.color,
-              size: 17,
+            title: Text(
+              widget.title,
+              style: TextStyle(
+                color: widget.isLogout ? const Color(0xFFFFBDC8) : Colors.white,
+                fontWeight: _hovered ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 13.5,
+              ),
             ),
-          ),
-          title: Text(
-            widget.title,
-            style: TextStyle(
-              color: widget.isLogout ? const Color(0xFFFFBDC8) : Colors.white,
-              fontWeight: _hovered ? FontWeight.w700 : FontWeight.w600,
-              fontSize: 13.5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            onTap: widget.onTap,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onTap: widget.onTap,
         ),
       ),
     );

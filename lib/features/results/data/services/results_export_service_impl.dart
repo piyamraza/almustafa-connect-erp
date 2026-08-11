@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../exams/domain/services/result_subject_grouping_service.dart';
 import '../../domain/entities/result_export_request.dart';
 import '../../domain/services/results_export_service.dart';
 
@@ -245,23 +246,27 @@ class ResultsExportServiceImpl implements ResultsExportService {
       pw.TableHelper.fromTextArray(
         headers: const [
           'Subject',
+          'Components',
           'Total',
-          'Obtained',
           'Percentage',
+          'Grade',
           'Status',
           'Remarks',
         ],
-        data: result.subjectResults
-            .map<dynamic>(
+        data: ResultSubjectGroupingService.group(result.subjectResults)
+            .map<List<dynamic>>(
               (subject) => [
                 _value(subject.subjectName),
-                _number(subject.totalMarks),
-                _number(subject.obtainedMarks),
-                _percent(
-                  subject.totalMarks == 0
-                      ? 0
-                      : (subject.obtainedMarks / subject.totalMarks) * 100,
-                ),
+                subject.components
+                    .map(
+                      (component) => component.isAbsent
+                          ? '${component.label}: Absent'
+                          : '${component.label}: ${_number(component.obtainedMarks)} / ${_number(component.totalMarks)}',
+                    )
+                    .join(' | '),
+                '${_number(subject.obtainedMarks)} / ${_number(subject.totalMarks)}',
+                _percent(subject.percentage),
+                subject.grade,
                 subject.isPassed ? 'Pass' : 'Fail',
                 _value(subject.remarks),
               ],
@@ -513,37 +518,50 @@ class ResultsExportServiceImpl implements ResultsExportService {
     sheet.appendRow([
       TextCellValue('Student'),
       TextCellValue('Subject'),
-      TextCellValue('Total Marks'),
-      TextCellValue('Obtained Marks'),
+      TextCellValue('Components'),
+      TextCellValue('Total'),
       TextCellValue('Percentage'),
+      TextCellValue('Grade'),
       TextCellValue('Status'),
-      TextCellValue('Absent'),
       TextCellValue('Remarks'),
     ]);
     for (final result in request.results) {
-      for (final subject in result.subjectResults) {
+      for (final subject in ResultSubjectGroupingService.group(
+        result.subjectResults,
+      )) {
         if (request.subjectName != null &&
             !_sameText(subject.subjectName, request.subjectName!)) {
           continue;
         }
-        final percentage = subject.totalMarks == 0
-            ? 0.0
-            : subject.obtainedMarks / subject.totalMarks;
         sheet.appendRow([
           TextCellValue(_value(result.studentName)),
           TextCellValue(_value(subject.subjectName)),
-          DoubleCellValue(subject.totalMarks),
-          DoubleCellValue(subject.obtainedMarks),
-          DoubleCellValue(percentage),
+          TextCellValue(
+            subject.components
+                .map(
+                  (component) => component.isAbsent
+                      ? '${component.label}: Absent'
+                      : '${component.label}: ${_number(component.obtainedMarks)} / ${_number(component.totalMarks)}',
+                )
+                .join(' | '),
+          ),
+          TextCellValue(
+            '${_number(subject.obtainedMarks)} / ${_number(subject.totalMarks)}',
+          ),
+          DoubleCellValue(subject.percentage / 100),
+          TextCellValue(subject.grade),
           TextCellValue(subject.isPassed ? 'Pass' : 'Fail'),
-          TextCellValue(subject.isAbsent ? 'Yes' : 'No'),
           TextCellValue(_value(subject.remarks)),
         ]);
       }
     }
     _styleHeader(sheet, headerRow);
     for (var index = 0; index < 8; index++) {
-      _setSheetWidth(sheet, index, index == 0 || index == 7 ? 28 : 16);
+      _setSheetWidth(
+        sheet,
+        index,
+        index == 0 || index == 2 || index == 7 ? 28 : 16,
+      );
     }
   }
 
@@ -583,10 +601,14 @@ class ResultsExportServiceImpl implements ResultsExportService {
         TextCellValue(_value(result.grade)),
         TextCellValue(result.isPassed ? 'Pass' : 'Fail'),
         IntCellValue(
-          result.subjectResults.where((subject) => !subject.isPassed).length,
+          ResultSubjectGroupingService.group(
+            result.subjectResults,
+          ).where((subject) => !subject.isPassed).length,
         ),
         IntCellValue(
-          result.subjectResults.where((subject) => subject.isAbsent).length,
+          ResultSubjectGroupingService.group(
+            result.subjectResults,
+          ).where((subject) => subject.isAbsent).length,
         ),
       ]);
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../di/service_locator.dart';
@@ -29,7 +30,10 @@ class _AuditConfigurationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Audit Logging')),
+      appBar: AppBar(
+        title: const Text('Audit Logging'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: BlocConsumer<AuditConfigurationBloc, AuditConfigurationState>(
         listener: (context, state) {
           if (state is AuditConfigurationLoaded && state.message != null) {

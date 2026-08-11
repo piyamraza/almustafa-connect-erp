@@ -144,47 +144,84 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Academic Calendar'),
-        actions: [const DashboardNavigationButton(),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => AcademicCalendarIntegrationPage(
-                    academicSession: _sessionController.text.trim(),
+        actions: [
+          const DashboardNavigationButton(),
+          if (MediaQuery.sizeOf(context).width >= 760) ...[
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AcademicCalendarIntegrationPage(
+                      academicSession: _sessionController.text.trim(),
+                    ),
                   ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.hub_outlined),
-            label: const Text('Integrations'),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => AcademicCalendarValidationPage(
-                    academicSession: _sessionController.text.trim(),
+                );
+              },
+              icon: const Icon(Icons.hub_outlined),
+              label: const Text('Integrations'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AcademicCalendarValidationPage(
+                      academicSession: _sessionController.text.trim(),
+                    ),
                   ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.fact_check_outlined),
-            label: const Text('Validate'),
-          ),
-          TextButton.icon(
-            onPressed: () async {
-              await Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AcademicYearWizardPage(),
-                ),
-              );
-              if (context.mounted) {
-                _loadMonth();
-              }
-            },
-            icon: const Icon(Icons.auto_awesome),
-            label: const Text('Year Wizard'),
-          ),
+                );
+              },
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('Validate'),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                await Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AcademicYearWizardPage(),
+                  ),
+                );
+                if (context.mounted) {
+                  _loadMonth();
+                }
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Year Wizard'),
+            ),
+          ] else
+            PopupMenuButton<int>(
+              tooltip: 'Calendar tools',
+              onSelected: (value) async {
+                if (value == 0) {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AcademicCalendarIntegrationPage(
+                        academicSession: _sessionController.text.trim(),
+                      ),
+                    ),
+                  );
+                } else if (value == 1) {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AcademicCalendarValidationPage(
+                        academicSession: _sessionController.text.trim(),
+                      ),
+                    ),
+                  );
+                } else {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AcademicYearWizardPage(),
+                    ),
+                  );
+                  if (context.mounted) _loadMonth();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 0, child: Text('Integrations')),
+                PopupMenuItem(value: 1, child: Text('Validate')),
+                PopupMenuItem(value: 2, child: Text('Year Wizard')),
+              ],
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -354,9 +391,11 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: cellCount,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                childAspectRatio: 1.15,
+                childAspectRatio: MediaQuery.sizeOf(context).width < 600
+                    ? .78
+                    : 1.15,
               ),
               itemBuilder: (context, index) {
                 final day = index - leading + 1;
@@ -376,7 +415,9 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
                   onDoubleTap: () => _editEvent(null, initialDate: date),
                   child: Container(
                     margin: const EdgeInsets.all(2),
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(
+                      MediaQuery.sizeOf(context).width < 600 ? 2 : 6,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: selected
@@ -403,26 +444,40 @@ class _AcademicCalendarViewState extends State<_AcademicCalendarView> {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        for (final event in dayEvents.take(2))
-                          Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 2),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
+                        if (MediaQuery.sizeOf(context).width >= 600)
+                          for (final event in dayEvents.take(2))
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _eventColor(event.type).withAlpha(35),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                event.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10),
+                              ),
                             ),
-                            decoration: BoxDecoration(
-                              color: _eventColor(event.type).withAlpha(35),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              event.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 10),
-                            ),
+                        if (MediaQuery.sizeOf(context).width < 600 &&
+                            dayEvents.isNotEmpty)
+                          Wrap(
+                            spacing: 2,
+                            children: [
+                              for (final event in dayEvents.take(3))
+                                CircleAvatar(
+                                  radius: 2.5,
+                                  backgroundColor: _eventColor(event.type),
+                                ),
+                            ],
                           ),
-                        if (dayEvents.length > 2)
+                        if (MediaQuery.sizeOf(context).width >= 600 &&
+                            dayEvents.length > 2)
                           Text(
                             '+${dayEvents.length - 2} more',
                             style: const TextStyle(fontSize: 9),

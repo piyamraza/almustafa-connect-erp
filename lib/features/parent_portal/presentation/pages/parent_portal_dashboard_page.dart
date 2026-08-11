@@ -152,31 +152,36 @@ class _ParentPortalDashboardView extends StatelessWidget {
 
           final loaded = state as ParentPortalLoaded;
 
+          final compact = MediaQuery.sizeOf(context).width < 800;
+          final parentList = _ParentList(
+            parents: loaded.parents,
+            selected: loaded.selectedParent,
+            onSelect: (parent) {
+              context.read<ParentPortalBloc>().add(SelectParentAccount(parent));
+            },
+            onEdit: (parent) => _openParentForm(context, parent),
+            onDelete: (parent) => _confirmDelete(context, parent),
+          );
+          final dashboard = loaded.selectedParent == null
+              ? const _EmptyParentSelection()
+              : _ParentDashboard(
+                  parent: loaded.selectedParent!,
+                  students: loaded.linkedStudents,
+                );
+          if (compact) {
+            return Column(
+              children: [
+                SizedBox(height: 245, child: parentList),
+                const Divider(height: 1),
+                Expanded(child: dashboard),
+              ],
+            );
+          }
           return Row(
             children: [
-              SizedBox(
-                width: 330,
-                child: _ParentList(
-                  parents: loaded.parents,
-                  selected: loaded.selectedParent,
-                  onSelect: (parent) {
-                    context.read<ParentPortalBloc>().add(
-                      SelectParentAccount(parent),
-                    );
-                  },
-                  onEdit: (parent) => _openParentForm(context, parent),
-                  onDelete: (parent) => _confirmDelete(context, parent),
-                ),
-              ),
+              SizedBox(width: 330, child: parentList),
               const VerticalDivider(width: 1),
-              Expanded(
-                child: loaded.selectedParent == null
-                    ? const _EmptyParentSelection()
-                    : _ParentDashboard(
-                        parent: loaded.selectedParent!,
-                        students: loaded.linkedStudents,
-                      ),
-              ),
+              Expanded(child: dashboard),
             ],
           );
         },

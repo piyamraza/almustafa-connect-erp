@@ -43,50 +43,84 @@ class _RolesPermissionsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 760;
+    void open(Widget page) => Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
     return Scaffold(
       appBar: AppBar(
         title: const Text('Roles & Permissions'),
-        actions: [const DashboardNavigationButton(),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const UserAccountsManagementPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.person_add_alt_1),
-            label: const Text('User Accounts'),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AccessControlProductionReadinessPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.security_outlined),
-            label: const Text('Production Readiness'),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const UserRoleAssignmentsPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.manage_accounts_outlined),
-            label: const Text('User Assignments'),
-          ),
+        actions: [
+          const DashboardNavigationButton(),
+          if (compact)
+            PopupMenuButton<int>(
+              tooltip: 'More actions',
+              onSelected: (value) {
+                if (value == 0) {
+                  open(const UserAccountsManagementPage());
+                }
+                if (value == 1) {
+                  open(const AccessControlProductionReadinessPage());
+                }
+                if (value == 2) {
+                  open(const UserRoleAssignmentsPage());
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 0, child: Text('User Accounts')),
+                PopupMenuItem(value: 1, child: Text('Production Readiness')),
+                PopupMenuItem(value: 2, child: Text('User Assignments')),
+              ],
+            ),
+          if (!compact) ...[
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UserAccountsManagementPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('User Accounts'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        const AccessControlProductionReadinessPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.security_outlined),
+              label: const Text('Production Readiness'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UserRoleAssignmentsPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.manage_accounts_outlined),
+              label: const Text('User Assignments'),
+            ),
+          ],
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Custom Role'),
-      ),
+      floatingActionButton: compact
+          ? FloatingActionButton(
+              onPressed: () => _openForm(context),
+              tooltip: 'Create custom role',
+              child: const Icon(Icons.add),
+            )
+          : FloatingActionButton.extended(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Create Custom Role'),
+            ),
       body: BlocConsumer<AppRoleBloc, AppRoleState>(
         listener: (context, state) {
           final message = switch (state) {

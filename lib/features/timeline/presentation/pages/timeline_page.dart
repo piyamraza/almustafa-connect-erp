@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../domain/entities/timeline_event_entity.dart';
@@ -65,7 +66,10 @@ class _TimelinePageState extends State<TimelinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null

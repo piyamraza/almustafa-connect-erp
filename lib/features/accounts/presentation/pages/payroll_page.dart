@@ -150,25 +150,48 @@ class _PayrollViewState extends State<_PayrollView> {
         .length;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          _summaryCard('Employees', '${records.length}', Icons.people_outline),
-          _summaryCard('Total Payroll', _money(total), Icons.payments_outlined),
-          _summaryCard(
-            'Generated',
-            '${records.length - paid}',
-            Icons.pending_actions,
-          ),
-          _summaryCard('Paid', '$paid', Icons.check_circle_outline),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth < 700
+              ? (constraints.maxWidth - 10) / 2
+              : 210.0;
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _summaryCard(
+                'Employees',
+                '${records.length}',
+                Icons.people_outline,
+                width,
+              ),
+              _summaryCard(
+                'Total Payroll',
+                _money(total),
+                Icons.payments_outlined,
+                width,
+              ),
+              _summaryCard(
+                'Generated',
+                '${records.length - paid}',
+                Icons.pending_actions,
+                width,
+              ),
+              _summaryCard('Paid', '$paid', Icons.check_circle_outline, width),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _summaryCard(String title, String value, IconData icon) => SizedBox(
-    width: 210,
+  Widget _summaryCard(
+    String title,
+    String value,
+    IconData icon,
+    double width,
+  ) => SizedBox(
+    width: width,
     child: Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -176,12 +199,19 @@ class _PayrollViewState extends State<_PayrollView> {
           children: [
             Icon(icon),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: Theme.of(context).textTheme.titleLarge),
-                Text(title),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ],
         ),

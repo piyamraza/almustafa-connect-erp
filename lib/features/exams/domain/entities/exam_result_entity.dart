@@ -35,14 +35,14 @@ class SubjectResultEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        subjectId,
-        subjectName,
-        totalMarks,
-        obtainedMarks,
-        isAbsent,
-        isPassed,
-        remarks,
-      ];
+    subjectId,
+    subjectName,
+    totalMarks,
+    obtainedMarks,
+    isAbsent,
+    isPassed,
+    remarks,
+  ];
 }
 
 class ExamResultEntity extends Equatable {
@@ -84,6 +84,7 @@ class ExamResultEntity extends Equatable {
     this.unlockedAt,
     this.unlockedBy = '',
     this.unlockReason = '',
+    this.teacherRemarks = '',
     this.principalRemarks = '',
   });
 
@@ -139,6 +140,7 @@ class ExamResultEntity extends Equatable {
   final String unlockedBy;
   final String unlockReason;
 
+  final String teacherRemarks;
   final String principalRemarks;
 
   bool get isDraft => status == ResultStatus.draft;
@@ -180,9 +182,7 @@ class ExamResultEntity extends Equatable {
   }) {
     final identity = '$examId|$classId|$sectionId|$studentId';
 
-    return base64Url
-        .encode(utf8.encode(identity))
-        .replaceAll('=', '');
+    return base64Url.encode(utf8.encode(identity)).replaceAll('=', '');
   }
 
   static bool canTransition({
@@ -194,26 +194,20 @@ class ExamResultEntity extends Equatable {
     }
 
     return switch (current) {
-      ResultStatus.draft =>
-        next == ResultStatus.generated,
+      ResultStatus.draft => next == ResultStatus.generated,
       ResultStatus.generated =>
-        next == ResultStatus.verified ||
-            next == ResultStatus.draft,
+        next == ResultStatus.verified || next == ResultStatus.draft,
       ResultStatus.verified =>
-        next == ResultStatus.approved ||
-            next == ResultStatus.generated,
+        next == ResultStatus.approved || next == ResultStatus.generated,
       ResultStatus.approved =>
-        next == ResultStatus.published ||
-            next == ResultStatus.verified,
+        next == ResultStatus.published || next == ResultStatus.verified,
       ResultStatus.published =>
         next == ResultStatus.locked ||
             next == ResultStatus.approved ||
             next == ResultStatus.unpublished,
-      ResultStatus.locked =>
-        next == ResultStatus.published,
+      ResultStatus.locked => next == ResultStatus.published,
       ResultStatus.unpublished =>
-        next == ResultStatus.approved ||
-            next == ResultStatus.published,
+        next == ResultStatus.approved || next == ResultStatus.published,
     };
   }
 
@@ -255,14 +249,14 @@ class ExamResultEntity extends Equatable {
     DateTime? unlockedAt,
     String? unlockedBy,
     String? unlockReason,
+    String? teacherRemarks,
     String? principalRemarks,
   }) {
     return ExamResultEntity(
       id: id ?? this.id,
       examId: examId ?? this.examId,
       examName: examName ?? this.examName,
-      academicSession:
-          academicSession ?? this.academicSession,
+      academicSession: academicSession ?? this.academicSession,
       classId: classId ?? this.classId,
       className: className ?? this.className,
       sectionId: sectionId ?? this.sectionId,
@@ -271,19 +265,14 @@ class ExamResultEntity extends Equatable {
       studentName: studentName ?? this.studentName,
       rollNumber: rollNumber ?? this.rollNumber,
       admissionNo: admissionNo ?? this.admissionNo,
-      subjectResults:
-          subjectResults ?? this.subjectResults,
-      grandTotalMarks:
-          grandTotalMarks ?? this.grandTotalMarks,
-      grandObtainedMarks:
-          grandObtainedMarks ?? this.grandObtainedMarks,
+      subjectResults: subjectResults ?? this.subjectResults,
+      grandTotalMarks: grandTotalMarks ?? this.grandTotalMarks,
+      grandObtainedMarks: grandObtainedMarks ?? this.grandObtainedMarks,
       percentage: percentage ?? this.percentage,
       grade: grade ?? this.grade,
       isPassed: isPassed ?? this.isPassed,
-      classPosition:
-          classPosition ?? this.classPosition,
-      sectionPosition:
-          sectionPosition ?? this.sectionPosition,
+      classPosition: classPosition ?? this.classPosition,
+      sectionPosition: sectionPosition ?? this.sectionPosition,
       overallRank: overallRank ?? this.overallRank,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -301,50 +290,51 @@ class ExamResultEntity extends Equatable {
       unlockedAt: unlockedAt ?? this.unlockedAt,
       unlockedBy: unlockedBy ?? this.unlockedBy,
       unlockReason: unlockReason ?? this.unlockReason,
-      principalRemarks:
-          principalRemarks ?? this.principalRemarks,
+      teacherRemarks: teacherRemarks ?? this.teacherRemarks,
+      principalRemarks: principalRemarks ?? this.principalRemarks,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        examId,
-        examName,
-        academicSession,
-        classId,
-        className,
-        sectionId,
-        sectionName,
-        studentId,
-        studentName,
-        rollNumber,
-        admissionNo,
-        subjectResults,
-        grandTotalMarks,
-        grandObtainedMarks,
-        percentage,
-        grade,
-        isPassed,
-        classPosition,
-        sectionPosition,
-        overallRank,
-        status,
-        createdAt,
-        updatedAt,
-        generatedAt,
-        generatedBy,
-        verifiedAt,
-        verifiedBy,
-        approvedAt,
-        approvedBy,
-        publishedAt,
-        publishedBy,
-        lockedAt,
-        lockedBy,
-        unlockedAt,
-        unlockedBy,
-        unlockReason,
-        principalRemarks,
-      ];
+    id,
+    examId,
+    examName,
+    academicSession,
+    classId,
+    className,
+    sectionId,
+    sectionName,
+    studentId,
+    studentName,
+    rollNumber,
+    admissionNo,
+    subjectResults,
+    grandTotalMarks,
+    grandObtainedMarks,
+    percentage,
+    grade,
+    isPassed,
+    classPosition,
+    sectionPosition,
+    overallRank,
+    status,
+    createdAt,
+    updatedAt,
+    generatedAt,
+    generatedBy,
+    verifiedAt,
+    verifiedBy,
+    approvedAt,
+    approvedBy,
+    publishedAt,
+    publishedBy,
+    lockedAt,
+    lockedBy,
+    unlockedAt,
+    unlockedBy,
+    unlockReason,
+    teacherRemarks,
+    principalRemarks,
+  ];
 }

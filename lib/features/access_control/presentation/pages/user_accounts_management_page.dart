@@ -523,15 +523,25 @@ class _UserAccountsManagementPageState
   @override
   Widget build(BuildContext context) {
     final visible = _visibleAccounts;
+    final compact = MediaQuery.sizeOf(context).width < 650;
 
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('User Accounts Management')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _loading || _roles.isEmpty ? null : _createAccount,
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Create User'),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('User Accounts Management'),
       ),
+      floatingActionButton: compact
+          ? FloatingActionButton(
+              onPressed: _loading || _roles.isEmpty ? null : _createAccount,
+              tooltip: 'Create user',
+              child: const Icon(Icons.person_add_alt_1),
+            )
+          : FloatingActionButton.extended(
+              onPressed: _loading || _roles.isEmpty ? null : _createAccount,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Create User'),
+            ),
       body: Stack(
         children: [
           ListView(
@@ -566,26 +576,40 @@ class _UserAccountsManagementPageState
                 elevation: 0,
                 child: Padding(
                   padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _search,
-                          onChanged: (value) => setState(() => _query = value),
-                          decoration: const InputDecoration(
-                            labelText: 'Search name, username, email or role',
-                            prefixIcon: Icon(Icons.search),
-                            border: OutlineInputBorder(),
-                          ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final search = TextField(
+                        controller: _search,
+                        onChanged: (value) => setState(() => _query = value),
+                        decoration: const InputDecoration(
+                          labelText: 'Search name, username, email or role',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton.tonalIcon(
+                      );
+                      final refresh = FilledButton.tonalIcon(
                         onPressed: _loading ? null : _load,
                         icon: const Icon(Icons.refresh),
                         label: const Text('Refresh'),
-                      ),
-                    ],
+                      );
+                      if (constraints.maxWidth < 560) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            search,
+                            const SizedBox(height: 10),
+                            refresh,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: search),
+                          const SizedBox(width: 12),
+                          refresh,
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -988,10 +1012,7 @@ class _UserAccountCard extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Text('Edit Account'),
-                ),
+                const PopupMenuItem(value: 'edit', child: Text('Edit Account')),
                 const PopupMenuItem(value: 'role', child: Text('Change Role')),
                 const PopupMenuItem(
                   value: 'password',

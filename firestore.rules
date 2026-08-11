@@ -400,6 +400,21 @@ service cloud.firestore {
       allow write: if hasPermission('dateSheetsManage');
     }
 
+    match /exam_questions/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /exam_question_papers/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /exam_question_progress/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
     match /exam_results/{resultId} {
       allow read: if hasPermission('resultsView')
           || (

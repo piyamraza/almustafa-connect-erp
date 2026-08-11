@@ -40,6 +40,9 @@ class FirestorePaths {
   static const String examSubjectSetups = 'exam_subject_setups';
   static const String examMarks = 'exam_marks';
   static const String examResults = 'exam_results';
+  static const String examQuestions = 'exam_questions';
+  static const String examQuestionPapers = 'exam_question_papers';
+  static const String examQuestionProgress = 'exam_question_progress';
   static const String annualPromotionRuns = 'annual_promotion_runs';
   static const String annualPromotionHistory = 'annual_promotion_history';
   static const String examDateSheets = 'exam_date_sheets';

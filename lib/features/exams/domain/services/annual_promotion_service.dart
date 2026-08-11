@@ -1,3 +1,4 @@
+import '../../../academic_calendar/domain/entities/academic_year_config_entity.dart';
 import '../../../academic_calendar/domain/repositories/academic_year_config_repository.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
@@ -28,14 +29,25 @@ class AnnualPromotionService {
   final AcademicYearConfigRepository _sessionRepository;
   final AnnualPromotionRepository _promotionRepository;
 
-  Future<List<String>> sessions() async => (await _sessionRepository.getAll())
-      .map((item) => item.academicSession)
-      .toList(growable: false);
+  Future<List<String>> sessions() async {
+    final values = await Future.wait<Object>([
+      _sessionRepository.getAll(),
+      _examRepository.getExams(),
+    ]);
+    final sessions = <String>{
+      for (final item in values[0] as List<AcademicYearConfigEntity>)
+        if (item.academicSession.trim().isNotEmpty) item.academicSession.trim(),
+      for (final exam in values[1] as List<ExamEntity>)
+        if (_isFinalExam(exam) && exam.academicSession.trim().isNotEmpty)
+          exam.academicSession.trim(),
+    }.toList()..sort(_compareSessions);
+    return List.unmodifiable(sessions);
+  }
 
   Future<List<ExamEntity>> finalExams(String session) async =>
-      (await _examRepository.getExams(academicSession: session))
-          .where((exam) => exam.type == ExamType.finalExam)
-          .toList(growable: false);
+      (await _examRepository.getExams(
+        academicSession: session,
+      )).where(_isFinalExam).toList(growable: false);
 
   Future<AnnualPromotionPreview> preview({
     required String academicSession,
@@ -45,15 +57,13 @@ class AnnualPromotionService {
     final fromIndex = sessions.indexWhere(
       (item) => item.academicSession == academicSession,
     );
-    if (fromIndex < 0 || fromIndex + 1 >= sessions.length) {
-      throw StateError(
-        'The next academic session does not exist. Create it first.',
-      );
-    }
+    final toSession = fromIndex >= 0 && fromIndex + 1 < sessions.length
+        ? sessions[fromIndex + 1].academicSession
+        : _nextSession(academicSession);
 
     final exam = await _examRepository.getExamById(finalExamId);
     if (exam == null ||
-        exam.type != ExamType.finalExam ||
+        !_isFinalExam(exam) ||
         exam.academicSession != academicSession) {
       throw StateError('Select a valid Final Exam for this academic session.');
     }
@@ -81,20 +91,29 @@ class AnnualPromotionService {
     final resultsByStudent = {
       for (final result in results) result.studentId: result,
     };
+    final resultsByAdmission = {
+      for (final result in results)
+        if (result.admissionNo.trim().isNotEmpty)
+          _normalize(result.admissionNo): result,
+    };
 
     final items = <AnnualPromotionPreviewItem>[];
     for (final student in students) {
       if (!student.isActive) continue;
       final classIndex = classes.indexWhere(
-        (item) => item.id == student.classId,
+        (item) => _matchesIdOrName(student.classId, item.id, item.name),
       );
       if (classIndex < 0) continue;
-      final candidateResult = resultsByStudent[student.id];
-      final result =
-          candidateResult?.classId == student.classId &&
-              candidateResult?.academicSession == academicSession
+      final currentClass = classes[classIndex];
+      final candidateResult =
+          resultsByStudent[student.id] ??
+          resultsByAdmission[_normalize(student.admissionNo)];
+      final result = candidateResult?.academicSession == academicSession
           ? candidateResult
           : null;
+      final resultClassMismatch =
+          result != null &&
+          !_matchesIdOrName(result.classId, currentClass.id, currentClass.name);
       final resultStatus = _resultStatus(result);
       var action = AnnualPromotionAction.noAction;
       String? targetClassId;
@@ -120,12 +139,23 @@ class AnnualPromotionService {
         }
       } else if (resultStatus == AnnualPromotionResultStatus.failed) {
         action = AnnualPromotionAction.retain;
-        targetClassId = student.classId;
-        targetSectionId = student.sectionId;
+        targetClassId = currentClass.id;
+        targetSectionId = _canonicalSectionId(
+          value: student.sectionId,
+          classId: currentClass.id,
+          sections: sections,
+        );
       } else {
         warning = resultStatus == AnnualPromotionResultStatus.incomplete
             ? 'Result incomplete / No action'
             : 'No final result / No action';
+      }
+      if (resultClassMismatch) {
+        action = AnnualPromotionAction.noAction;
+        targetClassId = null;
+        targetSectionId = null;
+        warning =
+            'Student current class (${currentClass.name}) differs from final result class (${result.className}). Correct the student class first.';
       }
       final wasProcessed = processed.contains(student.id);
       items.add(
@@ -148,7 +178,7 @@ class AnnualPromotionService {
 
     return AnnualPromotionPreview(
       fromSession: academicSession,
-      toSession: sessions[fromIndex + 1].academicSession,
+      toSession: toSession,
       examId: exam.id,
       examName: exam.name,
       classes: classes,
@@ -177,7 +207,9 @@ class AnnualPromotionService {
     required List<SectionEntity> sections,
   }) {
     final previous = sections
-        .where((item) => item.id == previousSectionId)
+        .where(
+          (item) => _matchesIdOrName(previousSectionId, item.id, item.name),
+        )
         .firstOrNull;
     final targetSections = sections
         .where((item) => item.classId == targetClassId)
@@ -190,6 +222,22 @@ class AnnualPromotionService {
           (item) =>
               item.name.trim().toLowerCase() ==
               previous.name.trim().toLowerCase(),
+        )
+        .firstOrNull
+        ?.id;
+  }
+
+  String? _canonicalSectionId({
+    required String value,
+    required String classId,
+    required List<SectionEntity> sections,
+  }) {
+    if (value.trim().isEmpty) return '';
+    return sections
+        .where(
+          (item) =>
+              item.classId == classId &&
+              _matchesIdOrName(value, item.id, item.name),
         )
         .firstOrNull
         ?.id;
@@ -210,6 +258,41 @@ class AnnualPromotionService {
       RegExp(r'\d+').firstMatch(value)?.group(0) ?? '',
     );
     return number ?? 100000;
+  }
+
+  bool _isFinalExam(ExamEntity exam) {
+    if (exam.type == ExamType.finalExam) return true;
+    final name = exam.name.trim().toLowerCase();
+    return name.contains('final') || name.contains('annual');
+  }
+
+  int _compareSessions(String first, String second) {
+    int startYear(String value) =>
+        int.tryParse(RegExp(r'\d{4}').firstMatch(value)?.group(0) ?? '') ?? 0;
+    final compared = startYear(first).compareTo(startYear(second));
+    return compared != 0 ? compared : first.compareTo(second);
+  }
+
+  bool _matchesIdOrName(String value, String id, String name) {
+    final normalized = _normalize(value);
+    return normalized == _normalize(id) || normalized == _normalize(name);
+  }
+
+  String _normalize(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+  String _nextSession(String session) {
+    final years = RegExp(
+      r'\d{4}',
+    ).allMatches(session).map((m) => m.group(0)!).toList();
+    if (years.length >= 2) {
+      final start = int.parse(years[0]);
+      final end = int.parse(years[1]);
+      return '${start + 1}-${end + 1}';
+    }
+    throw StateError(
+      'The next academic session could not be determined from $session.',
+    );
   }
 }
 

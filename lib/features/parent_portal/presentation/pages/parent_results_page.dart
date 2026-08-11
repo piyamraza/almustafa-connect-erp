@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/parent_results_summary.dart';
 import '../../domain/services/parent_results_service.dart';
+import '../../../results/presentation/widgets/grouped_subject_results_table.dart';
 
 class ParentResultsPage extends StatefulWidget {
   const ParentResultsPage({super.key, required this.student});
@@ -80,7 +82,10 @@ class _ParentResultsPageState extends State<ParentResultsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.student.fullName} Results')),
+      appBar: AppBar(
+        title: Text('${widget.student.fullName} Results'),
+        actions: const [DashboardNavigationButton()],
+      ),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }
@@ -292,37 +297,7 @@ class _ResultDetailCard extends StatelessWidget {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Subject')),
-                  DataColumn(label: Text('Total')),
-                  DataColumn(label: Text('Obtained')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Remarks')),
-                ],
-                rows: result.subjectResults
-                    .map(
-                      (subject) => DataRow(
-                        cells: [
-                          DataCell(Text(subject.subjectName)),
-                          DataCell(Text(subject.totalMarks.toStringAsFixed(1))),
-                          DataCell(
-                            Text(
-                              subject.isAbsent
-                                  ? 'Absent'
-                                  : subject.obtainedMarks.toStringAsFixed(1),
-                            ),
-                          ),
-                          DataCell(Text(subject.isPassed ? 'Pass' : 'Fail')),
-                          DataCell(Text(subject.remarks)),
-                        ],
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
+            GroupedSubjectResultsTable(subjects: result.subjectResults),
             if (result.principalRemarks.trim().isNotEmpty) ...[
               const SizedBox(height: 18),
               Text(

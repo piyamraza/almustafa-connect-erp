@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../di/service_locator.dart';
 import '../../domain/entities/audit_log_entity.dart';
@@ -153,6 +154,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       appBar: AppBar(
         title: const Text('Audit Logs'),
         actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _load,

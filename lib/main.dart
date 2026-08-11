@@ -25,6 +25,16 @@ class MyApp extends StatelessWidget {
       title: 'Almustafa Connect ERP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final scale = media.textScaler.scale(1);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: TextScaler.linear(scale.clamp(0.9, 1.12)),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const SplashPage(),
     );
   }

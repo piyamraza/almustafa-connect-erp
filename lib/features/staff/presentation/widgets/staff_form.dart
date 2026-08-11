@@ -9,6 +9,7 @@ class StaffFormData {
     required this.firstName,
     required this.lastName,
     required this.fatherName,
+    required this.dateOfBirth,
     required this.cnic,
     required this.phone,
     required this.whatsappNumber,
@@ -23,6 +24,7 @@ class StaffFormData {
   final String firstName;
   final String lastName;
   final String fatherName;
+  final DateTime? dateOfBirth;
   final String cnic;
   final String phone;
   final String whatsappNumber;
@@ -64,9 +66,11 @@ class _StaffFormState extends State<StaffForm> {
   late final TextEditingController _addressController;
   late final TextEditingController _designationController;
   late final TextEditingController _joiningDateController;
+  late final TextEditingController _dateOfBirthController;
   late final TextEditingController _salaryController;
 
   DateTime? _joiningDate;
+  DateTime? _dateOfBirth;
   bool _isActive = true;
   bool _isSubmittingInternally = false;
   bool _sameAsMobile = true;
@@ -115,6 +119,10 @@ class _StaffFormState extends State<StaffForm> {
     _joiningDateController = TextEditingController(
       text: _joiningDate == null ? '' : _formatDate(_joiningDate!),
     );
+    _dateOfBirth = initialData?.dateOfBirth;
+    _dateOfBirthController = TextEditingController(
+      text: _dateOfBirth == null ? '' : _formatDate(_dateOfBirth!),
+    );
 
     _isActive = initialData?.isActive ?? true;
   }
@@ -130,6 +138,7 @@ class _StaffFormState extends State<StaffForm> {
     _addressController.dispose();
     _designationController.dispose();
     _joiningDateController.dispose();
+    _dateOfBirthController.dispose();
     _salaryController.dispose();
     super.dispose();
   }
@@ -163,6 +172,26 @@ class _StaffFormState extends State<StaffForm> {
         selectedDate.day,
       );
       _joiningDateController.text = _formatDate(_joiningDate!);
+    });
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final selectedDate = await showManualDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(now.year - 25),
+      firstDate: DateTime(1940),
+      lastDate: now,
+      helpText: 'Select date of birth',
+    );
+    if (selectedDate == null || !mounted) return;
+    setState(() {
+      _dateOfBirth = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+      );
+      _dateOfBirthController.text = _formatDate(_dateOfBirth!);
     });
   }
 
@@ -246,6 +275,7 @@ class _StaffFormState extends State<StaffForm> {
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       fatherName: _fatherNameController.text.trim(),
+      dateOfBirth: _dateOfBirth,
       cnic: _cnicController.text.trim(),
       phone: _phoneController.text.trim(),
       whatsappNumber: _whatsappController.text.trim(),
@@ -335,6 +365,24 @@ class _StaffFormState extends State<StaffForm> {
                         validator: (value) {
                           return _validateRequired(value, 'Father name');
                         },
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth,
+                      child: TextFormField(
+                        controller: _dateOfBirthController,
+                        readOnly: true,
+                        onTap: isBusy ? null : _pickDateOfBirth,
+                        decoration: InputDecoration(
+                          labelText: 'Date of Birth',
+                          prefixIcon: const Icon(Icons.cake_outlined),
+                          suffixIcon: IconButton(
+                            tooltip: 'Select date of birth',
+                            onPressed: isBusy ? null : _pickDateOfBirth,
+                            icon: const Icon(Icons.date_range_outlined),
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
                       ),
                     ),
                     SizedBox(

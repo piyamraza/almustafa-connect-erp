@@ -197,6 +197,7 @@ class TimetableDashboardPage extends StatelessWidget {
                           crossAxisCount: columns,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
+                          mainAxisExtent: columns == 1 ? 150 : null,
                           childAspectRatio: switch (columns) {
                             5 => 1.55,
                             4 => 1.8,

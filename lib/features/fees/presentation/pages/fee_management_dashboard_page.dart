@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
+import '../../../../core/di/service_locator.dart';
+import '../../domain/entities/fee_payment_entity.dart';
+import '../../domain/entities/monthly_fee_due_entity.dart';
+import '../../domain/repositories/fee_payment_repository.dart';
+import '../../domain/repositories/monthly_fee_due_repository.dart';
 import 'fee_challan_page.dart';
 import 'fee_collection_page.dart';
 import 'fee_reports_page.dart';
@@ -15,6 +20,26 @@ const _textSecondary = Color(0xFF667085);
 
 class FeeManagementDashboardPage extends StatelessWidget {
   const FeeManagementDashboardPage({super.key});
+
+  Future<_FeeDashboardSnapshot> _loadSnapshot() async {
+    try {
+      final values = await Future.wait<Object>([
+        sl<FeePaymentRepository>().getPayments(),
+        sl<MonthlyFeeDueRepository>().getMonthlyDues(),
+      ]);
+      return _FeeDashboardSnapshot(
+        payments: values[0] as List<FeePaymentEntity>,
+        dues: values[1] as List<MonthlyFeeDueEntity>,
+        now: DateTime.now(),
+      );
+    } catch (_) {
+      return _FeeDashboardSnapshot(
+        payments: const [],
+        dues: const [],
+        now: DateTime.now(),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +163,53 @@ class FeeManagementDashboardPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _DashboardHeader(featureCount: features.length),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
+                      FutureBuilder<_FeeDashboardSnapshot>(
+                        future: _loadSnapshot(),
+                        builder: (context, snapshot) => _FinancialOverview(
+                          data: snapshot.data,
+                          loading:
+                              snapshot.connectionState != ConnectionState.done,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fee Operations',
+                                  style: TextStyle(
+                                    color: _textPrimary,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Choose an operation to continue',
+                                  style: TextStyle(
+                                    color: _textSecondary,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const FeeCollectionPage(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add_card_rounded),
+                            label: const Text('Collect Fee'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final columns = constraints.maxWidth >= 1180
@@ -263,6 +334,251 @@ class _DashboardHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FinancialOverview extends StatelessWidget {
+  const _FinancialOverview({required this.data, required this.loading});
+
+  final _FeeDashboardSnapshot? data;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = data;
+    final metrics = [
+      _FeeMetric(
+        label: "Today's Collection",
+        value: value == null ? '—' : _money(value.todayCollection),
+        detail: value == null ? '' : '${value.todayPaidStudents} students paid',
+        icon: Icons.savings_rounded,
+        color: const Color(0xFF0F9D74),
+      ),
+      _FeeMetric(
+        label: 'Monthly Collection',
+        value: value == null ? '—' : _money(value.monthCollection),
+        detail: value == null ? '' : '${value.monthPaidStudents} students paid',
+        icon: Icons.trending_up_rounded,
+        color: const Color(0xFF1769E8),
+      ),
+      _FeeMetric(
+        label: 'Outstanding Fees',
+        value: value == null ? '—' : _money(value.outstanding),
+        detail: value == null
+            ? ''
+            : '${value.pendingStudents} students pending',
+        icon: Icons.warning_amber_rounded,
+        color: const Color(0xFFEF4444),
+      ),
+      _FeeMetric(
+        label: 'Collection Rate',
+        value: value == null
+            ? '—'
+            : '${value.collectionRate.toStringAsFixed(1)}%',
+        detail: 'Current generated dues',
+        icon: Icons.donut_large_rounded,
+        color: const Color(0xFF7C3AED),
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 620
+            ? 1
+            : constraints.maxWidth < 1000
+            ? 2
+            : 4;
+        return Stack(
+          children: [
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: metrics.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                mainAxisExtent: 116,
+              ),
+              itemBuilder: (context, index) =>
+                  _MoneyMetric(metric: metrics[index]),
+            ),
+            if (loading)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MoneyMetric extends StatelessWidget {
+  const _MoneyMetric({required this.metric});
+  final _FeeMetric metric;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          metric.color.withValues(alpha: 0.13),
+          Colors.white,
+          Colors.white,
+        ],
+      ),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: metric.color.withValues(alpha: 0.22)),
+      boxShadow: [
+        BoxShadow(
+          color: metric.color.withValues(alpha: 0.07),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: metric.color,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(metric.icon, color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                metric.label,
+                style: const TextStyle(color: _textSecondary, fontSize: 11.5),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                metric.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (metric.detail.isNotEmpty)
+                Text(
+                  metric.detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: metric.color,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FeeMetric {
+  const _FeeMetric({
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.icon,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final String detail;
+  final IconData icon;
+  final Color color;
+}
+
+class _FeeDashboardSnapshot {
+  const _FeeDashboardSnapshot({
+    required this.payments,
+    required this.dues,
+    required this.now,
+  });
+  final List<FeePaymentEntity> payments;
+  final List<MonthlyFeeDueEntity> dues;
+  final DateTime now;
+
+  Iterable<FeePaymentEntity> get _completed =>
+      payments.where((item) => item.status == FeePaymentStatus.completed);
+  double get todayCollection => _completed
+      .where((item) => _sameDay(item.paymentDate, now))
+      .fold(0, (sum, item) => sum + item.totalPaid);
+  int get todayPaidStudents => _completed
+      .where((item) => _sameDay(item.paymentDate, now))
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
+  double get monthCollection => _completed
+      .where(
+        (item) =>
+            item.paymentDate.year == now.year &&
+            item.paymentDate.month == now.month,
+      )
+      .fold(0, (sum, item) => sum + item.totalPaid);
+  int get monthPaidStudents => _completed
+      .where(
+        (item) =>
+            item.paymentDate.year == now.year &&
+            item.paymentDate.month == now.month,
+      )
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
+  Iterable<MonthlyFeeDueEntity> get _activeDues =>
+      dues.where((item) => item.status != MonthlyFeeDueStatus.cancelled);
+  double get outstanding =>
+      _activeDues.fold(0, (sum, item) => sum + item.outstandingAmount);
+  int get pendingStudents => _activeDues
+      .where((item) => item.outstandingAmount > 0)
+      .map((item) => item.studentId)
+      .toSet()
+      .length;
+  double get collectionRate {
+    final payable = _activeDues.fold<double>(
+      0,
+      (sum, item) => sum + item.netPayable,
+    );
+    final paid = _activeDues.fold<double>(
+      0,
+      (sum, item) => sum + item.paidAmount,
+    );
+    return payable <= 0 ? 0 : (paid / payable * 100).clamp(0, 100);
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+String _money(double value) {
+  final digits = value.round().toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+    buffer.write(digits[index]);
+  }
+  return 'Rs. $buffer';
 }
 
 class _FeeFeature {

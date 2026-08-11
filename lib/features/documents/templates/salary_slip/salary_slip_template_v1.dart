@@ -1,4 +1,4 @@
-﻿import '../../domain/entities/document_element_entity.dart';
+import '../../domain/entities/document_element_entity.dart';
 import '../../domain/entities/document_element_style.dart';
 import '../../domain/entities/document_element_type.dart';
 import '../../domain/entities/document_page_entity.dart';
@@ -64,9 +64,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             width: 0.92,
             height: 0.15,
             zIndex: 2,
-            style: DocumentElementStyle(
-              backgroundColor: '#123A63',
-            ),
+            style: DocumentElementStyle(backgroundColor: '#123A63'),
           ),
           DocumentElementEntity(
             id: 'school_logo',
@@ -77,9 +75,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             height: 0.09,
             zIndex: 10,
             dataKey: 'branding.schoolLogo',
-            style: DocumentElementStyle(
-              imageFit: DocumentImageFit.contain,
-            ),
+            style: DocumentElementStyle(imageFit: DocumentImageFit.contain),
           ),
           DocumentElementEntity(
             id: 'school_name',
@@ -151,23 +147,6 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             ),
           ),
           DocumentElementEntity(
-            id: 'employee_id',
-            type: DocumentElementType.text,
-            x: 0.56,
-            y: 0.275,
-            width: 0.32,
-            height: 0.04,
-            zIndex: 12,
-            staticValue: 'Employee ID: {{salary.staffCode}}',
-            style: DocumentElementStyle(
-              fontSize: 13,
-              fontWeight: DocumentFontWeight.medium,
-              textColor: '#344054',
-              textAlignment: DocumentTextAlignment.right,
-              verticalAlignment: DocumentVerticalAlignment.center,
-            ),
-          ),
-          DocumentElementEntity(
             id: 'designation',
             type: DocumentElementType.text,
             x: 0.10,
@@ -208,10 +187,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             height: 0.04,
             zIndex: 13,
             staticValue: 'Basic Salary: Rs. {{salary.basicSalary}}',
-            style: DocumentElementStyle(
-              fontSize: 13,
-              textColor: '#344054',
-            ),
+            style: DocumentElementStyle(fontSize: 13, textColor: '#344054'),
           ),
           DocumentElementEntity(
             id: 'allowance',
@@ -222,10 +198,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             height: 0.04,
             zIndex: 13,
             staticValue: 'Allowance: Rs. {{salary.allowance}}',
-            style: DocumentElementStyle(
-              fontSize: 13,
-              textColor: '#344054',
-            ),
+            style: DocumentElementStyle(fontSize: 13, textColor: '#344054'),
           ),
           DocumentElementEntity(
             id: 'gross',
@@ -267,10 +240,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             height: 0.04,
             zIndex: 13,
             staticValue: 'Other: Rs. {{salary.deduction}}',
-            style: DocumentElementStyle(
-              fontSize: 13,
-              textColor: '#344054',
-            ),
+            style: DocumentElementStyle(fontSize: 13, textColor: '#344054'),
           ),
           DocumentElementEntity(
             id: 'attendance_deduction',
@@ -280,12 +250,8 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             width: 0.32,
             height: 0.04,
             zIndex: 13,
-            staticValue:
-                'Attendance: Rs. {{salary.attendanceDeduction}}',
-            style: DocumentElementStyle(
-              fontSize: 13,
-              textColor: '#344054',
-            ),
+            staticValue: 'Attendance: Rs. {{salary.attendanceDeduction}}',
+            style: DocumentElementStyle(fontSize: 13, textColor: '#344054'),
           ),
 
           DocumentElementEntity(
@@ -376,10 +342,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             zIndex: 15,
             staticValue:
                 'Payment: {{salary.paymentMethod}}  {{salary.paymentReference}}',
-            style: DocumentElementStyle(
-              fontSize: 11,
-              textColor: '#667085',
-            ),
+            style: DocumentElementStyle(fontSize: 11, textColor: '#667085'),
           ),
           DocumentElementEntity(
             id: 'principal_signature',
@@ -392,9 +355,7 @@ DocumentTemplateEntity buildSalarySlipTemplateV1() {
             dataKey: 'branding.principalSignature',
             visibleWhenKey: 'branding.principalSignature',
             visibleWhenValue: 'exists',
-            style: DocumentElementStyle(
-              imageFit: DocumentImageFit.contain,
-            ),
+            style: DocumentElementStyle(imageFit: DocumentImageFit.contain),
           ),
           DocumentElementEntity(
             id: 'principal_label',
