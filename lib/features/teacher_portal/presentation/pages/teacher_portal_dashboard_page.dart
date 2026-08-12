@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
+import '../../../authentication/domain/usecases/logout_usecase.dart';
+import '../../../authentication/presentation/pages/login_page.dart';
 import '../../../attendance/domain/entities/attendance_entity.dart';
 import '../../../attendance/domain/repositories/attendance_repository.dart';
 import '../../../attendance/presentation/pages/mark_attendance_page.dart';
@@ -72,10 +74,7 @@ class _TeacherPortalDashboardPageState
   Future<_TeacherDashboardData> _load() async {
     final access = sl<AccessControlService>();
     final email = access.currentUserEmail?.trim().toLowerCase() ?? '';
-    final teachers = await sl<TeacherRepository>().getTeachers();
-    final teacher = teachers
-        .where((item) => item.email.trim().toLowerCase() == email)
-        .firstOrNull;
+    final teacher = await sl<TeacherRepository>().getTeacherByEmail(email);
     if (teacher == null) {
       throw StateError(
         'This login is not linked with a teacher profile. Ask Admin to use the same email on the teacher profile.',
@@ -83,7 +82,9 @@ class _TeacherPortalDashboardPageState
     }
 
     final assignments =
-        (await sl<TeacherAssignmentRepository>().getAssignments())
+        (await sl<TeacherAssignmentRepository>().getAssignmentsForTeacher(
+          teacher.id,
+        ))
             .where(
               (item) =>
                   item.teacherId == teacher.id &&
@@ -91,27 +92,48 @@ class _TeacherPortalDashboardPageState
             )
             .toList();
     final results = await Future.wait<Object>([
-      sl<TimetableRepository>().getTeacherTimetable(
+      _loadPart(
+        'timetable',
+        sl<TimetableRepository>().getTeacherTimetable(
         branchId: 'main',
         academicSession: _session,
         teacherId: teacher.id,
+        ),
       ),
-      sl<HomeworkRepository>().getHomework(
+      _loadPart(
+        'homework',
+        sl<HomeworkRepository>().getHomework(
         academicSession: _session,
         teacherId: teacher.id,
+        ),
       ),
-      sl<HomeworkQuestionRepository>().getForTeacher(teacher.id),
-      sl<StudentRepository>().getStudents(),
-      sl<AttendanceRepository>().getAttendanceByDate(DateTime.now()),
-      sl<ExamDateSheetRepository>().getDateSheets(academicSession: _session),
-      sl<NoticeRepository>().getNotices(
-        academicSession: _session,
-        status: NoticeStatus.published,
+      _loadPart(
+        'homework questions',
+        sl<HomeworkQuestionRepository>().getForTeacher(teacher.id),
       ),
-      sl<PortalNotificationRepository>().getNotifications(
-        recipientType: PortalRecipientType.teacher,
-        recipientId: teacher.id,
-        isRead: false,
+      _loadPart('assigned students', sl<StudentRepository>().getStudents()),
+      _loadPart(
+        'attendance',
+        sl<AttendanceRepository>().getAttendanceByDate(DateTime.now()),
+      ),
+      _loadPart(
+        'exam date sheets',
+        sl<ExamDateSheetRepository>().getDateSheets(academicSession: _session),
+      ),
+      _loadPart(
+        'notices',
+        sl<NoticeRepository>().getNotices(
+          academicSession: _session,
+          status: NoticeStatus.published,
+        ),
+      ),
+      _loadPart(
+        'notifications',
+        sl<PortalNotificationRepository>().getNotifications(
+          recipientType: PortalRecipientType.teacher,
+          recipientId: teacher.id,
+          isRead: false,
+        ),
       ),
     ]);
 
@@ -160,10 +182,40 @@ class _TeacherPortalDashboardPageState
     await _future;
   }
 
+  Future<void> _logout() async {
+    try {
+      await sl<LogoutUseCase>()();
+    } finally {
+      await sl<AccessControlService>().clear();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    }
+  }
+
+  Future<T> _loadPart<T>(String label, Future<T> request) async {
+    try {
+      return await request;
+    } catch (error) {
+      throw StateError('Unable to load teacher $label: $error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF4F7FC),
-    appBar: AppBar(title: const Text('My Teaching')),
+    appBar: AppBar(
+      title: const Text('My Teaching'),
+      actions: [
+        IconButton(
+          onPressed: _logout,
+          tooltip: 'Logout',
+          icon: const Icon(Icons.logout),
+        ),
+      ],
+    ),
     body: FutureBuilder<_TeacherDashboardData>(
       future: _future,
       builder: (context, snapshot) {

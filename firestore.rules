@@ -211,10 +211,17 @@ service cloud.firestore {
     }
 
     match /teachers/{document=**} {
-      allow read: if hasPermission('teachersView');
+      allow read: if hasPermission('teachersView')
+          || ownsTeacherProfile(document);
       allow create: if hasPermission('teachersCreate');
       allow update: if hasPermission('teachersEdit');
       allow delete: if hasPermission('teachersDelete');
+    }
+
+    match /teacher_assignments/{assignmentId} {
+      allow read: if hasPermission('teachersView')
+          || ownsTeacherProfile(resource.data.teacherId);
+      allow create, update, delete: if hasPermission('teachersEdit');
     }
 
     match /staff/{document=**} {

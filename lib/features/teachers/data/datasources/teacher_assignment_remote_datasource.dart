@@ -4,6 +4,9 @@ import '../models/teacher_assignment_model.dart';
 
 abstract class TeacherAssignmentRemoteDataSource {
   Future<List<TeacherAssignmentModel>> getAssignments();
+  Future<List<TeacherAssignmentModel>> getAssignmentsForTeacher(
+    String teacherId,
+  );
   Future<void> saveAssignment(TeacherAssignmentModel assignment);
   Future<void> deleteAssignment(String id);
   String generateId();
@@ -22,6 +25,26 @@ class TeacherAssignmentRemoteDataSourceImpl
     final data = await _firestoreService
         .collection(FirestorePaths.teacherAssignments)
         .orderBy('createdAt', descending: true)
+        .get();
+    return data.docs
+        .map(
+          (doc) => TeacherAssignmentModel.fromMap({
+            ...doc.data(),
+            'id': doc.id,
+          }),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<TeacherAssignmentModel>> getAssignmentsForTeacher(
+    String teacherId,
+  ) async {
+    final normalizedId = teacherId.trim();
+    if (normalizedId.isEmpty) return const [];
+    final data = await _firestoreService
+        .collection(FirestorePaths.teacherAssignments)
+        .where('teacherId', isEqualTo: normalizedId)
         .get();
     return data.docs
         .map(

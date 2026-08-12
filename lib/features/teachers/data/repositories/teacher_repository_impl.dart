@@ -19,6 +19,11 @@ class TeacherRepositoryImpl implements TeacherRepository {
   }
 
   @override
+  Future<TeacherEntity?> getTeacherByEmail(String email) {
+    return _remoteDataSource.getTeacherByEmail(email);
+  }
+
+  @override
   Future<void> saveTeacher(TeacherEntity teacher) async {
     final previous = await _remoteDataSource.getTeacherById(teacher.id);
     final model = TeacherModel.fromEntity(teacher);

@@ -7,6 +7,8 @@ abstract class TeacherRemoteDataSource {
 
   Future<TeacherModel?> getTeacherById(String id);
 
+  Future<TeacherModel?> getTeacherByEmail(String email);
+
   Future<void> saveTeacher(TeacherModel teacher);
 
   Future<void> deleteTeacher(String id);
@@ -48,6 +50,20 @@ class TeacherRemoteDataSourceImpl implements TeacherRemoteDataSource {
     if (!snapshot.exists || data == null) return null;
 
     return TeacherModel.fromMap({...data, 'id': snapshot.id});
+  }
+
+  @override
+  Future<TeacherModel?> getTeacherByEmail(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) return null;
+    final snapshot = await _firestoreService
+        .collection(FirestorePaths.teachers)
+        .where('email', isEqualTo: normalizedEmail)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return null;
+    final document = snapshot.docs.first;
+    return TeacherModel.fromMap({...document.data(), 'id': document.id});
   }
 
   @override

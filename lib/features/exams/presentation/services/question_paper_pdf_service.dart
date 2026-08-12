@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:pdf/pdf.dart';
@@ -9,17 +10,24 @@ import 'package:printing/printing.dart';
 import '../../domain/entities/exam_question_entity.dart';
 
 class QuestionPaperPdfService {
+  late pw.Font _urduFont;
+  late pw.Font _urduBoldFont;
+
   Future<Uint8List> build(ExamQuestionPaperEntity paper) async {
     final loaded = await Future.wait([
       _downloadImages(paper),
       PdfGoogleFonts.notoSansRegular(),
       PdfGoogleFonts.notoSansBold(),
-      PdfGoogleFonts.notoNastaliqUrduRegular(),
+      PdfGoogleFonts.notoNaskhArabicRegular(),
+      PdfGoogleFonts.notoNaskhArabicBold(),
+      rootBundle.load('assets/images/logo.jpeg'),
     ]);
     final images = loaded[0] as Map<String, Uint8List>;
     final baseFont = loaded[1] as pw.Font;
     final boldFont = loaded[2] as pw.Font;
-    final urduFont = loaded[3] as pw.Font;
+    _urduFont = loaded[3] as pw.Font;
+    _urduBoldFont = loaded[4] as pw.Font;
+    final bundledLogo = (loaded[5] as ByteData).buffer.asUint8List();
     final paperIsUrdu = paper.questions.isNotEmpty &&
         paper.questions.where((question) => _containsUrdu(question.text)).length >=
             (paper.questions.length / 2).ceil();
@@ -29,7 +37,7 @@ class QuestionPaperPdfService {
         theme: pw.ThemeData.withFont(
           base: baseFont,
           bold: boldFont,
-          fontFallback: [urduFont],
+          fontFallback: [_urduFont],
         ),
         pageFormat: PdfPageFormat.a4,
         textDirection:
@@ -43,7 +51,11 @@ class QuestionPaperPdfService {
           ),
         ),
         build: (_) => [
-          _header(paper, images[paper.logoUrl]),
+          _header(
+            paper,
+            images[paper.logoUrl] ??
+                (bundledLogo.isNotEmpty ? bundledLogo : null),
+          ),
           pw.SizedBox(height: 10),
           ..._sections(paper.questions, images),
         ],
@@ -114,10 +126,10 @@ class QuestionPaperPdfService {
                 pw.SizedBox(height: 2),
                 pw.Text(
                   paper.title,
-                  style: pw.TextStyle(
-                    fontSize: 13,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
+                  textDirection: _containsUrdu(paper.title)
+                      ? pw.TextDirection.rtl
+                      : pw.TextDirection.ltr,
+                  style: _textStyle(paper.title, fontSize: 13, bold: true),
                 ),
               ],
             ),
@@ -172,9 +184,13 @@ class QuestionPaperPdfService {
             ),
             child: pw.Text(
               'Instructions: ${paper.instructions}',
-              style: pw.TextStyle(
+              textDirection: _containsUrdu(paper.instructions)
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
+              style: _textStyle(
+                paper.instructions,
                 fontSize: 9.5,
-                fontWeight: pw.FontWeight.bold,
+                bold: true,
               ),
             ),
           ),
@@ -191,7 +207,16 @@ class QuestionPaperPdfService {
           style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
         ),
         pw.Expanded(
-          child: pw.Text(value, style: const pw.TextStyle(fontSize: 9)),
+          child: pw.Text(
+            value,
+            textDirection: _containsUrdu(value)
+                ? pw.TextDirection.rtl
+                : pw.TextDirection.ltr,
+            textAlign: _containsUrdu(value)
+                ? pw.TextAlign.right
+                : pw.TextAlign.left,
+            style: _textStyle(value, fontSize: 9),
+          ),
         ),
       ],
     ),
@@ -256,7 +281,7 @@ class QuestionPaperPdfService {
                 textAlign: _containsUrdu(question.text)
                     ? pw.TextAlign.right
                     : pw.TextAlign.left,
-                style: const pw.TextStyle(fontSize: 9.5),
+                style: _textStyle(question.text, fontSize: 9.5),
               ),
             ),
             if (question.type == ExamQuestionType.trueFalse) ...[
@@ -312,7 +337,7 @@ class QuestionPaperPdfService {
               textAlign: question.cells.any(_containsUrdu)
                   ? pw.TextAlign.right
                   : pw.TextAlign.left,
-              style: const pw.TextStyle(fontSize: 9),
+              style: _textStyle(question.cells.join(' '), fontSize: 9),
             ),
           ),
         if (question.answerLines > 0)
@@ -353,7 +378,7 @@ class QuestionPaperPdfService {
                   textAlign: _containsUrdu(entry.value)
                       ? pw.TextAlign.right
                       : pw.TextAlign.left,
-                  style: const pw.TextStyle(fontSize: 8.5),
+                  style: _textStyle(entry.value, fontSize: 8.5),
                 ),
               );
             }).toList(),
@@ -466,6 +491,9 @@ class QuestionPaperPdfService {
       style: pw.TextStyle(
         fontSize: 9,
         fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        font: _containsUrdu(text)
+            ? (bold ? _urduBoldFont : _urduFont)
+            : null,
       ),
     ),
   );
@@ -476,6 +504,19 @@ class QuestionPaperPdfService {
   bool _containsUrdu(String value) => RegExp(
     r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]',
   ).hasMatch(value);
+
+  pw.TextStyle _textStyle(
+    String value, {
+    required double fontSize,
+    bool bold = false,
+  }) =>
+      pw.TextStyle(
+        fontSize: fontSize,
+        fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        font: _containsUrdu(value)
+            ? (bold ? _urduBoldFont : _urduFont)
+            : null,
+      );
   String _paperSubjectName(ExamQuestionPaperEntity paper) {
     if (paper.componentName.isEmpty) {
       return paper.subjectName;
