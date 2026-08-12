@@ -43,7 +43,36 @@ class FeeReportServiceImpl implements FeeReportService {
     ]);
     sheet.appendRow([]);
 
-    if (report.type == FeeReportType.collectionSummary ||
+    if (report.type == FeeReportType.classWiseOutstanding ||
+        report.type == FeeReportType.classWiseOutstandingWithoutAmount) {
+      final showAmount = report.type == FeeReportType.classWiseOutstanding;
+      for (final group in report.outstandingGroups) {
+        sheet.appendRow([TextCellValue(_classHeading(group.className))]);
+        sheet.appendRow([
+          TextCellValue('Roll Number'),
+          TextCellValue('Name'),
+          TextCellValue('Father Name'),
+          if (showAmount) TextCellValue('Pending Fee'),
+        ]);
+        for (final student in group.students) {
+          sheet.appendRow([
+            TextCellValue(student.rollNumber),
+            TextCellValue(student.studentName),
+            TextCellValue(student.fatherName),
+            if (showAmount) DoubleCellValue(student.outstandingAmount),
+          ]);
+        }
+        if (showAmount) {
+          sheet.appendRow([
+            TextCellValue('Class Total'),
+            TextCellValue(''),
+            TextCellValue(''),
+            DoubleCellValue(group.totalOutstanding),
+          ]);
+        }
+        sheet.appendRow([]);
+      }
+    } else if (report.type == FeeReportType.collectionSummary ||
         report.type == FeeReportType.paymentMethods) {
       sheet.appendRow([
         TextCellValue('Receipt'),
@@ -139,7 +168,10 @@ class FeeReportServiceImpl implements FeeReportService {
         build: (_) => [
           _summary(report),
           pw.SizedBox(height: 12),
-          if (report.type == FeeReportType.collectionSummary ||
+          if (report.type == FeeReportType.classWiseOutstanding ||
+              report.type == FeeReportType.classWiseOutstandingWithoutAmount)
+            ..._classWiseOutstanding(report)
+          else if (report.type == FeeReportType.collectionSummary ||
               report.type == FeeReportType.paymentMethods)
             _paymentsTable(report)
           else
@@ -196,6 +228,28 @@ class FeeReportServiceImpl implements FeeReportService {
   }
 
   pw.Widget _summary(FeeReportData report) {
+    if (report.type == FeeReportType.classWiseOutstanding ||
+        report.type == FeeReportType.classWiseOutstandingWithoutAmount) {
+      final count = report.outstandingGroups.fold<int>(
+        0,
+        (total, group) => total + group.students.length,
+      );
+      return pw.Wrap(
+        spacing: 10,
+        children: [
+          pw.Text(
+            'Classes: ${report.outstandingGroups.length}',
+            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            'Pending Students: $count',
+            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          ),
+          if (report.type == FeeReportType.classWiseOutstanding)
+            _metric('Total Outstanding', report.totalOutstanding),
+        ],
+      );
+    }
     return pw.Wrap(
       spacing: 10,
       runSpacing: 8,
@@ -208,6 +262,69 @@ class FeeReportServiceImpl implements FeeReportService {
         _metric('Advance', report.totalAdvance),
       ],
     );
+  }
+
+  List<pw.Widget> _classWiseOutstanding(FeeReportData report) {
+    final showAmount = report.type == FeeReportType.classWiseOutstanding;
+    if (report.outstandingGroups.isEmpty) {
+      return [pw.Text('No students have outstanding fee.')];
+    }
+    return [
+      for (final group in report.outstandingGroups) ...[
+        pw.Container(
+          width: double.infinity,
+          color: PdfColors.blueGrey100,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Text(
+                  _classHeading(group.className),
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.Text('${group.students.length} students'),
+              if (showAmount) ...[
+                pw.SizedBox(width: 12),
+                pw.Text(
+                  'Rs. ${group.totalOutstanding.toStringAsFixed(0)}',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+              ],
+            ],
+          ),
+        ),
+        pw.TableHelper.fromTextArray(
+          headers: [
+            'Roll Number',
+            'Name',
+            'Father Name',
+            if (showAmount) 'Pending Fee',
+          ],
+          data: group.students
+              .map(
+                (student) => [
+                  student.rollNumber,
+                  student.studentName,
+                  student.fatherName,
+                  if (showAmount) student.outstandingAmount.toStringAsFixed(0),
+                ],
+              )
+              .toList(growable: false),
+          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          headerStyle: pw.TextStyle(
+            fontSize: 8,
+            fontWeight: pw.FontWeight.bold,
+          ),
+          cellStyle: const pw.TextStyle(fontSize: 7.5),
+          border: pw.TableBorder.all(color: PdfColors.blueGrey300, width: .4),
+        ),
+        pw.SizedBox(height: 12),
+      ],
+    ];
   }
 
   pw.Widget _metric(String label, double value) {
@@ -329,6 +446,9 @@ class FeeReportServiceImpl implements FeeReportService {
     FeeReportType.discounts => 'Discounts and Scholarships Report',
     FeeReportType.paymentMethods => 'Payment Method Report',
     FeeReportType.demandVsCollection => 'Demand vs Collection Report',
+    FeeReportType.classWiseOutstanding => 'Class-wise Outstanding Fee',
+    FeeReportType.classWiseOutstandingWithoutAmount =>
+      'Class-wise Outstanding Fee Without Amount',
   };
 
   static String _method(FeePaymentMethod method) => switch (method) {
@@ -358,4 +478,9 @@ class FeeReportServiceImpl implements FeeReportService {
     'November',
     'December',
   ][month];
+
+  static String _classHeading(String value) {
+    final name = value.trim();
+    return name.toLowerCase().startsWith('class ') ? name : 'Class $name';
+  }
 }

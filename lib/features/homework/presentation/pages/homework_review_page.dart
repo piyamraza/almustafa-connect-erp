@@ -60,7 +60,10 @@ class _HomeworkReviewPageState extends State<HomeworkReviewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Review Submission')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Review Submission'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

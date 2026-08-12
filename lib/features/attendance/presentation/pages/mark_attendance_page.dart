@@ -29,12 +29,14 @@ class MarkAttendancePage extends StatefulWidget {
     this.attendanceDate,
     this.classId,
     this.sectionId,
+    this.teacherMode = false,
   });
 
   final bool isEditMode;
   final DateTime? attendanceDate;
   final String? classId;
   final String? sectionId;
+  final bool teacherMode;
 
   @override
   State<MarkAttendancePage> createState() => _MarkAttendancePageState();
@@ -137,6 +139,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
+    if (widget.teacherMode) return;
     final picked = await showManualDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -275,7 +278,7 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
           appBar: AppBar(
             actions: const [DashboardNavigationButton()],
             title: const Text('Mark Attendance'),
-            leading: _isChoosingClass
+            leading: _isChoosingClass || widget.teacherMode
                 ? null
                 : IconButton(
                     icon: const Icon(Icons.arrow_back),
@@ -318,8 +321,10 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                 _searchController.clear();
                 setState(() {
                   _isSaving = false;
-                  _selectedClass = null;
-                  _selectedSection = null;
+                  if (!widget.teacherMode) {
+                    _selectedClass = null;
+                    _selectedSection = null;
+                  }
                 });
                 return;
               }
@@ -407,7 +412,9 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
                             students: _filteredStudents(state.students),
                             attendanceStatus: _attendanceStatus,
                             remarksControllers: _remarksControllers,
-                            onDatePressed: () => _pickDate(context),
+                            onDatePressed: widget.teacherMode
+                                ? null
+                                : () => _pickDate(context),
                             onStatusChanged: (studentId, status) => setState(
                               () => _attendanceStatus[studentId] = status,
                             ),
@@ -789,7 +796,7 @@ class _AttendanceList extends StatelessWidget {
   final List<StudentEntity> students;
   final Map<String, AttendanceStatus> attendanceStatus;
   final Map<String, TextEditingController> remarksControllers;
-  final VoidCallback onDatePressed;
+  final VoidCallback? onDatePressed;
   final void Function(String, AttendanceStatus) onStatusChanged;
 
   @override

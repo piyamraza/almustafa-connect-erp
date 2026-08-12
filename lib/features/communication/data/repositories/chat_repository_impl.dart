@@ -35,4 +35,12 @@ class ChatRepositoryImpl implements ChatRepository {
   }) {
     return _source.markThreadRead(threadId: threadId, userId: userId);
   }
+
+  @override
+  Future<void> removeThreadForUser({
+    required String threadId,
+    required String userId,
+  }) {
+    return _source.removeThreadForUser(threadId: threadId, userId: userId);
+  }
 }

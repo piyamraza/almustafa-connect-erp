@@ -8,6 +8,8 @@ import '../../../academic_structure/domain/entities/academic_subject_entity.dart
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../academic_structure/domain/services/academic_class_order.dart';
+import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
+import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/entities/homework_entity.dart';
 import '../bloc/homework_bloc.dart';
 import '../services/homework_diary_pdf_service.dart';
@@ -16,19 +18,23 @@ import 'homework_form_page.dart';
 import 'homework_submissions_dashboard_page.dart';
 
 class HomeworkDashboardPage extends StatelessWidget {
-  const HomeworkDashboardPage({super.key});
+  const HomeworkDashboardPage({super.key, this.teacherId});
+
+  final String? teacherId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<HomeworkBloc>()..add(const LoadHomework('2026-2027')),
-      child: const _HomeworkDashboardView(),
+      child: _HomeworkDashboardView(teacherId: teacherId),
     );
   }
 }
 
 class _HomeworkDashboardView extends StatefulWidget {
-  const _HomeworkDashboardView();
+  const _HomeworkDashboardView({required this.teacherId});
+
+  final String? teacherId;
 
   @override
   State<_HomeworkDashboardView> createState() => _HomeworkDashboardViewState();
@@ -40,6 +46,7 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
   List<AcademicClassEntity> _classes = const [];
   List<SectionEntity> _sections = const [];
   List<AcademicSubjectEntity> _subjects = const [];
+  List<TeacherAssignmentEntity> _teacherAssignments = const [];
   bool _structureLoading = true;
   String? _structureError;
 
@@ -61,12 +68,20 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
         sl<AcademicStructureRepository>().getClasses(),
         sl<AcademicStructureRepository>().getSections(),
         sl<AcademicStructureRepository>().getSubjects(),
+        sl<TeacherAssignmentRepository>().getAssignments(),
       ]);
       if (!mounted) return;
       setState(() {
         _classes = values[0] as List<AcademicClassEntity>;
         _sections = values[1] as List<SectionEntity>;
         _subjects = values[2] as List<AcademicSubjectEntity>;
+        _teacherAssignments = (values[3] as List<TeacherAssignmentEntity>)
+            .where(
+              (item) =>
+                  widget.teacherId == null ||
+                  item.teacherId == widget.teacherId,
+            )
+            .toList();
         _structureLoading = false;
         _structureError = null;
       });
@@ -109,6 +124,7 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
           initialSectionId: sectionId,
           initialSubjectId: subjectId,
           initialAssignedDate: _selectedDate,
+          lockedTeacherId: widget.teacherId,
         ),
       ),
     );
@@ -136,6 +152,12 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
               ),
           ],
           bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFFCBD5E1),
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
             tabs: [
               Tab(icon: Icon(Icons.menu_book_outlined), text: 'Daily Homework'),
               Tab(icon: Icon(Icons.school_outlined), text: 'Syllabus'),
@@ -158,13 +180,19 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
           builder: (context, state) {
             final items = state is HomeworkLoaded
                 ? state.items
+                      .where(
+                        (item) =>
+                            widget.teacherId == null ||
+                            item.teacherId == widget.teacherId,
+                      )
+                      .toList()
                 : <HomeworkEntity>[];
             return Stack(
               children: [
                 TabBarView(
                   children: [
                     _dailyHomework(items),
-                    const SyllabusManagementTab(),
+                    SyllabusManagementTab(teacherId: widget.teacherId),
                   ],
                 ),
                 if (state is HomeworkLoading) const LinearProgressIndicator(),
@@ -193,7 +221,9 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     final rows =
         _sections.where((section) {
           final academicClass = _classById(section.classId);
-          return section.isActive && academicClass?.isActive == true;
+          return section.isActive &&
+              academicClass?.isActive == true &&
+              _teacherCanAccessSection(section);
         }).toList()..sort((a, b) {
           final classCompare = compareAcademicClassNames(
             _classById(a.classId)?.name ?? '',
@@ -203,7 +233,7 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
         });
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 650 ? 12 : 20),
       children: [
         Card(
           child: Padding(
@@ -232,14 +262,6 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
                   onPressed: _loadHomework,
                   icon: const Icon(Icons.refresh),
                   label: const Text('Load'),
-                ),
-                const Chip(
-                  avatar: Icon(Icons.check_circle, color: Colors.green),
-                  label: Text('Homework added'),
-                ),
-                const Chip(
-                  avatar: Icon(Icons.add_circle_outline, color: Colors.orange),
-                  label: Text('Homework pending'),
                 ),
               ],
             ),
@@ -278,7 +300,9 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 650 ? 10 : 16,
+        ),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 650;
@@ -298,8 +322,8 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
               ),
             );
             final subjectList = Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: compact ? 6 : 8,
+              runSpacing: compact ? 6 : 8,
               children: [
                 for (final subject in subjects)
                   _subjectButton(
@@ -325,9 +349,9 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   heading,
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   subjectList,
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   preview,
                 ],
               );
@@ -391,14 +415,25 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     required HomeworkEntity? existing,
   }) {
     final added = existing != null;
+    final compact = MediaQuery.sizeOf(context).width < 650;
     if (added) {
       return FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF16A34A),
           foregroundColor: Colors.white,
+          minimumSize: Size.zero,
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 16,
+            vertical: compact ? 7 : 10,
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: TextStyle(
+            fontSize: compact ? 12 : 14,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         onPressed: () => _openHomework(existing: existing),
-        icon: const Icon(Icons.check_circle_outline),
+        icon: Icon(Icons.check_circle_outline, size: compact ? 16 : 20),
         label: Text(subject.name),
       );
     }
@@ -406,13 +441,23 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
       style: OutlinedButton.styleFrom(
         foregroundColor: const Color(0xFFB45309),
         side: const BorderSide(color: Color(0xFFF59E0B)),
+        minimumSize: Size.zero,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 16,
+          vertical: compact ? 7 : 10,
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: TextStyle(
+          fontSize: compact ? 12 : 14,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       onPressed: () => _openHomework(
         classId: academicClass.id,
         sectionId: section.id,
         subjectId: subject.id,
       ),
-      icon: const Icon(Icons.add_circle_outline),
+      icon: Icon(Icons.add_circle_outline, size: compact ? 16 : 20),
       label: Text(subject.name),
     );
   }
@@ -538,6 +583,7 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
           item.classId == section.classId &&
           (item.sectionId == null || item.sectionId == section.id),
     )) {
+      if (!_teacherCanAccessSubject(section, subject)) continue;
       final key = subject.name.trim().toLowerCase();
       final current = result[key];
       if (current == null || subject.sectionId == section.id) {
@@ -547,6 +593,37 @@ class _HomeworkDashboardViewState extends State<_HomeworkDashboardView> {
     final values = result.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     return values;
+  }
+
+  bool _teacherCanAccessSection(SectionEntity section) {
+    if (widget.teacherId == null) return true;
+    final academicClass = _classById(section.classId);
+    return _teacherAssignments.any(
+      (item) =>
+          _matches(item.classId, section.classId, academicClass?.name ?? '') &&
+          _matches(item.sectionId, section.id, section.name),
+    );
+  }
+
+  bool _teacherCanAccessSubject(
+    SectionEntity section,
+    AcademicSubjectEntity subject,
+  ) {
+    if (widget.teacherId == null) return true;
+    final academicClass = _classById(section.classId);
+    return _teacherAssignments.any(
+      (item) =>
+          _matches(item.classId, section.classId, academicClass?.name ?? '') &&
+          _matches(item.sectionId, section.id, section.name) &&
+          item.subject.trim().toLowerCase() ==
+              subject.name.trim().toLowerCase(),
+    );
+  }
+
+  static bool _matches(String value, String id, String name) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == id.trim().toLowerCase() ||
+        normalized == name.trim().toLowerCase();
   }
 
   HomeworkEntity? _homeworkForSubject(

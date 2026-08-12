@@ -67,3 +67,16 @@ class MarkChatThreadRead {
     return _repository.markThreadRead(threadId: threadId, userId: userId);
   }
 }
+
+class RemoveChatThreadForUser {
+  const RemoveChatThreadForUser(this._repository);
+
+  final ChatRepository _repository;
+
+  Future<void> call({required String threadId, required String userId}) {
+    if (threadId.trim().isEmpty || userId.trim().isEmpty) {
+      throw ArgumentError('Chat thread and authenticated user are required.');
+    }
+    return _repository.removeThreadForUser(threadId: threadId, userId: userId);
+  }
+}

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/chat_message_entity.dart';
@@ -15,6 +17,11 @@ abstract class ChatRemoteDataSource {
   Future<void> saveMessage(ChatMessageEntity message);
 
   Future<void> markThreadRead({
+    required String threadId,
+    required String userId,
+  });
+
+  Future<void> removeThreadForUser({
     required String threadId,
     required String userId,
   });
@@ -85,6 +92,46 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           'lastMessageAt': message.createdAt.toIso8601String(),
           'updatedAt': message.createdAt.toIso8601String(),
         });
+
+    // In-app chat is internal (Admin <-> Teacher). Notify every other
+    // participant in their normal portal notification inbox.
+    final thread = await _service
+        .collection(FirestorePaths.communicationThreads)
+        .doc(message.threadId)
+        .get();
+    final participantIds =
+        (thread.data()?['participantIds'] as List<dynamic>? ?? const [])
+            .map((value) => value.toString())
+            .where((value) => value.isNotEmpty && value != message.senderId);
+    for (final userId in participantIds) {
+      final assignment = await _service
+          .collection(FirestorePaths.userRoleAssignments)
+          .doc(userId)
+          .get();
+      final data = assignment.data() ?? const <String, dynamic>{};
+      final roleId = data['roleId']?.toString().toLowerCase() ?? '';
+      final isTeacher = roleId.contains('teacher');
+      final recipientId = isTeacher
+          ? (data['linkedEntityId']?.toString() ?? '')
+          : 'admin';
+      if (recipientId.isEmpty) continue;
+      final notification = _service
+          .collection(FirestorePaths.portalNotifications)
+          .doc();
+      await notification.set({
+        'recipientType': isTeacher ? 'teacher' : 'admin',
+        'recipientId': recipientId,
+        'title': 'New internal chat message',
+        'message':
+            '${message.senderName}: ${message.text.isEmpty ? message.attachmentName : message.text}',
+        'type': 'chat',
+        'referenceId': message.threadId,
+        'studentId': '',
+        'isRead': false,
+        'createdAt': Timestamp.fromDate(message.createdAt),
+        'readAt': null,
+      });
+    }
   }
 
   @override
@@ -106,5 +153,19 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
             'readBy': [...message.readBy, userId],
           });
     }
+  }
+
+  @override
+  Future<void> removeThreadForUser({
+    required String threadId,
+    required String userId,
+  }) {
+    return _service
+        .collection(FirestorePaths.communicationThreads)
+        .doc(threadId)
+        .update({
+          'participantIds': FieldValue.arrayRemove([userId]),
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
   }
 }

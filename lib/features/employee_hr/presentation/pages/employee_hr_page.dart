@@ -73,7 +73,7 @@ class EmployeeHrPage extends StatelessWidget {
                 ? 4
                 : constraints.maxWidth >= 680
                 ? 2
-                : 1;
+                : 2;
             return SingleChildScrollView(
               padding: EdgeInsets.all(padding),
               child: Center(
@@ -107,7 +107,7 @@ class EmployeeHrPage extends StatelessWidget {
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                           mainAxisExtent: constraints.maxWidth < 680
-                              ? 128
+                              ? 126
                               : 196,
                         ),
                         itemBuilder: (_, index) =>
@@ -262,6 +262,7 @@ class _HrActionCardState extends State<_HrActionCard> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final color = item.enabled ? item.color : Colors.blueGrey;
+    final compact = MediaQuery.sizeOf(context).width < 680;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -288,46 +289,107 @@ class _HrActionCardState extends State<_HrActionCard> {
             borderRadius: BorderRadius.circular(22),
             onTap: item.enabled ? item.onTap : null,
             child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: .12),
-                          borderRadius: BorderRadius.circular(15),
+              padding: EdgeInsets.all(compact ? 12 : 20),
+              child: compact
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [color.withValues(alpha: .72), color],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: .45),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: .28),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(item.icon, color: Colors.white, size: 21),
                         ),
-                        child: Icon(item.icon, color: color, size: 27),
-                      ),
-                      const Spacer(),
-                      Icon(Icons.arrow_outward_rounded, color: color),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF14213D),
+                        const SizedBox(height: 7),
+                        Text(
+                          item.title,
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF14213D),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [color.withValues(alpha: .68), color],
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: .5),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: .3),
+                                    blurRadius: 13,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                item.icon,
+                                color: Colors.white,
+                                size: 29,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(Icons.arrow_outward_rounded, color: color),
+                          ],
+                        ),
+                        const Spacer(),
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF14213D),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.enabled
+                              ? item.subtitle
+                              : 'You do not have access.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.blueGrey.shade600,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.enabled ? item.subtitle : 'You do not have access.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.blueGrey.shade600,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),

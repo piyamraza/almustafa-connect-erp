@@ -5,7 +5,6 @@ import 'auto_timetable_generator_page.dart';
 import 'class_timetable_page.dart';
 import 'teacher_workload_page.dart';
 import 'manual_timetable_editor_page.dart';
-import 'teacher_availability_page.dart';
 import 'teacher_timetable_page.dart';
 import 'day_timetable_page.dart';
 import 'timetable_versioning_page.dart';
@@ -18,20 +17,6 @@ class TimetableDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = <_TimetableFeature>[
-      _TimetableFeature(
-        title: 'Teacher Availability',
-        description:
-            'Configure weekly off days, unavailable periods and workload limits.',
-        icon: Icons.event_busy_outlined,
-        color: const Color(0xFFC62828),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const TeacherAvailabilityPage(),
-            ),
-          );
-        },
-      ),
       _TimetableFeature(
         title: 'Timetable Versioning',
         description: 'Create, publish, archive and restore timetable versions.',
@@ -166,7 +151,7 @@ class TimetableDashboardPage extends StatelessWidget {
                 ? 3
                 : constraints.maxWidth >= 560
                 ? 2
-                : 1;
+                : 2;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
@@ -197,7 +182,9 @@ class TimetableDashboardPage extends StatelessWidget {
                           crossAxisCount: columns,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          mainAxisExtent: columns == 1 ? 150 : null,
+                          mainAxisExtent: constraints.maxWidth < 560
+                              ? 104
+                              : null,
                           childAspectRatio: switch (columns) {
                             5 => 1.55,
                             4 => 1.8,
@@ -245,6 +232,7 @@ class _TimetableFeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAvailable = feature.onTap != null;
+    final compact = MediaQuery.sizeOf(context).width < 560;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -252,80 +240,127 @@ class _TimetableFeatureCard extends StatelessWidget {
       child: InkWell(
         onTap: feature.onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: feature.color.withAlpha(31),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(feature.icon, size: 19, color: feature.color),
-                  ),
-                  const Spacer(),
-                  if (!isAvailable)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Coming Soon',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                    ),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                feature.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                feature.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (isAvailable) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+          padding: EdgeInsets.all(compact ? 8 : 14),
+          child: compact
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'Open',
-                      style: TextStyle(
-                        color: feature.color,
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [feature.color.withAlpha(190), feature.color],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: Icon(feature.icon, size: 18, color: Colors.white),
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: feature.color,
+                    const SizedBox(height: 6),
+                    Text(
+                      feature.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.08,
+                      ),
                     ),
                   ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                feature.color.withAlpha(190),
+                                feature.color,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: feature.color.withAlpha(55),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            feature.icon,
+                            size: 23,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (!isAvailable)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Coming Soon',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      feature.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      feature.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (isAvailable) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Open',
+                            style: TextStyle(
+                              color: feature.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: feature.color,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
         ),
       ),
     );

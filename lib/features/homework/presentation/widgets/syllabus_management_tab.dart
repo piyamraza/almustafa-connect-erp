@@ -8,13 +8,17 @@ import '../../../academic_structure/domain/entities/academic_subject_entity.dart
 import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../academic_structure/domain/services/academic_class_order.dart';
+import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
+import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
 import '../../domain/entities/syllabus_entry_entity.dart';
 import '../../domain/entities/syllabus_plan_entity.dart';
 import '../../domain/repositories/syllabus_repository.dart';
 import '../services/syllabus_pdf_service.dart';
 
 class SyllabusManagementTab extends StatefulWidget {
-  const SyllabusManagementTab({super.key});
+  const SyllabusManagementTab({super.key, this.teacherId});
+
+  final String? teacherId;
 
   @override
   State<SyllabusManagementTab> createState() => _SyllabusManagementTabState();
@@ -28,6 +32,7 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
   List<AcademicSubjectEntity> _subjects = const [];
   List<SyllabusEntryEntity> _allEntries = const [];
   List<SyllabusPlanEntity> _plans = const [];
+  List<TeacherAssignmentEntity> _teacherAssignments = const [];
   SyllabusPlanEntity? _editingPlan;
   bool _loading = true;
   bool _saving = false;
@@ -72,14 +77,29 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
           academicSession: _session.text.trim(),
           publishedOnly: !_canManage,
         ),
+        sl<TeacherAssignmentRepository>().getAssignments(),
       ]);
       if (!mounted) return;
       setState(() {
         _classes = result[0] as List<AcademicClassEntity>;
         _sections = result[1] as List<SectionEntity>;
         _subjects = result[2] as List<AcademicSubjectEntity>;
-        _allEntries = result[3] as List<SyllabusEntryEntity>;
+        _allEntries = (result[3] as List<SyllabusEntryEntity>)
+            .where(
+              (item) =>
+                  widget.teacherId == null ||
+                  item.teacherId.isEmpty ||
+                  item.teacherId == widget.teacherId,
+            )
+            .toList();
         _plans = result[4] as List<SyllabusPlanEntity>;
+        _teacherAssignments = (result[5] as List<TeacherAssignmentEntity>)
+            .where(
+              (item) =>
+                  widget.teacherId == null ||
+                  item.teacherId == widget.teacherId,
+            )
+            .toList();
         if (_editingPlan != null) {
           _editingPlan = _plans
               .where((item) => item.id == _editingPlan!.id)
@@ -112,7 +132,9 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
     if (_editingPlan == null) return _syllabusList();
     final rows =
         _sections.where((section) {
-          return section.isActive && _class(section.classId)?.isActive == true;
+          return section.isActive &&
+              _class(section.classId)?.isActive == true &&
+              _teacherCanAccessSection(section);
         }).toList()..sort((a, b) {
           final byClass = compareAcademicClassNames(
             _class(a.classId)?.name ?? '',
@@ -140,53 +162,56 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Syllabus Management',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 280,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Syllabus Management',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _canManage
-                        ? 'Create, edit, preview and publish syllabus.'
-                        : 'Published syllabus shared by the school.',
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              width: 180,
-              child: TextField(
-                controller: _session,
-                decoration: const InputDecoration(
-                  labelText: 'Academic Session',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+                    const SizedBox(height: 4),
+                    Text(
+                      _canManage
+                          ? 'Create, edit, preview and publish syllabus.'
+                          : 'Published syllabus shared by the school.',
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            IconButton(
-              tooltip: 'Load session',
-              onPressed: _load,
-              icon: const Icon(Icons.refresh),
-            ),
-            if (_canManage) ...[
-              const SizedBox(width: 10),
-              FilledButton.icon(
-                onPressed: _createPlan,
-                icon: const Icon(Icons.add),
-                label: const Text('Add Syllabus'),
+              SizedBox(
+                width: 180,
+                child: TextField(
+                  controller: _session,
+                  decoration: const InputDecoration(
+                    labelText: 'Academic Session',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
               ),
+              const SizedBox(width: 10),
+              IconButton(
+                tooltip: 'Load session',
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+              ),
+              if (_canManage) ...[
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  onPressed: _createPlan,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Syllabus'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         const SizedBox(height: 18),
         if (_plans.isEmpty)
@@ -540,6 +565,19 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
         await sl<SyllabusRepository>().deleteEntry(existing.id);
       } else if (result == 'save') {
         final now = DateTime.now();
+        final teacherAssignment = _teacherAssignments
+            .where(
+              (item) =>
+                  _matches(
+                    item.classId,
+                    academicClass.id,
+                    academicClass.name,
+                  ) &&
+                  _matches(item.sectionId, section.id, section.name) &&
+                  item.subject.trim().toLowerCase() ==
+                      subject.name.trim().toLowerCase(),
+            )
+            .firstOrNull;
         await sl<SyllabusRepository>().saveEntry(
           SyllabusEntryEntity(
             id: existing?.id ?? sl<SyllabusRepository>().generateId(),
@@ -553,6 +591,13 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
             subjectId: subject.id,
             subjectName: subject.name,
             content: controller.text.trim(),
+            teacherId:
+                widget.teacherId ??
+                existing?.teacherId ??
+                teacherAssignment?.teacherId ??
+                '',
+            teacherName:
+                existing?.teacherName ?? teacherAssignment?.teacherName ?? '',
             createdAt: existing?.createdAt ?? now,
             updatedAt: now,
           ),
@@ -663,12 +708,44 @@ class _SyllabusManagementTabState extends State<SyllabusManagementTab> {
           item.classId == section.classId &&
           (item.sectionId == null || item.sectionId == section.id),
     )) {
+      if (!_teacherCanAccessSubject(section, subject)) continue;
       final key = subject.name.trim().toLowerCase();
       if (result[key] == null || subject.sectionId == section.id) {
         result[key] = subject;
       }
     }
     return result.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  bool _teacherCanAccessSection(SectionEntity section) {
+    if (widget.teacherId == null) return true;
+    final academicClass = _class(section.classId);
+    return _teacherAssignments.any(
+      (item) =>
+          _matches(item.classId, section.classId, academicClass?.name ?? '') &&
+          _matches(item.sectionId, section.id, section.name),
+    );
+  }
+
+  bool _teacherCanAccessSubject(
+    SectionEntity section,
+    AcademicSubjectEntity subject,
+  ) {
+    if (widget.teacherId == null) return true;
+    final academicClass = _class(section.classId);
+    return _teacherAssignments.any(
+      (item) =>
+          _matches(item.classId, section.classId, academicClass?.name ?? '') &&
+          _matches(item.sectionId, section.id, section.name) &&
+          item.subject.trim().toLowerCase() ==
+              subject.name.trim().toLowerCase(),
+    );
+  }
+
+  static bool _matches(String value, String id, String name) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == id.trim().toLowerCase() ||
+        normalized == name.trim().toLowerCase();
   }
 
   SyllabusEntryEntity? _entry(

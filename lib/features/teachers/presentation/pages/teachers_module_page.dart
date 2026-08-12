@@ -70,9 +70,9 @@ class TeachersModulePage extends StatelessWidget {
               ? 3
               : constraints.maxWidth >= 700
               ? 2
-              : 1;
+              : 2;
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(constraints.maxWidth < 700 ? 10 : 20),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1450),
@@ -103,7 +103,7 @@ class TeachersModulePage extends StatelessWidget {
                         crossAxisCount: columns,
                         crossAxisSpacing: 15,
                         mainAxisSpacing: 15,
-                        mainAxisExtent: constraints.maxWidth < 700 ? 116 : 150,
+                        mainAxisExtent: constraints.maxWidth < 700 ? 126 : 150,
                       ),
                       itemBuilder: (_, i) => _TeacherCard(action: actions[i]),
                     ),
@@ -216,69 +216,99 @@ class _TeacherCard extends StatelessWidget {
   const _TeacherCard({required this.action});
   final _TeacherAction action;
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: action.color.withValues(alpha: .18)),
-      boxShadow: [
-        BoxShadow(
-          color: action.color.withValues(alpha: .08),
-          blurRadius: 16,
-          offset: const Offset(0, 7),
-        ),
-      ],
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        onTap: action.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: action.color.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(action.icon, color: action.color, size: 29),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      action.title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF14213D),
+        border: Border.all(color: action.color.withValues(alpha: .18)),
+        boxShadow: [
+          BoxShadow(
+            color: action.color.withValues(alpha: .08),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: action.onTap,
+          child: Padding(
+            padding: EdgeInsets.all(compact ? 10 : 18),
+            child: compact
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: action.color.withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(action.icon, color: action.color, size: 21),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      action.subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.blueGrey.shade600,
-                        height: 1.3,
+                      const SizedBox(height: 7),
+                      Text(
+                        action.title,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF14213D),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_rounded, color: action.color),
-            ],
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: action.color.withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(action.icon, color: action.color, size: 29),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              action.title,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF14213D),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              action.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.blueGrey.shade600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_rounded, color: action.color),
+                    ],
+                  ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -10,6 +10,57 @@ enum FeeReportType {
   discounts,
   paymentMethods,
   demandVsCollection,
+  classWiseOutstanding,
+  classWiseOutstandingWithoutAmount,
+}
+
+class OutstandingFeeStudent extends Equatable {
+  const OutstandingFeeStudent({
+    required this.studentId,
+    required this.classId,
+    required this.className,
+    required this.studentName,
+    required this.fatherName,
+    required this.rollNumber,
+    required this.outstandingAmount,
+  });
+
+  final String studentId;
+  final String classId;
+  final String className;
+  final String studentName;
+  final String fatherName;
+  final String rollNumber;
+  final double outstandingAmount;
+
+  @override
+  List<Object> get props => [
+    studentId,
+    classId,
+    className,
+    studentName,
+    fatherName,
+    rollNumber,
+    outstandingAmount,
+  ];
+}
+
+class ClassOutstandingFeeGroup extends Equatable {
+  ClassOutstandingFeeGroup({
+    required this.classId,
+    required this.className,
+    required List<OutstandingFeeStudent> students,
+  }) : students = List.unmodifiable(students);
+
+  final String classId;
+  final String className;
+  final List<OutstandingFeeStudent> students;
+
+  double get totalOutstanding =>
+      students.fold(0, (total, student) => total + student.outstandingAmount);
+
+  @override
+  List<Object> get props => [classId, className, students];
 }
 
 class FeeReportData extends Equatable {
@@ -19,6 +70,7 @@ class FeeReportData extends Equatable {
     required List<FeePaymentEntity> payments,
     required this.startDate,
     required this.endDate,
+    this.outstandingGroups = const [],
   }) : dues = List<MonthlyFeeDueEntity>.unmodifiable(dues),
        payments = List<FeePaymentEntity>.unmodifiable(payments);
 
@@ -27,6 +79,7 @@ class FeeReportData extends Equatable {
   final List<FeePaymentEntity> payments;
   final DateTime startDate;
   final DateTime endDate;
+  final List<ClassOutstandingFeeGroup> outstandingGroups;
 
   double get totalDemand =>
       dues.fold<double>(0, (sum, item) => sum + item.netPayable);
@@ -72,5 +125,12 @@ class FeeReportData extends Equatable {
   }
 
   @override
-  List<Object> get props => [type, dues, payments, startDate, endDate];
+  List<Object> get props => [
+    type,
+    dues,
+    payments,
+    startDate,
+    endDate,
+    outstandingGroups,
+  ];
 }

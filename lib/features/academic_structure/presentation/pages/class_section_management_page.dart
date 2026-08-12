@@ -273,12 +273,83 @@ class _ClassCard extends StatelessWidget {
               );
             }
 
-            return Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 4,
-              children: [details, actions],
+            return Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          academicClass.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        statusLabel,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: academicClass.isActive
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      if (sections.isNotEmpty) ...[
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            sections.map((section) => section.name).join(', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: onManageSections,
+                  tooltip: 'Manage sections',
+                  icon: const Icon(Icons.account_tree_outlined, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 30,
+                    height: 30,
+                  ),
+                ),
+                IconButton(
+                  onPressed: onManageSubjects,
+                  tooltip: 'Subjects',
+                  icon: const Icon(Icons.menu_book_outlined, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 30,
+                    height: 30,
+                  ),
+                ),
+                IconButton(
+                  onPressed: onEdit,
+                  tooltip: 'Edit class',
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 30,
+                    height: 30,
+                  ),
+                ),
+                IconButton(
+                  onPressed: onDelete,
+                  tooltip: 'Delete class',
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 30,
+                    height: 30,
+                  ),
+                ),
+              ],
             );
           },
         ),

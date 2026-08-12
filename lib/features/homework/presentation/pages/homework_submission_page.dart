@@ -99,7 +99,10 @@ class _HomeworkSubmissionPageState extends State<HomeworkSubmissionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Submit Homework')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Submit Homework'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

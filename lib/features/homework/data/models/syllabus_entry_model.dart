@@ -15,6 +15,8 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
     required super.subjectId,
     required super.subjectName,
     required super.content,
+    super.teacherId,
+    super.teacherName,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -32,6 +34,8 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
         subjectId: value.subjectId,
         subjectName: value.subjectName,
         content: value.content,
+        teacherId: value.teacherId,
+        teacherName: value.teacherName,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
       );
@@ -49,6 +53,8 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
         subjectId: map['subjectId'] as String? ?? '',
         subjectName: map['subjectName'] as String? ?? '',
         content: map['content'] as String? ?? '',
+        teacherId: map['teacherId'] as String? ?? '',
+        teacherName: map['teacherName'] as String? ?? '',
         createdAt: _date(map['createdAt']),
         updatedAt: _date(map['updatedAt']),
       );
@@ -64,6 +70,8 @@ class SyllabusEntryModel extends SyllabusEntryEntity {
     'subjectId': subjectId,
     'subjectName': subjectName,
     'content': content,
+    'teacherId': teacherId,
+    'teacherName': teacherName,
     'createdAt': Timestamp.fromDate(createdAt),
     'updatedAt': Timestamp.fromDate(updatedAt),
   };

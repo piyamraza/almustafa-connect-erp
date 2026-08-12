@@ -245,8 +245,9 @@ class _ActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      final compact = constraints.maxWidth < 620;
       final columns = constraints.maxWidth < 620
-          ? 1
+          ? (featured ? 3 : 3)
           : constraints.maxWidth < 1000
           ? 2
           : featured
@@ -258,9 +259,9 @@ class _ActionGrid extends StatelessWidget {
         itemCount: actions.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          mainAxisExtent: featured ? 150 : 138,
+          crossAxisSpacing: compact ? 6 : 14,
+          mainAxisSpacing: compact ? 6 : 14,
+          mainAxisExtent: compact ? 104 : (featured ? 150 : 138),
         ),
         itemBuilder: (context, index) =>
             _ActionCard(action: actions[index], featured: featured),
@@ -284,6 +285,7 @@ class _ActionCardState extends State<_ActionCard> {
   @override
   Widget build(BuildContext context) {
     final action = widget.action;
+    final compact = MediaQuery.sizeOf(context).width < 620;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -321,15 +323,15 @@ class _ActionCardState extends State<_ActionCard> {
               context,
             ).push(MaterialPageRoute<void>(builder: (_) => action.page)),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(compact ? 7 : 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        width: widget.featured ? 39 : 35,
-                        height: widget.featured ? 39 : 35,
+                        width: compact ? 27 : (widget.featured ? 39 : 35),
+                        height: compact ? 27 : (widget.featured ? 39 : 35),
                         decoration: BoxDecoration(
                           color: action.color,
                           borderRadius: BorderRadius.circular(10),
@@ -344,42 +346,47 @@ class _ActionCardState extends State<_ActionCard> {
                         child: Icon(
                           action.icon,
                           color: Colors.white,
-                          size: widget.featured ? 21 : 18,
+                          size: compact ? 15 : (widget.featured ? 21 : 18),
                         ),
                       ),
                       const Spacer(),
-                      Icon(Icons.arrow_outward_rounded, color: action.color),
+                      if (!compact)
+                        Icon(Icons.arrow_outward_rounded, color: action.color),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: compact ? 5 : 8),
                   Text(
                     action.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: const Color(0xFF17213A),
-                      fontSize: widget.featured ? 15.5 : 14,
+                      fontSize: compact ? 10 : (widget.featured ? 15.5 : 14),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    action.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF667085),
-                      height: 1.15,
-                      fontSize: 11.5,
+                  if (!compact) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      action.description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF667085),
+                        height: 1.15,
+                        fontSize: 11.5,
+                      ),
                     ),
-                  ),
+                  ],
                   const Spacer(),
                   Text(
                     action.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: action.color,
+                      fontSize: compact ? 8 : 11,
                       fontWeight: FontWeight.w800,
-                      fontSize: 11,
                     ),
                   ),
                 ],

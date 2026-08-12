@@ -145,6 +145,16 @@ class FeeManagementDashboardPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: _pageBackground,
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () async {
+            final navigator = Navigator.of(context, rootNavigator: true);
+            if (!await navigator.maybePop()) {
+              navigator.popUntil((route) => route.isFirst);
+            }
+          },
+        ),
         actions: const [DashboardNavigationButton()],
         title: const Text('Fee Management'),
         elevation: 0,
@@ -154,15 +164,24 @@ class FeeManagementDashboardPage extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
+            final isMobile = viewport.maxWidth < 600;
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
+              padding: EdgeInsets.fromLTRB(
+                isMobile ? 10 : 24,
+                isMobile ? 10 : 18,
+                isMobile ? 10 : 24,
+                20,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1380),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DashboardHeader(featureCount: features.length),
+                      _DashboardHeader(
+                        featureCount: features.length,
+                        compact: isMobile,
+                      ),
                       const SizedBox(height: 14),
                       FutureBuilder<_FeeDashboardSnapshot>(
                         future: _loadSnapshot(),
@@ -205,14 +224,21 @@ class FeeManagementDashboardPage extends StatelessWidget {
                               ),
                             ),
                             icon: const Icon(Icons.add_card_rounded),
-                            label: const Text('Collect Fee'),
+                            label: Text(isMobile ? 'Collect' : 'Collect Fee'),
+                            style: FilledButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 10 : 16,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          final columns = constraints.maxWidth >= 1180
+                          final columns = constraints.maxWidth < 600
+                              ? 4
+                              : constraints.maxWidth >= 1180
                               ? 4
                               : constraints.maxWidth >= 900
                               ? 3
@@ -221,6 +247,7 @@ class FeeManagementDashboardPage extends StatelessWidget {
                               : 1;
 
                           final aspectRatio = switch (columns) {
+                            4 when constraints.maxWidth < 600 => .78,
                             4 => 1.95,
                             3 => 2.15,
                             2 => 2.05,
@@ -238,8 +265,10 @@ class FeeManagementDashboardPage extends StatelessWidget {
                                   mainAxisSpacing: 12,
                                   childAspectRatio: aspectRatio,
                                 ),
-                            itemBuilder: (context, index) =>
-                                _FeatureCard(feature: features[index]),
+                            itemBuilder: (context, index) => _FeatureCard(
+                              feature: features[index],
+                              compact: constraints.maxWidth < 600,
+                            ),
                           );
                         },
                       ),
@@ -256,14 +285,20 @@ class FeeManagementDashboardPage extends StatelessWidget {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.featureCount});
+  const _DashboardHeader({required this.featureCount, required this.compact});
 
   final int featureCount;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 12 : 20,
+        compact ? 10 : 16,
+        compact ? 12 : 20,
+        compact ? 10 : 16,
+      ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0B63CE), Color(0xFF3B82F6), Color(0xFF7C3AED)],
@@ -280,8 +315,8 @@ class _DashboardHeader extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: compact ? 36 : 46,
+            height: compact ? 36 : 46,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: .18),
               borderRadius: BorderRadius.circular(13),
@@ -290,46 +325,49 @@ class _DashboardHeader extends StatelessWidget {
             child: const Icon(
               Icons.account_balance_wallet_outlined,
               color: Colors.white,
-              size: 25,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 14),
-          const Expanded(
+          SizedBox(width: compact ? 9 : 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Fee Management',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 25,
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 3),
-                Text(
-                  'Manage fee structures, monthly dues, payments, '
-                  'receipts and reports.',
-                  style: TextStyle(color: Color(0xFFEAF2FF), fontSize: 14),
-                ),
+                if (!compact) ...[
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Manage fee structures, monthly dues, payments, '
+                    'receipts and reports.',
+                    style: TextStyle(color: Color(0xFFEAF2FF), fontSize: 14),
+                  ),
+                ],
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .16),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white.withValues(alpha: .22)),
-            ),
-            child: Text(
-              '$featureCount Modules',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+          if (!compact)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .16),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white.withValues(alpha: .22)),
+              ),
+              child: Text(
+                '$featureCount Modules',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -382,7 +420,7 @@ class _FinancialOverview extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth < 620
-            ? 1
+            ? 4
             : constraints.maxWidth < 1000
             ? 2
             : 4;
@@ -396,10 +434,12 @@ class _FinancialOverview extends StatelessWidget {
                 crossAxisCount: columns,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                mainAxisExtent: 116,
+                mainAxisExtent: constraints.maxWidth < 620 ? 104 : 116,
               ),
-              itemBuilder: (context, index) =>
-                  _MoneyMetric(metric: metrics[index]),
+              itemBuilder: (context, index) => _MoneyMetric(
+                metric: metrics[index],
+                compact: constraints.maxWidth < 620,
+              ),
             ),
             if (loading)
               const Positioned.fill(
@@ -418,12 +458,13 @@ class _FinancialOverview extends StatelessWidget {
 }
 
 class _MoneyMetric extends StatelessWidget {
-  const _MoneyMetric({required this.metric});
+  const _MoneyMetric({required this.metric, required this.compact});
   final _FeeMetric metric;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: EdgeInsets.all(compact ? 6 : 14),
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -444,54 +485,95 @@ class _MoneyMetric extends StatelessWidget {
         ),
       ],
     ),
-    child: Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: metric.color,
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: Icon(metric.icon, color: Colors.white, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
+    child: compact
+        ? Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                metric.label,
-                style: const TextStyle(color: _textSecondary, fontSize: 11.5),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: metric.color,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(metric.icon, color: Colors.white, size: 17),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 5),
               Text(
                 metric.value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _textPrimary,
-                  fontSize: 19,
+                  fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              if (metric.detail.isNotEmpty)
-                Text(
-                  metric.detail,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: metric.color,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+              const SizedBox(height: 2),
+              Text(
+                metric.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _textSecondary,
+                  fontSize: 8.5,
+                  height: 1.05,
                 ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: metric.color,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(metric.icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      metric.label,
+                      style: const TextStyle(
+                        color: _textSecondary,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      metric.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _textPrimary,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (metric.detail.isNotEmpty)
+                      Text(
+                        metric.detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: metric.color,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    ),
   );
 }
 
@@ -600,9 +682,10 @@ class _FeeFeature {
 }
 
 class _FeatureCard extends StatefulWidget {
-  const _FeatureCard({required this.feature});
+  const _FeatureCard({required this.feature, required this.compact});
 
   final _FeeFeature feature;
+  final bool compact;
 
   @override
   State<_FeatureCard> createState() => _FeatureCardState();
@@ -648,71 +731,110 @@ class _FeatureCardState extends State<_FeatureCard> {
             onTap: feature.onTap,
             borderRadius: BorderRadius.circular(17),
             child: Padding(
-              padding: const EdgeInsets.all(13),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: feature.color.withValues(alpha: .13),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: feature.color.withValues(alpha: .22),
-                      ),
-                    ),
-                    child: Icon(feature.icon, color: feature.color, size: 19),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.all(widget.compact ? 6 : 13),
+              child: widget.compact
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: feature.color.withValues(alpha: .13),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(
+                              color: feature.color.withValues(alpha: .22),
+                            ),
+                          ),
+                          child: Icon(
+                            feature.icon,
+                            color: feature.color,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Text(
                           feature.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: _textPrimary,
-                            fontSize: 15,
+                            fontSize: 9.5,
+                            height: 1.05,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Expanded(
-                          child: Text(
-                            feature.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _textSecondary,
-                              fontSize: 12,
-                              height: 1.25,
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: feature.color.withValues(alpha: .13),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: feature.color.withValues(alpha: .22),
                             ),
                           ),
+                          child: Icon(
+                            feature.icon,
+                            color: feature.color,
+                            size: 19,
+                          ),
                         ),
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: feature.color.withValues(alpha: .11),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              color: feature.color,
-                              size: 15,
-                            ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                feature.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Expanded(
+                                child: Text(
+                                  feature.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _textSecondary,
+                                    fontSize: 12,
+                                    height: 1.25,
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: feature.color.withValues(alpha: .11),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: feature.color,
+                                    size: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),

@@ -46,3 +46,16 @@ class SendChatMessageRequested extends ChatEvent {
   @override
   List<Object?> get props => [message];
 }
+
+class RemoveChatThreadRequested extends ChatEvent {
+  const RemoveChatThreadRequested({
+    required this.threadId,
+    required this.userId,
+  });
+
+  final String threadId;
+  final String userId;
+
+  @override
+  List<Object?> get props => [threadId, userId];
+}

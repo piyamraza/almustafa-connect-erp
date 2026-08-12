@@ -12,8 +12,48 @@ import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 
+bool _isInternalChatRole(String roleName) {
+  final role = roleName.trim().toLowerCase();
+  return role.contains('admin') || role.contains('teacher');
+}
+
+Future<void> _confirmRemoveConversation(
+  BuildContext context, {
+  required String threadId,
+  required String userId,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Remove conversation?'),
+      content: const Text(
+        'This conversation will be removed from your chat list. '
+        'The other participant will keep their copy.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Remove'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed == true && context.mounted) {
+    context.read<ChatBloc>().add(
+      RemoveChatThreadRequested(threadId: threadId, userId: userId),
+    );
+  }
+}
+
 class InAppChatPage extends StatelessWidget {
-  const InAppChatPage({super.key});
+  const InAppChatPage({super.key, this.initialThreadId});
+
+  final String? initialThreadId;
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +61,22 @@ class InAppChatPage extends StatelessWidget {
 
     return BlocProvider(
       create: (_) => sl<ChatBloc>()..add(LoadChatThreads(user?.uid ?? '')),
-      child: const _InAppChatView(),
+      child: _InAppChatView(initialThreadId: initialThreadId),
     );
   }
 }
 
-class _InAppChatView extends StatelessWidget {
-  const _InAppChatView();
+class _InAppChatView extends StatefulWidget {
+  const _InAppChatView({this.initialThreadId});
+
+  final String? initialThreadId;
+
+  @override
+  State<_InAppChatView> createState() => _InAppChatViewState();
+}
+
+class _InAppChatViewState extends State<_InAppChatView> {
+  bool _openedInitialThread = false;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +117,32 @@ class _InAppChatView extends StatelessWidget {
         }
 
         final data = state as ChatThreadsLoaded;
+        final initialThreadId = widget.initialThreadId?.trim() ?? '';
+        if (!_openedInitialThread && initialThreadId.isNotEmpty) {
+          _openedInitialThread = true;
+          final matches = data.threads.where(
+            (thread) => thread.id == initialThreadId,
+          );
+          if (matches.isNotEmpty) {
+            final thread = matches.first;
+            final user = sl<GetCurrentUserUseCase>()();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              context.read<ChatBloc>().add(
+                OpenChatThread(thread: thread, userId: user?.uid ?? ''),
+              );
+            });
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This conversation is no longer available.'),
+                ),
+              );
+            });
+          }
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -101,7 +176,31 @@ class _InAppChatView extends StatelessWidget {
                               ? thread.type.name
                               : thread.lastMessage,
                         ),
-                        trailing: const Icon(Icons.arrow_forward),
+                        trailing: PopupMenuButton<String>(
+                          tooltip: 'Conversation options',
+                          onSelected: (value) {
+                            if (value == 'remove') {
+                              final user = sl<GetCurrentUserUseCase>()();
+                              _confirmRemoveConversation(
+                                context,
+                                threadId: thread.id,
+                                userId: user?.uid ?? '',
+                              );
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'remove',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline),
+                                  SizedBox(width: 10),
+                                  Text('Remove from my chats'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                         onTap: () {
                           final user = sl<GetCurrentUserUseCase>()();
 
@@ -127,13 +226,15 @@ class _InAppChatView extends StatelessWidget {
     List<UserAccountEntity> accounts;
 
     try {
-      accounts = (await UserAccountServiceImpl().listChatParticipants())
+      final allAccounts = await UserAccountServiceImpl().listChatParticipants();
+      accounts = allAccounts
           .where(
             (account) =>
                 account.uid.isNotEmpty &&
                 account.uid != currentUserId &&
                 account.isActive &&
-                !account.disabled,
+                !account.disabled &&
+                _isInternalChatRole(account.roleName),
           )
           .toList();
     } catch (error) {
@@ -158,12 +259,13 @@ class _InAppChatView extends StatelessWidget {
     String? roleFilter;
     var query = '';
 
-    final roles = accounts
-        .map((account) => account.roleName.trim())
-        .where((role) => role.isNotEmpty && role != 'Not Assigned')
-        .toSet()
-        .toList()
-      ..sort();
+    final roles =
+        accounts
+            .map((account) => account.roleName.trim())
+            .where((role) => role.isNotEmpty && role != 'Not Assigned')
+            .toSet()
+            .toList()
+          ..sort();
 
     final create = await showDialog<bool>(
       context: context,
@@ -183,6 +285,7 @@ class _InAppChatView extends StatelessWidget {
           }).toList();
 
           return AlertDialog(
+            scrollable: true,
             title: const Text('New Conversation'),
             content: SizedBox(
               width: 620,
@@ -240,9 +343,7 @@ class _InAppChatView extends StatelessWidget {
                   Container(
                     height: 260,
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).dividerColor,
-                      ),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: visibleAccounts.isEmpty
@@ -336,11 +437,8 @@ class _InAppChatView extends StatelessWidget {
         CreateChatThreadRequested(
           ChatThreadEntity(
             id: 'chat_${now.microsecondsSinceEpoch}',
-            type: ChatThreadType.custom,
-            participantIds: [
-              currentUserId,
-              participant.uid,
-            ],
+            type: ChatThreadType.adminTeacher,
+            participantIds: [currentUserId, participant.uid],
             participantNames: {
               currentUserId: currentUser?.displayName?.trim().isNotEmpty == true
                   ? currentUser!.displayName!.trim()
@@ -355,7 +453,6 @@ class _InAppChatView extends StatelessWidget {
         ),
       );
     }
-
   }
 }
 
@@ -390,7 +487,20 @@ class _ThreadViewState extends State<_ThreadView> {
         title: Text(
           state.thread.title.isEmpty ? 'Conversation' : state.thread.title,
         ),
-        actions: const [DashboardNavigationButton()],
+        actions: [
+          IconButton(
+            tooltip: 'Remove from my chats',
+            onPressed: state.isProcessing
+                ? null
+                : () => _confirmRemoveConversation(
+                    context,
+                    threadId: state.thread.id,
+                    userId: state.userId,
+                  ),
+            icon: const Icon(Icons.delete_outline),
+          ),
+          const DashboardNavigationButton(),
+        ],
       ),
       body: Column(
         children: [

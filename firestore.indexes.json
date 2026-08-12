@@ -47,6 +47,48 @@
         {"fieldPath": "teacherId", "order": "ASCENDING"},
         {"fieldPath": "attendanceDate", "order": "ASCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "homework",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "academicSession", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "classId", "order": "ASCENDING"},
+        {"fieldPath": "sectionId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "homework",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "academicSession", "order": "ASCENDING"},
+        {"fieldPath": "teacherId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "homework_questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "parentId", "order": "ASCENDING"},
+        {"fieldPath": "studentId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "portal_notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "recipientType", "order": "ASCENDING"},
+        {"fieldPath": "recipientId", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "parent_leave_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "parentId", "order": "ASCENDING"},
+        {"fieldPath": "studentId", "order": "ASCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []

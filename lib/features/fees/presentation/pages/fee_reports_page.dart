@@ -86,7 +86,10 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Fee Reports')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Fee Reports'),
+      ),
       body: SafeArea(
         child: BlocConsumer<FeeReportsBloc, FeeReportsState>(
           listener: (context, state) {
@@ -247,6 +250,28 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
   }
 
   Widget _summary(FeeReportData report) {
+    if (report.type == FeeReportType.classWiseOutstanding ||
+        report.type == FeeReportType.classWiseOutstandingWithoutAmount) {
+      final studentCount = report.outstandingGroups.fold<int>(
+        0,
+        (total, group) => total + group.students.length,
+      );
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              Chip(label: Text('Classes: ${report.outstandingGroups.length}')),
+              Chip(label: Text('Pending Students: $studentCount')),
+              if (report.type == FeeReportType.classWiseOutstanding)
+                _chip('Total Outstanding', report.totalOutstanding),
+            ],
+          ),
+        ),
+      );
+    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -274,6 +299,10 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
   }
 
   Widget _details(FeeReportData report) {
+    if (report.type == FeeReportType.classWiseOutstanding ||
+        report.type == FeeReportType.classWiseOutstandingWithoutAmount) {
+      return _classWiseOutstanding(report);
+    }
     if (report.type == FeeReportType.collectionSummary ||
         report.type == FeeReportType.paymentMethods) {
       return _paymentsTable(report.payments);
@@ -296,6 +325,86 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
     };
 
     return _duesTable(dues);
+  }
+
+  Widget _classWiseOutstanding(FeeReportData report) {
+    if (report.outstandingGroups.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(28),
+          child: Center(child: Text('No students have outstanding fee.')),
+        ),
+      );
+    }
+    final showAmount = report.type == FeeReportType.classWiseOutstanding;
+    return Column(
+      children: [
+        for (final group in report.outstandingGroups)
+          Card(
+            margin: const EdgeInsets.only(bottom: 14),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _classHeading(group.className),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Text('${group.students.length} students'),
+                      if (showAmount) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          'Rs. ${group.totalOutstanding.toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: [
+                      const DataColumn(label: Text('Roll Number')),
+                      const DataColumn(label: Text('Name')),
+                      const DataColumn(label: Text('Father Name')),
+                      if (showAmount)
+                        const DataColumn(label: Text('Pending Fee')),
+                    ],
+                    rows: [
+                      for (final student in group.students)
+                        DataRow(
+                          cells: [
+                            DataCell(Text(student.rollNumber)),
+                            DataCell(Text(student.studentName)),
+                            DataCell(Text(student.fatherName)),
+                            if (showAmount)
+                              DataCell(
+                                Text(
+                                  'Rs. ${student.outstandingAmount.toStringAsFixed(0)}',
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _paymentsTable(List<FeePaymentEntity> payments) {
@@ -387,6 +496,9 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
     FeeReportType.discounts => 'Discounts & Scholarships',
     FeeReportType.paymentMethods => 'Payment Methods',
     FeeReportType.demandVsCollection => 'Demand vs Collection',
+    FeeReportType.classWiseOutstanding => 'Class-wise Outstanding Fee',
+    FeeReportType.classWiseOutstandingWithoutAmount =>
+      'Class-wise Outstanding Fee (Without Amount)',
   };
 
   static String _method(FeePaymentMethod method) => switch (method) {
@@ -416,4 +528,9 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
       '${value.day.toString().padLeft(2, '0')}/'
       '${value.month.toString().padLeft(2, '0')}/'
       '${value.year}';
+
+  static String _classHeading(String value) {
+    final name = value.trim();
+    return name.toLowerCase().startsWith('class ') ? name : 'Class $name';
+  }
 }

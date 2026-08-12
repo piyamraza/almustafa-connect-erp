@@ -71,9 +71,9 @@ class StaffDashboardPage extends StatelessWidget {
               ? 3
               : constraints.maxWidth >= 520
               ? 2
-              : 1;
+              : 2;
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(constraints.maxWidth < 520 ? 10 : 20),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1500),
@@ -104,7 +104,7 @@ class StaffDashboardPage extends StatelessWidget {
                         crossAxisCount: columns,
                         crossAxisSpacing: 15,
                         mainAxisSpacing: 15,
-                        mainAxisExtent: constraints.maxWidth < 520 ? 124 : 190,
+                        mainAxisExtent: constraints.maxWidth < 520 ? 126 : 190,
                       ),
                       itemBuilder: (_, i) => _StaffCard(action: actions[i]),
                     ),
@@ -149,64 +149,88 @@ class _StaffCard extends StatelessWidget {
   const _StaffCard({required this.action});
   final _StaffAction action;
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(21),
-      border: Border.all(color: action.color.withValues(alpha: .2)),
-      boxShadow: [
-        BoxShadow(
-          color: action.color.withValues(alpha: .09),
-          blurRadius: 17,
-          offset: const Offset(0, 7),
-        ),
-      ],
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 520;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(21),
-        onTap: action.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: action.color.withValues(alpha: .12),
-                      borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: action.color.withValues(alpha: .2)),
+        boxShadow: [
+          BoxShadow(
+            color: action.color.withValues(alpha: .09),
+            blurRadius: 17,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(21),
+          onTap: action.onTap,
+          child: Padding(
+            padding: EdgeInsets.all(compact ? 10 : 18),
+            child: Column(
+              crossAxisAlignment: compact
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              mainAxisAlignment: compact
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+                  children: [
+                    Container(
+                      width: compact ? 40 : 50,
+                      height: compact ? 40 : 50,
+                      decoration: BoxDecoration(
+                        color: action.color.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Icon(
+                        action.icon,
+                        color: action.color,
+                        size: compact ? 21 : 27,
+                      ),
                     ),
-                    child: Icon(action.icon, color: action.color, size: 27),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.arrow_outward_rounded, color: action.color),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                action.title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF14213D),
+                    if (!compact) ...[
+                      const Spacer(),
+                      Icon(Icons.arrow_outward_rounded, color: action.color),
+                    ],
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                action.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.blueGrey.shade600, height: 1.3),
-              ),
-            ],
+                SizedBox(height: compact ? 7 : 0),
+                if (!compact) const Spacer(),
+                Text(
+                  action.title,
+                  maxLines: 2,
+                  textAlign: compact ? TextAlign.center : TextAlign.start,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: compact ? 13 : 17,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF14213D),
+                  ),
+                ),
+                if (!compact) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    action.subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.blueGrey.shade600,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

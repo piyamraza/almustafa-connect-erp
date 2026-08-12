@@ -4,17 +4,21 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../homework/domain/entities/homework_entity.dart';
+import '../../../homework/domain/entities/homework_question_entity.dart';
+import '../../../homework/domain/repositories/homework_question_repository.dart';
 import '../../../homework/domain/entities/syllabus_entry_entity.dart';
 import '../../../homework/domain/entities/syllabus_plan_entity.dart';
 import '../../../homework/domain/repositories/syllabus_repository.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/parent_homework_summary.dart';
+import '../../domain/entities/parent_account_entity.dart';
 import '../../domain/services/parent_homework_service.dart';
 
 class ParentHomeworkPage extends StatefulWidget {
-  const ParentHomeworkPage({super.key, required this.student});
+  const ParentHomeworkPage({super.key, required this.student, this.parent});
 
   final StudentEntity student;
+  final ParentAccountEntity? parent;
 
   @override
   State<ParentHomeworkPage> createState() => _ParentHomeworkPageState();
@@ -216,7 +220,11 @@ class _ParentHomeworkPageState extends State<ParentHomeworkPage> {
           ...summary.items.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _HomeworkCard(homework: item),
+              child: _HomeworkCard(
+                homework: item,
+                student: widget.student,
+                parent: widget.parent,
+              ),
             ),
           ),
       ],
@@ -291,13 +299,42 @@ class _HomeworkSummaryGrid extends StatelessWidget {
   }
 }
 
-class _HomeworkCard extends StatelessWidget {
-  const _HomeworkCard({required this.homework});
+class _HomeworkCard extends StatefulWidget {
+  const _HomeworkCard({
+    required this.homework,
+    required this.student,
+    required this.parent,
+  });
 
   final HomeworkEntity homework;
+  final StudentEntity student;
+  final ParentAccountEntity? parent;
+
+  @override
+  State<_HomeworkCard> createState() => _HomeworkCardState();
+}
+
+class _HomeworkCardState extends State<_HomeworkCard> {
+  final _questions = sl<HomeworkQuestionRepository>();
+
+  Future<void> _openQuestions() async {
+    final parent = widget.parent;
+    if (parent == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ParentHomeworkQuestionsSheet(
+        homework: widget.homework,
+        student: widget.student,
+        parent: parent,
+        repository: _questions,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final homework = widget.homework;
     final now = DateTime.now();
     final dueToday =
         homework.dueDate.year == now.year &&
@@ -375,6 +412,17 @@ class _HomeworkCard extends StatelessWidget {
                 },
               ),
           ],
+          if (widget.parent != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _openQuestions,
+                icon: const Icon(Icons.question_answer_outlined),
+                label: const Text('Ask teacher / View replies'),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -385,4 +433,176 @@ class _HomeworkCard extends StatelessWidget {
     final month = value.month.toString().padLeft(2, '0');
     return '$day/$month/${value.year}';
   }
+}
+
+class _ParentHomeworkQuestionsSheet extends StatefulWidget {
+  const _ParentHomeworkQuestionsSheet({
+    required this.homework,
+    required this.student,
+    required this.parent,
+    required this.repository,
+  });
+
+  final HomeworkEntity homework;
+  final StudentEntity student;
+  final ParentAccountEntity parent;
+  final HomeworkQuestionRepository repository;
+
+  @override
+  State<_ParentHomeworkQuestionsSheet> createState() =>
+      _ParentHomeworkQuestionsSheetState();
+}
+
+class _ParentHomeworkQuestionsSheetState
+    extends State<_ParentHomeworkQuestionsSheet> {
+  final _controller = TextEditingController();
+  List<HomeworkQuestionEntity> _items = const [];
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final values = await widget.repository.getForHomework(
+      homeworkId: widget.homework.id,
+      parentId: widget.parent.id,
+      studentId: widget.student.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _items = values;
+      _loading = false;
+    });
+  }
+
+  Future<void> _ask() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    final now = DateTime.now();
+    final homework = widget.homework;
+    await widget.repository.askQuestion(
+      HomeworkQuestionEntity(
+        id: widget.repository.generateId(),
+        homeworkId: homework.id,
+        homeworkTitle: homework.title,
+        parentId: widget.parent.id,
+        parentName: widget.parent.fullName,
+        studentId: widget.student.id,
+        studentName: widget.student.fullName,
+        teacherId: homework.teacherId,
+        classId: homework.classId,
+        sectionId: homework.sectionId,
+        subjectId: homework.subjectId,
+        subjectName: homework.subjectName,
+        question: text,
+        status: HomeworkQuestionStatus.newQuestion,
+        createdAt: now,
+        updatedAt: now,
+        replies: const [],
+      ),
+    );
+    _controller.clear();
+    await _load();
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+      ),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .72,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Questions: ${widget.homework.title}',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _items.isEmpty
+                  ? const Center(child: Text('No question asked yet.'))
+                  : ListView(
+                      children: [
+                        for (final item in _items)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.question,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Chip(label: Text(_status(item.status))),
+                                  for (final reply in item.replies)
+                                    ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const Icon(Icons.reply),
+                                      title: Text(reply.authorName),
+                                      subtitle: Text(reply.message),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Ask something about this homework...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _saving ? null : _ask,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  static String _status(HomeworkQuestionStatus value) => switch (value) {
+    HomeworkQuestionStatus.newQuestion => 'New',
+    HomeworkQuestionStatus.replied => 'Replied',
+    HomeworkQuestionStatus.closed => 'Closed',
+  };
 }

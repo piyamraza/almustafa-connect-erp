@@ -100,11 +100,22 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
     return Scaffold(
       backgroundColor: _pageBackground,
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () async {
+            final navigator = Navigator.of(context, rootNavigator: true);
+            if (!await navigator.maybePop()) {
+              navigator.popUntil((route) => route.isFirst);
+            }
+          },
+        ),
         title: const Text('Notices & Circulars'),
         elevation: 0,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Process Schedule',
             onPressed: _processSchedule,
@@ -144,13 +155,19 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
           }
         },
         builder: (context, state) {
+          final compact = MediaQuery.sizeOf(context).width < 700;
           final loading = state is NoticeLoading;
           final items = state is NoticeLoaded ? state.items : <NoticeEntity>[];
 
           return Stack(
             children: [
               ListView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
+                padding: EdgeInsets.fromLTRB(
+                  compact ? 10 : 20,
+                  compact ? 10 : 18,
+                  compact ? 10 : 20,
+                  100,
+                ),
                 children: [
                   _buildHeroHeader(),
                   const SizedBox(height: 14),
@@ -197,8 +214,9 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
   }
 
   Widget _buildHeroHeader() {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 10 : 18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF2563EB), Color(0xFF7C3AED), Color(0xFFDB2777)],
@@ -212,10 +230,10 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
-          _HeaderIcon(),
-          SizedBox(width: 14),
+          _HeaderIcon(compact: compact),
+          SizedBox(width: compact ? 9 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,15 +242,17 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
                   'School Notices & Circulars',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 23,
+                    fontSize: compact ? 16 : 23,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 3),
-                Text(
-                  'Create, schedule, publish and monitor school communication.',
-                  style: TextStyle(color: Color(0xFFF3E8FF), fontSize: 14),
-                ),
+                if (!compact) ...[
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Create, schedule, publish and monitor school communication.',
+                    style: TextStyle(color: Color(0xFFF3E8FF), fontSize: 14),
+                  ),
+                ],
               ],
             ),
           ),
@@ -248,63 +268,76 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
         padding: const EdgeInsets.all(14),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final compact = constraints.maxWidth < 700;
             final fieldWidth = constraints.maxWidth >= 1050
                 ? 210.0
                 : constraints.maxWidth >= 700
                 ? 230.0
-                : constraints.maxWidth;
+                : 150.0;
 
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SizedBox(
-                  width: fieldWidth,
-                  child: TextField(
-                    controller: _session,
-                    decoration: const InputDecoration(
-                      labelText: 'Academic Session',
-                      prefixIcon: Icon(Icons.calendar_today_outlined),
-                      border: OutlineInputBorder(),
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: fieldWidth,
+                    child: TextField(
+                      controller: _session,
+                      decoration: const InputDecoration(
+                        labelText: 'Academic Session',
+                        prefixIcon: Icon(Icons.calendar_today_outlined),
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
-                ),
-                _enumFilter<NoticeStatus>(
-                  width: fieldWidth,
-                  label: 'Status',
-                  value: _status,
-                  values: NoticeStatus.values,
-                  icon: Icons.flag_outlined,
-                  onChanged: (value) => setState(() => _status = value),
-                ),
-                _enumFilter<NoticeAudienceType>(
-                  width: fieldWidth,
-                  label: 'Audience',
-                  value: _audience,
-                  values: NoticeAudienceType.values,
-                  icon: Icons.groups_outlined,
-                  onChanged: (value) => setState(() => _audience = value),
-                ),
-                _enumFilter<NoticePriority>(
-                  width: fieldWidth,
-                  label: 'Priority',
-                  value: _priority,
-                  values: NoticePriority.values,
-                  icon: Icons.priority_high,
-                  onChanged: (value) => setState(() => _priority = value),
-                ),
-                FilledButton.icon(
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Load'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _resetFilters,
-                  icon: const Icon(Icons.restart_alt),
-                  label: const Text('Reset'),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  _enumFilter<NoticeStatus>(
+                    width: fieldWidth,
+                    label: 'Status',
+                    value: _status,
+                    values: NoticeStatus.values,
+                    icon: Icons.flag_outlined,
+                    onChanged: (value) => setState(() => _status = value),
+                  ),
+                  const SizedBox(width: 8),
+                  _enumFilter<NoticeAudienceType>(
+                    width: fieldWidth,
+                    label: 'Audience',
+                    value: _audience,
+                    values: NoticeAudienceType.values,
+                    icon: Icons.groups_outlined,
+                    onChanged: (value) => setState(() => _audience = value),
+                  ),
+                  const SizedBox(width: 8),
+                  _enumFilter<NoticePriority>(
+                    width: fieldWidth,
+                    label: 'Priority',
+                    value: _priority,
+                    values: NoticePriority.values,
+                    icon: Icons.priority_high,
+                    onChanged: (value) => setState(() => _priority = value),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Load'),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _resetFilters,
+                      icon: const Icon(Icons.restart_alt),
+                      label: const Text('Reset'),
+                    ),
+                  ] else
+                    IconButton.outlined(
+                      tooltip: 'Reset filters',
+                      onPressed: _resetFilters,
+                      icon: const Icon(Icons.restart_alt),
+                    ),
+                ],
+              ),
             );
           },
         ),
@@ -357,19 +390,25 @@ class _NoticesDashboardViewState extends State<_NoticesDashboardView> {
 }
 
 class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon();
+  const _HeaderIcon({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 48,
-      height: 48,
+      width: compact ? 32 : 48,
+      height: compact ? 32 : 48,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .18),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: .25)),
       ),
-      child: const Icon(Icons.campaign_outlined, color: Colors.white, size: 27),
+      child: Icon(
+        Icons.campaign_outlined,
+        color: Colors.white,
+        size: compact ? 18 : 27,
+      ),
     );
   }
 }
@@ -431,15 +470,16 @@ class _NoticeStats extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final compact = constraints.maxWidth < 600;
         final width = constraints.maxWidth >= 1000
             ? (constraints.maxWidth - 48) / 5
             : constraints.maxWidth >= 600
             ? (constraints.maxWidth - 24) / 3
-            : constraints.maxWidth;
+            : (constraints.maxWidth - 32) / 5;
 
         return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: compact ? 8 : 12,
+          runSpacing: compact ? 8 : 12,
           children: [
             for (final stat in stats)
               SizedBox(
@@ -474,8 +514,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 6 : 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [data.color.withValues(alpha: .13), Colors.white],
@@ -483,29 +524,54 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: data.color.withValues(alpha: .20)),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: data.color.withValues(alpha: .13),
-            child: Icon(data.icon, color: data.color),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${data.value}',
-                style: const TextStyle(
-                  color: _textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
+      child: compact
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(data.icon, color: data.color, size: 16),
+                const SizedBox(height: 3),
+                Text(
+                  '${data.value}',
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              Text(data.label, style: const TextStyle(color: _textSecondary)),
-            ],
-          ),
-        ],
-      ),
+                Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _textSecondary, fontSize: 7.5),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: data.color.withValues(alpha: .13),
+                  child: Icon(data.icon, color: data.color),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${data.value}',
+                      style: const TextStyle(
+                        color: _textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      data.label,
+                      style: const TextStyle(color: _textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }

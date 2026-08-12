@@ -44,7 +44,10 @@ class _ViewState extends State<_View> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Homework Submissions')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Homework Submissions'),
+      ),
       body: BlocConsumer<HomeworkSubmissionBloc, HomeworkSubmissionState>(
         listener: (context, state) {
           final message = switch (state) {

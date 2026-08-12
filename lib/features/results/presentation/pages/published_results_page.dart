@@ -178,94 +178,102 @@ class _PublishedResultsFiltersState extends State<_PublishedResultsFilters> {
     final bloc = context.read<ResultsBloc>();
     final data = widget.data;
     final showStudentFilter = widget.type == ResultsViewType.studentResults;
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _FilterSelect(
-              label: 'Academic Session',
-              value: data.selectedAcademicSession,
-              items: data.availableSessions
-                  .map((value) => _SelectItem(value, value))
-                  .toList(growable: false),
-              onChanged: (value) => bloc.add(FilterResultsBySession(value)),
-            ),
-            _FilterSelect(
-              label: 'Exam',
-              value: data.selectedExamId,
-              items: data.availableExams
-                  .map((result) => _SelectItem(result.examId, result.examName))
-                  .toList(growable: false),
-              onChanged: (value) => bloc.add(FilterResultsByExam(value)),
-            ),
-            _FilterSelect(
-              label: 'Class',
-              value: data.selectedClassId,
-              items: data.availableClasses
-                  .map(
-                    (result) => _SelectItem(result.classId, result.className),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) => bloc.add(FilterResultsByClass(value)),
-            ),
-            _FilterSelect(
-              label: 'Section',
-              value: data.selectedSectionId,
-              enabled: data.selectedClassId != null,
-              items: data.availableSections
-                  .map(
-                    (result) =>
-                        _SelectItem(result.sectionId, result.sectionName),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) => bloc.add(FilterResultsBySection(value)),
-            ),
-            if (showStudentFilter)
+        padding: EdgeInsets.all(compact ? 8 : 16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
               _FilterSelect(
-                label: 'Student',
-                value: data.selectedStudentId,
-                items: data.availableStudents
+                label: 'Academic Session',
+                value: data.selectedAcademicSession,
+                items: data.availableSessions
+                    .map((value) => _SelectItem(value, value))
+                    .toList(growable: false),
+                onChanged: (value) => bloc.add(FilterResultsBySession(value)),
+              ),
+              const SizedBox(width: 8),
+              _FilterSelect(
+                label: 'Exam',
+                value: data.selectedExamId,
+                items: data.availableExams
                     .map(
-                      (result) => _SelectItem(
-                        result.studentId,
-                        '${result.studentName} (${_roll(result)})',
-                      ),
+                      (result) => _SelectItem(result.examId, result.examName),
                     )
                     .toList(growable: false),
-                onChanged: (value) => bloc.add(FilterResultsByStudent(value)),
+                onChanged: (value) => bloc.add(FilterResultsByExam(value)),
               ),
-            SizedBox(
-              width: (MediaQuery.sizeOf(context).width - 64)
-                  .clamp(0, 320)
-                  .toDouble(),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) => bloc.add(SearchPublishedResults(value)),
-                decoration: InputDecoration(
-                  labelText: 'Search name, admission no or roll no',
-                  prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: _searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          onPressed: () {
-                            _searchController.clear();
-                            bloc.add(const SearchPublishedResults(''));
-                          },
-                          icon: const Icon(Icons.clear),
+              const SizedBox(width: 8),
+              _FilterSelect(
+                label: 'Class',
+                value: data.selectedClassId,
+                items: data.availableClasses
+                    .map(
+                      (result) => _SelectItem(result.classId, result.className),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) => bloc.add(FilterResultsByClass(value)),
+              ),
+              const SizedBox(width: 8),
+              _FilterSelect(
+                label: 'Section',
+                value: data.selectedSectionId,
+                enabled: data.selectedClassId != null,
+                items: data.availableSections
+                    .map(
+                      (result) =>
+                          _SelectItem(result.sectionId, result.sectionName),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) => bloc.add(FilterResultsBySection(value)),
+              ),
+              if (showStudentFilter) const SizedBox(width: 8),
+              if (showStudentFilter)
+                _FilterSelect(
+                  label: 'Student',
+                  value: data.selectedStudentId,
+                  items: data.availableStudents
+                      .map(
+                        (result) => _SelectItem(
+                          result.studentId,
+                          '${result.studentName} (${_roll(result)})',
                         ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) => bloc.add(FilterResultsByStudent(value)),
+                ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: compact ? 220 : 320,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => bloc.add(SearchPublishedResults(value)),
+                  decoration: InputDecoration(
+                    labelText: 'Search name, admission no or roll no',
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              _searchController.clear();
+                              bloc.add(const SearchPublishedResults(''));
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
+                  ),
                 ),
               ),
-            ),
-            const Chip(
-              avatar: Icon(Icons.visibility_outlined, size: 16),
-              label: Text('Published results only'),
-            ),
-          ],
+              const SizedBox(width: 8),
+              const Chip(
+                avatar: Icon(Icons.visibility_outlined, size: 16),
+                label: Text('Published results only'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -584,8 +592,9 @@ class _FilterSelect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return SizedBox(
-      width: 230,
+      width: compact ? 150 : 230,
       child: DropdownButtonFormField<String>(
         initialValue: items.any((item) => item.id == value) ? value : null,
         isExpanded: true,

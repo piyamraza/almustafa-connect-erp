@@ -82,18 +82,24 @@ class _ViewState extends State<_View> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
+            final compact = constraints.maxWidth < 620;
             final kpiColumns = constraints.maxWidth >= 1050
                 ? 4
                 : constraints.maxWidth >= 620
                 ? 2
-                : 1;
+                : 4;
             final itemColumns = constraints.maxWidth >= 1220
                 ? 3
                 : constraints.maxWidth >= 760
                 ? 2
                 : 1;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              padding: EdgeInsets.fromLTRB(
+                compact ? 10 : 20,
+                compact ? 10 : 20,
+                compact ? 10 : 20,
+                100,
+              ),
               children: [
                 const _StoreHero(),
                 const SizedBox(height: 18),
@@ -101,9 +107,10 @@ class _ViewState extends State<_View> {
                   crossAxisCount: kpiColumns,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: 2.65,
+                  crossAxisSpacing: compact ? 6 : 14,
+                  mainAxisSpacing: compact ? 6 : 14,
+                  mainAxisExtent: compact ? 92 : null,
+                  childAspectRatio: compact ? 1 : 2.65,
                   children: [
                     _StoreKpi(
                       'Total Items',
@@ -143,42 +150,37 @@ class _ViewState extends State<_View> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: compact ? 6 : 14,
+                  mainAxisSpacing: compact ? 6 : 14,
+                  mainAxisExtent: compact ? 98 : 118,
                   children: [
-                    Expanded(
-                      child: _StoreAction(
-                        'Suppliers & Purchases',
-                        Icons.local_shipping_rounded,
-                        const Color(0xFF246BFD),
-                        () => _open(c, const StorePurchasesPage()),
-                      ),
+                    _StoreAction(
+                      'Suppliers & Purchases',
+                      Icons.local_shipping_rounded,
+                      const Color(0xFF246BFD),
+                      () => _open(c, const StorePurchasesPage()),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StoreAction(
-                        'Student Sales',
-                        Icons.point_of_sale_rounded,
-                        const Color(0xFF0AA47A),
-                        () => _open(c, const StoreSalesPage()),
-                      ),
+                    _StoreAction(
+                      'Student Sales',
+                      Icons.point_of_sale_rounded,
+                      const Color(0xFF0AA47A),
+                      () => _open(c, const StoreSalesPage()),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StoreAction(
-                        'Payments & Outstanding',
-                        Icons.payments_rounded,
-                        const Color(0xFFF59E0B),
-                        () => _open(c, const StorePaymentsPage()),
-                      ),
+                    _StoreAction(
+                      'Payments & Outstanding',
+                      Icons.payments_rounded,
+                      const Color(0xFFF59E0B),
+                      () => _open(c, const StorePaymentsPage()),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StoreAction(
-                        'Reports',
-                        Icons.bar_chart_rounded,
-                        const Color(0xFF8B5CF6),
-                        () => _open(c, const StoreReportsPage()),
-                      ),
+                    _StoreAction(
+                      'Reports',
+                      Icons.bar_chart_rounded,
+                      const Color(0xFF8B5CF6),
+                      () => _open(c, const StoreReportsPage()),
                     ),
                   ],
                 ),
@@ -224,7 +226,7 @@ class _ViewState extends State<_View> {
                       crossAxisCount: itemColumns,
                       crossAxisSpacing: 14,
                       mainAxisSpacing: 14,
-                      mainAxisExtent: 164,
+                      mainAxisExtent: compact ? 118 : 164,
                     ),
                     itemBuilder: (_, index) => _InventoryCard(
                       item: items[index],
@@ -365,67 +367,78 @@ class _StoreHero extends StatelessWidget {
   const _StoreHero();
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 136,
-    padding: const EdgeInsets.symmetric(horizontal: 26),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF176BEF), Color(0xFF0B3D91)],
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
+    return Container(
+      constraints: BoxConstraints(minHeight: compact ? 104 : 136),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 18 : 26,
+        vertical: compact ? 16 : 0,
       ),
-      borderRadius: BorderRadius.circular(25),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x30176BEF),
-          blurRadius: 25,
-          offset: Offset(0, 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF176BEF), Color(0xFF0B3D91)],
         ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 66,
-          height: 66,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .15),
-            borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x30176BEF),
+            blurRadius: 25,
+            offset: Offset(0, 10),
           ),
-          child: const Icon(
-            Icons.storefront_rounded,
-            color: Colors.white,
-            size: 37,
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 66,
+            height: 66,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.storefront_rounded,
+              color: Colors.white,
+              size: 37,
+            ),
           ),
-        ),
-        const SizedBox(width: 20),
-        const Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'School Store Command Center',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800,
+          SizedBox(width: compact ? 14 : 20),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'School Store Command Center',
+                  maxLines: compact ? 2 : 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: compact ? 20 : 27,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Inventory, purchases, student sales and payments in one place.',
-                style: TextStyle(color: Color(0xFFE8F1FF), fontSize: 15),
-              ),
-            ],
+                if (!compact) ...[
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Inventory, purchases, student sales and payments in one place.',
+                    style: TextStyle(color: Color(0xFFE8F1FF), fontSize: 15),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        Icon(
-          Icons.shopping_bag_rounded,
-          size: 98,
-          color: Colors.white.withValues(alpha: .08),
-        ),
-      ],
-    ),
-  );
+          if (!compact)
+            Icon(
+              Icons.shopping_bag_rounded,
+              size: 98,
+              color: Colors.white.withValues(alpha: .08),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StoreKpi extends StatelessWidget {
@@ -436,65 +449,100 @@ class _StoreKpi extends StatelessWidget {
   final String? helper;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(19),
-      border: Border.all(color: color.withValues(alpha: .18)),
-      boxShadow: [
-        BoxShadow(
-          color: color.withValues(alpha: .07),
-          blurRadius: 14,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 620;
+    return Container(
+      padding: EdgeInsets.all(compact ? 6 : 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: color.withValues(alpha: .18)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .07),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
-          child: Icon(icon, color: color, size: 26),
-        ),
-        const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF14213D),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(label, style: TextStyle(color: Colors.blueGrey.shade600)),
-              if (helper != null)
+        ],
+      ),
+      child: compact
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 17),
+                const SizedBox(height: 3),
                 Text(
-                  helper!,
+                  value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                  style: const TextStyle(
+                    color: Color(0xFF14213D),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade600,
+                    fontSize: 7.5,
+                    height: 1.05,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color, size: 26),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF14213D),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        label,
+                        style: TextStyle(color: Colors.blueGrey.shade600),
+                      ),
+                      if (helper != null)
+                        Text(
+                          helper!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
 }
 
 class _StoreAction extends StatelessWidget {
@@ -505,21 +553,51 @@ class _StoreAction extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 620;
+    return Material(
     color: Colors.white,
     borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 92,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        height: compact ? 98 : 118,
+        padding: EdgeInsets.all(compact ? 6 : 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withValues(alpha: .22)),
         ),
-        child: Row(
-          children: [
+        child: compact
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 19),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 9.5,
+                      height: 1.05,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF14213D),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
             Container(
               width: 58,
               height: 58,
@@ -542,11 +620,12 @@ class _StoreAction extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Icon(Icons.arrow_forward_rounded, color: color, size: 19),
-          ],
+                ],
+              ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _StoreFilters extends StatelessWidget {
@@ -571,62 +650,66 @@ class _StoreFilters extends StatelessWidget {
       borderRadius: BorderRadius.circular(17),
       border: Border.all(color: const Color(0xFFE0E7F2)),
     ),
-    child: Wrap(
-      spacing: 12,
-      runSpacing: 10,
-      children: [
-        SizedBox(
-          width: 360,
-          child: TextField(
-            controller: controller,
-            onChanged: onSearch,
-            decoration: InputDecoration(
-              hintText: 'Search item, code or category...',
-              prefixIcon: const Icon(Icons.search_rounded),
-              filled: true,
-              fillColor: const Color(0xFFF7F9FD),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 210,
-          child: DropdownButtonFormField<StoreItemCategory?>(
-            initialValue: category,
-            decoration: InputDecoration(
-              labelText: 'Category',
-              filled: true,
-              fillColor: const Color(0xFFF7F9FD),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('All Categories'),
-              ),
-              ...StoreItemCategory.values.map(
-                (value) => DropdownMenuItem(
-                  value: value,
-                  child: Text(_categoryLabel(value)),
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: controller,
+              onChanged: onSearch,
+              decoration: InputDecoration(
+                hintText: 'Search item, code or category...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                filled: true,
+                fillColor: const Color(0xFFF7F9FD),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
-            ],
-            onChanged: onCategory,
+            ),
           ),
-        ),
-        if (controller.text.isNotEmpty || category != null)
-          TextButton.icon(
-            onPressed: onClear,
-            icon: const Icon(Icons.filter_alt_off_rounded),
-            label: const Text('Clear'),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 210,
+            child: DropdownButtonFormField<StoreItemCategory?>(
+              initialValue: category,
+              decoration: InputDecoration(
+                labelText: 'Category',
+                filled: true,
+                fillColor: const Color(0xFFF7F9FD),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('All Categories'),
+                ),
+                ...StoreItemCategory.values.map(
+                  (value) => DropdownMenuItem(
+                    value: value,
+                    child: Text(_categoryLabel(value)),
+                  ),
+                ),
+              ],
+              onChanged: onCategory,
+            ),
           ),
-      ],
+          if (controller.text.isNotEmpty || category != null)
+            const SizedBox(width: 8),
+          if (controller.text.isNotEmpty || category != null)
+            TextButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.filter_alt_off_rounded),
+              label: const Text('Clear'),
+            ),
+        ],
+      ),
     ),
   );
 }

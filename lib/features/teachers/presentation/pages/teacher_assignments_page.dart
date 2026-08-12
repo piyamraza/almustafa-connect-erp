@@ -126,6 +126,7 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
               }
             },
             builder: (context, state) {
+              final compact = MediaQuery.sizeOf(context).width < 760;
               final assignments = switch (state) {
                 TeacherAssignmentLoaded(:final assignments) => assignments,
                 TeacherAssignmentError(:final assignments) => assignments,
@@ -135,11 +136,11 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
               return Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(compact ? 8 : 16),
                     child: Column(
                       children: [
                         _toolbar(),
-                        const SizedBox(height: 12),
+                        SizedBox(height: compact ? 8 : 12),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
@@ -147,7 +148,7 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
                                 return Column(
                                   children: [
                                     SizedBox(
-                                      height: 76,
+                                      height: 58,
                                       child: _classSelector(
                                         options,
                                         horizontal: true,
@@ -204,21 +205,23 @@ class _AssignmentsViewState extends State<_AssignmentsView> {
   }
 
   Widget _toolbar() {
+    final compact = MediaQuery.sizeOf(context).width < 760;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(compact ? 8 : 14),
         child: Row(
           children: [
-            const Icon(Icons.account_tree_outlined),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Select a class and subject, then assign a teacher.',
-                style: Theme.of(context).textTheme.titleMedium,
+            Icon(Icons.account_tree_outlined, size: compact ? 18 : 24),
+            SizedBox(width: compact ? 8 : 10),
+            if (!compact)
+              Expanded(
+                child: Text(
+                  'Select a class and subject, then assign a teacher.',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-            ),
             SizedBox(
-              width: 190,
+              width: compact ? 170 : 190,
               child: TextField(
                 controller: _sessionController,
                 onChanged: (_) => setState(() {}),

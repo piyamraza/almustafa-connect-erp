@@ -302,124 +302,134 @@ class _SelectionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final setup = data.selectedSubjectSetup;
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(compact ? 8 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Select Marks Entry',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _MarksSelect(
-                  label: 'Exam',
-                  value: data.selectedExamId,
-                  items: data.availableExams
-                      .map(
-                        (exam) => _SelectItem(
-                          id: exam.id,
-                          label: '${exam.name} (${exam.academicSession})',
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: data.isLoading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            context.read<ExamMarksBloc>().add(
-                              SelectMarksExam(value),
-                            );
-                          }
-                        },
-                ),
-                _MarksSelect(
-                  label: 'Class',
-                  value: data.selectedClassId,
-                  items: data.availableClasses
-                      .map(
-                        (setup) => _SelectItem(
-                          id: setup.classId,
-                          label: setup.className,
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: data.selectedExamId == null || data.isLoading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            context.read<ExamMarksBloc>().add(
-                              SelectMarksClass(value),
-                            );
-                          }
-                        },
-                ),
-                _MarksSelect(
-                  label: 'Section',
-                  value: data.selectedSectionId,
-                  items: data.availableSections
-                      .map(
-                        (setup) => _SelectItem(
-                          id: setup.sectionId,
-                          label: setup.sectionName,
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: data.selectedClassId == null || data.isLoading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            context.read<ExamMarksBloc>().add(
-                              SelectMarksSection(value),
-                            );
-                          }
-                        },
-                ),
-                _MarksSelect(
-                  label: 'Subject',
-                  value: data.selectedSubjectSetupId,
-                  items: data.availableSubjects
-                      .map(
-                        (setup) => _SelectItem(
-                          id: setup.id,
-                          label:
-                              '${setup.subjectName} (Total ${_formatNumber(setup.totalMarks)})',
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: data.selectedSectionId == null || data.isLoading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            context.read<ExamMarksBloc>().add(
-                              SelectMarksSubject(value),
-                            );
-                          }
-                        },
-                ),
-              ],
-            ),
-            if (setup != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+            if (!compact) ...[
+              Text(
+                'Select Marks Entry',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 14),
+            ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  Chip(label: Text('Subject: ${setup.subjectName}')),
-                  Chip(
-                    label: Text('Total: ${_formatNumber(setup.totalMarks)}'),
+                  _MarksSelect(
+                    label: 'Exam',
+                    value: data.selectedExamId,
+                    items: data.availableExams
+                        .map(
+                          (exam) => _SelectItem(
+                            id: exam.id,
+                            label: '${exam.name} (${exam.academicSession})',
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: data.isLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              context.read<ExamMarksBloc>().add(
+                                SelectMarksExam(value),
+                              );
+                            }
+                          },
                   ),
-                  Chip(
-                    label: Text(
-                      'Passing: ${_formatNumber(setup.passingMarks)}',
-                    ),
+                  const SizedBox(width: 12),
+                  _MarksSelect(
+                    label: 'Class',
+                    value: data.selectedClassId,
+                    items: data.availableClasses
+                        .map(
+                          (setup) => _SelectItem(
+                            id: setup.classId,
+                            label: setup.className,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: data.selectedExamId == null || data.isLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              context.read<ExamMarksBloc>().add(
+                                SelectMarksClass(value),
+                              );
+                            }
+                          },
+                  ),
+                  const SizedBox(width: 12),
+                  _MarksSelect(
+                    label: 'Section',
+                    value: data.selectedSectionId,
+                    items: data.availableSections
+                        .map(
+                          (setup) => _SelectItem(
+                            id: setup.sectionId,
+                            label: setup.sectionName,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: data.selectedClassId == null || data.isLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              context.read<ExamMarksBloc>().add(
+                                SelectMarksSection(value),
+                              );
+                            }
+                          },
+                  ),
+                  const SizedBox(width: 12),
+                  _MarksSelect(
+                    label: 'Subject',
+                    value: data.selectedSubjectSetupId,
+                    items: data.availableSubjects
+                        .map(
+                          (setup) => _SelectItem(
+                            id: setup.id,
+                            label:
+                                '${setup.subjectName} (Total ${_formatNumber(setup.totalMarks)})',
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: data.selectedSectionId == null || data.isLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              context.read<ExamMarksBloc>().add(
+                                SelectMarksSubject(value),
+                              );
+                            }
+                          },
                   ),
                 ],
+              ),
+            ),
+            if (setup != null) ...[
+              SizedBox(height: compact ? 6 : 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Chip(label: Text('Subject: ${setup.subjectName}')),
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text('Total: ${_formatNumber(setup.totalMarks)}'),
+                    ),
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        'Passing: ${_formatNumber(setup.passingMarks)}',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],
@@ -801,16 +811,21 @@ class _MarksSelect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uniqueItems = <String, _SelectItem>{
+      for (final item in items) item.id: item,
+    }.values.toList(growable: false);
     return SizedBox(
       width: 250,
       child: DropdownButtonFormField<String>(
-        initialValue: items.any((item) => item.id == value) ? value : null,
+        initialValue: uniqueItems.any((item) => item.id == value)
+            ? value
+            : null,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        items: items
+        items: uniqueItems
             .map(
               (item) => DropdownMenuItem<String>(
                 value: item.id,

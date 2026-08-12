@@ -13,6 +13,8 @@ class SyllabusEntryEntity extends Equatable {
     required this.subjectId,
     required this.subjectName,
     required this.content,
+    this.teacherId = '',
+    this.teacherName = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -28,6 +30,8 @@ class SyllabusEntryEntity extends Equatable {
   final String subjectId;
   final String subjectName;
   final String content;
+  final String teacherId;
+  final String teacherName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +45,7 @@ class SyllabusEntryEntity extends Equatable {
     sectionId,
     subjectId,
     content,
+    teacherId,
     updatedAt,
   ];
 }

@@ -20,6 +20,9 @@ class QuestionPaperPdfService {
     final baseFont = loaded[1] as pw.Font;
     final boldFont = loaded[2] as pw.Font;
     final urduFont = loaded[3] as pw.Font;
+    final paperIsUrdu = paper.questions.isNotEmpty &&
+        paper.questions.where((question) => _containsUrdu(question.text)).length >=
+            (paper.questions.length / 2).ceil();
     final document = pw.Document();
     document.addPage(
       pw.MultiPage(
@@ -29,6 +32,8 @@ class QuestionPaperPdfService {
           fontFallback: [urduFont],
         ),
         pageFormat: PdfPageFormat.a4,
+        textDirection:
+            paperIsUrdu ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 30),
         footer: (context) => pw.Align(
           alignment: pw.Alignment.centerRight,
@@ -245,6 +250,12 @@ class QuestionPaperPdfService {
             pw.Expanded(
               child: pw.Text(
                 '$number. ${question.text}',
+                textDirection: _containsUrdu(question.text)
+                    ? pw.TextDirection.rtl
+                    : pw.TextDirection.ltr,
+                textAlign: _containsUrdu(question.text)
+                    ? pw.TextAlign.right
+                    : pw.TextAlign.left,
                 style: const pw.TextStyle(fontSize: 9.5),
               ),
             ),
@@ -295,6 +306,12 @@ class QuestionPaperPdfService {
             padding: const pw.EdgeInsets.only(left: 16, top: 4),
             child: pw.Text(
               question.cells.join('     '),
+              textDirection: question.cells.any(_containsUrdu)
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
+              textAlign: question.cells.any(_containsUrdu)
+                  ? pw.TextAlign.right
+                  : pw.TextAlign.left,
               style: const pw.TextStyle(fontSize: 9),
             ),
           ),
@@ -330,6 +347,12 @@ class QuestionPaperPdfService {
                 ),
                 child: pw.Text(
                   '${String.fromCharCode(65 + entry.key)}. ${entry.value}',
+                  textDirection: _containsUrdu(entry.value)
+                      ? pw.TextDirection.rtl
+                      : pw.TextDirection.ltr,
+                  textAlign: _containsUrdu(entry.value)
+                      ? pw.TextAlign.right
+                      : pw.TextAlign.left,
                   style: const pw.TextStyle(fontSize: 8.5),
                 ),
               );
@@ -431,10 +454,15 @@ class QuestionPaperPdfService {
 
   pw.Widget _tableCell(String text, {bool bold = false}) => pw.Container(
     height: 32,
-    alignment: pw.Alignment.centerLeft,
+    alignment: _containsUrdu(text)
+        ? pw.Alignment.centerRight
+        : pw.Alignment.centerLeft,
     padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
     child: pw.Text(
       text,
+      textDirection:
+          _containsUrdu(text) ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      textAlign: _containsUrdu(text) ? pw.TextAlign.right : pw.TextAlign.left,
       style: pw.TextStyle(
         fontSize: 9,
         fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
@@ -445,6 +473,9 @@ class QuestionPaperPdfService {
   String _marks(double value) => value == value.roundToDouble()
       ? value.toInt().toString()
       : value.toStringAsFixed(1);
+  bool _containsUrdu(String value) => RegExp(
+    r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]',
+  ).hasMatch(value);
   String _paperSubjectName(ExamQuestionPaperEntity paper) {
     if (paper.componentName.isEmpty) {
       return paper.subjectName;

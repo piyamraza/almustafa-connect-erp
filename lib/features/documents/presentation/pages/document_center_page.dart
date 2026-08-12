@@ -12,6 +12,7 @@ import '../../domain/entities/document_type.dart';
 import 'experience_certificate_preview_page.dart';
 import 'employee_card_preview_page.dart';
 import 'salary_slip_preview_page.dart';
+import 'admission_form_preview_page.dart';
 
 const _pageBackground = Color(0xFFF4F7FC);
 const _brandBlue = Color(0xFF1765E8);
@@ -149,6 +150,15 @@ class _DocumentCenterPageState extends State<DocumentCenterPage> {
         title: 'Student Documents',
         subtitle: 'Cards and official documents generated for students.',
         items: [
+          _DocumentCenterItem(
+            type: DocumentType.idCard,
+            title: 'Admission Form',
+            description:
+                'Print a complete blank admission form for parents to fill.',
+            icon: Icons.app_registration_rounded,
+            status: _DocumentStatus.ready,
+            page: AdmissionFormPreviewPage(),
+          ),
           _DocumentCenterItem(
             type: DocumentType.birthdayCard,
             title: 'Birthday Cards',
@@ -457,11 +467,11 @@ class _DocumentGroupSection extends StatelessWidget {
                 ? (constraints.maxWidth - 36) / 4
                 : constraints.maxWidth >= 680
                 ? (constraints.maxWidth - 12) / 2
-                : constraints.maxWidth;
+                : (constraints.maxWidth - 8) / 2;
 
             return Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: constraints.maxWidth < 680 ? 8 : 12,
+              runSpacing: constraints.maxWidth < 680 ? 8 : 12,
               children: [
                 for (final item in group.items)
                   SizedBox(
@@ -494,6 +504,7 @@ class _DocumentTypeCardState extends State<_DocumentTypeCard> {
     final item = widget.item;
     final ready = item.status == _DocumentStatus.ready;
     final color = _documentColor(item.type);
+    final compact = MediaQuery.sizeOf(context).width < 680;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -521,35 +532,39 @@ class _DocumentTypeCardState extends State<_DocumentTypeCard> {
             borderRadius: BorderRadius.circular(18),
             onTap: () => _open(context),
             child: Padding(
-              padding: const EdgeInsets.all(15),
+              padding: EdgeInsets.all(compact ? 10 : 15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        width: 46,
-                        height: 46,
+                        width: compact ? 36 : 46,
+                        height: compact ? 36 : 46,
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(item.icon, color: color, size: 24),
+                        child: Icon(
+                          item.icon,
+                          color: color,
+                          size: compact ? 19 : 24,
+                        ),
                       ),
                       const Spacer(),
                       _StatusBadge(status: item.status),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: compact ? 6 : 12),
                   Text(
                     item.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textPrimary,
-                      fontSize: 15,
+                      fontSize: compact ? 14 : 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: compact ? 2 : 4),
                   Text(
                     item.description,
                     style: const TextStyle(
@@ -557,10 +572,10 @@ class _DocumentTypeCardState extends State<_DocumentTypeCard> {
                       fontSize: 12,
                       height: 1.35,
                     ),
-                    maxLines: 2,
+                    maxLines: compact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: compact ? 4 : 8),
                   Row(
                     children: [
                       Text(
@@ -599,6 +614,10 @@ class _DocumentTypeCardState extends State<_DocumentTypeCard> {
   }
 
   void _open(BuildContext context) {
+    if (widget.item.page != null) {
+      _push(context, widget.item.page!);
+      return;
+    }
     switch (widget.item.type) {
       case DocumentType.birthdayCard:
         _push(context, const SchoolEngagementPage());
@@ -723,6 +742,7 @@ class _DocumentCenterItem {
     required this.description,
     required this.icon,
     required this.status,
+    this.page,
   });
 
   final DocumentType type;
@@ -730,4 +750,5 @@ class _DocumentCenterItem {
   final String description;
   final IconData icon;
   final _DocumentStatus status;
+  final Widget? page;
 }

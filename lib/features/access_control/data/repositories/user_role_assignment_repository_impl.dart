@@ -54,19 +54,27 @@ class UserRoleAssignmentRepositoryImpl implements UserRoleAssignmentRepository {
   Future<List<UserRoleAssignmentEntity>> getAssignmentsByUserId(
     String userId,
   ) async {
-    final assignments = await getAssignments();
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return const [];
 
-    final values =
-        assignments.where((item) => item.userId == userId.trim()).toList()
-          ..sort((a, b) {
-            if (a.isPrimary != b.isPrimary) {
-              return a.isPrimary ? -1 : 1;
-            }
+    // Role documents are canonicalised as user_roles/{authUid}. Reading the
+    // entire collection fails for teacher/parent accounts under production
+    // Firestore rules, which previously made them fall through to Admin UI.
+    final document = await _service
+        .collection(FirestorePaths.userRoleAssignments)
+        .doc(normalizedUserId)
+        .get();
+    if (!document.exists) return const [];
 
-            return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
-          });
-
-    return List.unmodifiable(values);
+    final assignment = UserRoleAssignmentModel.fromMap({
+      ...?document.data(),
+      'id': document.id,
+    });
+    if (assignment.userId.isNotEmpty &&
+        assignment.userId != normalizedUserId) {
+      return const [];
+    }
+    return [assignment];
   }
 
   @override

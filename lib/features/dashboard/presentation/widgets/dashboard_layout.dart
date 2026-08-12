@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/features/academic_structure/domain/services/academic_class_order.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -19,6 +23,9 @@ import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
 import '../../../notices/presentation/pages/notices_dashboard_page.dart';
 import '../../../notices/domain/entities/notice_entity.dart';
 import '../../../notices/domain/repositories/notice_repository.dart';
+import '../../../notifications/domain/entities/portal_notification_entity.dart';
+import '../../../notifications/domain/repositories/portal_notification_repository.dart';
+import '../../../notifications/presentation/pages/portal_notification_center_page.dart';
 import '../../../staff/domain/entities/staff_entity.dart';
 import '../../../staff/domain/entities/staff_attendance_entity.dart';
 import '../../../staff/domain/repositories/staff_attendance_repository.dart';
@@ -30,6 +37,7 @@ import '../../../teachers/domain/entities/teacher_entity.dart';
 import '../../../teachers/domain/entities/teacher_attendance_entity.dart';
 import '../../../teachers/domain/repositories/teacher_attendance_repository.dart';
 import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../teacher_portal/presentation/pages/teacher_homework_questions_page.dart';
 import 'sidebar.dart';
 
 class DashboardLayout extends StatefulWidget {
@@ -131,20 +139,25 @@ class _DashboardLayoutState extends State<DashboardLayout> {
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
-      appBar: isMobile
-          ? AppBar(
-              title: const Text('School Dashboard'),
-              actions: [
-                IconButton(
-                  onPressed: _isRefreshing ? null : _refresh,
-                  tooltip: 'Refresh',
-                  icon: const Icon(Icons.refresh_rounded, size: 21),
-                ),
-              ],
-            )
-          : null,
+      appBar: AppBar(
+        title: Text(isMobile ? 'School Dashboard' : 'Administration'),
+        automaticallyImplyLeading: isMobile,
+        actions: [
+          const _AdminNotificationButton(),
+          IconButton(
+            onPressed: _isRefreshing ? null : _refresh,
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, size: 21),
+          ),
+        ],
+      ),
       drawer: isMobile
-          ? const Drawer(width: 286, child: SafeArea(child: Sidebar()))
+          ? const Drawer(
+              width: 286,
+              backgroundColor: AppColors.sidebarTop,
+              surfaceTintColor: Colors.transparent,
+              child: SafeArea(child: Sidebar()),
+            )
           : null,
       body: Row(
         children: [
@@ -366,13 +379,14 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final compact = constraints.maxWidth < 650;
         final featuredColumns = constraints.maxWidth < 650
-            ? 1
+            ? 4
             : constraints.maxWidth < 1050
             ? 2
             : 4;
         final operationalColumns = constraints.maxWidth < 650
-            ? 1
+            ? 4
             : constraints.maxWidth < 900
             ? 2
             : 5;
@@ -381,21 +395,25 @@ class _StatsGrid extends StatelessWidget {
           children: [
             Text(
               'Today at a glance',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: compact
+                  ? Theme.of(context).textTheme.titleMedium
+                  : Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 4),
-            Text(
-              'The most important indicators for today',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
+            if (!compact) ...[
+              const SizedBox(height: 4),
+              Text(
+                'The most important indicators for today',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            SizedBox(height: compact ? 8 : 12),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: featuredColumns,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              mainAxisExtent: featuredColumns == 1 ? 170 : 180,
+              crossAxisSpacing: compact ? 6 : 14,
+              mainAxisSpacing: compact ? 6 : 14,
+              mainAxisExtent: compact ? 94 : 180,
               children: [
                 _FeaturedStatCard(
                   title: 'Active Students',
@@ -431,19 +449,21 @@ class _StatsGrid extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: compact ? 12 : 20),
             Text(
               'Operations overview',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: compact
+                  ? Theme.of(context).textTheme.titleMedium
+                  : Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: operationalColumns,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 12,
-              mainAxisExtent: 110,
+              crossAxisSpacing: compact ? 6 : 14,
+              mainAxisSpacing: compact ? 6 : 12,
+              mainAxisExtent: compact ? 82 : 110,
               children: [
                 DashboardStatCard(
                   title: 'Total Teachers',
@@ -478,20 +498,25 @@ class _StatsGrid extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text('Fee overview', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 12 : 20),
+            Text(
+              'Fee overview',
+              style: compact
+                  ? Theme.of(context).textTheme.titleMedium
+                  : Theme.of(context).textTheme.titleLarge,
+            ),
+            SizedBox(height: compact ? 8 : 12),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: constraints.maxWidth < 650
-                  ? 1
+                  ? 3
                   : constraints.maxWidth < 1050
                   ? 2
                   : 3,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 12,
-              mainAxisExtent: 110,
+              crossAxisSpacing: compact ? 6 : 14,
+              mainAxisSpacing: compact ? 6 : 12,
+              mainAxisExtent: compact ? 88 : 110,
               children: [
                 DashboardStatCard(
                   title: "Today's Fee Collection",
@@ -552,8 +577,11 @@ class _FeaturedStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 650;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: compact
+          ? const EdgeInsets.all(6)
+          : const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -576,52 +604,151 @@ class _FeaturedStatCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: compact ? 25 : 36,
+                height: compact ? 25 : 36,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.11),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: compact ? 14 : 20),
               ),
               const Spacer(),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
+              if (!compact)
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 9),
+          SizedBox(height: compact ? 3 : 9),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.ink,
-              fontWeight: FontWeight.w800,
-            ),
+            style: compact
+                ? const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w800,
+                  )
+                : Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
           ),
           const SizedBox(height: 1),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: compact
+                ? const TextStyle(fontSize: 8, fontWeight: FontWeight.w700)
+                : Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 2),
-          Text(
-            detail,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (!compact) ...[
+            const SizedBox(height: 2),
+            Text(
+              detail,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _AdminNotificationButton extends StatefulWidget {
+  const _AdminNotificationButton();
+
+  @override
+  State<_AdminNotificationButton> createState() =>
+      _AdminNotificationButtonState();
+}
+
+class _AdminNotificationButtonState extends State<_AdminNotificationButton> {
+  late Future<int> _unread = _loadUnread();
+  StreamSubscription<RemoteMessage>? _messageSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
+    _messageSubscription = FirebaseMessaging.onMessage.listen((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (mounted) setState(() => _unread = _loadUnread());
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<int> _loadUnread() async {
+    try {
+      final values = await sl<PortalNotificationRepository>().getNotifications(
+        recipientType: PortalRecipientType.admin,
+        recipientId: 'admin',
+        isRead: false,
+      );
+      return values.length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<void> _open() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PortalNotificationCenterPage(
+          recipientType: PortalRecipientType.admin,
+          recipientId: 'admin',
+          onOpen: (notification) {
+            if (notification.type != PortalNotificationType.homeworkQuestion) {
+              return;
+            }
+            Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const TeacherHomeworkQuestionsPage.admin(),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    if (mounted) setState(() => _unread = _loadUnread());
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int>(
+    future: _unread,
+    builder: (context, snapshot) {
+      final count = snapshot.data ?? 0;
+      return Badge(
+        isLabelVisible: count > 0,
+        label: Text(count > 99 ? '99+' : '$count'),
+        child: IconButton(
+          tooltip: 'Admin Notifications',
+          onPressed: _open,
+          icon: const Icon(Icons.notifications_outlined, size: 21),
+        ),
+      );
+    },
+  );
 }
 
 class _DashboardData {
@@ -1148,6 +1275,7 @@ class DashboardStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 650;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1165,66 +1293,93 @@ class DashboardStatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Row(
           children: [
-            Container(width: 5, color: color),
+            Container(width: compact ? 3 : 5, color: color),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 5 : 14,
+                  vertical: compact ? 6 : 12,
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            color.withValues(alpha: 0.24),
-                            color.withValues(alpha: 0.08),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(11),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: Icon(icon, color: color, size: 20),
-                    ),
-                    const SizedBox(width: 11),
-                    Expanded(
-                      child: Column(
+                child: compact
+                    ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Icon(icon, color: color, size: 16),
+                          const SizedBox(height: 3),
                           Text(
                             value,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 12,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          Text(title, style: const TextStyle(fontSize: 12.5)),
-                          if (detail != null)
-                            Text(
-                              detail!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: color,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 7.5, height: 1.05),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  color.withValues(alpha: 0.24),
+                                  color.withValues(alpha: 0.08),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(
+                                color: color.withValues(alpha: 0.18),
                               ),
                             ),
+                            child: Icon(icon, color: color, size: 20),
+                          ),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  title,
+                                  style: const TextStyle(fontSize: 12.5),
+                                ),
+                                if (detail != null)
+                                  Text(
+                                    detail!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
@@ -1243,19 +1398,24 @@ class _DashboardCharts extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final attendance = _ClassAttendanceChart(data: data);
-        final fees = _ClassFeeCollectionChart(data: data);
-        if (constraints.maxWidth < 1050) {
-          return Column(
-            children: [attendance, const SizedBox(height: 14), fees],
+        // Desktop keeps both complete charts in one balanced row. Mobile and
+        // narrow tablet widths stack them so neither chart is clipped.
+        final showInOneRow = constraints.maxWidth >= 1050;
+        if (showInOneRow) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _ClassAttendanceChart(data: data)),
+              const SizedBox(width: 14),
+              Expanded(child: _ClassFeeCollectionChart(data: data)),
+            ],
           );
         }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
           children: [
-            Expanded(child: attendance),
-            const SizedBox(width: 14),
-            Expanded(child: fees),
+            _ClassAttendanceChart(data: data),
+            const SizedBox(height: 14),
+            _ClassFeeCollectionChart(data: data),
           ],
         );
       },
@@ -1271,8 +1431,14 @@ class _ClassAttendanceChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final points = _points();
+    final compact = MediaQuery.sizeOf(context).width < 650;
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 12 : 18,
+        compact ? 12 : 17,
+        compact ? 12 : 18,
+        compact ? 10 : 16,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1366,7 +1532,7 @@ class _ClassAttendanceChart extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 250,
+              height: compact ? 190 : 250,
               child: LayoutBuilder(
                 builder: (context, constraints) => SizedBox(
                   width: constraints.maxWidth,
@@ -1550,8 +1716,14 @@ class _ClassFeeCollectionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final points = _points();
+    final compact = MediaQuery.sizeOf(context).width < 650;
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 12 : 18,
+        compact ? 12 : 17,
+        compact ? 12 : 18,
+        compact ? 10 : 16,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1640,7 +1812,7 @@ class _ClassFeeCollectionChart extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 250,
+              height: compact ? 190 : 250,
               child: LayoutBuilder(
                 builder: (context, constraints) => SizedBox(
                   width: constraints.maxWidth,

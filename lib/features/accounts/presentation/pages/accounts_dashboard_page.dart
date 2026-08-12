@@ -111,9 +111,7 @@ class _AccountsDashboardView extends StatelessWidget {
                               ? 5
                               : constraints.maxWidth >= 700
                               ? 3
-                              : constraints.maxWidth >= 430
-                              ? 2
-                              : 1;
+                              : 2;
 
                           final cards = [
                             AccountsKpiCard(
@@ -155,10 +153,8 @@ class _AccountsDashboardView extends StatelessWidget {
                             mainAxisSpacing: 12,
                             childAspectRatio: columns == 5
                                 ? 2.35
-                                : columns == 1
-                                ? 3.1
                                 : columns == 2
-                                ? 1.55
+                                ? (constraints.maxWidth < 430 ? 1.32 : 1.55)
                                 : 1.2,
                             children: cards,
                           );
@@ -270,17 +266,19 @@ class _AccountsModuleGrid extends StatelessWidget {
             ? 3
             : width >= 650
             ? 2
-            : 1;
+            : 2;
 
         return SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: columns == 6
+            childAspectRatio: width < 650
+                ? 1.35
+                : columns == 6
                 ? 1.2
                 : columns == 1
-                ? 2.25
+                ? 4.0
                 : 1.35,
           ),
           delegate: SliverChildBuilderDelegate((context, index) {

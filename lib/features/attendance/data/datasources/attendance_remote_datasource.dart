@@ -5,25 +5,15 @@ import '../models/attendance_model.dart';
 abstract class AttendanceRemoteDataSource {
   Future<List<AttendanceModel>> getAttendance();
 
-  Future<void> addAttendance(
-    AttendanceModel attendance,
-  );
+  Future<void> addAttendance(AttendanceModel attendance);
 
-  Future<void> updateAttendance(
-    AttendanceModel attendance,
-  );
+  Future<void> updateAttendance(AttendanceModel attendance);
 
-  Future<void> deleteAttendance(
-    String attendanceId,
-  );
+  Future<void> deleteAttendance(String attendanceId);
 
-  Future<List<AttendanceModel>> getAttendanceByDate(
-    DateTime date,
-  );
+  Future<List<AttendanceModel>> getAttendanceByDate(DateTime date);
 
-  Future<List<AttendanceModel>> getAttendanceByStudent(
-    String studentId,
-  );
+  Future<List<AttendanceModel>> getAttendanceByStudent(String studentId);
 
   Future<List<AttendanceModel>> getAttendanceForReport({
     required DateTime fromDate,
@@ -33,17 +23,13 @@ abstract class AttendanceRemoteDataSource {
   String generateAttendanceId();
 }
 
-class AttendanceRemoteDataSourceImpl
-    implements AttendanceRemoteDataSource {
-  AttendanceRemoteDataSourceImpl({
-    FirebaseFirestore? firestore,
-  }) : _firestore =
-            firestore ?? FirebaseFirestore.instance;
+class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
+  AttendanceRemoteDataSourceImpl({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
-  static const String _collection =
-      'attendance';
+  static const String _collection = 'attendance';
 
   @override
   Future<List<AttendanceModel>> getAttendance() async {
@@ -63,9 +49,7 @@ class AttendanceRemoteDataSourceImpl
   }
 
   @override
-  Future<void> addAttendance(
-    AttendanceModel attendance,
-  ) async {
+  Future<void> addAttendance(AttendanceModel attendance) async {
     final existingDocumentId = await _findExistingDocumentId(attendance);
     final documentId = existingDocumentId ?? attendance.id;
     await _firestore
@@ -78,9 +62,7 @@ class AttendanceRemoteDataSourceImpl
   }
 
   @override
-  Future<void> updateAttendance(
-    AttendanceModel attendance,
-  ) async {
+  Future<void> updateAttendance(AttendanceModel attendance) async {
     final existingDocumentId = await _findExistingDocumentId(attendance);
     final documentId = existingDocumentId ?? attendance.id;
     await _firestore
@@ -93,42 +75,23 @@ class AttendanceRemoteDataSourceImpl
   }
 
   @override
-  Future<void> deleteAttendance(
-    String attendanceId,
-  ) async {
-    await _firestore
-        .collection(_collection)
-        .doc(attendanceId)
-        .delete();
+  Future<void> deleteAttendance(String attendanceId) async {
+    await _firestore.collection(_collection).doc(attendanceId).delete();
   }
 
   @override
-  Future<List<AttendanceModel>>
-      getAttendanceByDate(
-    DateTime date,
-  ) async {
-    final start = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    );
+  Future<List<AttendanceModel>> getAttendanceByDate(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day);
 
-    final end = start.add(
-      const Duration(days: 1),
-    );
+    final end = start.add(const Duration(days: 1));
 
     final snapshot = await _firestore
         .collection(_collection)
         .where(
           'attendanceDate',
-          isGreaterThanOrEqualTo:
-              start.toIso8601String(),
+          isGreaterThanOrEqualTo: start.toIso8601String(),
         )
-        .where(
-          'attendanceDate',
-          isLessThan:
-              end.toIso8601String(),
-        )
+        .where('attendanceDate', isLessThan: end.toIso8601String())
         .get();
 
     return snapshot.docs
@@ -142,23 +105,13 @@ class AttendanceRemoteDataSourceImpl
   }
 
   @override
-  Future<List<AttendanceModel>>
-      getAttendanceByStudent(
-    String studentId,
-  ) async {
+  Future<List<AttendanceModel>> getAttendanceByStudent(String studentId) async {
     final snapshot = await _firestore
         .collection(_collection)
-        .where(
-          'studentId',
-          isEqualTo: studentId,
-        )
-        .orderBy(
-          'attendanceDate',
-          descending: true,
-        )
+        .where('studentId', isEqualTo: studentId)
         .get();
 
-    return snapshot.docs
+    final records = snapshot.docs
         .map(
           (doc) => AttendanceModel.fromMap({
             ...doc.data(),
@@ -166,6 +119,10 @@ class AttendanceRemoteDataSourceImpl
           }),
         )
         .toList();
+    records.sort(
+      (first, second) => second.attendanceDate.compareTo(first.attendanceDate),
+    );
+    return records;
   }
 
   @override
@@ -174,25 +131,33 @@ class AttendanceRemoteDataSourceImpl
     required DateTime toDate,
   }) async {
     final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
-    final end = DateTime(toDate.year, toDate.month, toDate.day)
-        .add(const Duration(days: 1));
+    final end = DateTime(
+      toDate.year,
+      toDate.month,
+      toDate.day,
+    ).add(const Duration(days: 1));
     final snapshot = await _firestore
         .collection(_collection)
-        .where('attendanceDate', isGreaterThanOrEqualTo: start.toIso8601String())
+        .where(
+          'attendanceDate',
+          isGreaterThanOrEqualTo: start.toIso8601String(),
+        )
         .where('attendanceDate', isLessThan: end.toIso8601String())
         .orderBy('attendanceDate', descending: true)
         .get();
     return snapshot.docs
-        .map((doc) => AttendanceModel.fromMap({...doc.data(), 'id': doc.data()['id'] ?? doc.id}))
+        .map(
+          (doc) => AttendanceModel.fromMap({
+            ...doc.data(),
+            'id': doc.data()['id'] ?? doc.id,
+          }),
+        )
         .toList();
   }
 
   @override
   String generateAttendanceId() {
-    return _firestore
-        .collection(_collection)
-        .doc()
-        .id;
+    return _firestore.collection(_collection).doc().id;
   }
 
   Future<String?> _findExistingDocumentId(AttendanceModel attendance) async {

@@ -69,10 +69,8 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
       if (query.isEmpty) return true;
       return student.fullName.toLowerCase().contains(query) ||
           student.admissionNo.toLowerCase().contains(query) ||
-          (_classNames[student.classId] ?? '').toLowerCase().contains(query) ||
-          (_sectionNames[student.sectionId] ?? '').toLowerCase().contains(
-            query,
-          );
+          _className(student).toLowerCase().contains(query) ||
+          _sectionName(student).toLowerCase().contains(query);
     }).toList();
     values.sort((a, b) => a.fullName.compareTo(b.fullName));
     return values;
@@ -103,13 +101,15 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
         _students = values[0] as List<StudentEntity>;
         _dues = values[1] as List<MonthlyFeeDueEntity>;
         _additionalDues = values[2] as List<StudentAdditionalChargeDueEntity>;
+        final classes = values[3] as List<AcademicClassEntity>;
+        final sections = values[4] as List<SectionEntity>;
         _classNames = {
-          for (final item in values[3] as List<AcademicClassEntity>)
-            item.id: item.name,
+          for (final item in classes) item.id: item.name,
+          for (final item in classes) _normalize(item.name): item.name,
         };
         _sectionNames = {
-          for (final item in values[4] as List<SectionEntity>)
-            item.id: item.name,
+          for (final item in sections) item.id: item.name,
+          for (final item in sections) _normalize(item.name): item.name,
         };
         final templates = values[5] as List<WhatsAppTemplateEntity>;
         _pendingFeeTemplate = templates
@@ -243,6 +243,7 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
   }
 
   Widget _pendingFeeTab() {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     final students = _pendingStudents;
     final selectableIds = students
         .where((student) => student.preferredWhatsAppNumber.isNotEmpty)
@@ -254,31 +255,35 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(compact ? 8 : 16),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Pending Fee',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Text(
+                      'Pending Fee',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton.tonalIcon(
-                    onPressed: _editPendingFeeMessage,
-                    icon: const Icon(Icons.message_outlined),
-                    label: const Text('Text Message for Pending Fee'),
-                  ),
-                  if (_pendingFeeTemplate?.body.trim().isNotEmpty == true) ...[
-                    const SizedBox(width: 8),
-                    const Chip(
-                      avatar: Icon(Icons.check_circle, color: Colors.green),
-                      label: Text('Message saved'),
+                    const SizedBox(width: 12),
+                    FilledButton.tonalIcon(
+                      onPressed: _editPendingFeeMessage,
+                      icon: const Icon(Icons.message_outlined),
+                      label: const Text('Text Message for Pending Fee'),
                     ),
+                    if (_pendingFeeTemplate?.body.trim().isNotEmpty ==
+                        true) ...[
+                      const SizedBox(width: 8),
+                      const Chip(
+                        avatar: Icon(Icons.check_circle, color: Colors.green),
+                        label: Text('Message saved'),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -290,38 +295,42 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: selectableIds.isEmpty
-                        ? null
-                        : () => setState(
-                            () => _selectedStudentIds.addAll(selectableIds),
-                          ),
-                    icon: const Icon(Icons.select_all),
-                    label: const Text('Mark All'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: selectedVisible == 0
-                        ? null
-                        : () => setState(
-                            () => _selectedStudentIds.removeAll(selectableIds),
-                          ),
-                    icon: const Icon(Icons.deselect),
-                    label: const Text('Unmark All'),
-                  ),
-                  Chip(label: Text('${_selectedStudentIds.length} selected')),
-                  FilledButton.icon(
-                    onPressed: _exporting || _selectedStudentIds.isEmpty
-                        ? null
-                        : () => _export(wholeSchool: false),
-                    icon: const Icon(Icons.contact_page_outlined),
-                    label: const Text('Export Selected VCF'),
-                  ),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: selectableIds.isEmpty
+                          ? null
+                          : () => setState(
+                              () => _selectedStudentIds.addAll(selectableIds),
+                            ),
+                      icon: const Icon(Icons.select_all),
+                      label: const Text('Mark All'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: selectedVisible == 0
+                          ? null
+                          : () => setState(
+                              () =>
+                                  _selectedStudentIds.removeAll(selectableIds),
+                            ),
+                      icon: const Icon(Icons.deselect),
+                      label: const Text('Unmark All'),
+                    ),
+                    const SizedBox(width: 8),
+                    Chip(label: Text('${_selectedStudentIds.length} selected')),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: _exporting || _selectedStudentIds.isEmpty
+                          ? null
+                          : () => _export(wholeSchool: false),
+                      icon: const Icon(Icons.contact_page_outlined),
+                      label: const Text('Export Selected VCF'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -335,13 +344,14 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
                     final student = students[index];
                     final phone = student.preferredWhatsAppNumber;
                     final enabled = phone.isNotEmpty;
-                    final className = _classNames[student.classId] ?? '';
-                    final sectionName = _sectionNames[student.sectionId] ?? '';
+                    final className = _className(student);
+                    final sectionName = _sectionName(student);
                     final classSection = [
                       className,
                       sectionName,
                     ].where((value) => value.isNotEmpty).join(' / ');
                     return ListTile(
+                      dense: compact,
                       title: Text(
                         '${student.fullName} • ${student.admissionNo}',
                       ),
@@ -359,16 +369,32 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (enabled)
-                            FilledButton.icon(
-                              onPressed: () => _openPendingFeeWhatsApp(
-                                student: student,
-                                pendingAmount:
-                                    _pendingByStudent[student.id] ?? 0,
-                              ),
-                              icon: const Icon(Icons.open_in_new, size: 18),
-                              label: const Text('Open WhatsApp'),
-                            ),
-                          const SizedBox(width: 10),
+                            compact
+                                ? IconButton.filled(
+                                    tooltip: 'Open WhatsApp',
+                                    onPressed: () => _openPendingFeeWhatsApp(
+                                      student: student,
+                                      pendingAmount:
+                                          _pendingByStudent[student.id] ?? 0,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.open_in_new,
+                                      size: 17,
+                                    ),
+                                  )
+                                : FilledButton.icon(
+                                    onPressed: () => _openPendingFeeWhatsApp(
+                                      student: student,
+                                      pendingAmount:
+                                          _pendingByStudent[student.id] ?? 0,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.open_in_new,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Open WhatsApp'),
+                                  ),
+                          SizedBox(width: compact ? 2 : 10),
                           Checkbox(
                             value: _selectedStudentIds.contains(student.id),
                             onChanged: !enabled
@@ -383,7 +409,7 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
                           ),
                         ],
                       ),
-                      isThreeLine: true,
+                      isThreeLine: false,
                     );
                   },
                 ),
@@ -498,6 +524,19 @@ class _WhatsAppContactListsPageState extends State<WhatsAppContactListsPage> {
     }
     return phone;
   }
+
+  String _className(StudentEntity student) =>
+      _classNames[student.classId] ??
+      _classNames[_normalize(student.classId)] ??
+      student.classId.trim();
+
+  String _sectionName(StudentEntity student) =>
+      _sectionNames[student.sectionId] ??
+      _sectionNames[_normalize(student.sectionId)] ??
+      student.sectionId.trim();
+
+  static String _normalize(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   Future<void> _editPendingFeeMessage() async {
     final controller = TextEditingController(

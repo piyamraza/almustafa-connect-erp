@@ -14,7 +14,7 @@ import 'parent_attendance_page.dart';
 import 'parent_homework_page.dart';
 import 'parent_results_page.dart';
 import 'parent_fee_page.dart';
-import 'parent_chat_page.dart';
+import 'parent_query_page.dart';
 
 import 'parent_communication_dashboard_page.dart';
 
@@ -171,7 +171,7 @@ class _ParentPortalDashboardView extends StatelessWidget {
           if (compact) {
             return Column(
               children: [
-                SizedBox(height: 245, child: parentList),
+                SizedBox(height: 170, child: parentList),
                 const Divider(height: 1),
                 Expanded(child: dashboard),
               ],
@@ -207,18 +207,19 @@ class _ParentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 800;
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(compact ? 8 : 14),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   'Parent Accounts',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Chip(label: Text('${parents.length}')),
@@ -244,9 +245,14 @@ class _ParentList extends StatelessWidget {
                     final parent = parents[index];
 
                     return ListTile(
+                      dense: compact,
                       selected: selected?.id == parent.id,
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.family_restroom),
+                      leading: CircleAvatar(
+                        radius: compact ? 18 : 20,
+                        child: Icon(
+                          Icons.family_restroom,
+                          size: compact ? 18 : 24,
+                        ),
                       ),
                       title: Text(parent.fullName),
                       subtitle: Text(
@@ -394,21 +400,22 @@ class _StudentHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 800;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 10 : 18),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 34,
+              radius: compact ? 24 : 34,
               backgroundImage: student.profileImageUrl.isEmpty
                   ? null
                   : NetworkImage(student.profileImageUrl),
               child: student.profileImageUrl.isEmpty
-                  ? const Icon(Icons.person, size: 34)
+                  ? Icon(Icons.person, size: compact ? 24 : 34)
                   : null,
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: compact ? 10 : 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,11 +438,22 @@ class _StudentHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text('Father: ${student.fatherName}'),
+                  Text(
+                    'Father: ${student.fatherName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            Chip(label: Text(student.isActive ? 'ACTIVE' : 'INACTIVE')),
+            if (!compact)
+              Chip(label: Text(student.isActive ? 'ACTIVE' : 'INACTIVE'))
+            else
+              Icon(
+                student.isActive ? Icons.check_circle : Icons.cancel,
+                color: student.isActive ? Colors.green : Colors.red,
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -460,7 +478,7 @@ class _PortalModulesGrid extends StatelessWidget {
       ('Fee Status', Icons.payments_outlined),
       ('Academic Calendar', Icons.event_outlined),
       ('Notices', Icons.campaign_outlined),
-      ('Messages', Icons.chat_bubble_outline),
+      ('Ask Administration', Icons.contact_support_outlined),
       ('Teacher Remarks', Icons.comment_outlined),
       ('Timeline', Icons.timeline),
       ('Medical Alert', Icons.medical_information_outlined),
@@ -551,11 +569,11 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Messages') {
+                  if (module.$1 == 'Ask Administration') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) =>
-                            ParentChatPage(parent: parent, student: student),
+                            ParentQueryPage(parent: parent, student: student),
                       ),
                     );
                     return;

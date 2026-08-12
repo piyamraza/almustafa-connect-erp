@@ -198,10 +198,17 @@ class _SidebarState extends State<Sidebar> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.school_rounded,
-                                color: AppColors.primary,
-                                size: 27,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.asset(
+                                  'assets/images/logo.jpeg',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const Icon(
+                                    Icons.school_rounded,
+                                    color: AppColors.primary,
+                                    size: 27,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -210,7 +217,7 @@ class _SidebarState extends State<Sidebar> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Almustafa',
+                                    'Almustafa Model',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 17,
@@ -219,7 +226,7 @@ class _SidebarState extends State<Sidebar> {
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'CONNECT ERP',
+                                    'SCHOOL',
                                     style: TextStyle(
                                       color: Color(0xFFBFD7FF),
                                       fontSize: 10,
@@ -632,6 +639,10 @@ class _SidebarMenuTileState extends State<_SidebarMenuTile> {
           borderRadius: BorderRadius.circular(12),
           clipBehavior: Clip.antiAlias,
           child: ListTile(
+            tileColor: Colors.transparent,
+            selectedTileColor: Colors.white12,
+            textColor: Colors.white,
+            iconColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 10,
               vertical: 2,

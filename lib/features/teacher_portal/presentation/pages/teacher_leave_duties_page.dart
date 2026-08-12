@@ -3,6 +3,8 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 
 import '../../../../core/di/service_locator.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
+import '../../../notifications/domain/entities/portal_notification_entity.dart';
+import '../../../notifications/domain/repositories/portal_notification_repository.dart';
 import '../../data/repositories/teacher_duty_repository.dart';
 import '../../domain/entities/teacher_duty_entities.dart';
 
@@ -223,6 +225,14 @@ class _TeacherLeaveDutiesPageState extends State<TeacherLeaveDutiesPage> {
           fromDate: fromDate,
           toDate: toDate,
           reason: reasonController.text,
+        );
+        await sl<PortalNotificationRepository>().create(
+          recipientType: PortalRecipientType.admin,
+          recipientId: 'admin',
+          title: 'New teacher leave request',
+          message:
+              '$_email requested leave from ${_date(fromDate)} to ${_date(toDate)}.',
+          type: PortalNotificationType.leave,
         );
         await _refresh();
       }

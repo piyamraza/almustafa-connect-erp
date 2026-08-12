@@ -3,6 +3,7 @@ import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../academic_calendar/domain/services/academic_calendar_policy_service.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
@@ -20,6 +21,7 @@ class HomeworkFormPage extends StatefulWidget {
     this.initialSectionId,
     this.initialSubjectId,
     this.initialAssignedDate,
+    this.lockedTeacherId,
   });
 
   final String academicSession;
@@ -29,6 +31,7 @@ class HomeworkFormPage extends StatefulWidget {
   final String? initialSectionId;
   final String? initialSubjectId;
   final DateTime? initialAssignedDate;
+  final String? lockedTeacherId;
 
   @override
   State<HomeworkFormPage> createState() => _HomeworkFormPageState();
@@ -69,7 +72,7 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
     _classId = source?.classId ?? widget.initialClassId;
     _sectionId = source?.sectionId ?? widget.initialSectionId;
     _subjectId = source?.subjectId ?? widget.initialSubjectId;
-    _teacherId = source?.teacherId;
+    _teacherId = source?.teacherId ?? widget.lockedTeacherId;
     _assigned = widget.copyFrom == null
         ? source?.assignedDate ?? widget.initialAssignedDate ?? DateTime.now()
         : DateTime.now();
@@ -105,7 +108,14 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
         _classes = values[0] as List<dynamic>;
         _sections = values[1] as List<dynamic>;
         _subjects = values[2] as List<dynamic>;
-        _assignments = values[3] as List<dynamic>;
+        _assignments = (values[3] as List<dynamic>)
+            .where(
+              (item) =>
+                  widget.lockedTeacherId == null ||
+                  item.teacherId.toString() == widget.lockedTeacherId,
+            )
+            .toList();
+        _teacherId ??= widget.lockedTeacherId;
         _loading = false;
       });
     } catch (error) {
@@ -212,6 +222,11 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
       _snack('Class, section, subject and teacher are required.');
       return;
     }
+    if (widget.lockedTeacherId != null &&
+        _teacherId != widget.lockedTeacherId) {
+      _snack('You can only save homework for your own assigned subject.');
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -259,6 +274,7 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
 
       final now = DateTime.now();
       final old = widget.existing;
+      final actor = sl<AccessControlService>().currentUserEmail ?? 'Admin';
 
       final homework = HomeworkEntity(
         id: _homeworkId,
@@ -278,10 +294,10 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
         dueDate: _due,
         status: _status,
         attachments: _attachments,
-        createdBy: old?.createdBy ?? 'Admin',
-        updatedBy: 'Admin',
+        createdBy: old?.createdBy ?? actor,
+        updatedBy: actor,
         publishedBy: _status == HomeworkStatus.published
-            ? 'Admin'
+            ? actor
             : old?.publishedBy,
         createdAt: old?.createdAt ?? now,
         updatedAt: now,
@@ -381,20 +397,20 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
                     _classId = value;
                     _sectionId = null;
                     _subjectId = null;
-                    _teacherId = null;
+                    _teacherId = widget.lockedTeacherId;
                   });
                 }),
                 _select('Section', _sectionId, _validSections, (value) {
                   setState(() {
                     _sectionId = value;
                     _subjectId = null;
-                    _teacherId = null;
+                    _teacherId = widget.lockedTeacherId;
                   });
                 }),
                 _select('Subject', _subjectId, _validSubjects, (value) {
                   setState(() {
                     _subjectId = value;
-                    _teacherId = null;
+                    _teacherId = widget.lockedTeacherId;
                   });
                 }),
                 SizedBox(
@@ -413,7 +429,9 @@ class _HomeworkFormPageState extends State<HomeworkFormPage> {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) => setState(() => _teacherId = value),
+                    onChanged: widget.lockedTeacherId == null
+                        ? (value) => setState(() => _teacherId = value)
+                        : null,
                   ),
                 ),
               ],

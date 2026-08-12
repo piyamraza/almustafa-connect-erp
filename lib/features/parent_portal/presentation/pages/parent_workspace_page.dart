@@ -10,12 +10,14 @@ import '../../domain/services/parent_context_service.dart';
 import '../widgets/parent_portal_access_gate.dart';
 import 'parent_academic_dashboard_page.dart';
 import 'parent_attendance_page.dart';
-import 'parent_chat_page.dart';
 import 'parent_communication_dashboard_page.dart';
 import 'parent_fee_page.dart';
 import 'parent_homework_page.dart';
+import 'parent_leave_request_page.dart';
+import 'parent_query_page.dart';
 import 'parent_notices_page.dart';
-import 'parent_notification_center_page.dart';
+import '../../../notifications/domain/entities/portal_notification_entity.dart';
+import '../../../notifications/presentation/pages/portal_notification_center_page.dart';
 import 'parent_results_page.dart';
 
 class ParentWorkspacePage extends StatelessWidget {
@@ -37,9 +39,9 @@ class ParentWorkspacePage extends StatelessWidget {
                 tooltip: 'Notifications',
                 onPressed: () => _open(
                   context,
-                  ParentNotificationCenterPage(
-                    parent: parent,
-                    studentId: student.id,
+                  PortalNotificationCenterPage(
+                    recipientType: PortalRecipientType.parent,
+                    recipientId: parent.id,
                   ),
                 ),
                 icon: const Icon(Icons.notifications_outlined),
@@ -70,6 +72,19 @@ class ParentWorkspacePage extends StatelessWidget {
                   student: student,
                   parentContext: parentContext,
                 ),
+                if (_isBirthday(student)) ...[
+                  const SizedBox(height: 10),
+                  Card(
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.cake_outlined),
+                      title: Text('Happy Birthday, ${student.firstName}!'),
+                      subtitle: const Text(
+                        'The school wishes you a joyful and successful year ahead.',
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Text(
                   'Student Overview',
@@ -100,6 +115,12 @@ class ParentWorkspacePage extends StatelessWidget {
     Navigator.of(
       context,
     ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
+  static bool _isBirthday(StudentEntity student) {
+    final today = DateTime.now();
+    return student.dateOfBirth.day == today.day &&
+        student.dateOfBirth.month == today.month;
   }
 
   Future<void> _logout(
@@ -242,7 +263,13 @@ class _ServiceGrid extends StatelessWidget {
         title: 'Homework',
         subtitle: 'Published and upcoming homework',
         icon: Icons.menu_book_outlined,
-        page: ParentHomeworkPage(student: student),
+        page: ParentHomeworkPage(student: student, parent: parent),
+      ),
+      _ServiceItem(
+        title: 'Leave Request',
+        subtitle: 'Apply and track student leave',
+        icon: Icons.event_busy_outlined,
+        page: ParentLeaveRequestPage(parent: parent, student: student),
       ),
       _ServiceItem(
         title: 'Exam Results',
@@ -272,18 +299,18 @@ class _ServiceGrid extends StatelessWidget {
         ),
       ),
       _ServiceItem(
-        title: 'Messages',
-        subtitle: 'Parent-teacher conversations',
-        icon: Icons.chat_bubble_outline,
-        page: ParentChatPage(parent: parent, student: student),
+        title: 'Ask Administration',
+        subtitle: 'Raise a query with the school office',
+        icon: Icons.contact_support_outlined,
+        page: ParentQueryPage(parent: parent, student: student),
       ),
       _ServiceItem(
         title: 'Notifications',
         subtitle: 'Alerts and unread updates',
         icon: Icons.notifications_outlined,
-        page: ParentNotificationCenterPage(
-          parent: parent,
-          studentId: student.id,
+        page: PortalNotificationCenterPage(
+          recipientType: PortalRecipientType.parent,
+          recipientId: parent.id,
         ),
       ),
     ];

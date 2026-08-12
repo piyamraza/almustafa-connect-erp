@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
 import '../../domain/entities/homework_entity.dart';
@@ -20,7 +22,26 @@ class HomeworkRepositoryImpl implements HomeworkRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final snapshot = await _service.collection(FirestorePaths.homework).get();
+    Query<Map<String, dynamic>> query = _service.collection(
+      FirestorePaths.homework,
+    );
+    query = query.where('academicSession', isEqualTo: academicSession);
+    if (status != null) {
+      query = query.where('status', isEqualTo: status.name);
+    }
+    if (classId != null) {
+      query = query.where('classId', isEqualTo: classId);
+    }
+    if (sectionId != null) {
+      query = query.where('sectionId', isEqualTo: sectionId);
+    }
+    if (subjectId != null) {
+      query = query.where('subjectId', isEqualTo: subjectId);
+    }
+    if (teacherId != null) {
+      query = query.where('teacherId', isEqualTo: teacherId);
+    }
+    final snapshot = await query.get();
 
     final values =
         snapshot.docs

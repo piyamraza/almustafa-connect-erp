@@ -9,6 +9,7 @@ import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
 import '../../../homework/presentation/pages/homework_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../school_store/presentation/pages/school_store_dashboard_page.dart';
+import 'graphs_report_page.dart';
 
 class ReportsDashboardPage extends StatelessWidget {
   const ReportsDashboardPage({super.key});
@@ -16,6 +17,13 @@ class ReportsDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reports = <_ReportCardData>[
+      _ReportCardData(
+        title: 'Graphs',
+        subtitle:
+            'Enrollment, attendance, fees, gender and result distributions.',
+        icon: Icons.pie_chart_rounded,
+        page: const GraphsReportPage(),
+      ),
       _ReportCardData(
         title: 'Student Attendance Reports',
         subtitle:
@@ -79,13 +87,13 @@ class ReportsDashboardPage extends StatelessWidget {
               ? 3
               : constraints.maxWidth >= 700
               ? 2
-              : 1;
+              : 2;
           final width = columns == 1
               ? constraints.maxWidth
               : (constraints.maxWidth - ((columns - 1) * 16)) / columns;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(columns == 1 ? 10 : 20),
             child: Wrap(
               spacing: 16,
               runSpacing: 16,
@@ -111,6 +119,7 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -120,41 +129,66 @@ class _ReportCard extends StatelessWidget {
           ).push(MaterialPageRoute<void>(builder: (_) => data.page));
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(radius: 24, child: Icon(data.icon)),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.all(compact ? 10 : 18),
+          child: compact
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    CircleAvatar(radius: 18, child: Icon(data.icon, size: 19)),
+                    const SizedBox(height: 7),
                     Text(
                       data.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
+                        height: 1.1,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(data.subtitle),
-                    const SizedBox(height: 12),
-                    const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Open',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 18),
-                      ],
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: compact ? 18 : 24,
+                      child: Icon(data.icon, size: compact ? 19 : 24),
+                    ),
+                    SizedBox(width: compact ? 10 : 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          SizedBox(height: compact ? 2 : 6),
+                          Text(
+                            data.subtitle,
+                            maxLines: compact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: compact ? 4 : 12),
+                          const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Open',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );

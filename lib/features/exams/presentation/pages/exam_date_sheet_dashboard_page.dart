@@ -27,113 +27,127 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Scaffold(
       appBar: AppBar(
         actions: const [DashboardNavigationButton()],
         title: const Text('Exam Date Sheets'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(compact ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Date Sheet Management',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            if (!compact) ...[
+              Text(
+                'Date Sheet Management',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Create date sheets manually or generate multiple '
+                'conflict-free options automatically.',
+              ),
+              const SizedBox(height: 20),
+            ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = compact && constraints.maxWidth < 380 ? 2 : 4;
+                return GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: columns,
+                  crossAxisSpacing: compact ? 6 : 14,
+                  mainAxisSpacing: compact ? 6 : 14,
+                  mainAxisExtent: compact ? 76 : 106,
+                  children: [
+                    _ActionCard(
+                      title: 'Auto Generate',
+                      description:
+                          'Generate 2–3 date sheet options from selected dates.',
+                      icon: Icons.auto_awesome,
+                      color: const Color(0xFF7E57C2),
+                      onTap: () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                const AutoExamDateSheetGeneratorPage(),
+                          ),
+                        );
+                        if (context.mounted) {
+                          context.read<ExamDateSheetBloc>().add(
+                            const LoadExamDateSheets(),
+                          );
+                        }
+                      },
+                    ),
+                    _ActionCard(
+                      title: 'Manual Date Sheet',
+                      description: 'Create and edit every paper manually.',
+                      icon: Icons.edit_calendar_outlined,
+                      color: const Color(0xFF00897B),
+                      onTap: () async {
+                        final saved = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute<bool>(
+                            builder: (_) =>
+                                const ManualExamDateSheetBuilderPage(),
+                          ),
+                        );
+                        if (saved == true && context.mounted) {
+                          context.read<ExamDateSheetBloc>().add(
+                            const LoadExamDateSheets(),
+                          );
+                        }
+                      },
+                    ),
+                    _ActionCard(
+                      title: 'Reports & Print',
+                      description:
+                          'Print parent copies, school reports and teacher duty sheets.',
+                      icon: Icons.print_outlined,
+                      color: const Color(0xFF546E7A),
+                      onTap: () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ExamDateSheetReportsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ActionCard(
+                      title: 'Publish Workflow',
+                      description:
+                          'Publish, revise and archive date sheets safely.',
+                      icon: Icons.publish_outlined,
+                      color: const Color(0xFF2E7D32),
+                      onTap: () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                const ExamDateSheetPublishWorkflowPage(),
+                          ),
+                        );
+                        if (context.mounted) {
+                          context.read<ExamDateSheetBloc>().add(
+                            const LoadExamDateSheets(),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Create date sheets manually or generate multiple '
-              'conflict-free options automatically.',
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 14,
-              runSpacing: 14,
-              children: [
-                _ActionCard(
-                  title: 'Auto Generate',
-                  description:
-                      'Generate 2–3 date sheet options from selected dates.',
-                  icon: Icons.auto_awesome,
-                  color: const Color(0xFF7E57C2),
-                  onTap: () async {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const AutoExamDateSheetGeneratorPage(),
-                      ),
-                    );
-                    if (context.mounted) {
-                      context.read<ExamDateSheetBloc>().add(
-                        const LoadExamDateSheets(),
-                      );
-                    }
-                  },
-                ),
-                _ActionCard(
-                  title: 'Manual Date Sheet',
-                  description: 'Create and edit every paper manually.',
-                  icon: Icons.edit_calendar_outlined,
-                  color: const Color(0xFF00897B),
-                  onTap: () async {
-                    final saved = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute<bool>(
-                        builder: (_) => const ManualExamDateSheetBuilderPage(),
-                      ),
-                    );
-                    if (saved == true && context.mounted) {
-                      context.read<ExamDateSheetBloc>().add(
-                        const LoadExamDateSheets(),
-                      );
-                    }
-                  },
-                ),
-                _ActionCard(
-                  title: 'Reports & Print',
-                  description:
-                      'Print parent copies, school reports and teacher duty sheets.',
-                  icon: Icons.print_outlined,
-                  color: const Color(0xFF546E7A),
-                  onTap: () async {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ExamDateSheetReportsPage(),
-                      ),
-                    );
-                  },
-                ),
-                _ActionCard(
-                  title: 'Publish Workflow',
-                  description:
-                      'Publish, revise and archive date sheets safely.',
-                  icon: Icons.publish_outlined,
-                  color: const Color(0xFF2E7D32),
-                  onTap: () async {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            const ExamDateSheetPublishWorkflowPage(),
-                      ),
-                    );
-                    if (context.mounted) {
-                      context.read<ExamDateSheetBloc>().add(
-                        const LoadExamDateSheets(),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            SizedBox(height: compact ? 12 : 24),
             Text(
               'Saved Date Sheets',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             Expanded(
               child: BlocConsumer<ExamDateSheetBloc, ExamDateSheetState>(
                 listener: (context, state) {
@@ -188,20 +202,44 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
 
                       return Card(
                         child: ListTile(
-                          onTap: openDateSheet,
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.calendar_month_outlined),
+                          dense: compact,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: compact ? 10 : 16,
+                            vertical: compact ? 3 : 6,
                           ),
-                          title: Text(item.title),
+                          onTap: openDateSheet,
+                          leading: CircleAvatar(
+                            radius: compact ? 18 : 22,
+                            child: Icon(
+                              Icons.calendar_month_outlined,
+                              size: compact ? 20 : 24,
+                            ),
+                          ),
+                          title: Text(
+                            item.title,
+                            maxLines: compact ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.1,
+                                ),
+                          ),
                           subtitle: Text(
                             '${item.examName} • ${item.academicSession} • '
                             '${item.paperCount} papers',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Wrap(
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Chip(label: Text(item.status.name.toUpperCase())),
+                              if (!compact)
+                                Chip(
+                                  label: Text(item.status.name.toUpperCase()),
+                                ),
                               IconButton(
+                                visualDensity: VisualDensity.compact,
                                 tooltip:
                                     item.status == ExamDateSheetStatus.draft
                                     ? 'Open and edit'
@@ -214,6 +252,7 @@ class _ExamDateSheetDashboardView extends StatelessWidget {
                                 ),
                               ),
                               IconButton(
+                                visualDensity: VisualDensity.compact,
                                 tooltip: 'Delete',
                                 onPressed: () => context
                                     .read<ExamDateSheetBloc>()
@@ -253,38 +292,67 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 320,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: color.withAlpha(25),
-                  child: Icon(icon, color: color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(description),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    final compact = MediaQuery.sizeOf(context).width < 700;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 9 : 18,
+            vertical: compact ? 7 : 18,
           ),
+          child: compact
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: color, size: 22),
+                    const SizedBox(height: 5),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        height: 1.05,
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    CircleAvatar(
+                      radius: compact ? 16 : 20,
+                      backgroundColor: color.withAlpha(25),
+                      child: Icon(icon, color: color, size: compact ? 18 : 24),
+                    ),
+                    SizedBox(width: compact ? 8 : 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: compact ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: compact ? 12 : null,
+                                  height: compact ? 1.05 : null,
+                                ),
+                          ),
+                          if (!compact) ...[
+                            const SizedBox(height: 4),
+                            Text(description),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

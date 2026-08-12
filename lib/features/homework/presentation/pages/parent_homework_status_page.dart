@@ -44,7 +44,10 @@ class _ParentHomeworkStatusPageState extends State<ParentHomeworkStatusPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Homework Status')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Homework Status'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

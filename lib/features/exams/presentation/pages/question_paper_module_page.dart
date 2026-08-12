@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -12,6 +13,7 @@ import '../../../academic_structure/domain/entities/subject_component_entity.dar
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
+import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../data/repositories/question_paper_repository.dart';
 import '../../domain/entities/exam_question_entity.dart';
 import '../services/question_paper_pdf_service.dart';
@@ -19,7 +21,9 @@ import '../services/question_paper_pdf_service.dart';
 const _blue = Color(0xFF2457C5);
 
 class QuestionPaperModulePage extends StatefulWidget {
-  const QuestionPaperModulePage({super.key});
+  const QuestionPaperModulePage({super.key, this.teacherAssignments});
+
+  final List<TeacherAssignmentEntity>? teacherAssignments;
   @override
   State<QuestionPaperModulePage> createState() =>
       _QuestionPaperModulePageState();
@@ -61,7 +65,7 @@ class _QuestionPaperModulePageState extends State<QuestionPaperModulePage> {
       if (!mounted) return;
       setState(() {
         _classes = (values[0] as List<AcademicClassEntity>)
-            .where((e) => e.isActive)
+            .where((e) => e.isActive && _teacherCanAccessClass(e))
             .toList();
         _subjects = (values[1] as List<AcademicSubjectEntity>)
             .where((e) => e.isActive)
@@ -152,23 +156,19 @@ class _QuestionPaperModulePageState extends State<QuestionPaperModulePage> {
               )
               .toList();
           if (constraints.maxWidth < 700) {
-            return Column(
-              children: [
-                search,
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final chip in chips)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: chip,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(width: 220, child: search),
+                  const SizedBox(width: 8),
+                  for (final chip in chips)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: chip,
+                    ),
+                ],
+              ),
             );
           }
           return Row(
@@ -205,6 +205,7 @@ class _QuestionPaperModulePageState extends State<QuestionPaperModulePage> {
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (_, index) {
         final classItem = rows[index];
+        final compact = MediaQuery.sizeOf(context).width < 700;
         var subjects = _forClass(classItem.id);
         subjects = subjects
             .where((subject) => _matchesFilter(_status(classItem.id, subject)))
@@ -212,80 +213,84 @@ class _QuestionPaperModulePageState extends State<QuestionPaperModulePage> {
         if (subjects.isEmpty && _filter != 'All') {
           return const SizedBox.shrink();
         }
+        final classHeader = Container(
+          width: compact ? double.infinity : 132,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF0F4FF),
+            borderRadius: BorderRadius.all(Radius.circular(11)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _classDisplayName(classItem.name),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1B3470),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${subjects.length} papers',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        );
+        final subjectCards = Padding(
+          padding: const EdgeInsets.all(8),
+          child: subjects.isEmpty
+              ? const Text(
+                  'No active subjects configured for this class.',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                )
+              : Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: subjects
+                      .map((subject) => _subjectCard(classItem, subject))
+                      .toList(),
+                ),
+        );
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE3E8F2)),
           ),
-          child: Flex(
-            direction: MediaQuery.sizeOf(context).width < 700
-                ? Axis.vertical
-                : Axis.horizontal,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: MediaQuery.sizeOf(context).width < 700
-                    ? double.infinity
-                    : 132,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF0F4FF),
-                  borderRadius: BorderRadius.all(Radius.circular(11)),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [classHeader, subjectCards],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      _classDisplayName(classItem.name),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1B3470),
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${subjects.length} papers',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
+                    classHeader,
+                    Expanded(child: subjectCards),
                   ],
                 ),
-              ),
-              Flexible(
-                fit: MediaQuery.sizeOf(context).width < 700
-                    ? FlexFit.loose
-                    : FlexFit.tight,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Wrap(
-                    spacing: 7,
-                    runSpacing: 7,
-                    children: subjects
-                        .map((subject) => _subjectCard(classItem, subject))
-                        .toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
         );
       },
     );
   }
 
   List<_PaperSubjectOption> _forClass(String classId) {
+    final academicClass = _classes
+        .where((item) => item.id == classId)
+        .firstOrNull;
     final seen = <String>{};
     final subjects = _subjects
-        .where((subject) => subject.classId == classId && seen.add(subject.id))
+        .where(
+          (subject) =>
+              subject.classId == classId &&
+              _teacherCanAccessSubject(academicClass, subject) &&
+              seen.add(subject.id),
+        )
         .toList();
     final result = <_PaperSubjectOption>[];
     for (final subject in subjects) {
@@ -306,6 +311,34 @@ class _QuestionPaperModulePageState extends State<QuestionPaperModulePage> {
       }
     }
     return result..sort((a, b) => a.displayName.compareTo(b.displayName));
+  }
+
+  bool _teacherCanAccessClass(AcademicClassEntity academicClass) {
+    final assignments = widget.teacherAssignments;
+    if (assignments == null) return true;
+    return assignments.any(
+      (item) => _matches(item.classId, academicClass.id, academicClass.name),
+    );
+  }
+
+  bool _teacherCanAccessSubject(
+    AcademicClassEntity? academicClass,
+    AcademicSubjectEntity subject,
+  ) {
+    final assignments = widget.teacherAssignments;
+    if (assignments == null) return true;
+    return assignments.any(
+      (item) =>
+          _matches(item.classId, subject.classId, academicClass?.name ?? '') &&
+          item.subject.trim().toLowerCase() ==
+              subject.name.trim().toLowerCase(),
+    );
+  }
+
+  static bool _matches(String value, String id, String name) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == id.trim().toLowerCase() ||
+        normalized == name.trim().toLowerCase();
   }
 
   SubjectPaperProgress _status(String classId, _PaperSubjectOption option) =>
@@ -537,6 +570,12 @@ class _SubjectPaperWorkspacePageState extends State<SubjectPaperWorkspacePage> {
             const SizedBox(width: 8),
           ],
           bottom: TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: const Color(0xFFC7D7F4),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+            indicatorColor: const Color(0xFF55D6FF),
+            indicatorWeight: 3,
             tabs: [
               _tab(
                 'Objective',
@@ -568,7 +607,7 @@ class _SubjectPaperWorkspacePageState extends State<SubjectPaperWorkspacePage> {
           children: [
             Text(title),
             const SizedBox(width: 7),
-            _StatusPill(status: status),
+            _StatusPill(status: status, onDark: true),
             const SizedBox(width: 6),
             Text(
               '$count Q · ${_marks(marks)} M',
@@ -749,6 +788,12 @@ class _SubjectPaperWorkspacePageState extends State<SubjectPaperWorkspacePage> {
                 ),
               ),
               IconButton(
+                tooltip: 'Edit',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                onPressed: () => _editQuestion(q),
+              ),
+              IconButton(
                 tooltip: 'Delete',
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.delete_outline, size: 18),
@@ -763,6 +808,26 @@ class _SubjectPaperWorkspacePageState extends State<SubjectPaperWorkspacePage> {
       },
     ),
   );
+
+  Future<void> _editQuestion(ExamQuestionEntity question) async {
+    final questions = await showDialog<List<ExamQuestionEntity>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _BulkQuestionEditor(
+        type: question.type,
+        count: 1,
+        classItem: widget.classItem,
+        subject: widget.subject,
+        component: widget.component,
+        repository: _repository,
+        initialQuestions: [question],
+      ),
+    );
+    if (questions != null) {
+      await _repository.saveQuestions(questions);
+      await _load();
+    }
+  }
 
   Widget _empty(bool objective) => Center(
     child: Column(
@@ -1404,8 +1469,9 @@ class _PaperPrintSetupDialogState extends State<_PaperPrintSetupDialog> {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
+  const _StatusPill({required this.status, this.onDark = false});
   final PaperSectionStatus status;
+  final bool onDark;
   @override
   Widget build(BuildContext context) {
     final color = status == PaperSectionStatus.complete
@@ -1416,7 +1482,9 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .1),
+        color: onDark
+            ? Colors.white.withValues(alpha: .16)
+            : color.withValues(alpha: .1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
@@ -1424,7 +1492,7 @@ class _StatusPill extends StatelessWidget {
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w700,
-          color: color,
+          color: onDark ? Colors.white : color,
         ),
       ),
     );
@@ -1439,6 +1507,7 @@ class _BulkQuestionEditor extends StatefulWidget {
     required this.subject,
     required this.repository,
     this.component,
+    this.initialQuestions = const [],
   });
   final ExamQuestionType type;
   final int count;
@@ -1446,6 +1515,7 @@ class _BulkQuestionEditor extends StatefulWidget {
   final AcademicSubjectEntity subject;
   final QuestionPaperRepository repository;
   final SubjectComponentEntity? component;
+  final List<ExamQuestionEntity> initialQuestions;
   @override
   State<_BulkQuestionEditor> createState() => _BulkQuestionEditorState();
 }
@@ -1453,12 +1523,18 @@ class _BulkQuestionEditor extends StatefulWidget {
 class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
   late final List<_EntryRow> _rows;
   bool _saving = false;
+  bool _translating = false;
   @override
   void initState() {
     super.initState();
     _rows = List.generate(
       widget.count,
-      (_) => _EntryRow(cellCount: _cellLabels(widget.type).length),
+      (index) => _EntryRow(
+        cellCount: _cellLabels(widget.type).length,
+        initial: index < widget.initialQuestions.length
+            ? widget.initialQuestions[index]
+            : null,
+      ),
     );
   }
 
@@ -1524,6 +1600,43 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'AI Translate',
+                    enabled: !_saving && !_translating,
+                    onSelected: _translateAll,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'urdu',
+                        child: Text('Translate to Urdu'),
+                      ),
+                      PopupMenuItem(
+                        value: 'english',
+                        child: Text('Translate to English'),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: _translating
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.auto_awesome, color: _blue, size: 18),
+                                SizedBox(width: 6),
+                                Text(
+                                  'AI Translate',
+                                  style: TextStyle(
+                                    color: _blue,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   IconButton(
@@ -1596,6 +1709,8 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
                     label: Text(
                       _saving
                           ? 'Uploading...'
+                          : widget.initialQuestions.isNotEmpty
+                          ? 'Update Question'
                           : 'Save ${widget.count} Questions',
                     ),
                   ),
@@ -1667,17 +1782,148 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
     TextEditingController controller,
     String hint, {
     bool number = false,
-  }) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
-    child: TextField(
-      controller: controller,
-      keyboardType: number ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(fontSize: 12),
-      decoration: InputDecoration(
-        hintText: hint,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        border: const OutlineInputBorder(),
+  }) {
+    final isUrdu = _containsUrdu(controller.text);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+      child: TextField(
+        controller: controller,
+        keyboardType: number ? TextInputType.number : TextInputType.text,
+        textDirection:
+            number || !isUrdu ? TextDirection.ltr : TextDirection.rtl,
+        textAlign: number || !isUrdu ? TextAlign.left : TextAlign.right,
+        onChanged: number ? null : (_) => setState(() {}),
+        style: const TextStyle(fontSize: 12),
+        decoration: InputDecoration(
+          hintText: hint,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
+          ),
+          border: const OutlineInputBorder(),
+        ),
       ),
+    );
+  }
+
+  Future<void> _translateAll(String targetLanguage) async {
+    final controllers = <TextEditingController>[
+      for (final row in _rows) ...[
+        if (widget.type != ExamQuestionType.labelDiagram) row.prompt,
+        ...row.cells,
+      ],
+    ].where((controller) => controller.text.trim().isNotEmpty).toList();
+    if (controllers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter question text before translating.')),
+      );
+      return;
+    }
+
+    setState(() => _translating = true);
+    try {
+      final response = await FirebaseFunctions.instance
+          .httpsCallable('translateQuestionPaperText')
+          .call(<String, Object>{
+            'targetLanguage': targetLanguage,
+            'subject': widget.component?.componentName ?? widget.subject.name,
+            'texts': controllers
+                .map((controller) => controller.text.trim())
+                .toList(),
+          });
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final translations = (data['translations'] as List?)
+              ?.map((value) => value.toString().trim())
+              .toList() ??
+          const <String>[];
+      if (translations.length != controllers.length) {
+        throw StateError('AI returned an incomplete translation.');
+      }
+      if (!mounted) return;
+      final apply = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(
+            targetLanguage == 'urdu'
+                ? 'Review Urdu Translation'
+                : 'Review English Translation',
+          ),
+          content: SizedBox(
+            width: 720,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: translations.length,
+              separatorBuilder: (_, _) => const Divider(),
+              itemBuilder: (_, index) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    controllers[index].text,
+                    style: const TextStyle(color: Color(0xFF718096)),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    translations[index],
+                    textDirection: targetLanguage == 'urdu'
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    textAlign: targetLanguage == 'urdu'
+                        ? TextAlign.right
+                        : TextAlign.left,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.check),
+              label: const Text('Use Translation'),
+            ),
+          ],
+        ),
+      );
+      if (apply == true && mounted) {
+        setState(() {
+          for (var index = 0; index < controllers.length; index++) {
+            controllers[index].text = translations[index];
+          }
+        });
+      }
+    } on FirebaseFunctionsException catch (error) {
+      if (mounted) {
+        final message = error.code == 'internal' || error.code == 'not-found'
+            ? 'The latest AI translation backend is not deployed yet.'
+            : error.message ?? 'Translation failed.';
+        await _showTranslationError(message);
+      }
+    } catch (error) {
+      if (mounted) {
+        await _showTranslationError('Translation failed: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _translating = false);
+    }
+  }
+
+  Future<void> _showTranslationError(String message) => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      icon: const Icon(Icons.error_outline, color: Colors.red),
+      title: const Text('Translation unavailable'),
+      content: Text(message),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('OK'),
+        ),
+      ],
     ),
   );
 
@@ -1717,7 +1963,30 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
             onPressed: () => setState(() {
               row.imageBytes = null;
               row.imageName = '';
+              row.existingImageUrl = '';
             }),
+            icon: const Icon(Icons.close, size: 17),
+          ),
+        ] else if (row.existingImageUrl.isNotEmpty) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Image.network(
+              row.existingImageUrl,
+              width: 62,
+              height: 40,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Saved picture',
+              style: TextStyle(fontSize: 11, color: Color(0xFF526078)),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Remove picture',
+            onPressed: () => setState(() => row.existingImageUrl = ''),
             icon: const Icon(Icons.close, size: 17),
           ),
         ] else
@@ -1751,7 +2020,9 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
       return;
     }
     if (widget.type == ExamQuestionType.labelDiagram &&
-        _rows.any((row) => row.imageBytes == null)) {
+        _rows.any(
+          (row) => row.imageBytes == null && row.existingImageUrl.isEmpty,
+        )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload a picture for every row.')),
       );
@@ -1762,7 +2033,7 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
     final questions = <ExamQuestionEntity>[];
     for (final entry in _rows.asMap().entries) {
       final row = entry.value;
-      var imageUrl = '';
+      var imageUrl = row.existingImageUrl;
       if (row.imageBytes != null) {
         try {
           imageUrl = await widget.repository.uploadDiagram(
@@ -1781,7 +2052,7 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
       }
       questions.add(
         ExamQuestionEntity(
-          id: widget.repository.newQuestionId(),
+          id: row.questionId ?? widget.repository.newQuestionId(),
           classId: widget.classItem.id,
           className: widget.classItem.name,
           subjectId: widget.subject.id,
@@ -1796,7 +2067,8 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
           cells: row.cells.map((e) => e.text.trim()).toList(),
           imageUrl: imageUrl,
           answerLines: int.tryParse(row.lines.text) ?? 0,
-          createdAt: now.add(Duration(milliseconds: entry.key)),
+          createdAt:
+              row.createdAt ?? now.add(Duration(milliseconds: entry.key)),
         ),
       );
     }
@@ -1806,14 +2078,30 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
 }
 
 class _EntryRow {
-  _EntryRow({required int cellCount})
-    : cells = List.generate(cellCount, (_) => TextEditingController());
+  _EntryRow({required int cellCount, ExamQuestionEntity? initial})
+    : cells = List.generate(cellCount, (_) => TextEditingController()) {
+    if (initial == null) return;
+    questionId = initial.id;
+    createdAt = initial.createdAt;
+    prompt.text = initial.text;
+    marks.text = _marks(initial.marks);
+    lines.text = initial.answerLines.toString();
+    existingImageUrl = initial.imageUrl;
+    for (var index = 0;
+        index < cells.length && index < initial.cells.length;
+        index++) {
+      cells[index].text = initial.cells[index];
+    }
+  }
   final prompt = TextEditingController();
   final marks = TextEditingController(text: '1');
   final lines = TextEditingController(text: '0');
   final List<TextEditingController> cells;
   Uint8List? imageBytes;
   String imageName = '';
+  String? questionId;
+  DateTime? createdAt;
+  String existingImageUrl = '';
   void dispose() {
     prompt.dispose();
     marks.dispose();
@@ -1827,6 +2115,10 @@ class _EntryRow {
 String _marks(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(1);
+
+bool _containsUrdu(String value) => RegExp(
+      r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]',
+    ).hasMatch(value);
 
 String _componentDisplayName(String subjectName, String componentName) {
   final subject = subjectName.trim();

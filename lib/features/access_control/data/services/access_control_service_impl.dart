@@ -132,11 +132,16 @@ class AccessControlServiceImpl extends AccessControlService {
       return false;
     }
 
-    return _roles.any(
-      (item) =>
-          item.id.trim().toLowerCase() == value ||
-          item.name.trim().toLowerCase() == value,
-    );
+    return _assignments.any(
+          (item) =>
+              item.roleId.trim().toLowerCase() == value ||
+              item.roleName.trim().toLowerCase() == value,
+        ) ||
+        _roles.any(
+          (item) =>
+              item.id.trim().toLowerCase() == value ||
+              item.name.trim().toLowerCase() == value,
+        );
   }
 
   @override
@@ -188,11 +193,11 @@ class AccessControlServiceImpl extends AccessControlService {
       if (_assignments.isEmpty) {
         _roles = const [];
         _permissions = const {};
-
-        // Safe migration mode:
-        // If the existing administrator has no assignment yet,
-        // allow access so the first roles can be configured.
-        _isBootstrapAccess = true;
+        // Never treat an unassigned teacher/parent as an administrator.
+        // Bootstrap administration is performed by the protected backend
+        // function, not by granting unrestricted client-side access.
+        _isBootstrapAccess = false;
+        _errorMessage = 'No active role is assigned to this account.';
         _isLoaded = true;
         return;
       }

@@ -11,11 +11,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     required this._createThread,
     required this._sendMessage,
     required this._markRead,
+    required this._removeThread,
   }) : super(const ChatInitial()) {
     on<LoadChatThreads>(_loadThreads);
     on<OpenChatThread>(_openThread);
     on<CreateChatThreadRequested>(_create);
     on<SendChatMessageRequested>(_send);
+    on<RemoveChatThreadRequested>(_remove);
   }
 
   final GetChatThreads _getThreads;
@@ -23,6 +25,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final CreateChatThread _createThread;
   final SendChatMessage _sendMessage;
   final MarkChatThreadRead _markRead;
+  final RemoveChatThreadForUser _removeThread;
 
   Future<void> _loadThreads(
     LoadChatThreads event,
@@ -111,6 +114,24 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           error: _message(error),
         ),
       );
+    }
+  }
+
+  Future<void> _remove(
+    RemoveChatThreadRequested event,
+    Emitter<ChatState> emit,
+  ) async {
+    emit(const ChatLoading());
+    try {
+      await _removeThread(threadId: event.threadId, userId: event.userId);
+      emit(
+        ChatThreadsLoaded(
+          threads: await _getThreads(event.userId),
+          message: 'Conversation removed from your chat list.',
+        ),
+      );
+    } catch (error) {
+      emit(ChatFailure(_message(error)));
     }
   }
 

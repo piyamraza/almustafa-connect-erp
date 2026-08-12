@@ -307,40 +307,69 @@ class _StudentsViewState extends State<_StudentsView> {
   }
 
   Widget _buildHeader() {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return AppPageHeader(
       title: 'Students',
       description: 'Manage admissions, profiles and student records',
       icon: Icons.school_rounded,
-      actions: [
-        const DashboardNavigationButton(),
-        OutlinedButton.icon(
-          onPressed: () => _showComingSoon('Student import'),
-          icon: const Icon(Icons.upload_file_outlined),
-          label: const Text('Import Students'),
-        ),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFE94883),
-          ),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const SchoolEngagementPage(),
-            ),
-          ),
-          icon: const Icon(Icons.cake_outlined),
-          label: const Text('Birthdays'),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => _showComingSoon('Student export'),
-          icon: const Icon(Icons.download_outlined),
-          label: const Text('Export'),
-        ),
-        FilledButton.icon(
-          onPressed: () => _openEditor(),
-          icon: const Icon(Icons.add),
-          label: const Text('Add Student'),
-        ),
-      ],
+      actions: compact
+          ? [
+              const DashboardNavigationButton(),
+              IconButton.filledTonal(
+                tooltip: 'Import Students',
+                onPressed: () => _showComingSoon('Student import'),
+                icon: const Icon(Icons.upload_file_outlined),
+              ),
+              IconButton.filled(
+                tooltip: 'Birthdays',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SchoolEngagementPage(),
+                  ),
+                ),
+                icon: const Icon(Icons.cake_outlined),
+              ),
+              IconButton.filledTonal(
+                tooltip: 'Export',
+                onPressed: () => _showComingSoon('Student export'),
+                icon: const Icon(Icons.download_outlined),
+              ),
+              IconButton.filled(
+                tooltip: 'Add Student',
+                onPressed: () => _openEditor(),
+                icon: const Icon(Icons.add),
+              ),
+            ]
+          : [
+              const DashboardNavigationButton(),
+              OutlinedButton.icon(
+                onPressed: () => _showComingSoon('Student import'),
+                icon: const Icon(Icons.upload_file_outlined),
+                label: const Text('Import Students'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFE94883),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SchoolEngagementPage(),
+                  ),
+                ),
+                icon: const Icon(Icons.cake_outlined),
+                label: const Text('Birthdays'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showComingSoon('Student export'),
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Export'),
+              ),
+              FilledButton.icon(
+                onPressed: () => _openEditor(),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Student'),
+              ),
+            ],
     );
   }
 
@@ -459,7 +488,7 @@ class _SummaryCards extends StatelessWidget {
             ? 4
             : width >= 560
             ? 2
-            : 1;
+            : 2;
         final itemWidth = (width - ((columns - 1) * 14)) / columns;
         return Wrap(
           spacing: 14,
@@ -506,8 +535,9 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 560;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 10 : 18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -524,64 +554,97 @@ class _MetricCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: data.color.withValues(alpha: .12),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: data.color.withValues(alpha: .18),
-                width: 1.5,
-              ),
-            ),
-            child: data.illustration == null
-                ? Icon(data.icon, color: data.color, size: 36)
-                : Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: CustomPaint(
-                      painter: _StudentAvatarPainter(
-                        color: data.color,
-                        girl: data.illustration == _MetricIllustration.girl,
-                      ),
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: compact
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: data.color.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(data.icon, color: data.color, size: 21),
+                ),
+                const SizedBox(height: 6),
                 Text(
                   data.label,
-                  style: const TextStyle(
-                    color: _textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11),
                 ),
-                const SizedBox(height: 3),
                 Text(
                   '${data.value}',
                   style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 26,
-                    height: 1,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  data.caption,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: _textSecondary, fontSize: 12),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: data.color.withValues(alpha: .12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: data.color.withValues(alpha: .18),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: data.illustration == null
+                      ? Icon(data.icon, color: data.color, size: 36)
+                      : Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: CustomPaint(
+                            painter: _StudentAvatarPainter(
+                              color: data.color,
+                              girl:
+                                  data.illustration == _MetricIllustration.girl,
+                            ),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data.label,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${data.value}',
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 26,
+                          height: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        data.caption,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

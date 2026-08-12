@@ -44,7 +44,8 @@ class _View extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('${student.fullName} - Academic Dashboard'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () {
@@ -90,40 +91,46 @@ class _DashboardContent extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _SummaryCard(
-                  label: 'Attendance',
-                  value:
-                      '${dashboard.attendancePercentage.toStringAsFixed(1)}%',
-                  icon: Icons.fact_check_outlined,
-                ),
-                _SummaryCard(
-                  label: 'Pending Homework',
-                  value: '${dashboard.pendingHomeworkCount}',
-                  icon: Icons.menu_book_outlined,
-                ),
-                _SummaryCard(
-                  label: 'Submitted Homework',
-                  value: '${dashboard.submittedHomeworkCount}',
-                  icon: Icons.assignment_turned_in_outlined,
-                ),
-                _SummaryCard(
-                  label: 'Upcoming Exams',
-                  value: '${dashboard.upcomingExamCount}',
-                  icon: Icons.calendar_month_outlined,
-                ),
-                _SummaryCard(
-                  label: 'Latest Result',
-                  value: dashboard.latestResultPercentage == null
-                      ? 'N/A'
-                      : '${dashboard.latestResultPercentage!.toStringAsFixed(1)}%',
-                  icon: Icons.grade_outlined,
-                ),
-              ],
+            padding: const EdgeInsets.all(8),
+            child: LayoutBuilder(
+              builder: (context, constraints) => GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: constraints.maxWidth < 700 ? 5 : 5,
+                crossAxisSpacing: constraints.maxWidth < 700 ? 5 : 10,
+                mainAxisSpacing: 5,
+                mainAxisExtent: constraints.maxWidth < 700 ? 82 : 96,
+                children: [
+                  _SummaryCard(
+                    label: 'Attendance',
+                    value:
+                        '${dashboard.attendancePercentage.toStringAsFixed(1)}%',
+                    icon: Icons.fact_check_outlined,
+                  ),
+                  _SummaryCard(
+                    label: 'Pending Homework',
+                    value: '${dashboard.pendingHomeworkCount}',
+                    icon: Icons.menu_book_outlined,
+                  ),
+                  _SummaryCard(
+                    label: 'Submitted Homework',
+                    value: '${dashboard.submittedHomeworkCount}',
+                    icon: Icons.assignment_turned_in_outlined,
+                  ),
+                  _SummaryCard(
+                    label: 'Upcoming Exams',
+                    value: '${dashboard.upcomingExamCount}',
+                    icon: Icons.calendar_month_outlined,
+                  ),
+                  _SummaryCard(
+                    label: 'Latest Result',
+                    value: dashboard.latestResultPercentage == null
+                        ? 'N/A'
+                        : '${dashboard.latestResultPercentage!.toStringAsFixed(1)}%',
+                    icon: Icons.grade_outlined,
+                  ),
+                ],
+              ),
             ),
           ),
           const TabBar(
@@ -181,31 +188,55 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return SizedBox(
-      width: 190,
+      width: compact ? null : 190,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(icon),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+          padding: EdgeInsets.all(compact ? 5 : 14),
+          child: compact
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Icon(icon, size: 16),
+                    const SizedBox(height: 3),
                     Text(
                       value,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(label),
+                    Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 7.5, height: 1.05),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Icon(icon),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            value,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          Text(label),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );

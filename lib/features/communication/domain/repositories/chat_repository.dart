@@ -14,4 +14,9 @@ abstract class ChatRepository {
     required String threadId,
     required String userId,
   });
+
+  Future<void> removeThreadForUser({
+    required String threadId,
+    required String userId,
+  });
 }

@@ -287,7 +287,8 @@ class ExamDateSheetReportServiceImpl implements ExamDateSheetReportService {
           children: [
             _meta('Exam', request.dateSheet.examName),
             _meta('Session', request.dateSheet.academicSession),
-            if (request.subject.trim().isNotEmpty)
+            if (request.type != ExamDateSheetReportType.completeSchool &&
+                request.subject.trim().isNotEmpty)
               _meta('For', request.subject),
             _meta('Issue Date', _date(DateTime.now())),
           ],

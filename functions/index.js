@@ -1,14 +1,202 @@
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
+const {getMessaging} = require("firebase-admin/messaging");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
 const {defineString} = require("firebase-functions/params");
+const {GoogleAuth} = require("google-auth-library");
 
 initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
 const bootstrapAdminEmail = defineString("BOOTSTRAP_ADMIN_EMAIL");
+const aiTranslationModel = defineString("AI_TRANSLATION_MODEL", {
+  default: "gemini-2.5-flash",
+});
+
+exports.notifyInternalChatMessage = onDocumentCreated(
+    "chat_messages/{messageId}",
+    async (event) => {
+      const message = event.data?.data();
+      if (!message || message.isDeleted === true) return;
+      const threadId = clean(message.threadId);
+      const senderId = clean(message.senderId);
+      if (!threadId || !senderId) return;
+
+      const thread = await db.collection("communication_threads")
+          .doc(threadId).get();
+      if (!thread.exists) return;
+      const recipients = (thread.data().participantIds || [])
+          .map(clean)
+          .filter((uid) => uid && uid !== senderId);
+      if (recipients.length === 0) return;
+
+      const tokenSnapshots = await Promise.all(recipients.map((uid) =>
+        db.collection("push_device_tokens")
+            .where("userId", "==", uid)
+            .where("isActive", "==", true)
+            .get(),
+      ));
+      const tokens = [...new Set(tokenSnapshots.flatMap((snapshot) =>
+        snapshot.docs.map((doc) => clean(doc.data().token)),
+      ).filter(Boolean))];
+      if (tokens.length === 0) return;
+
+      const senderName = clean(message.senderName) || "School user";
+      const text = clean(message.text) || clean(message.attachmentName) ||
+        "Sent an attachment";
+      await getMessaging().sendEachForMulticast({
+        tokens,
+        notification: {
+          title: "New internal chat message",
+          body: `${senderName}: ${text}`,
+        },
+        data: {type: "chat", threadId, referenceId: threadId},
+        android: {
+          priority: "high",
+          notification: {
+            sound: "default",
+          },
+        },
+        apns: {payload: {aps: {sound: "default", badge: 1}}},
+      });
+    },
+);
+
+async function requireQuestionPaperTranslator(request) {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Please sign in first.");
+  }
+  const callerEmail = clean(request.auth.token.email).toLowerCase();
+  const configuredBootstrapEmail = clean(bootstrapAdminEmail.value())
+      .toLowerCase();
+  if (configuredBootstrapEmail && callerEmail === configuredBootstrapEmail) {
+    return;
+  }
+  const snapshot = await db.collection("user_roles").doc(request.auth.uid).get();
+  if (!snapshot.exists || snapshot.data().isActive !== true) {
+    throw new HttpsError("permission-denied", "Your account is not active.");
+  }
+  const assignment = snapshot.data();
+  const normaliseRole = (value) => clean(value).toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  const roleId = clean(assignment.roleId);
+  const roleTokens = [
+    normaliseRole(roleId),
+    normaliseRole(assignment.roleName),
+  ];
+  let allowed = roleTokens.some((role) =>
+    ["teacher", "admin", "schooladmin", "superadmin"].includes(role),
+  );
+  if (!allowed && roleId) {
+    const roleSnapshot = await db.collection("app_roles").doc(roleId).get();
+    const role = roleSnapshot.data() || {};
+    const permissions = Array.isArray(role.permissions) ? role.permissions : [];
+    allowed = role.isActive !== false && (
+      normaliseRole(role.name).includes("admin") ||
+      permissions.includes("questionPapersManage") ||
+      permissions.includes("examsManage") ||
+      permissions.includes("rolesManage")
+    );
+  }
+  if (!allowed) {
+    throw new HttpsError(
+        "permission-denied",
+        "Only teachers and administrators can translate question papers.",
+    );
+  }
+}
+
+exports.translateQuestionPaperText = onCall({timeoutSeconds: 60}, async (request) => {
+  await requireQuestionPaperTranslator(request);
+  const targetLanguage = clean(request.data && request.data.targetLanguage);
+  const subject = clean(request.data && request.data.subject);
+  const texts = Array.isArray(request.data && request.data.texts) ?
+    request.data.texts.map(clean) : [];
+  if (!["urdu", "english"].includes(targetLanguage)) {
+    throw new HttpsError("invalid-argument", "Select Urdu or English.");
+  }
+  if (!texts.length || texts.length > 100 || texts.some((text) => !text)) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Provide between 1 and 100 non-empty question-paper texts.",
+    );
+  }
+
+  const targetName = targetLanguage === "urdu" ? "Urdu" : "English";
+  const prompt = [
+    `Translate every JSON array item into ${targetName}.`,
+    "The input may be Roman Urdu, Urdu, or English.",
+    `These are ${subject || "school"} question-paper prompts and options.`,
+    "Preserve numbering, blanks, symbols, formulas, names, and meaning.",
+    "Use natural, age-appropriate academic language.",
+    "Return only one valid JSON array of strings in the same order.",
+    JSON.stringify(texts),
+  ].join("\n");
+
+  try {
+    const googleAuth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const projectId = await googleAuth.getProjectId();
+    const client = await googleAuth.getClient();
+    const token = await client.getAccessToken();
+    const model = aiTranslationModel.value();
+    const requestBody = JSON.stringify({
+      contents: [{role: "user", parts: [{text: prompt}]}],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json",
+      },
+    });
+    let payload;
+    let lastFailure = "";
+    for (const location of ["global", "us-central1"]) {
+      const host = location === "global" ?
+        "aiplatform.googleapis.com" :
+        `${location}-aiplatform.googleapis.com`;
+      const endpoint = `https://${host}/v1/projects/${projectId}/locations/` +
+        `${location}/publishers/google/models/${model}:generateContent`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token.token || token}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+      if (response.ok) {
+        payload = await response.json();
+        break;
+      }
+      lastFailure = `${response.status}: ${await response.text()}`;
+      console.error(
+          `Vertex translation failed in ${location}`,
+          lastFailure,
+      );
+    }
+    if (!payload) throw new Error(`Vertex AI unavailable (${lastFailure})`);
+    const output = payload.candidates && payload.candidates[0] &&
+      payload.candidates[0].content && payload.candidates[0].content.parts &&
+      payload.candidates[0].content.parts[0].text;
+    const jsonText = clean(output).replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+    const translations = JSON.parse(jsonText || "[]");
+    if (!Array.isArray(translations) || translations.length !== texts.length) {
+      throw new Error("AI returned an invalid translation array.");
+    }
+    return {translations: translations.map(clean)};
+  } catch (error) {
+    console.error("Question paper translation failed", error);
+    throw new HttpsError(
+        "unavailable",
+        "AI translation service is not ready. Enable Vertex AI for this " +
+          "Firebase project and deploy the latest Functions build.",
+    );
+  }
+});
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : "";

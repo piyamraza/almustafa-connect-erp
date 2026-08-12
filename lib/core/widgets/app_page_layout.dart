@@ -304,6 +304,7 @@ class _AppModuleCardState extends State<AppModuleCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 520;
+        final tile = constraints.maxWidth < 230;
         return MouseRegion(
           cursor: SystemMouseCursors.click,
           onEnter: (_) => setState(() => _hovered = true),
@@ -336,7 +337,26 @@ class _AppModuleCardState extends State<AppModuleCard> {
                 onTap: widget.onTap,
                 child: Padding(
                   padding: EdgeInsets.all(compact ? 13 : 16),
-                  child: compact
+                  child: tile
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _ModuleIcon(
+                              accent: widget.accent,
+                              icon: widget.icon,
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              widget.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        )
+                      : compact
                       ? Row(
                           children: [
                             _ModuleIcon(
@@ -380,10 +400,10 @@ class _AppModuleCardState extends State<AppModuleCard> {
                           children: [
                             Row(
                               children: [
-                      _ModuleIcon(
-                        accent: widget.accent,
-                        icon: widget.icon,
-                      ),
+                                _ModuleIcon(
+                                  accent: widget.accent,
+                                  icon: widget.icon,
+                                ),
                                 const Spacer(),
                                 AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),

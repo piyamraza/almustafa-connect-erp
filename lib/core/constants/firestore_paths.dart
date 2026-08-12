@@ -73,6 +73,9 @@ class FirestorePaths {
   static const String syllabusEntries = 'syllabus_entries';
   static const String syllabusPlans = 'syllabus_plans';
   static const String homeworkSubmissions = 'homework_submissions';
+  static const String homeworkQuestions = 'homework_questions';
+  static const String portalNotifications = 'portal_notifications';
+  static const String parentLeaveRequests = 'parent_leave_requests';
   static const String pushNotificationRequests = 'push_notification_requests';
   static const String pushDeviceTokens = 'push_device_tokens';
   static const String whatsappBroadcasts = 'whatsapp_broadcasts';

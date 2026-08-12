@@ -118,22 +118,23 @@ class _ManualExamDateSheetBuilderPageState
 
       if (!mounted) return;
 
+      final openingSavedSheet = widget.existing != null;
       final exams = (values[0] as List<ExamEntity>)
-          .where((exam) => exam.isActive)
+          .where((exam) => openingSavedSheet || exam.isActive)
           .toList();
       final classes =
           (values[1] as List<AcademicClassEntity>)
-              .where((item) => item.isActive)
+              .where((item) => openingSavedSheet || item.isActive)
               .toList()
             ..sort(compareAcademicClasses);
       final sections =
           (values[2] as List<SectionEntity>)
-              .where((item) => item.isActive)
+              .where((item) => openingSavedSheet || item.isActive)
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
       final subjects =
           (values[3] as List<AcademicSubjectEntity>)
-              .where((item) => item.isActive)
+              .where((item) => openingSavedSheet || item.isActive)
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
       _examId ??= exams.isEmpty ? null : exams.first.id;
@@ -155,7 +156,7 @@ class _ManualExamDateSheetBuilderPageState
             .where((item) => item.isActive)
             .toList();
         _calendarHolidays = calendarHolidays;
-        if (!_isReadOnly) {
+        if (widget.existing == null) {
           _papers = _papers
               .where(
                 (paper) => !calendarHolidays.any(
@@ -332,17 +333,17 @@ class _ManualExamDateSheetBuilderPageState
   List<SubjectComponentEntity> _activeComponentsFor(
     AcademicSubjectEntity subject,
   ) {
-    final values = _components
-        .where(
-          (component) =>
-              component.isActive &&
-              component.parentSubjectId == subject.id,
-        )
-        .toList()
-      ..sort(
-        (first, second) =>
-            first.displayOrder.compareTo(second.displayOrder),
-      );
+    final values =
+        _components
+            .where(
+              (component) =>
+                  component.isActive && component.parentSubjectId == subject.id,
+            )
+            .toList()
+          ..sort(
+            (first, second) =>
+                first.displayOrder.compareTo(second.displayOrder),
+          );
 
     return values;
   }
@@ -359,10 +360,7 @@ class _ManualExamDateSheetBuilderPageState
     return 'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}';
   }
 
-  String _componentDisplayName(
-    String parentName,
-    String componentName,
-  ) {
+  String _componentDisplayName(String parentName, String componentName) {
     final parent = parentName.trim();
     final component = componentName.trim();
 
@@ -379,6 +377,7 @@ class _ManualExamDateSheetBuilderPageState
 
     return '$parent $component';
   }
+
   TeacherAssignmentEntity? _findAssignment({
     required ExamEntity exam,
     required AcademicClassEntity academicClass,
@@ -491,8 +490,7 @@ class _ManualExamDateSheetBuilderPageState
     }
 
     final selectedIds = _selectedSubjectIds(column);
-    if (selectedIds.contains(subjectId) &&
-        existing?.subjectId != subjectId) {
+    if (selectedIds.contains(subjectId) && existing?.subjectId != subjectId) {
       _show('This subject is already selected for this class/section.');
       return;
     }
@@ -821,33 +819,52 @@ class _ManualExamDateSheetBuilderPageState
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 650;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.existing == null
+          compact
+              ? 'Date Sheet'
+              : widget.existing == null
               ? 'Manual Date Sheet Builder'
               : 'Edit Manual Date Sheet',
         ),
         actions: [
           const DashboardNavigationButton(),
-          Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: OutlinedButton.icon(
+          if (compact)
+            IconButton(
+              tooltip: 'Preview',
               onPressed: _loading || _papers.isEmpty
                   ? null
                   : _showOutputPreview,
               icon: const Icon(Icons.preview_outlined),
-              label: const Text('Preview'),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: OutlinedButton.icon(
+                onPressed: _loading || _papers.isEmpty
+                    ? null
+                    : _showOutputPreview,
+                icon: const Icon(Icons.preview_outlined),
+                label: const Text('Preview'),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
+          if (compact)
+            IconButton(
+              tooltip: 'Save Draft',
               onPressed: _loading || _saving || _isReadOnly ? null : _save,
               icon: const Icon(Icons.save_outlined),
-              label: const Text('Save Draft'),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton.icon(
+                onPressed: _loading || _saving || _isReadOnly ? null : _save,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Save Draft'),
+              ),
             ),
-          ),
         ],
       ),
       body: _loading
@@ -855,7 +872,7 @@ class _ManualExamDateSheetBuilderPageState
           : _error != null
           ? Center(child: Text(_error!))
           : Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(compact ? 8 : 20),
               child: Column(
                 children: [
                   if (_isReadOnly) ...[
@@ -882,19 +899,23 @@ class _ManualExamDateSheetBuilderPageState
                   ],
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(compact ? 8 : 16),
                       child: Wrap(
-                        spacing: 14,
-                        runSpacing: 14,
+                        spacing: compact ? 6 : 14,
+                        runSpacing: compact ? 6 : 14,
                         children: [
                           SizedBox(
-                            width: 320,
+                            width: compact ? double.infinity : 320,
                             child: DropdownButtonFormField<String>(
-                              initialValue: _examId,
+                              initialValue:
+                                  _exams.any((exam) => exam.id == _examId)
+                                  ? _examId
+                                  : null,
                               isExpanded: true,
                               decoration: const InputDecoration(
                                 labelText: 'Exam',
                                 border: OutlineInputBorder(),
+                                isDense: true,
                               ),
                               items: _exams
                                   .map(
@@ -910,17 +931,21 @@ class _ManualExamDateSheetBuilderPageState
                             ),
                           ),
                           SizedBox(
-                            width: 360,
+                            width: compact ? double.infinity : 360,
                             child: TextFormField(
                               controller: _titleController,
                               decoration: const InputDecoration(
                                 labelText: 'Date Sheet Title',
                                 border: OutlineInputBorder(),
+                                isDense: true,
                               ),
                             ),
                           ),
                           if (_selectedExam != null)
                             Chip(
+                              visualDensity: compact
+                                  ? VisualDensity.compact
+                                  : VisualDensity.standard,
                               avatar: const Icon(
                                 Icons.date_range_outlined,
                                 size: 18,
@@ -933,44 +958,71 @@ class _ManualExamDateSheetBuilderPageState
                             ),
                           if (_calendarHolidays.isNotEmpty)
                             Chip(
+                              visualDensity: compact
+                                  ? VisualDensity.compact
+                                  : VisualDensity.standard,
                               avatar: const Icon(
                                 Icons.event_busy_outlined,
                                 size: 18,
                               ),
                               label: Text(
-                                '${_calendarHolidays.length} calendar holiday date(s) excluded',
+                                compact
+                                    ? '${_calendarHolidays.length} holiday(s) excluded'
+                                    : '${_calendarHolidays.length} calendar holiday date(s) excluded',
                               ),
                             ),
                           OutlinedButton.icon(
+                            style: compact
+                                ? OutlinedButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                  )
+                                : null,
                             onPressed: _isReadOnly
                                 ? null
                                 : () => _pickDefaultTime(true),
                             icon: const Icon(Icons.schedule_outlined),
                             label: Text(
-                              'Default Start: ${_defaultStartTime.format(context)}',
+                              compact
+                                  ? 'Start ${_defaultStartTime.format(context)}'
+                                  : 'Default Start: ${_defaultStartTime.format(context)}',
                             ),
                           ),
                           OutlinedButton.icon(
+                            style: compact
+                                ? OutlinedButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                  )
+                                : null,
                             onPressed: _isReadOnly
                                 ? null
                                 : () => _pickDefaultTime(false),
                             icon: const Icon(Icons.schedule_outlined),
                             label: Text(
-                              'Default End: ${_defaultEndTime.format(context)}',
+                              compact
+                                  ? 'End ${_defaultEndTime.format(context)}'
+                                  : 'Default End: ${_defaultEndTime.format(context)}',
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: compact ? 6 : 14),
                   _ValidationPanel(
                     result: _validationResult,
                     paperCount: _papers.length,
                     onValidate: _runValidation,
                     onDetails: _showValidationDetails,
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: compact ? 6 : 14),
                   Expanded(
                     child: _matrixColumns.isEmpty
                         ? const Center(
@@ -1121,6 +1173,9 @@ class _ManualExamDateSheetBuilderPageState
               !selectedIds.contains(row.subject.id),
         )
         .toList();
+    final paperHasLiveOption =
+        paper != null &&
+        options.any((row) => row.subject.id == paper.subjectId);
     return SizedBox(
       width: _classColumnWidth - 16,
       child: Row(
@@ -1149,6 +1204,31 @@ class _ManualExamDateSheetBuilderPageState
                           ),
                           Text(
                             row.assignment.teacherName,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (paper != null &&
+                      paper.subjectId.isNotEmpty &&
+                      !paperHasLiveOption)
+                    DropdownMenuItem(
+                      value: paper.subjectId,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            paper.subjectName.isEmpty
+                                ? 'Saved subject'
+                                : paper.subjectName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            paper.teacherName.isEmpty
+                                ? 'Assignment unavailable'
+                                : paper.teacherName,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
@@ -1327,11 +1407,57 @@ class _ValidationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = result;
+    final compact = MediaQuery.sizeOf(context).width < 650;
     final color = value == null
         ? Theme.of(context).colorScheme.primary
         : value.isValid
         ? const Color(0xFF00897B)
         : Theme.of(context).colorScheme.error;
+
+    if (compact) {
+      final summary = value == null
+          ? '$paperCount papers • Not checked'
+          : '${value.score}/100 • ${value.errors.length} conflicts • '
+                '${value.warnings.length} warnings';
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: Row(
+            children: [
+              Icon(Icons.fact_check_outlined, color: color, size: 20),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  summary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                ),
+                onPressed: onValidate,
+                icon: const Icon(Icons.rule_outlined, size: 18),
+                label: const Text('Validate'),
+              ),
+              if (value != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'View details',
+                  onPressed: onDetails,
+                  icon: const Icon(Icons.visibility_outlined, size: 19),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Card(
       child: Padding(

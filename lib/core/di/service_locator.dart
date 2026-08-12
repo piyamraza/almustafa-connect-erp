@@ -387,6 +387,8 @@ import '../../features/academic_calendar/presentation/bloc/academic_calendar_blo
 
 import '../../features/homework/data/repositories/homework_repository_impl.dart';
 import '../../features/homework/domain/repositories/homework_repository.dart';
+import '../../features/homework/data/repositories/homework_question_repository_impl.dart';
+import '../../features/homework/domain/repositories/homework_question_repository.dart';
 import '../../features/homework/data/repositories/syllabus_repository_impl.dart';
 import '../../features/homework/domain/repositories/syllabus_repository.dart';
 import '../../features/homework/presentation/bloc/homework_bloc.dart';
@@ -428,6 +430,8 @@ import '../../features/parent_portal/domain/repositories/parent_notification_rep
 import '../../features/parent_portal/data/services/parent_timeline_service_impl.dart';
 import '../../features/parent_portal/domain/services/parent_timeline_service.dart';
 import '../../features/parent_portal/presentation/bloc/parent_notification_bloc.dart';
+import '../../features/notifications/data/repositories/portal_notification_repository_impl.dart';
+import '../../features/notifications/domain/repositories/portal_notification_repository.dart';
 
 import '../../features/access_control/data/repositories/app_role_repository_impl.dart';
 import '../../features/access_control/domain/repositories/app_role_repository.dart';
@@ -1060,6 +1064,9 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<ParentNotificationRepository>(
     () => ParentNotificationRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
+  sl.registerLazySingleton<PortalNotificationRepository>(
+    () => PortalNotificationRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
 
   sl.registerLazySingleton<ParentTimelineService>(
     () => ParentTimelineServiceImpl(sl<FirebaseFirestore>()),
@@ -1107,6 +1114,12 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<HomeworkRepository>(
     () => HomeworkRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<HomeworkQuestionRepository>(
+    () => HomeworkQuestionRepositoryImpl(
+      sl<FirebaseFirestoreService>(),
+      sl<PortalNotificationRepository>(),
+    ),
   );
   sl.registerLazySingleton<SyllabusRepository>(
     () => SyllabusRepositoryImpl(sl<FirebaseFirestoreService>()),
@@ -1306,6 +1319,9 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<MarkChatThreadRead>(
     () => MarkChatThreadRead(sl<ChatRepository>()),
   );
+  sl.registerLazySingleton<RemoveChatThreadForUser>(
+    () => RemoveChatThreadForUser(sl<ChatRepository>()),
+  );
   sl.registerFactory<ChatBloc>(
     () => ChatBloc(
       getThreads: sl<GetChatThreads>(),
@@ -1313,6 +1329,7 @@ Future<void> setupServiceLocator() async {
       createThread: sl<CreateChatThread>(),
       sendMessage: sl<SendChatMessage>(),
       markRead: sl<MarkChatThreadRead>(),
+      removeThread: sl<RemoveChatThreadForUser>(),
     ),
   );
   sl.registerLazySingleton<CommunicationAuditRemoteDataSource>(
@@ -2018,6 +2035,8 @@ Future<void> setupServiceLocator() async {
       sl<MonthlyFeeDueRepository>(),
       sl<FeePaymentRepository>(),
       sl<FeeReportService>(),
+      sl<StudentRepository>(),
+      sl<AcademicStructureRepository>(),
     ),
   );
   sl.registerFactory<FeeDocumentBloc>(

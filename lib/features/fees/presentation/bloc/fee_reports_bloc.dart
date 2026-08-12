@@ -1,9 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/fee_report_entity.dart';
+import '../../domain/entities/monthly_fee_due_entity.dart';
 import '../../domain/repositories/fee_payment_repository.dart';
 import '../../domain/repositories/monthly_fee_due_repository.dart';
 import '../../domain/services/fee_report_service.dart';
+import '../../../students/domain/repositories/student_repository.dart';
+import '../../../students/domain/entities/student_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 
 sealed class FeeReportsEvent {
   const FeeReportsEvent();
@@ -65,6 +71,8 @@ class FeeReportsBloc extends Bloc<FeeReportsEvent, FeeReportsState> {
     this._dueRepository,
     this._paymentRepository,
     this._reportService,
+    this._studentRepository,
+    this._academicRepository,
   ) : super(const FeeReportsInitial()) {
     on<LoadFeeReport>(_load);
     on<PrintLoadedFeeReport>(_print);
@@ -75,6 +83,8 @@ class FeeReportsBloc extends Bloc<FeeReportsEvent, FeeReportsState> {
   final MonthlyFeeDueRepository _dueRepository;
   final FeePaymentRepository _paymentRepository;
   final FeeReportService _reportService;
+  final StudentRepository _studentRepository;
+  final AcademicStructureRepository _academicRepository;
   FeeReportData? _current;
 
   Future<void> _load(LoadFeeReport event, Emitter<FeeReportsState> emit) async {
@@ -87,6 +97,8 @@ class FeeReportsBloc extends Bloc<FeeReportsEvent, FeeReportsState> {
       final payments = await _paymentRepository.getPayments(
         academicSession: event.academicSession,
       );
+      final students = await _studentRepository.getStudents();
+      final classes = await _academicRepository.getClasses();
 
       final filteredDues = dues.where((item) {
         final date = DateTime(item.year, item.month);
@@ -124,6 +136,11 @@ class FeeReportsBloc extends Bloc<FeeReportsEvent, FeeReportsState> {
         payments: filteredPayments,
         startDate: event.startDate,
         endDate: event.endDate,
+        outstandingGroups: _buildOutstandingGroups(
+          filteredDues,
+          students,
+          classes,
+        ),
       );
 
       emit(FeeReportsLoaded(_current!));
@@ -131,6 +148,59 @@ class FeeReportsBloc extends Bloc<FeeReportsEvent, FeeReportsState> {
       emit(FeeReportsError(_message(error)));
     }
   }
+
+  List<ClassOutstandingFeeGroup> _buildOutstandingGroups(
+    List<MonthlyFeeDueEntity> dues,
+    List<StudentEntity> students,
+    List<AcademicClassEntity> classes,
+  ) {
+    final studentById = {for (final student in students) student.id: student};
+    final classById = {for (final item in classes) item.id: item};
+    final totals = <String, double>{};
+    for (final due in dues.where((item) => item.outstandingAmount > 0)) {
+      totals[due.studentId] =
+          (totals[due.studentId] ?? 0) + due.outstandingAmount;
+    }
+
+    final grouped = <String, List<OutstandingFeeStudent>>{};
+    for (final entry in totals.entries) {
+      final student = studentById[entry.key];
+      if (student == null) continue;
+      final classItem = classById[student.classId];
+      final className = classItem?.name.trim();
+      final row = OutstandingFeeStudent(
+        studentId: student.id,
+        classId: student.classId,
+        className: className == null || className.isEmpty
+            ? student.classId
+            : className,
+        studentName: student.fullName,
+        fatherName: student.fatherName,
+        rollNumber: student.rollNumber,
+        outstandingAmount: entry.value,
+      );
+      grouped.putIfAbsent(row.classId, () => []).add(row);
+    }
+
+    final result =
+        grouped.entries.map((entry) {
+          final rows = entry.value
+            ..sort(
+              (a, b) =>
+                  _rollValue(a.rollNumber).compareTo(_rollValue(b.rollNumber)),
+            );
+          return ClassOutstandingFeeGroup(
+            classId: entry.key,
+            className: rows.first.className,
+            students: rows,
+          );
+        }).toList()..sort(
+          (a, b) => compareAcademicClassNames(a.className, b.className),
+        );
+    return result;
+  }
+
+  int _rollValue(String value) => int.tryParse(value.trim()) ?? 999999;
 
   Future<void> _print(
     PrintLoadedFeeReport event,

@@ -58,7 +58,7 @@ class ExaminationDashboardPage extends StatelessWidget {
           builder: (context, constraints) {
             final columns = _columnCount(constraints.maxWidth);
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(constraints.maxWidth < 560 ? 10 : 24),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1500),
@@ -71,7 +71,7 @@ class ExaminationDashboardPage extends StatelessWidget {
                             'Prepare exams and papers, enter marks, review results and manage promotions.',
                         icon: Icons.fact_check_rounded,
                       ),
-                      const SizedBox(height: 22),
+                      SizedBox(height: constraints.maxWidth < 560 ? 10 : 22),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -132,7 +132,7 @@ class ExaminationDashboardPage extends StatelessWidget {
 
   double _cardAspectRatio({required double width, required int columns}) {
     if (columns == 1) {
-      return 1.55;
+      return 3.5;
     }
     if (columns == 2) {
       return 1.28;

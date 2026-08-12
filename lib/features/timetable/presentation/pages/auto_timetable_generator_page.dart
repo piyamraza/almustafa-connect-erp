@@ -86,7 +86,10 @@ class _AutoTimetableGeneratorViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(actions: const [DashboardNavigationButton()], title: const Text('Auto Timetable Generator')),
+      appBar: AppBar(
+        actions: const [DashboardNavigationButton()],
+        title: const Text('Auto Timetable Generator'),
+      ),
       body: SafeArea(
         child: BlocConsumer<AutoTimetableBloc, AutoTimetableState>(
           listener: (context, state) {
@@ -108,6 +111,7 @@ class _AutoTimetableGeneratorViewState
           },
           builder: (context, state) {
             final busy = state is AutoTimetableLoading;
+            final compact = MediaQuery.sizeOf(context).width < 700;
             final result = switch (state) {
               AutoTimetablePreviewReady(:final result) => result,
               AutoTimetableSaved(:final result) => result,
@@ -117,77 +121,82 @@ class _AutoTimetableGeneratorViewState
             return Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(compact ? 12 : 24),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1400),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Auto Timetable Generator',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Generate a conflict-free timetable from active '
-                            'classes, subjects and teacher assignments.',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          const SizedBox(height: 22),
+                          if (!compact) ...[
+                            Text(
+                              'Auto Timetable Generator',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Generate a conflict-free timetable from active '
+                              'classes, subjects and teacher assignments.',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: 22),
+                          ],
                           Card(
                             child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: Wrap(
-                                spacing: 14,
-                                runSpacing: 14,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 180,
-                                    child: TextFormField(
-                                      controller: _branchController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Branch ID',
-                                        border: OutlineInputBorder(),
+                              padding: EdgeInsets.all(compact ? 10 : 18),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: compact ? 150 : 180,
+                                      child: TextFormField(
+                                        controller: _branchController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Branch ID',
+                                          border: OutlineInputBorder(),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 190,
-                                    child: TextFormField(
-                                      controller: _sessionController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Academic Session',
-                                        border: OutlineInputBorder(),
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: compact ? 165 : 190,
+                                      child: TextFormField(
+                                        controller: _sessionController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Academic Session',
+                                          border: OutlineInputBorder(),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 360,
-                                    child: SwitchListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: const Text(
-                                        'Replace existing timetable',
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: compact ? 285 : 360,
+                                      child: SwitchListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        title: const Text(
+                                          'Replace existing timetable',
+                                        ),
+                                        subtitle: const Text(
+                                          'Keep off to preserve manual entries.',
+                                        ),
+                                        value: _replaceExisting,
+                                        onChanged: busy
+                                            ? null
+                                            : (value) => setState(
+                                                () => _replaceExisting = value,
+                                              ),
                                       ),
-                                      subtitle: const Text(
-                                        'Keep off to preserve manual entries.',
-                                      ),
-                                      value: _replaceExisting,
-                                      onChanged: busy
-                                          ? null
-                                          : (value) => setState(
-                                              () => _replaceExisting = value,
-                                            ),
                                     ),
-                                  ),
-                                  FilledButton.icon(
-                                    onPressed: busy ? null : _preview,
-                                    icon: const Icon(Icons.auto_awesome),
-                                    label: const Text('Generate Preview'),
-                                  ),
-                                ],
+                                    const SizedBox(width: 12),
+                                    FilledButton.icon(
+                                      onPressed: busy ? null : _preview,
+                                      icon: const Icon(Icons.auto_awesome),
+                                      label: const Text('Generate Preview'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

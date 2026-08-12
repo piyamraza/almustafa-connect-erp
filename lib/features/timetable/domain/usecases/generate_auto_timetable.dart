@@ -1,4 +1,6 @@
 import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
@@ -43,17 +45,16 @@ class GenerateAutoTimetable {
       _assignmentRepository.getAssignments(),
     ]);
 
-    final configurations =
-        values[0] as List<TimetableConfigurationEntity>;
+    final configurations = values[0] as List<TimetableConfigurationEntity>;
     if (configurations.isEmpty) {
       throw StateError('Timetable configuration was not found.');
     }
 
     final existing = values[1] as List<ClassTimetableEntryEntity>;
-    final classes = (values[2] as dynamic)
+    final classes = (values[2] as List<AcademicClassEntity>)
         .where((item) => item.isActive)
         .toList();
-    final sections = (values[3] as dynamic)
+    final sections = (values[3] as List<SectionEntity>)
         .where((item) => item.isActive)
         .toList();
     final subjects = (values[4] as List<AcademicSubjectEntity>)
@@ -402,9 +403,11 @@ class GenerateAutoTimetable {
     int day,
     int startMinutes,
     int endMinutes,
-  ) => busyTimes['$teacherId|$day']?.any(
-    (range) => startMinutes < range.end && endMinutes > range.start,
-  ) ?? false;
+  ) =>
+      busyTimes['$teacherId|$day']?.any(
+        (range) => startMinutes < range.end && endMinutes > range.start,
+      ) ??
+      false;
 
   String _normalise(String value) =>
       value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();

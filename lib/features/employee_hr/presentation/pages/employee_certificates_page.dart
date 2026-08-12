@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../documents/presentation/pages/experience_certificate_preview_page.dart';
@@ -6,53 +6,39 @@ import '../../../documents/presentation/pages/employee_card_preview_page.dart';
 import '../../../documents/presentation/pages/salary_slip_preview_page.dart';
 
 class EmployeeCertificatesPage extends StatelessWidget {
-  const EmployeeCertificatesPage({
-    super.key,
-  });
+  const EmployeeCertificatesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Employee Certificates'),
-        actions: const [
-          DashboardNavigationButton(),
-        ],
+        actions: const [DashboardNavigationButton()],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 1000,
-              ),
+              constraints: const BoxConstraints(maxWidth: 1000),
               child: LayoutBuilder(
-                builder: (
-                  context,
-                  constraints,
-                ) {
-                  final columns =
-                      constraints.maxWidth >= 700
-                          ? 3
-                          : 1;
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 700;
+                  final columns = compact ? 2 : 3;
 
                   return GridView.count(
                     crossAxisCount: columns,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 1.3,
+                    childAspectRatio: compact ? 0.95 : 1.3,
                     shrinkWrap: true,
-                    physics:
-                        const NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     children: [
                       _CertificateCard(
-                        title:
-                            'Experience Certificate',
+                        title: 'Experience Certificate',
                         description:
                             'Generate employee experience certificate.',
-                        icon:
-                            Icons.history_edu_outlined,
+                        icon: Icons.history_edu_outlined,
                         ready: true,
                         onTap: () {
                           Navigator.of(context).push(
@@ -65,32 +51,26 @@ class EmployeeCertificatesPage extends StatelessWidget {
                       ),
                       _CertificateCard(
                         title: 'Employee Card',
-                        description:
-                            'Generate employee identity card.',
-                        icon:
-                            Icons.badge_outlined,
+                        description: 'Generate employee identity card.',
+                        icon: Icons.badge_outlined,
                         ready: true,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  const EmployeeCardPreviewPage(),
+                              builder: (_) => const EmployeeCardPreviewPage(),
                             ),
                           );
                         },
                       ),
                       _CertificateCard(
                         title: 'Salary Slip',
-                        description:
-                            'Generate monthly employee salary slip.',
-                        icon:
-                            Icons.receipt_long_outlined,
+                        description: 'Generate monthly employee salary slip.',
+                        icon: Icons.receipt_long_outlined,
                         ready: true,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  const SalarySlipPreviewPage(),
+                              builder: (_) => const SalarySlipPreviewPage(),
                             ),
                           );
                         },
@@ -124,48 +104,47 @@ class _CertificateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: ready ? onTap : null,
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(compact ? 10 : 18),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(
-                    icon,
-                    size: 34,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary,
-                  ),
-                  const Spacer(),
-                  Chip(
-                    label: Text(
-                      ready
-                          ? 'Ready'
-                          : 'Foundation Ready',
+                  Container(
+                    width: compact ? 40 : 48,
+                    height: compact ? 40 : 48,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: compact ? 21 : 28,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                  const Spacer(),
+                  if (!compact)
+                    Chip(label: Text(ready ? 'Ready' : 'Foundation Ready')),
                 ],
               ),
               const Spacer(),
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(
-                      fontWeight:
-                          FontWeight.w700,
-                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: compact ? TextAlign.center : TextAlign.start,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 8),
-              Text(description),
+              if (!compact) ...[const SizedBox(height: 8), Text(description)],
             ],
           ),
         ),
@@ -173,5 +152,3 @@ class _CertificateCard extends StatelessWidget {
     );
   }
 }
-
-
