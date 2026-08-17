@@ -6,7 +6,7 @@ import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../bloc/communication_bloc.dart';
 import '../bloc/communication_event.dart';
 import '../bloc/communication_state.dart';
-import 'announcements_page.dart';
+import '../../../notices/presentation/pages/notices_dashboard_page.dart';
 import 'in_app_chat_page.dart';
 import 'whatsapp_dashboard_page.dart';
 
@@ -54,7 +54,7 @@ class _CommunicationDashboardView extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const AnnouncementsPage(),
+                      builder: (_) => const NoticesDashboardPage(),
                     ),
                   );
                 },

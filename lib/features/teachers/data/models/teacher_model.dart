@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../domain/entities/teacher_entity.dart';
 
 class TeacherModel extends TeacherEntity {
@@ -33,7 +35,7 @@ class TeacherModel extends TeacherEntity {
     fatherName: map['fatherName'] ?? '',
     gender: map['gender'] ?? '',
     cnic: map['cnic'] ?? '',
-    dateOfBirth: DateTime.tryParse(map['dateOfBirth'] ?? '') ?? DateTime.now(),
+    dateOfBirth: _date(map['dateOfBirth']),
     phone: map['phone'] ?? '',
     whatsappNumber: map['whatsappNumber'] ?? map['phone'] ?? '',
     email: map['email'] ?? '',
@@ -43,10 +45,10 @@ class TeacherModel extends TeacherEntity {
     specialization: map['specialization'] ?? '',
     experienceYears: (map['experienceYears'] as num?)?.toInt() ?? 0,
     monthlySalary: (map['monthlySalary'] as num?)?.toDouble() ?? 0,
-    joiningDate: DateTime.tryParse(map['joiningDate'] ?? '') ?? DateTime.now(),
+    joiningDate: _date(map['joiningDate']),
     isActive: map['isActive'] ?? true,
-    createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
-    updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+    createdAt: _date(map['createdAt']),
+    updatedAt: _date(map['updatedAt']),
   );
 
   factory TeacherModel.fromEntity(TeacherEntity entity) => TeacherModel(
@@ -96,4 +98,10 @@ class TeacherModel extends TeacherEntity {
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
+
+  static DateTime _date(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.tryParse('$value') ?? DateTime.now();
+  }
 }

@@ -113,18 +113,17 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   bool get _isParentWorkspace {
-    return _access.hasRole('parent');
+    return _access.assignment?.roleId == 'parent';
   }
 
   bool get _isTeacherWorkspace {
-    return _access.hasRole('teacher');
+    return _access.assignment?.roleId == 'teacher';
   }
 
   bool get _isAdminWorkspace =>
       _access.isBootstrapAccess ||
-      _access.hasRole('admin') ||
-      _access.hasRole('school_admin') ||
-      _access.hasRole('super_admin');
+      const {'admin', 'school_admin', 'super_admin'}
+          .contains(_access.assignment?.roleId);
 
   @override
   Widget build(BuildContext context) {

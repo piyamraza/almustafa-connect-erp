@@ -100,7 +100,7 @@ class ExamDateSheetGeneratorBloc
         examId: event.exam.id,
         examName: event.exam.name,
         academicSession: event.exam.academicSession,
-        title: '${event.exam.name} - ${option.label}',
+        title: '${event.exam.name} Date Sheet',
         creationMode: ExamDateSheetCreationMode.automatic,
         status: ExamDateSheetStatus.draft,
         papers: option.papers,

@@ -692,8 +692,10 @@ class _SubstituteDutyManagementPageState
       await _refresh();
     }
 
-    roomController.dispose();
-    notesController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      roomController.dispose();
+      notesController.dispose();
+    });
   }
 
   Future<TeacherEntity?> _selectTeacher(
@@ -702,11 +704,11 @@ class _SubstituteDutyManagementPageState
     required String title,
     TeacherEntity? selected,
     String? excludedTeacherId,
-  }) {
+  }) async {
     final searchController = TextEditingController();
     var query = '';
 
-    return showDialog<TeacherEntity>(
+    final result = await showDialog<TeacherEntity>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -762,6 +764,7 @@ class _SubstituteDutyManagementPageState
                                       : '${teacher.employeeId} • ${teacher.designation}',
                                 ),
                                 onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   Navigator.pop(dialogContext, teacher);
                                 },
                               );
@@ -780,7 +783,11 @@ class _SubstituteDutyManagementPageState
           );
         },
       ),
-    ).whenComplete(searchController.dispose);
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchController.dispose();
+    });
+    return result;
   }
 
   static List<_TimetableSlot> _uniqueBy(

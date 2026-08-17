@@ -206,7 +206,10 @@ class AccessControlServiceImpl extends AccessControlService {
 
       final availableRoles = await _roleRepository.getRoles();
 
-      final assignedRoleIds = _assignments.map((item) => item.roleId).toSet();
+      final assignedRoleIds = _assignments
+          .expand((item) => <String>[item.roleId, ...item.additionalRoleIds])
+          .where((id) => id.trim().isNotEmpty)
+          .toSet();
 
       final activeRoles = availableRoles
           .where((item) => item.isActive && assignedRoleIds.contains(item.id))

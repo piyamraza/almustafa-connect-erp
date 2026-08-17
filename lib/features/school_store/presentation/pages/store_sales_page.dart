@@ -328,21 +328,23 @@ class _StoreSalesView extends StatelessWidget {
       );
     }
 
-    quantityController.dispose();
-    studentController.dispose();
-    priceController.dispose();
-    discountController.dispose();
-    paidController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      quantityController.dispose();
+      studentController.dispose();
+      priceController.dispose();
+      discountController.dispose();
+      paidController.dispose();
+    });
   }
 
   static Future<StoreStudentOptionEntity?> _selectStudent(
     BuildContext context,
     List<StoreStudentOptionEntity> students, {
     required StoreStudentOptionEntity? selected,
-  }) {
+  }) async {
     final searchController = TextEditingController();
     var query = '';
-    return showDialog<StoreStudentOptionEntity>(
+    final result = await showDialog<StoreStudentOptionEntity>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -413,7 +415,11 @@ class _StoreSalesView extends StatelessWidget {
           );
         },
       ),
-    ).whenComplete(searchController.dispose);
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchController.dispose();
+    });
+    return result;
   }
 }
 

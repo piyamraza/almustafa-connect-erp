@@ -381,6 +381,7 @@ class _BrandingSettingsViewState extends State<_BrandingSettingsView> {
                   onPressed: () {
                     setState(() {
                       _principalSignatureController.clear();
+                      _principalSignatureData = '';
                     });
                   },
                   icon: const Icon(Icons.delete_outline),
@@ -395,6 +396,7 @@ class _BrandingSettingsViewState extends State<_BrandingSettingsView> {
             _ImagePreview(
               title: 'Current Principal Signature',
               imageUrl: _principalSignatureController.text.trim(),
+              imageBytes: _decodeImageData(_principalSignatureData),
               height: 120,
             ),
           ],
@@ -613,7 +615,7 @@ class _BrandingSettingsViewState extends State<_BrandingSettingsView> {
         _isUploadingSignature = false;
       });
 
-      _showMessage('Principal signature uploaded successfully.');
+      _saveCurrentSettings();
     } catch (e) {
       if (!mounted) {
         return;
@@ -713,7 +715,7 @@ class _BrandingSettingsViewState extends State<_BrandingSettingsView> {
         _isUploadingSignature = false;
       });
 
-      _showMessage('Principal signature saved successfully.');
+      _saveCurrentSettings();
     } catch (e) {
       if (!mounted) {
         return;
@@ -763,6 +765,23 @@ class _BrandingSettingsViewState extends State<_BrandingSettingsView> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Uint8List? _decodeImageData(String value) {
+    final encoded = value.trim();
+    if (encoded.isEmpty) return null;
+    try {
+      return base64Decode(encoded);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _saveCurrentSettings() {
+    final state = context.read<SettingsBloc>().state;
+    if (state is SettingsLoaded) {
+      _save(state.settings);
+    }
   }
 
   Future<void> _save(SchoolSettingsEntity current) async {
@@ -1114,11 +1133,13 @@ class _ImagePreview extends StatelessWidget {
     required this.title,
     required this.imageUrl,
     required this.height,
+    this.imageBytes,
   });
 
   final String title;
   final String imageUrl;
   final double height;
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -1147,28 +1168,34 @@ class _ImagePreview extends StatelessWidget {
           SizedBox(
             height: height,
             width: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image_outlined, color: _textSecondary),
-
-                      SizedBox(height: 6),
-
-                      Text(
-                        'Image preview unavailable',
-                        style: TextStyle(color: _textSecondary, fontSize: 12),
-                      ),
-                    ],
+            child: imageBytes != null && imageBytes!.isNotEmpty
+                ? Image.memory(imageBytes!, fit: BoxFit.contain)
+                : Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image_outlined,
+                              color: _textSecondary,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Image preview unavailable',
+                              style: TextStyle(
+                                color: _textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),

@@ -46,6 +46,13 @@ class FirestorePaths {
   static const String annualPromotionRuns = 'annual_promotion_runs';
   static const String annualPromotionHistory = 'annual_promotion_history';
   static const String examDateSheets = 'exam_date_sheets';
+  static const String examRoomSetups = 'exam_room_setups';
+  static const String examDailyPlans = 'exam_daily_plans';
+  static const String admissionTestQuestions = 'admission_test_questions';
+  static const String admissionTestTemplates = 'admission_test_templates';
+  static const String admissionTestPapers = 'admission_test_papers';
+  static const String admissionTestCandidates = 'admission_test_candidates';
+  static const String appreciationCertificates = 'appreciation_certificates';
   static const String gradingRules = 'grading_rules';
   static const String timetableConfigurations = 'timetable_configurations';
   static const String timetableEntries = 'timetable_entries';

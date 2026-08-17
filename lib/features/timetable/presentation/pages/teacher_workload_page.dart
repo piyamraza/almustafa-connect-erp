@@ -30,14 +30,13 @@ class _TeacherWorkloadView extends StatefulWidget {
 class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
   final _branchController = TextEditingController(text: 'main');
   final _sessionController = TextEditingController(text: '2026-2027');
-  final _searchController = TextEditingController();
 
   TeacherWorkloadLevel? _selectedLevel;
+  String? _selectedTeacherId;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_refreshFilters);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _load();
@@ -47,18 +46,9 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
 
   @override
   void dispose() {
-    _searchController
-      ..removeListener(_refreshFilters)
-      ..dispose();
     _branchController.dispose();
     _sessionController.dispose();
     super.dispose();
-  }
-
-  void _refreshFilters() {
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void _load() {
@@ -130,7 +120,12 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
                                 ),
                           ),
                           const SizedBox(height: 24),
-                          _buildFilters(isLoading),
+                          _buildFilters(
+                            isLoading,
+                            state is TeacherWorkloadLoaded
+                                ? state.report
+                                : null,
+                          ),
                           const SizedBox(height: 20),
                           if (state is TeacherWorkloadLoaded)
                             _buildReport(state.report)
@@ -168,7 +163,8 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
     );
   }
 
-  Widget _buildFilters(bool isLoading) {
+  Widget _buildFilters(bool isLoading, TeacherWorkloadReportEntity? report) {
+    final workloads = report?.workloads ?? const <TeacherWorkloadEntity>[];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -199,20 +195,34 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
             ),
             SizedBox(
               width: 260,
-              child: TextFormField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: 'Search Teacher',
-                  hintText: 'Name or employee ID',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: _searchController.clear,
-                          icon: const Icon(Icons.clear),
-                        ),
-                  border: const OutlineInputBorder(),
+              child: DropdownButtonFormField<String?>(
+                initialValue: _selectedTeacherId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Teacher',
+                  prefixIcon: Icon(Icons.person_search_outlined),
+                  border: OutlineInputBorder(),
                 ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('All Teachers'),
+                  ),
+                  ...workloads.map(
+                    (workload) => DropdownMenuItem<String?>(
+                      value: workload.teacherId,
+                      child: Text(
+                        workload.employeeId.trim().isEmpty
+                            ? workload.teacherName
+                            : '${workload.teacherName} • ${workload.employeeId}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+                onChanged: isLoading
+                    ? null
+                    : (value) => setState(() => _selectedTeacherId = value),
               ),
             ),
             SizedBox(
@@ -273,16 +283,14 @@ class _TeacherWorkloadViewState extends State<_TeacherWorkloadView> {
       );
     }
 
-    final query = _searchController.text.trim().toLowerCase();
     final visibleWorkloads = report.workloads
         .where((workload) {
-          final matchesSearch =
-              query.isEmpty ||
-              workload.teacherName.toLowerCase().contains(query) ||
-              workload.employeeId.toLowerCase().contains(query);
+          final matchesTeacher =
+              _selectedTeacherId == null ||
+              workload.teacherId == _selectedTeacherId;
           final matchesLevel =
               _selectedLevel == null || workload.level == _selectedLevel;
-          return matchesSearch && matchesLevel;
+          return matchesTeacher && matchesLevel;
         })
         .toList(growable: false);
 

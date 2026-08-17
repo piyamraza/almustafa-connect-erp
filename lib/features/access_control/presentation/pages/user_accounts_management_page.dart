@@ -9,6 +9,9 @@ import '../../domain/entities/app_role_entity.dart';
 import '../../domain/entities/user_account_entity.dart';
 import '../../domain/repositories/app_role_repository.dart';
 import '../../domain/services/user_account_service.dart';
+import '../../../teachers/domain/repositories/teacher_repository.dart';
+import '../../../staff/domain/repositories/staff_repository.dart';
+import '../../../parent_portal/domain/repositories/parent_portal_repository.dart';
 
 const _pageBackground = Color(0xFFF3F6FB);
 const _textPrimary = Color(0xFF182230);
@@ -103,7 +106,10 @@ class _UserAccountsManagementPageState
           return account.displayName.toLowerCase().contains(query) ||
               account.email.toLowerCase().contains(query) ||
               account.username.toLowerCase().contains(query) ||
-              account.roleName.toLowerCase().contains(query);
+              account.roleName.toLowerCase().contains(query) ||
+              account.roleNames.any(
+                (role) => role.toLowerCase().contains(query),
+              );
         })
         .toList(growable: false);
   }
@@ -117,10 +123,14 @@ class _UserAccountsManagementPageState
       return;
     }
 
+    final linkedRecords = await _loadLinkedRecords();
+    if (!mounted) return;
+
     final request = await showDialog<_CreateAccountRequest>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _CreateUserDialog(roles: _roles),
+      builder: (_) =>
+          _CreateUserDialog(roles: _roles, linkedRecords: linkedRecords),
     );
 
     if (request == null || !mounted) return;
@@ -192,6 +202,59 @@ class _UserAccountsManagementPageState
     }
   }
 
+  Future<List<_LinkedRecordOption>> _loadLinkedRecords({String? includeId}) async {
+    final teachersFuture = sl<TeacherRepository>().getTeachers();
+    final staffFuture = sl<StaffRepository>().getStaff();
+    final parentsFuture = sl<ParentPortalRepository>().getParents();
+    final teachers = await teachersFuture;
+    final staff = await staffFuture;
+    final parents = await parentsFuture;
+    final alreadyLinkedIds = _accounts
+        .map((account) => account.linkedEntityId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    return <_LinkedRecordOption>[
+      for (final teacher in teachers)
+        if (teacher.isActive &&
+            (!alreadyLinkedIds.contains(teacher.id) || teacher.id == includeId))
+          _LinkedRecordOption(
+            type: 'teacher',
+            id: teacher.id,
+            label: '${teacher.fullName} • ${teacher.employeeId}',
+            displayName: teacher.fullName,
+            login: teacher.email.trim().isNotEmpty
+                ? teacher.email
+                : teacher.phone,
+          ),
+      for (final member in staff)
+        if (member.isActive &&
+            (!alreadyLinkedIds.contains(member.id) || member.id == includeId))
+          _LinkedRecordOption(
+            type: 'staff',
+            id: member.id,
+            label:
+                '${member.fullName} • ${member.staffId} • ${member.designation}',
+            displayName: member.fullName,
+            login: member.phone,
+          ),
+      for (final parent in parents)
+        if (parent.canAccessParentPortal &&
+            (parent.userId.trim().isEmpty || parent.id == includeId) &&
+            (!alreadyLinkedIds.contains(parent.id) || parent.id == includeId))
+          _LinkedRecordOption(
+            type: 'parent',
+            id: parent.id,
+            label:
+                '${parent.fullName} • ${parent.mobileNumber} • ${parent.studentIds.length} student(s)',
+            displayName: parent.fullName,
+            login: parent.email.trim().isNotEmpty
+                ? parent.email
+                : parent.mobileNumber,
+          ),
+    ];
+  }
+
   Future<void> _toggleAccount(UserAccountEntity account) async {
     final disable = !account.disabled;
     final confirmed =
@@ -235,15 +298,73 @@ class _UserAccountsManagementPageState
     }
   }
 
+  Future<void> _deleteAccount(UserAccountEntity account) async {
+    final accountName = account.displayName.isEmpty
+        ? account.email
+        : account.displayName;
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(
+              Icons.delete_forever_rounded,
+              color: Colors.red,
+              size: 40,
+            ),
+            title: const Text('Delete User Account?'),
+            content: Text(
+              '$accountName (${account.email}) will permanently lose access. '
+              'This removes the login account and its role assignment.\n\n'
+              'This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.delete_forever_rounded),
+                label: const Text('Delete Account'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      await _service.deleteAccount(uid: account.uid);
+      await _load();
+      _show('User account deleted permanently.');
+    } catch (error) {
+      if (mounted) _show(_message(error));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _editAccount(UserAccountEntity account) async {
+    final linkedRecords = await _loadLinkedRecords(
+      includeId: account.linkedEntityId,
+    );
+    if (!mounted) return;
     final formKey = GlobalKey<FormState>();
     final name = TextEditingController(text: account.displayName);
     final login = TextEditingController(
       text: account.username.isEmpty ? account.email : account.username,
     );
     final branch = TextEditingController(text: account.branchId);
-    final linkedId = TextEditingController(text: account.linkedEntityId);
     var linkedType = account.linkedEntityType;
+    _LinkedRecordOption? linkedRecord;
+    for (final option in linkedRecords) {
+      if (option.type == linkedType && option.id == account.linkedEntityId) {
+        linkedRecord = option;
+        break;
+      }
+    }
 
     final confirmed =
         await showDialog<bool>(
@@ -297,11 +418,14 @@ class _UserAccountsManagementPageState
                         DropdownButtonFormField<String>(
                           initialValue: linkedType,
                           decoration: const InputDecoration(
-                            labelText: 'Linked Account Type',
+                            labelText: '1. Link Account To',
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: '', child: Text('None')),
+                            DropdownMenuItem(
+                              value: '',
+                              child: Text('System user / no profile'),
+                            ),
                             DropdownMenuItem(
                               value: 'parent',
                               child: Text('Parent'),
@@ -314,25 +438,50 @@ class _UserAccountsManagementPageState
                               value: 'staff',
                               child: Text('Staff'),
                             ),
-                            DropdownMenuItem(
-                              value: 'student',
-                              child: Text('Student'),
-                            ),
                           ],
                           onChanged: (value) => setDialogState(() {
                             linkedType = value ?? '';
-                            if (linkedType.isEmpty) linkedId.clear();
+                            linkedRecord = null;
                           }),
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: linkedId,
-                          enabled: linkedType.isNotEmpty,
-                          decoration: const InputDecoration(
-                            labelText: 'Linked Record ID',
-                            border: OutlineInputBorder(),
+                        if (linkedType.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<_LinkedRecordOption>(
+                            key: ValueKey(
+                              'edit-$linkedType-${linkedRecord?.id ?? ''}',
+                            ),
+                            initialValue: linkedRecord,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: '2. Select ${_linkTypeLabel(linkedType)}',
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: linkedRecords
+                                .where((option) => option.type == linkedType)
+                                .map(
+                                  (option) => DropdownMenuItem(
+                                    value: option,
+                                    child: Text(
+                                      option.label,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            validator: (value) => value == null
+                                ? 'Select the actual ${_linkTypeLabel(linkedType).toLowerCase()} record'
+                                : null,
+                            onChanged: (value) => setDialogState(() {
+                              linkedRecord = value;
+                              if (value != null) {
+                                name.text = value.displayName;
+                                if (value.login.trim().isNotEmpty) {
+                                  login.text = value.login;
+                                }
+                              }
+                            }),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -367,7 +516,7 @@ class _UserAccountsManagementPageState
           login: login.text.trim(),
           branchId: branch.text.trim().isEmpty ? 'main' : branch.text.trim(),
           linkedEntityType: linkedType,
-          linkedEntityId: linkedType.isEmpty ? '' : linkedId.text.trim(),
+          linkedEntityId: linkedType.isEmpty ? '' : linkedRecord!.id,
         );
         await _load();
         _show('User account updated successfully.');
@@ -381,13 +530,13 @@ class _UserAccountsManagementPageState
     name.dispose();
     login.dispose();
     branch.dispose();
-    linkedId.dispose();
   }
 
   Future<void> _changeRole(UserAccountEntity account) async {
-    AppRoleEntity? selected = _roles
-        .where((role) => role.id == account.roleId)
-        .firstOrNull;
+    final selectedIds = <String>{
+      ...(account.roleIds.isEmpty ? <String>[account.roleId] : account.roleIds),
+    }..removeWhere((id) => id.isEmpty);
+    String? primaryRoleId = account.roleId.isEmpty ? null : account.roleId;
     final branch = TextEditingController(text: account.branchId);
 
     final confirmed =
@@ -395,39 +544,67 @@ class _UserAccountsManagementPageState
           context: context,
           builder: (dialogContext) => StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
-              title: Text('Change Role — ${account.displayName}'),
+              title: Text('Assign Roles — ${account.displayName}'),
               content: SizedBox(
-                width: 420,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<AppRoleEntity>(
-                      initialValue: selected,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Role',
-                        border: OutlineInputBorder(),
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Select one or more roles'),
                       ),
-                      items: _roles
-                          .map(
-                            (role) => DropdownMenuItem(
-                              value: role,
-                              child: Text(role.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) =>
-                          setDialogState(() => selected = value),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: branch,
-                      decoration: const InputDecoration(
-                        labelText: 'Branch ID',
-                        border: OutlineInputBorder(),
+                      ..._roles.map(
+                        (role) => CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(role.name),
+                          value: selectedIds.contains(role.id),
+                          onChanged: (checked) => setDialogState(() {
+                            if (checked == true) {
+                              selectedIds.add(role.id);
+                              primaryRoleId ??= role.id;
+                            } else {
+                              selectedIds.remove(role.id);
+                              if (primaryRoleId == role.id)
+                                primaryRoleId = selectedIds.firstOrNull;
+                            }
+                          }),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedIds.contains(primaryRoleId)
+                            ? primaryRoleId
+                            : null,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Primary Role (main workspace)',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _roles
+                            .where((role) => selectedIds.contains(role.id))
+                            .map(
+                              (role) => DropdownMenuItem(
+                                value: role.id,
+                                child: Text(role.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setDialogState(() => primaryRoleId = value),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: branch,
+                        decoration: const InputDecoration(
+                          labelText: 'Branch ID',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -436,10 +613,10 @@ class _UserAccountsManagementPageState
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: selected == null
+                  onPressed: selectedIds.isEmpty || primaryRoleId == null
                       ? null
                       : () => Navigator.pop(dialogContext, true),
-                  child: const Text('Update Role'),
+                  child: const Text('Save Roles'),
                 ),
               ],
             ),
@@ -447,7 +624,10 @@ class _UserAccountsManagementPageState
         ) ??
         false;
 
-    if (!confirmed || selected == null || !mounted) {
+    if (!confirmed ||
+        selectedIds.isEmpty ||
+        primaryRoleId == null ||
+        !mounted) {
       branch.dispose();
       return;
     }
@@ -457,12 +637,12 @@ class _UserAccountsManagementPageState
     try {
       await _service.updateRole(
         uid: account.uid,
-        roleId: selected!.id,
-        roleName: selected!.name,
+        roleIds: selectedIds.toList(),
+        primaryRoleId: primaryRoleId!,
         branchId: branch.text.trim().isEmpty ? 'main' : branch.text.trim(),
       );
       await _load();
-      _show('User role updated.');
+      _show('User roles and primary workspace updated.');
     } catch (error) {
       if (!mounted) return;
       _show(_message(error));
@@ -654,6 +834,7 @@ class _UserAccountsManagementPageState
                       onToggle: () => _toggleAccount(account),
                       onChangeRole: () => _changeRole(account),
                       onResetPassword: () => _resetPassword(account),
+                      onDelete: () => _deleteAccount(account),
                     ),
                   ),
             ],
@@ -727,10 +908,34 @@ class _CreateAccountRequest {
   final String linkedEntityId;
 }
 
+class _LinkedRecordOption {
+  const _LinkedRecordOption({
+    required this.type,
+    required this.id,
+    required this.label,
+    required this.displayName,
+    required this.login,
+  });
+
+  final String type;
+  final String id;
+  final String label;
+  final String displayName;
+  final String login;
+}
+
+String _linkTypeLabel(String type) => switch (type) {
+  'teacher' => 'Teacher',
+  'staff' => 'Staff Member',
+  'parent' => 'Parent',
+  _ => 'Record',
+};
+
 class _CreateUserDialog extends StatefulWidget {
-  const _CreateUserDialog({required this.roles});
+  const _CreateUserDialog({required this.roles, required this.linkedRecords});
 
   final List<AppRoleEntity> roles;
+  final List<_LinkedRecordOption> linkedRecords;
 
   @override
   State<_CreateUserDialog> createState() => _CreateUserDialogState();
@@ -743,10 +948,10 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
   final _branch = TextEditingController(text: 'main');
-  final _linkedId = TextEditingController();
 
   AppRoleEntity? _role;
   String _linkedType = '';
+  _LinkedRecordOption? _linkedRecord;
   bool _obscurePassword = true;
 
   @override
@@ -756,7 +961,6 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
     _password.dispose();
     _confirmPassword.dispose();
     _branch.dispose();
-    _linkedId.dispose();
     super.dispose();
   }
 
@@ -773,6 +977,59 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
               spacing: 12,
               runSpacing: 12,
               children: [
+                SizedBox(
+                  width: 285,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _linkedType,
+                    decoration: const InputDecoration(
+                      labelText: '1. Link Account To',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text('System user (no profile link)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'teacher',
+                        child: Text('Teacher'),
+                      ),
+                      DropdownMenuItem(value: 'staff', child: Text('Staff')),
+                      DropdownMenuItem(value: 'parent', child: Text('Parent')),
+                    ],
+                    onChanged: _selectLinkedType,
+                  ),
+                ),
+                SizedBox(
+                  width: 285,
+                  child: DropdownButtonFormField<_LinkedRecordOption>(
+                    key: ValueKey(_linkedType),
+                    initialValue: _linkedRecord,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: _linkedType.isEmpty
+                          ? '2. Select profile'
+                          : '2. Select ${_linkedTypeLabel()}',
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: _recordsForSelectedType
+                        .map(
+                          (record) => DropdownMenuItem(
+                            value: record,
+                            child: Text(
+                              record.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _linkedType.isEmpty ? null : _selectRecord,
+                    validator: (value) =>
+                        _linkedType.isNotEmpty && value == null
+                        ? 'Select the $_linkedType record'
+                        : null,
+                  ),
+                ),
                 _field(
                   controller: _name,
                   label: 'Display Name',
@@ -819,6 +1076,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                 SizedBox(
                   width: 285,
                   child: DropdownButtonFormField<AppRoleEntity>(
+                    key: ValueKey('role-${_role?.id ?? ''}'),
                     initialValue: _role,
                     isExpanded: true,
                     decoration: const InputDecoration(
@@ -843,36 +1101,6 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                   label: 'Branch ID',
                   validator: _required,
                 ),
-                SizedBox(
-                  width: 285,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _linkedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Link Account To',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: '', child: Text('No Link')),
-                      DropdownMenuItem(
-                        value: 'teacher',
-                        child: Text('Teacher'),
-                      ),
-                      DropdownMenuItem(value: 'staff', child: Text('Staff')),
-                      DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                      DropdownMenuItem(
-                        value: 'student',
-                        child: Text('Student'),
-                      ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _linkedType = value ?? ''),
-                  ),
-                ),
-                _field(
-                  controller: _linkedId,
-                  label: 'Linked Record ID',
-                  helper: 'Optional in this phase',
-                ),
               ],
             ),
           ),
@@ -890,6 +1118,39 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         ),
       ],
     );
+  }
+
+  List<_LinkedRecordOption> get _recordsForSelectedType => widget.linkedRecords
+      .where((record) => record.type == _linkedType)
+      .toList(growable: false);
+
+  String _linkedTypeLabel() => switch (_linkedType) {
+    'teacher' => 'teacher',
+    'staff' => 'staff member',
+    'parent' => 'parent/guardian',
+    _ => 'profile',
+  };
+
+  void _selectLinkedType(String? value) {
+    final type = value ?? '';
+    final matchingRole = widget.roles.where((role) => role.id == type);
+    setState(() {
+      _linkedType = type;
+      _linkedRecord = null;
+      if (matchingRole.isNotEmpty) _role = matchingRole.first;
+      if (type.isEmpty) return;
+      _name.clear();
+      _login.clear();
+    });
+  }
+
+  void _selectRecord(_LinkedRecordOption? record) {
+    setState(() {
+      _linkedRecord = record;
+      if (record == null) return;
+      _name.text = record.displayName;
+      _login.text = record.login;
+    });
   }
 
   SizedBox _field({
@@ -934,7 +1195,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         role: _role!,
         branchId: _branch.text.trim(),
         linkedEntityType: _linkedType,
-        linkedEntityId: _linkedId.text.trim(),
+        linkedEntityId: _linkedRecord?.id ?? '',
       ),
     );
   }
@@ -947,6 +1208,7 @@ class _UserAccountCard extends StatelessWidget {
     required this.onToggle,
     required this.onChangeRole,
     required this.onResetPassword,
+    required this.onDelete,
   });
 
   final UserAccountEntity account;
@@ -954,6 +1216,7 @@ class _UserAccountCard extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onChangeRole;
   final VoidCallback onResetPassword;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -981,12 +1244,10 @@ class _UserAccountCard extends StatelessWidget {
         ),
         subtitle: Text(
           '${account.username.isEmpty ? account.email : account.username} • '
-          '${account.roleName} • Branch ${account.branchId}\n'
-          'UID: ${account.uid}',
-          maxLines: 2,
+          '${account.roleNames.isEmpty ? account.roleName : account.roleNames.join(', ')} • Branch ${account.branchId}',
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        isThreeLine: true,
         trailing: Wrap(
           spacing: 5,
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -1009,11 +1270,13 @@ class _UserAccountCard extends StatelessWidget {
                     onResetPassword();
                   case 'toggle':
                     onToggle();
+                  case 'delete':
+                    onDelete();
                 }
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit Account')),
-                const PopupMenuItem(value: 'role', child: Text('Change Role')),
+                const PopupMenuItem(value: 'role', child: Text('Assign Roles')),
                 const PopupMenuItem(
                   value: 'password',
                   child: Text('Copy Password Reset Link'),
@@ -1022,6 +1285,20 @@ class _UserAccountCard extends StatelessWidget {
                   value: 'toggle',
                   child: Text(
                     account.disabled ? 'Enable Account' : 'Disable Account',
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_forever_rounded, color: Colors.red),
+                      SizedBox(width: 10),
+                      Text(
+                        'Delete Account',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
                   ),
                 ),
               ],

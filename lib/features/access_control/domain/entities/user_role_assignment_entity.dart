@@ -16,6 +16,9 @@ class UserRoleAssignmentEntity extends Equatable {
     this.isPrimary = false,
     this.validFrom,
     this.validUntil,
+    this.additionalRoleIds = const [],
+    this.linkedEntityType = '',
+    this.linkedEntityId = '',
   });
 
   final String id;
@@ -31,6 +34,9 @@ class UserRoleAssignmentEntity extends Equatable {
 
   final DateTime? validFrom;
   final DateTime? validUntil;
+  final List<String> additionalRoleIds;
+  final String linkedEntityType;
+  final String linkedEntityId;
 
   final String assignedBy;
   final DateTime assignedAt;
@@ -76,6 +82,8 @@ class UserRoleAssignmentEntity extends Equatable {
     bool clearValidUntil = false,
     String? assignedBy,
     DateTime? updatedAt,
+    String? linkedEntityType,
+    String? linkedEntityId,
   }) {
     return UserRoleAssignmentEntity(
       id: id,
@@ -89,6 +97,9 @@ class UserRoleAssignmentEntity extends Equatable {
       isPrimary: isPrimary ?? this.isPrimary,
       validFrom: clearValidFrom ? null : validFrom ?? this.validFrom,
       validUntil: clearValidUntil ? null : validUntil ?? this.validUntil,
+      additionalRoleIds: additionalRoleIds,
+      linkedEntityType: linkedEntityType ?? this.linkedEntityType,
+      linkedEntityId: linkedEntityId ?? this.linkedEntityId,
       assignedBy: assignedBy ?? this.assignedBy,
       assignedAt: assignedAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -108,6 +119,9 @@ class UserRoleAssignmentEntity extends Equatable {
     isPrimary,
     validFrom,
     validUntil,
+    additionalRoleIds,
+    linkedEntityType,
+    linkedEntityId,
     assignedBy,
     assignedAt,
     updatedAt,

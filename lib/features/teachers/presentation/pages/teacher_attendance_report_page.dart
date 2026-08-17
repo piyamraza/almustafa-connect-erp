@@ -7,8 +7,249 @@ import '../../domain/entities/teacher_entity.dart';
 import '../../domain/repositories/teacher_attendance_repository.dart';
 import '../../domain/repositories/teacher_repository.dart';
 
-class TeacherAttendanceReportPage extends StatefulWidget { const TeacherAttendanceReportPage({super.key}); @override State<TeacherAttendanceReportPage> createState()=>_TeacherAttendanceReportPageState(); }
-class _TeacherAttendanceReportPageState extends State<TeacherAttendanceReportPage> { late final Future<List<TeacherEntity>> _teachers=sl<TeacherRepository>().getTeachers(); TeacherEntity? _teacher; DateTimeRange _range=DateTimeRange(start:DateTime(DateTime.now().year,DateTime.now().month),end:DateTime.now()); Future<List<TeacherAttendanceEntity>>? _records;
-  void _generate(){if(_teacher==null)return;setState(()=>_records=sl<TeacherAttendanceRepository>().getByTeacher(_teacher!.id,_range.start,_range.end));}
-  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(actions: const [DashboardNavigationButton()], title:const Text('Teacher Attendance Report')),body:Padding(padding:const EdgeInsets.all(16),child:Column(children:[FutureBuilder<List<TeacherEntity>>(future:_teachers,builder:(context,snapshot)=>DropdownButtonFormField<TeacherEntity>(initialValue:_teacher,isExpanded:true,decoration:const InputDecoration(labelText:'Teacher',border:OutlineInputBorder()),items:(snapshot.data??[]).map((teacher)=>DropdownMenuItem(value:teacher,child:Text(teacher.fullName))).toList(),onChanged:(value)=>setState(()=>_teacher=value))),const SizedBox(height:12),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:()async{final range=await showManualDateRangePicker(context:context,firstDate:DateTime(2020),lastDate:DateTime.now(),initialDateRange:_range);if(range!=null)setState(()=>_range=range);},icon:const Icon(Icons.date_range),label:Text('${_range.start.day}/${_range.start.month}/${_range.start.year} - ${_range.end.day}/${_range.end.month}/${_range.end.year}'))),const SizedBox(width:12),FilledButton(onPressed:_generate,child:const Text('Generate'))]),const SizedBox(height:16),Expanded(child:_records==null?const Center(child:Text('Select a teacher and generate the report.')):FutureBuilder<List<TeacherAttendanceEntity>>(future:_records,builder:(context,snapshot){if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());final items=snapshot.data!;int count(TeacherAttendanceStatus s)=>items.where((i)=>i.status==s).length;final attendance=items.isEmpty?0:((count(TeacherAttendanceStatus.present)+count(TeacherAttendanceStatus.late))/items.length)*100;return SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(_teacher!.fullName,style:Theme.of(context).textTheme.headlineSmall),Text('Attendance report • ${items.length} working day(s)'),const SizedBox(height:12),Wrap(spacing:10,runSpacing:10,children:[_stat('Present',count(TeacherAttendanceStatus.present),Colors.green),_stat('Absent',count(TeacherAttendanceStatus.absent),Colors.red),_stat('Late',count(TeacherAttendanceStatus.late),Colors.blue),_stat('Leave',count(TeacherAttendanceStatus.leave),Colors.orange),_stat('Attendance %',attendance.toStringAsFixed(1),Colors.teal)]),const SizedBox(height:16),Card(child:ListView.separated(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),itemCount:items.length,separatorBuilder:(_,_)=>const Divider(height:1),itemBuilder:(context,index){final item=items[index];return ListTile(title:Text('${item.attendanceDate.day}/${item.attendanceDate.month}/${item.attendanceDate.year}'),trailing:Text(item.status.name.toUpperCase()));}))]));}))])));
-  Widget _stat(String label,Object value,Color color)=>SizedBox(width:140,child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label),Text('$value',style:TextStyle(color:color,fontSize:20,fontWeight:FontWeight.bold))])))); }
+class TeacherAttendanceReportPage extends StatefulWidget {
+  const TeacherAttendanceReportPage({super.key});
+  @override
+  State<TeacherAttendanceReportPage> createState() =>
+      _TeacherAttendanceReportPageState();
+}
+
+class _TeacherAttendanceReportPageState
+    extends State<TeacherAttendanceReportPage> {
+  late final Future<List<TeacherEntity>> _teachers = sl<TeacherRepository>()
+      .getTeachers();
+  TeacherEntity? _teacher;
+  DateTimeRange _range = DateTimeRange(
+    start: DateTime(DateTime.now().year, DateTime.now().month),
+    end: DateTime.now(),
+  );
+  Future<List<TeacherAttendanceEntity>>? _records;
+  void _generate() {
+    if (_teacher == null) return;
+    setState(
+      () => _records = sl<TeacherAttendanceRepository>().getByTeacher(
+        _teacher!.id,
+        _range.start,
+        _range.end,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      actions: const [DashboardNavigationButton()],
+      title: const Text('Teacher Attendance Report'),
+    ),
+    body: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          FutureBuilder<List<TeacherEntity>>(
+            future: _teachers,
+            builder: (context, snapshot) =>
+                DropdownButtonFormField<TeacherEntity>(
+                  initialValue: _teacher,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Teacher',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: (snapshot.data ?? [])
+                      .map(
+                        (teacher) => DropdownMenuItem(
+                          value: teacher,
+                          child: Text(teacher.fullName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => _teacher = value),
+                ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final range = await showManualDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                      initialDateRange: _range,
+                    );
+                    if (range != null) setState(() => _range = range);
+                  },
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    '${_range.start.day}/${_range.start.month}/${_range.start.year} - ${_range.end.day}/${_range.end.month}/${_range.end.year}',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(onPressed: _generate, child: const Text('Generate')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _records == null
+                ? const Center(
+                    child: Text('Select a teacher and generate the report.'),
+                  )
+                : FutureBuilder<List<TeacherAttendanceEntity>>(
+                    future: _records,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                size: 48,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 10),
+                              const Text('Unable to generate report.'),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${snapshot.error}',
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _generate,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Try Again'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      final items = snapshot.data ?? const [];
+                      if (items.isEmpty) {
+                        return const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.event_busy_rounded,
+                                size: 52,
+                                color: Colors.blueGrey,
+                              ),
+                              SizedBox(height: 10),
+                              Text(
+                                'No attendance records found for this teacher and date range.',
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      int count(TeacherAttendanceStatus s) =>
+                          items.where((i) => i.status == s).length;
+                      final attendance =
+                          ((count(TeacherAttendanceStatus.present) +
+                                  count(TeacherAttendanceStatus.late)) /
+                              items.length) *
+                          100;
+                      return SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _teacher!.fullName,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            Text(
+                              'Attendance report • ${items.length} working day(s)',
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                _stat(
+                                  'Present',
+                                  count(TeacherAttendanceStatus.present),
+                                  Colors.green,
+                                ),
+                                _stat(
+                                  'Absent',
+                                  count(TeacherAttendanceStatus.absent),
+                                  Colors.red,
+                                ),
+                                _stat(
+                                  'Late',
+                                  count(TeacherAttendanceStatus.late),
+                                  Colors.blue,
+                                ),
+                                _stat(
+                                  'Leave',
+                                  count(TeacherAttendanceStatus.leave),
+                                  Colors.orange,
+                                ),
+                                _stat(
+                                  'Attendance %',
+                                  attendance.toStringAsFixed(1),
+                                  Colors.teal,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Card(
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: items.length,
+                                separatorBuilder: (_, _) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final item = items[index];
+                                  return ListTile(
+                                    title: Text(
+                                      '${item.attendanceDate.day}/${item.attendanceDate.month}/${item.attendanceDate.year}',
+                                    ),
+                                    trailing: Text(
+                                      item.status.name.toUpperCase(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    ),
+  );
+  Widget _stat(String label, Object value, Color color) => SizedBox(
+    width: 140,
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label),
+            Text(
+              '$value',
+              style: TextStyle(
+                color: color,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

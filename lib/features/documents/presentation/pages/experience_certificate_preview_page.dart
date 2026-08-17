@@ -681,6 +681,8 @@ class _ExperienceCertificatePreviewPageState
     }
 
     setState(() {
+      // Branding may have changed while this page remained open.
+      _settingsFuture = sl<GetSchoolSettings>()();
       _previewReady = true;
     });
   }

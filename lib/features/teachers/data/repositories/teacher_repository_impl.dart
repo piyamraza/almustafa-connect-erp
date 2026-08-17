@@ -19,6 +19,11 @@ class TeacherRepositoryImpl implements TeacherRepository {
   }
 
   @override
+  Future<TeacherEntity?> getTeacherById(String id) {
+    return _remoteDataSource.getTeacherById(id);
+  }
+
+  @override
   Future<TeacherEntity?> getTeacherByEmail(String email) {
     return _remoteDataSource.getTeacherByEmail(email);
   }

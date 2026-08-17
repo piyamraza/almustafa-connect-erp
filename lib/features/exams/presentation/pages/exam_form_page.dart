@@ -492,20 +492,17 @@ class _ExamFormViewState extends State<_ExamFormView> {
 
       if (draft.components.isNotEmpty) {
         final hasAnyComponentPassingValue = draft.components.any(
-          (component) =>
-              draft.componentPassingControllers[component.id]!.text
-                  .trim()
-                  .isNotEmpty,
+          (component) => draft.componentPassingControllers[component.id]!.text
+              .trim()
+              .isNotEmpty,
         );
 
-        if (draft.componentPassingMode ==
-                _ComponentPassingMode.componentWise &&
+        if (draft.componentPassingMode == _ComponentPassingMode.componentWise &&
             !hasAnyComponentPassingValue) {
           draft.componentPassingMode = _ComponentPassingMode.combined;
         }
 
-        if (draft.componentPassingMode ==
-            _ComponentPassingMode.componentWise) {
+        if (draft.componentPassingMode == _ComponentPassingMode.componentWise) {
           _ensureComponentPassingMarks(draft);
         }
 
@@ -931,12 +928,18 @@ class _ExamFormViewState extends State<_ExamFormView> {
         onChanged: (value) =>
             _setClassSelected(data, academicClass, value ?? false),
       ),
-      title: Text(academicClass.name),
+      title: Text(_examClassDisplayName(academicClass.name)),
       subtitle: Text('${sections.length} section(s)'),
       children: sections
           .map((section) => _sectionPanel(data, academicClass, section))
           .toList(),
     );
+  }
+
+  String _examClassDisplayName(String value) {
+    final name = value.trim();
+    if (RegExp(r'^\d+$').hasMatch(name)) return 'Class $name';
+    return name;
   }
 
   Widget _sectionPanel(

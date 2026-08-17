@@ -1,5 +1,6 @@
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/services/firebase_firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../../students/domain/repositories/student_repository.dart';
 import '../../domain/entities/parent_account_entity.dart';
@@ -96,13 +97,17 @@ class ParentPortalRepositoryImpl implements ParentPortalRepository {
       return const <StudentEntity>[];
     }
 
-    final allStudents = await _studentRepository.getStudents();
+    // Parent accounts must never query the complete student directory. Fetch
+    // only the explicitly linked records so Firestore can enforce per-student
+    // access and no unrelated student data is exposed.
+    final linkedStudents = await Future.wait(
+      linkedIds.map(_studentRepository.getStudentById),
+    );
 
     final students =
-        allStudents
-            .where(
-              (student) => linkedIds.contains(student.id) && student.isActive,
-            )
+        linkedStudents
+            .whereType<StudentEntity>()
+            .where((student) => student.isActive)
             .toList()
           ..sort((first, second) {
             final classComparison = first.classId.toLowerCase().compareTo(
@@ -276,6 +281,21 @@ class ParentPortalRepositoryImpl implements ParentPortalRepository {
         .collection(FirestorePaths.parentAccounts)
         .doc(parent.id)
         .set(model.toMap());
+
+    // Keep the RBAC assignment and the parent profile linked in both
+    // directions. Parent portal security rules use linkedEntityId to prove
+    // which student records this login is allowed to read.
+    final authUserId = parent.userId.trim();
+    if (authUserId.isNotEmpty) {
+      await _firestoreService
+          .collection(FirestorePaths.userRoleAssignments)
+          .doc(authUserId)
+          .set({
+            'linkedEntityType': 'parent',
+            'linkedEntityId': parent.id,
+            'updatedAt': DateTime.now(),
+          }, SetOptions(merge: true));
+    }
   }
 
   @override

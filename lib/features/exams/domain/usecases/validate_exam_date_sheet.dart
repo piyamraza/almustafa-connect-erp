@@ -91,8 +91,8 @@ class ValidateExamDateSheet {
           issues.add(
             ExamDateSheetValidationIssue(
               type: ExamDateSheetIssueType.teacherDailyLimit,
-              severity: ExamDateSheetIssueSeverity.error,
-              title: 'Teacher has two papers on one day',
+              severity: ExamDateSheetIssueSeverity.warning,
+              title: 'Teacher has multiple papers on one day',
               message:
                   '${paper.teacherName} is assigned to '
                   '${existingTeacher.className} - '
@@ -100,7 +100,7 @@ class ValidateExamDateSheet {
                   '${paper.className} - ${paper.sectionName} on '
                   '${_date(paper.examDate)}.',
               suggestion:
-                  'Change the teacher or move one paper to another date.',
+                  'Keep this only when no conflict-free date is available.',
               paperId: paper.id,
             ),
           );

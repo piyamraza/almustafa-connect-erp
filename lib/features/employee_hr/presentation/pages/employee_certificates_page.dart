@@ -4,6 +4,7 @@ import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../documents/presentation/pages/experience_certificate_preview_page.dart';
 import '../../../documents/presentation/pages/employee_card_preview_page.dart';
 import '../../../documents/presentation/pages/salary_slip_preview_page.dart';
+import 'teacher_appointment_letters_page.dart';
 
 class EmployeeCertificatesPage extends StatelessWidget {
   const EmployeeCertificatesPage({super.key});
@@ -34,6 +35,15 @@ class EmployeeCertificatesPage extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
+                      _CertificateCard(
+                        title: 'Appointment Letters',
+                        description: 'Create, issue and archive signed teacher appointment letters.',
+                        icon: Icons.assignment_turned_in_outlined,
+                        ready: true,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(builder: (_) => const TeacherAppointmentLettersPage()),
+                        ),
+                      ),
                       _CertificateCard(
                         title: 'Experience Certificate',
                         description:

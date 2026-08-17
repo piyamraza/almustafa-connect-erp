@@ -7,14 +7,54 @@ import '../../domain/entities/app_role_entity.dart';
 import '../bloc/app_role_bloc.dart';
 import 'app_role_form_page.dart';
 
-import 'user_role_assignments_page.dart';
-
-import 'access_control_production_readiness_page.dart';
-
 import 'user_accounts_management_page.dart';
 
 class RolesPermissionsPage extends StatelessWidget {
   const RolesPermissionsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Roles & Permissions'),
+      actions: const [DashboardNavigationButton()],
+    ),
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 950),
+        child: GridView.count(
+          padding: const EdgeInsets.all(24),
+          crossAxisCount: MediaQuery.sizeOf(context).width < 650 ? 1 : 2,
+          mainAxisSpacing: 18,
+          crossAxisSpacing: 18,
+          childAspectRatio: MediaQuery.sizeOf(context).width < 650 ? 2.2 : 1.35,
+          shrinkWrap: true,
+          children: [
+            _AccessSectionCard(
+              title: 'Manage Roles',
+              description: 'View, create and edit roles and their permissions.',
+              icon: Icons.admin_panel_settings_outlined,
+              color: const Color(0xFF6D5CE7),
+              onTap: () => _open(context, const ManageRolesPage()),
+            ),
+            _AccessSectionCard(
+              title: 'User Accounts',
+              description: 'Create users, search accounts and assign one or more roles.',
+              icon: Icons.manage_accounts_outlined,
+              color: const Color(0xFF087F69),
+              onTap: () => _open(context, const UserAccountsManagementPage()),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  static void _open(BuildContext context, Widget page) => Navigator.of(context)
+      .push<void>(MaterialPageRoute<void>(builder: (_) => page));
+}
+
+class ManageRolesPage extends StatelessWidget {
+  const ManageRolesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -44,71 +84,10 @@ class _RolesPermissionsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 760;
-    void open(Widget page) => Navigator.of(
-      context,
-    ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Roles & Permissions'),
-        actions: [
-          const DashboardNavigationButton(),
-          if (compact)
-            PopupMenuButton<int>(
-              tooltip: 'More actions',
-              onSelected: (value) {
-                if (value == 0) {
-                  open(const UserAccountsManagementPage());
-                }
-                if (value == 1) {
-                  open(const AccessControlProductionReadinessPage());
-                }
-                if (value == 2) {
-                  open(const UserRoleAssignmentsPage());
-                }
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 0, child: Text('User Accounts')),
-                PopupMenuItem(value: 1, child: Text('Production Readiness')),
-                PopupMenuItem(value: 2, child: Text('User Assignments')),
-              ],
-            ),
-          if (!compact) ...[
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const UserAccountsManagementPage(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('User Accounts'),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        const AccessControlProductionReadinessPage(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.security_outlined),
-              label: const Text('Production Readiness'),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const UserRoleAssignmentsPage(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.manage_accounts_outlined),
-              label: const Text('User Assignments'),
-            ),
-          ],
-        ],
+        title: const Text('Manage Roles'),
+        actions: const [DashboardNavigationButton()],
       ),
       floatingActionButton: compact
           ? FloatingActionButton(
@@ -249,4 +228,30 @@ class _RolesPermissionsView extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AccessSectionCard extends StatelessWidget {
+  const _AccessSectionCard({required this.title, required this.description, required this.icon, required this.color, required this.onTap});
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          CircleAvatar(radius: 34, backgroundColor: color.withValues(alpha: .12), child: Icon(icon, size: 36, color: color)),
+          const SizedBox(height: 16),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(description, textAlign: TextAlign.center),
+        ]),
+      ),
+    ),
+  );
 }

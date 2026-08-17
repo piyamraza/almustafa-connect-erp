@@ -1,6 +1,7 @@
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
@@ -83,7 +84,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
         _sectionName = matchingSection?.name ?? student.sectionId;
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Student photo URL read failed: $error');
       if (!mounted) {
         return;
       }
@@ -447,7 +449,7 @@ class _Header extends StatelessWidget {
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _avatar(),
+                  _avatar(context),
                   const SizedBox(width: 24),
                   Expanded(child: _info()),
                   const SizedBox(width: 20),
@@ -464,7 +466,7 @@ class _Header extends StatelessWidget {
               )
             : Column(
                 children: [
-                  _avatar(),
+                  _avatar(context),
                   const SizedBox(height: 16),
                   _info(),
                   const SizedBox(height: 20),
@@ -548,16 +550,8 @@ class _Header extends StatelessWidget {
     ];
   }
 
-  Widget _avatar() {
-    return CircleAvatar(
-      radius: 55,
-      backgroundImage: student.profileImageUrl.isNotEmpty
-          ? NetworkImage(student.profileImageUrl)
-          : null,
-      child: student.profileImageUrl.isEmpty
-          ? const Icon(Icons.person, size: 55)
-          : null,
-    );
+  Widget _avatar(BuildContext context) {
+    return _StudentProfilePhoto(student: student);
   }
 
   Widget _info() {
@@ -577,6 +571,114 @@ class _Header extends StatelessWidget {
         const SizedBox(height: 14),
         _StatusChip(active: student.isActive),
       ],
+    );
+  }
+}
+
+class _StudentProfilePhoto extends StatefulWidget {
+  const _StudentProfilePhoto({required this.student});
+
+  final StudentEntity student;
+
+  @override
+  State<_StudentProfilePhoto> createState() => _StudentProfilePhotoState();
+}
+
+class _StudentProfilePhotoState extends State<_StudentProfilePhoto> {
+  late Future<String?> _photoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _photoFuture = _loadPhoto();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StudentProfilePhoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.student.id != widget.student.id ||
+        oldWidget.student.profileImageUrl != widget.student.profileImageUrl) {
+      _photoFuture = _loadPhoto();
+    }
+  }
+
+  Future<String?> _loadPhoto() async {
+    final storedUrl = widget.student.profileImageUrl.trim();
+    final canonicalReference = FirebaseStorage.instance.ref(
+      'students/${widget.student.id}/profile.jpg',
+    );
+
+    try {
+      // Always ask Storage for a fresh download URL. On Flutter web, getData()
+      // downloads the file through XHR and can fail because of browser CORS,
+      // even though the authenticated upload itself succeeded.
+      final reference = storedUrl.isNotEmpty
+          ? FirebaseStorage.instance.refFromURL(storedUrl)
+          : canonicalReference;
+      final url = await reference.getDownloadURL();
+      return _cacheBusted(url);
+    } catch (primaryError) {
+      // A stale Firestore URL must not prevent recovery from the canonical
+      // student photo path.
+      try {
+        final url = await canonicalReference.getDownloadURL();
+        return _cacheBusted(url);
+      } catch (fallbackError) {
+        debugPrint(
+          'Student photo read failed for ${widget.student.id}. '
+          'Stored URL error: $primaryError; canonical path error: $fallbackError',
+        );
+        return null;
+      }
+    }
+  }
+
+  String _cacheBusted(String url) {
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}v=${widget.student.updatedAt.millisecondsSinceEpoch}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Icon(
+      Icons.person_rounded,
+      size: 55,
+      color: Theme.of(context).colorScheme.primary,
+    );
+
+    return CircleAvatar(
+      radius: 55,
+      backgroundColor: const Color(0xFFDCE5FF),
+      child: FutureBuilder<String?>(
+        future: _photoFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            );
+          }
+
+          final photoUrl = snapshot.data;
+          if (photoUrl == null || photoUrl.isEmpty) return fallback;
+
+          return ClipOval(
+            child: Image.network(
+              photoUrl,
+              width: 110,
+              height: 110,
+              fit: BoxFit.cover,
+              // Browser-native image rendering avoids CanvasKit/XHR CORS
+              // failures for Firebase download URLs.
+              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+              loadingBuilder: (context, child, progress) =>
+                  progress == null ? child : fallback,
+              errorBuilder: (_, _, _) => fallback,
+            ),
+          );
+        },
+      ),
     );
   }
 }

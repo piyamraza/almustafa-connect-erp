@@ -102,15 +102,20 @@ class _ViewState extends State<_View> {
               ),
               children: [
                 const _StoreHero(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
+                const _StoreSectionHeading(
+                  icon: Icons.monitor_heart_rounded,
+                  title: 'Live Store Overview',
+                  subtitle: 'Current inventory snapshot',
+                ),
+                const SizedBox(height: 10),
                 GridView.count(
                   crossAxisCount: kpiColumns,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: compact ? 6 : 14,
                   mainAxisSpacing: compact ? 6 : 14,
-                  mainAxisExtent: compact ? 92 : null,
-                  childAspectRatio: compact ? 1 : 2.65,
+                  mainAxisExtent: compact ? 84 : 132,
                   children: [
                     _StoreKpi(
                       'Total Items',
@@ -140,23 +145,20 @@ class _ViewState extends State<_View> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Store Operations',
-                  style: TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF14213D),
-                  ),
+                const SizedBox(height: 18),
+                const _StoreSectionHeading(
+                  icon: Icons.touch_app_rounded,
+                  title: 'Store Operations',
+                  subtitle: 'Select an action to continue',
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 GridView.count(
                   crossAxisCount: 4,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: compact ? 6 : 14,
                   mainAxisSpacing: compact ? 6 : 14,
-                  mainAxisExtent: compact ? 98 : 118,
+                  mainAxisExtent: compact ? 92 : 106,
                   children: [
                     _StoreAction(
                       'Suppliers & Purchases',
@@ -452,11 +454,15 @@ class _StoreKpi extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 620;
     return Container(
-      padding: EdgeInsets.all(compact ? 6 : 16),
+      padding: EdgeInsets.all(compact ? 6 : 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: .11), Colors.white, Colors.white],
+        ),
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: color.withValues(alpha: .18)),
+        border: Border.all(color: color.withValues(alpha: .30), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: .07),
@@ -497,13 +503,20 @@ class _StoreKpi extends StatelessWidget {
           : Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: .12),
+                    color: color,
                     borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: .28),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, color: color, size: 26),
+                  child: Icon(icon, color: Colors.white, size: 25),
                 ),
                 const SizedBox(width: 13),
                 Expanded(
@@ -556,76 +569,157 @@ class _StoreAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 620;
     return Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(16),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: compact ? 98 : 118,
-        padding: EdgeInsets.all(compact ? 6 : 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: .22)),
-        ),
-        child: compact
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: .12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, color: color, size: 19),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 9.5,
-                      height: 1.05,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF14213D),
-                    ),
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(17),
-              ),
-              child: Icon(icon, color: color, size: 30),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: EdgeInsets.all(compact ? 6 : 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withValues(alpha: .18), Colors.white],
             ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF14213D),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: color.withValues(alpha: .48), width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: .13),
+                blurRadius: 16,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: compact
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, color: color, size: 19),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      label,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        height: 1.05,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF14213D),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: .3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF14213D),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Icon(Icons.arrow_forward_rounded, color: color, size: 19),
-                ],
-              ),
         ),
       ),
     );
   }
+}
+
+class _StoreSectionHeading extends StatelessWidget {
+  const _StoreSectionHeading({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: const Color(0xFF14213D),
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(icon, color: Colors.white, size: 21),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF14213D),
+              ),
+            ),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: Color(0xFF667085),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _StoreFilters extends StatelessWidget {

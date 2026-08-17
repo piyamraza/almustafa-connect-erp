@@ -10,6 +10,8 @@ class UserAccountEntity extends Equatable {
     required this.emailVerified,
     required this.roleId,
     required this.roleName,
+    this.roleIds = const [],
+    this.roleNames = const [],
     required this.branchId,
     required this.linkedEntityType,
     required this.linkedEntityId,
@@ -26,6 +28,8 @@ class UserAccountEntity extends Equatable {
   final bool emailVerified;
   final String roleId;
   final String roleName;
+  final List<String> roleIds;
+  final List<String> roleNames;
   final String branchId;
   final String linkedEntityType;
   final String linkedEntityId;
@@ -43,6 +47,12 @@ class UserAccountEntity extends Equatable {
       emailVerified: map['emailVerified'] == true,
       roleId: map['roleId']?.toString() ?? '',
       roleName: map['roleName']?.toString() ?? 'Not Assigned',
+      roleIds: (map['roleIds'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toList(growable: false),
+      roleNames: (map['roleNames'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toList(growable: false),
       branchId: map['branchId']?.toString() ?? 'main',
       linkedEntityType: map['linkedEntityType']?.toString() ?? '',
       linkedEntityId: map['linkedEntityId']?.toString() ?? '',
@@ -62,6 +72,8 @@ class UserAccountEntity extends Equatable {
     emailVerified,
     roleId,
     roleName,
+    roleIds,
+    roleNames,
     branchId,
     linkedEntityType,
     linkedEntityId,

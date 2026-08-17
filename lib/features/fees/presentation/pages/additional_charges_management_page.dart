@@ -148,22 +148,17 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
     ),
   );
 
-  Widget _header() => Container(
-    padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF246BFD), Color(0xFF6C4DFF)],
-      ),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Row(
+  Widget _header() {
+    final compact = MediaQuery.sizeOf(context).width < 700;
+    final title = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Icon(Icons.add_card_outlined, color: Colors.white, size: 34),
         const SizedBox(width: 14),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: const [
               Text(
                 'Additional Charges',
                 style: TextStyle(
@@ -172,6 +167,7 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              SizedBox(height: 3),
               Text(
                 'Create separate school, class, section or student-specific fee dues.',
                 style: TextStyle(color: Color(0xFFEAF1FF)),
@@ -179,18 +175,39 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
             ],
           ),
         ),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF315DDC),
-          ),
-          onPressed: () => _openForm(),
-          icon: const Icon(Icons.add),
-          label: const Text('Create Additional Charge'),
-        ),
       ],
-    ),
-  );
+    );
+    final createButton = FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF315DDC),
+      ),
+      onPressed: () => _openForm(),
+      icon: const Icon(Icons.add),
+      label: const Text('Create Additional Charge'),
+    );
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF246BFD), Color(0xFF6C4DFF)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [title, const SizedBox(height: 18), createButton],
+            )
+          : Row(
+              children: [
+                Expanded(child: title),
+                const SizedBox(width: 18),
+                createButton,
+              ],
+            ),
+    );
+  }
 
   Widget _filters(bool busy) => Card(
     child: Padding(
@@ -367,6 +384,7 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
       );
 
   Widget _chargeList(List<AdditionalChargeEntity> charges, bool busy) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Card(
       child: Column(
         children: [
@@ -378,62 +396,134 @@ class _AdditionalChargesViewState extends State<_AdditionalChargesView> {
             ),
           for (final charge in charges) ...[
             const Divider(height: 1),
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor:
-                    (charge.generated ? Colors.green : Colors.amber).withValues(
-                      alpha: .13,
+            if (compact)
+              _mobileChargeTile(charge, busy)
+            else
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      (charge.generated ? Colors.green : Colors.amber)
+                          .withValues(alpha: .13),
+                  child: Icon(
+                    charge.generated ? Icons.task_alt : Icons.schedule,
+                    color: charge.generated ? Colors.green : Colors.orange,
+                  ),
+                ),
+                title: Text(charge.title),
+                subtitle: Text(
+                  '${charge.categoryLabel} • ${charge.scopeLabel} • Due ${_date(charge.dueDate)} • '
+                  '${charge.isActive ? 'Active' : 'Inactive'} • '
+                  '${charge.generated ? 'Generated (${charge.generatedStudentCount})' : 'Pending'}',
+                ),
+                trailing: Wrap(
+                  spacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('Rs. ${charge.amount.toStringAsFixed(0)}'),
+                    IconButton(
+                      tooltip: 'Edit',
+                      onPressed: busy ? null : () => _openForm(charge),
+                      icon: const Icon(Icons.edit_outlined),
                     ),
-                child: Icon(
-                  charge.generated ? Icons.task_alt : Icons.schedule,
-                  color: charge.generated ? Colors.green : Colors.orange,
+                    IconButton(
+                      tooltip: 'Generate',
+                      onPressed: busy || !charge.isActive
+                          ? null
+                          : () => _confirmGenerate(charge),
+                      icon: const Icon(Icons.play_circle_outline),
+                    ),
+                    IconButton(
+                      tooltip: 'View Generated Dues',
+                      onPressed: busy
+                          ? null
+                          : () => context.read<AdditionalChargesBloc>().add(
+                              LoadAdditionalChargeDues(charge),
+                            ),
+                      icon: const Icon(Icons.people_alt_outlined),
+                    ),
+                    IconButton(
+                      tooltip: 'Delete',
+                      onPressed: busy ? null : () => _confirmDelete(charge),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    ),
+                  ],
                 ),
               ),
-              title: Text(charge.title),
-              subtitle: Text(
-                '${charge.categoryLabel} • ${charge.scopeLabel} • Due ${_date(charge.dueDate)} • '
-                '${charge.isActive ? 'Active' : 'Inactive'} • '
-                '${charge.generated ? 'Generated (${charge.generatedStudentCount})' : 'Pending'}',
-              ),
-              trailing: Wrap(
-                spacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text('Rs. ${charge.amount.toStringAsFixed(0)}'),
-                  IconButton(
-                    tooltip: 'Edit',
-                    onPressed: busy ? null : () => _openForm(charge),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  IconButton(
-                    tooltip: 'Generate',
-                    onPressed: busy || !charge.isActive
-                        ? null
-                        : () => _confirmGenerate(charge),
-                    icon: const Icon(Icons.play_circle_outline),
-                  ),
-                  IconButton(
-                    tooltip: 'View Generated Dues',
-                    onPressed: busy
-                        ? null
-                        : () => context.read<AdditionalChargesBloc>().add(
-                            LoadAdditionalChargeDues(charge),
-                          ),
-                    icon: const Icon(Icons.people_alt_outlined),
-                  ),
-                  IconButton(
-                    tooltip: 'Delete',
-                    onPressed: busy ? null : () => _confirmDelete(charge),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  ),
-                ],
-              ),
-            ),
           ],
         ],
       ),
     );
   }
+
+  Widget _mobileChargeTile(AdditionalChargeEntity charge, bool busy) => Padding(
+    padding: const EdgeInsets.all(14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: (charge.generated ? Colors.green : Colors.amber)
+                  .withValues(alpha: .13),
+              child: Icon(
+                charge.generated ? Icons.task_alt : Icons.schedule,
+                color: charge.generated ? Colors.green : Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                charge.title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Text(
+              'Rs. ${charge.amount.toStringAsFixed(0)}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${charge.categoryLabel} • ${charge.scopeLabel} • Due ${_date(charge.dueDate)}\n'
+          '${charge.isActive ? 'Active' : 'Inactive'} • '
+          '${charge.generated ? 'Generated (${charge.generatedStudentCount})' : 'Pending'}',
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 4,
+          children: [
+            IconButton(
+              tooltip: 'Edit',
+              onPressed: busy ? null : () => _openForm(charge),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Generate',
+              onPressed: busy || !charge.isActive
+                  ? null
+                  : () => _confirmGenerate(charge),
+              icon: const Icon(Icons.play_circle_outline),
+            ),
+            IconButton(
+              tooltip: 'View Generated Dues',
+              onPressed: busy
+                  ? null
+                  : () => context.read<AdditionalChargesBloc>().add(
+                      LoadAdditionalChargeDues(charge),
+                    ),
+              icon: const Icon(Icons.people_alt_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: busy ? null : () => _confirmDelete(charge),
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 
   Widget _duesPanel(
     AdditionalChargeEntity charge,
@@ -909,10 +999,7 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
                     onPressed: students.isEmpty || markedCount == 0
                         ? null
                         : unmarkAll,
-                    icon: const Icon(
-                      Icons.check_box_outline_blank,
-                      size: 18,
-                    ),
+                    icon: const Icon(Icons.check_box_outline_blank, size: 18),
                     label: const Text('Unmark All'),
                   ),
                 ],
@@ -933,13 +1020,9 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
                         ),
                         onChanged: (v) => setState(() {
                           if (exclusionMode) {
-                            v == true
-                                ? values.remove(s.id)
-                                : values.add(s.id);
+                            v == true ? values.remove(s.id) : values.add(s.id);
                           } else {
-                            v == true
-                                ? values.add(s.id)
-                                : values.remove(s.id);
+                            v == true ? values.add(s.id) : values.remove(s.id);
                           }
                         }),
                       ),
@@ -952,6 +1035,7 @@ class _ChargeFormDialogState extends State<_ChargeFormDialog> {
       ),
     );
   }
+
   void _save() {
     if (!_key.currentState!.validate()) return;
     if (_scope == AdditionalChargeScope.selectedStudents && _selected.isEmpty) {

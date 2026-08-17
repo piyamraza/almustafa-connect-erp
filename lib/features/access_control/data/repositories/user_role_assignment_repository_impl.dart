@@ -64,7 +64,25 @@ class UserRoleAssignmentRepositoryImpl implements UserRoleAssignmentRepository {
         .collection(FirestorePaths.userRoleAssignments)
         .doc(normalizedUserId)
         .get();
-    if (!document.exists) return const [];
+    if (!document.exists) {
+      // Accounts created by older releases stored assignments under a random
+      // document id. Keep those users working while all new writes remain
+      // canonical at user_roles/{authUid}.
+      final legacySnapshot = await _service
+          .collection(FirestorePaths.userRoleAssignments)
+          .where('userId', isEqualTo: normalizedUserId)
+          .get();
+
+      return legacySnapshot.docs
+          .map(
+            (doc) => UserRoleAssignmentModel.fromMap({
+              ...doc.data(),
+              'id': doc.id,
+            }),
+          )
+          .where((assignment) => assignment.userId == normalizedUserId)
+          .toList(growable: false);
+    }
 
     final assignment = UserRoleAssignmentModel.fromMap({
       ...?document.data(),

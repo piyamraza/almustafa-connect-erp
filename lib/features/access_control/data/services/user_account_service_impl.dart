@@ -114,6 +114,11 @@ class UserAccountServiceImpl implements UserAccountService {
   }
 
   @override
+  Future<void> deleteAccount({required String uid}) async {
+    await _functions.httpsCallable('deleteUserAccount').call({'uid': uid});
+  }
+
+  @override
   Future<void> updateAccount({
     required String uid,
     required String displayName,
@@ -135,14 +140,14 @@ class UserAccountServiceImpl implements UserAccountService {
   @override
   Future<void> updateRole({
     required String uid,
-    required String roleId,
-    required String roleName,
+    required List<String> roleIds,
+    required String primaryRoleId,
     required String branchId,
   }) async {
     await _functions.httpsCallable('updateUserAccountRole').call({
       'uid': uid,
-      'roleId': roleId,
-      'roleName': roleName,
+      'roleIds': roleIds,
+      'primaryRoleId': primaryRoleId,
       'branchId': branchId,
     });
   }

@@ -1,10 +1,11 @@
-﻿enum DocumentType {
+enum DocumentType {
   birthdayCard,
   characterCertificate,
   bonafideCertificate,
   leavingCertificate,
   experienceCertificate,
   meritCertificate,
+  appreciationCertificate,
   resultCard,
   idCard,
   employeeCard,
@@ -22,6 +23,7 @@ extension DocumentTypeX on DocumentType {
       DocumentType.leavingCertificate => 'Leaving Certificate',
       DocumentType.experienceCertificate => 'Experience Certificate',
       DocumentType.meritCertificate => 'Merit Certificate',
+      DocumentType.appreciationCertificate => 'Appreciation Certificate',
       DocumentType.resultCard => 'Result Card',
       DocumentType.idCard => 'ID Card',
       DocumentType.employeeCard => 'Employee Card',

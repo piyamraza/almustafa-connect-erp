@@ -13,8 +13,10 @@ import '../../../staff/presentation/pages/staff_leave_page.dart';
 import '../../../staff/presentation/pages/staff_list_page.dart';
 import '../../../staff/presentation/pages/staff_salary_page.dart';
 import '../../../teacher_portal/presentation/pages/substitute_duty_management_page.dart';
+import '../../../teacher_portal/presentation/pages/teacher_portal_preview_page.dart';
 import '../../../teachers/presentation/pages/teachers_module_page.dart';
 import 'employee_certificates_page.dart';
+import 'teacher_appointment_letters_page.dart';
 
 class EmployeeHrPage extends StatelessWidget {
   const EmployeeHrPage({super.key});
@@ -49,6 +51,24 @@ class EmployeeHrPage extends StatelessWidget {
         color: const Color(0xFF8B5CF6),
         enabled: access.hasPermission(AppPermission.staffView),
         onTap: () => _open(context, const SubstituteDutyManagementPage()),
+      ),
+      _HrAction(
+        title: 'Teacher Portal Preview',
+        subtitle: 'Preview the portal and daily workspace for any teacher',
+        icon: Icons.preview_outlined,
+        color: const Color(0xFF2563EB),
+        enabled:
+            access.hasPermission(AppPermission.teachersView) ||
+            access.hasPermission(AppPermission.staffView),
+        onTap: () => _open(context, const TeacherPortalPreviewPage()),
+      ),
+      _HrAction(
+        title: 'Appointment Letters',
+        subtitle: 'Issue, sign and retain teacher appointment records',
+        icon: Icons.assignment_turned_in_rounded,
+        color: const Color(0xFFE8553D),
+        enabled: access.hasPermission(AppPermission.teachersView),
+        onTap: () => _open(context, const TeacherAppointmentLettersPage()),
       ),
       _HrAction(
         title: 'Employee Documents',

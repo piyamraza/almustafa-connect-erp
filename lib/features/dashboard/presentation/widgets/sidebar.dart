@@ -12,14 +12,13 @@ import '../../../accounts/presentation/pages/accounts_dashboard_page.dart';
 import '../../../academic_calendar/presentation/pages/academic_calendar_page.dart';
 import '../../../academic_structure/presentation/pages/class_section_management_page.dart';
 import '../../../attendance/presentation/pages/attendance_page.dart';
+import '../../../admission_tests/presentation/pages/admission_test_dashboard_page.dart';
 import '../../../communication/presentation/pages/communication_dashboard_page.dart';
 import '../../../documents/presentation/pages/document_center_page.dart';
 import '../../../employee_hr/presentation/pages/employee_hr_page.dart';
-import '../../../exams/presentation/pages/exam_date_sheet_dashboard_page.dart';
 import '../../../exams/presentation/pages/examination_dashboard_page.dart';
 import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
 import '../../../homework/presentation/pages/homework_dashboard_page.dart';
-import '../../../notices/presentation/pages/notices_dashboard_page.dart';
 import '../../../parent_portal/presentation/pages/parent_portal_dashboard_page.dart';
 import '../../../results/presentation/pages/results_module_page.dart';
 import '../../../reports/presentation/pages/reports_dashboard_page.dart';
@@ -278,6 +277,18 @@ class _SidebarState extends State<Sidebar> {
                             page: const StudentsPage(),
                           ),
                         ),
+                      if (_access.hasPermission(AppPermission.studentsView))
+                        _menuTile(
+                          context,
+                          icon: Icons.assignment_ind_outlined,
+                          title: 'Admissions',
+                          onTap: () => _open(
+                            context,
+                            permission: AppPermission.studentsView,
+                            moduleName: 'Admissions',
+                            page: const AdmissionTestDashboardPage(),
+                          ),
+                        ),
                       if (_access.hasPermission(AppPermission.teachersView) ||
                           _access.hasPermission(AppPermission.staffView))
                         _menuTile(
@@ -332,18 +343,6 @@ class _SidebarState extends State<Sidebar> {
                             permission: AppPermission.feesView,
                             moduleName: 'Fee Management',
                             page: const FeeManagementDashboardPage(),
-                          ),
-                        ),
-                      if (_access.hasPermission(AppPermission.dateSheetsView))
-                        _menuTile(
-                          context,
-                          icon: Icons.calendar_month_outlined,
-                          title: 'Date Sheets',
-                          onTap: () => _open(
-                            context,
-                            permission: AppPermission.dateSheetsView,
-                            moduleName: 'Date Sheets',
-                            page: const ExamDateSheetDashboardPage(),
                           ),
                         ),
                       if (_access.hasPermission(AppPermission.examsView))
@@ -417,18 +416,6 @@ class _SidebarState extends State<Sidebar> {
                             permission: AppPermission.noticesView,
                             moduleName: 'Communication',
                             page: const CommunicationDashboardPage(),
-                          ),
-                        ),
-                      if (_access.hasPermission(AppPermission.noticesView))
-                        _menuTile(
-                          context,
-                          icon: Icons.campaign_outlined,
-                          title: 'Notices & Circulars',
-                          onTap: () => _open(
-                            context,
-                            permission: AppPermission.noticesView,
-                            moduleName: 'Notices & Circulars',
-                            page: const NoticesDashboardPage(),
                           ),
                         ),
                       _menuTile(

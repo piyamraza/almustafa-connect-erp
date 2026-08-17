@@ -158,6 +158,9 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
   }
 
   Widget _filters(bool busy) {
+    final compact = MediaQuery.sizeOf(context).width < 650;
+    final fieldWidth = compact ? double.infinity : 190.0;
+    final reportTypeWidth = compact ? double.infinity : 270.0;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -167,7 +170,7 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             SizedBox(
-              width: 190,
+              width: fieldWidth,
               child: TextFormField(
                 controller: _sessionController,
                 decoration: const InputDecoration(
@@ -177,9 +180,10 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
               ),
             ),
             SizedBox(
-              width: 270,
+              width: reportTypeWidth,
               child: DropdownButtonFormField<FeeReportType>(
                 initialValue: _type,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Report Type',
                   border: OutlineInputBorder(),
@@ -201,47 +205,65 @@ class _FeeReportsViewState extends State<_FeeReportsView> {
                       },
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: busy ? null : () => _pickDate(true),
-              icon: const Icon(Icons.date_range),
-              label: Text('From: ${_date(_startDate)}'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: OutlinedButton.icon(
+                onPressed: busy ? null : () => _pickDate(true),
+                icon: const Icon(Icons.date_range),
+                label: Text('From: ${_date(_startDate)}'),
+              ),
             ),
-            OutlinedButton.icon(
-              onPressed: busy ? null : () => _pickDate(false),
-              icon: const Icon(Icons.event),
-              label: Text('To: ${_date(_endDate)}'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: OutlinedButton.icon(
+                onPressed: busy ? null : () => _pickDate(false),
+                icon: const Icon(Icons.event),
+                label: Text('To: ${_date(_endDate)}'),
+              ),
             ),
-            FilledButton.icon(
-              onPressed: busy ? null : _load,
-              icon: const Icon(Icons.analytics_outlined),
-              label: const Text('Load Report'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: FilledButton.icon(
+                onPressed: busy ? null : _load,
+                icon: const Icon(Icons.analytics_outlined),
+                label: const Text('Load Report'),
+              ),
             ),
-            FilledButton.tonalIcon(
-              onPressed: busy
-                  ? null
-                  : () => context.read<FeeReportsBloc>().add(
-                      const PrintLoadedFeeReport(),
-                    ),
-              icon: const Icon(Icons.print_outlined),
-              label: const Text('Print'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: FilledButton.tonalIcon(
+                onPressed: busy
+                    ? null
+                    : () => context.read<FeeReportsBloc>().add(
+                        const PrintLoadedFeeReport(),
+                      ),
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Print'),
+              ),
             ),
-            FilledButton.tonalIcon(
-              onPressed: busy
-                  ? null
-                  : () => context.read<FeeReportsBloc>().add(
-                      const ShareLoadedFeeReport(),
-                    ),
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Share PDF'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: FilledButton.tonalIcon(
+                onPressed: busy
+                    ? null
+                    : () => context.read<FeeReportsBloc>().add(
+                        const ShareLoadedFeeReport(),
+                      ),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Share PDF'),
+              ),
             ),
-            FilledButton.tonalIcon(
-              onPressed: busy
-                  ? null
-                  : () => context.read<FeeReportsBloc>().add(
-                      const ExportLoadedFeeReportExcel(),
-                    ),
-              icon: const Icon(Icons.table_view_outlined),
-              label: const Text('Excel'),
+            SizedBox(
+              width: compact ? double.infinity : null,
+              child: FilledButton.tonalIcon(
+                onPressed: busy
+                    ? null
+                    : () => context.read<FeeReportsBloc>().add(
+                        const ExportLoadedFeeReportExcel(),
+                      ),
+                icon: const Icon(Icons.table_view_outlined),
+                label: const Text('Excel'),
+              ),
             ),
           ],
         ),

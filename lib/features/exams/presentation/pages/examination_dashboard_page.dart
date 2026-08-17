@@ -3,10 +3,12 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:almustafa_connect_erp/core/widgets/app_page_layout.dart';
 
 import 'exams_page.dart';
+import 'exam_date_sheet_dashboard_page.dart';
 import 'marks_entry_page.dart';
 import 'result_summary_page.dart';
 import 'annual_promotion_page.dart';
 import 'question_paper_module_page.dart';
+import '../../../exam_seating/presentation/pages/exam_seating_dashboard_page.dart';
 
 class ExaminationDashboardPage extends StatelessWidget {
   const ExaminationDashboardPage({super.key});
@@ -23,6 +25,18 @@ class ExaminationDashboardPage extends StatelessWidget {
       title: 'Exams',
       description: 'Create and manage examination schedules.',
       icon: Icons.assignment_outlined,
+      isAvailable: true,
+    ),
+    _ExaminationModule(
+      title: 'Date Sheets',
+      description: 'Build, generate, review and publish examination dates.',
+      icon: Icons.calendar_month_outlined,
+      isAvailable: true,
+    ),
+    _ExaminationModule(
+      title: 'Seating & Duty Plans',
+      description: 'Generate room-wise student seating and teacher duties.',
+      icon: Icons.event_seat_outlined,
       isAvailable: true,
     ),
     _ExaminationModule(
@@ -109,9 +123,11 @@ class ExaminationDashboardPage extends StatelessWidget {
   void _openModule(BuildContext context, _ExaminationModule module) {
     final page = switch (module.title) {
       'Exams' => const ExamsPage(),
+      'Date Sheets' => const ExamDateSheetDashboardPage(),
       'Marks Entry' => const MarksEntryPage(),
       'Annual Promotion' => const AnnualPromotionPage(),
       'Question Papers' => const QuestionPaperModulePage(),
+      'Seating & Duty Plans' => const ExamSeatingDashboardPage(),
       _ => const ResultSummaryPage(),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));

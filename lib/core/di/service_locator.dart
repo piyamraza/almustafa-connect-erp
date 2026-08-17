@@ -205,6 +205,17 @@ import '../../features/exams/presentation/bloc/exam_date_sheet_workflow_bloc.dar
 import '../../features/exams/presentation/bloc/exam_date_sheet_report_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_date_sheet_generator_bloc.dart';
 import '../../features/exams/presentation/bloc/exam_date_sheet_bloc.dart';
+import '../../features/exam_seating/data/repositories/exam_seating_repository_impl.dart';
+import '../../features/exam_seating/domain/repositories/exam_seating_repository.dart';
+import '../../features/exam_seating/domain/services/exam_plan_generator.dart';
+import '../../features/exam_seating/presentation/bloc/exam_seating_bloc.dart';
+import '../../features/admission_tests/data/repositories/admission_test_repository_impl.dart';
+import '../../features/admission_tests/domain/repositories/admission_test_repository.dart';
+import '../../features/admission_tests/domain/services/admission_paper_generator.dart';
+import '../../features/admission_tests/presentation/bloc/admission_test_bloc.dart';
+import '../../features/documents/data/repositories/appreciation_certificate_repository_impl.dart';
+import '../../features/documents/domain/repositories/appreciation_certificate_repository.dart';
+import '../../features/documents/presentation/bloc/appreciation_certificate_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_reports_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_document_bloc.dart';
 import '../../features/fees/presentation/bloc/fee_collection_bloc.dart';
@@ -964,6 +975,19 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<ExamDateSheetRepository>(
     () => ExamDateSheetRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<ExamSeatingRepository>(
+    () => ExamSeatingRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<ExamPlanGenerator>(() => const ExamPlanGenerator());
+  sl.registerLazySingleton<AdmissionTestRepository>(
+    () => AdmissionTestRepositoryImpl(sl<FirebaseFirestoreService>()),
+  );
+  sl.registerLazySingleton<AdmissionPaperGenerator>(
+    () => const AdmissionPaperGenerator(),
+  );
+  sl.registerLazySingleton<AppreciationCertificateRepository>(
+    () => AppreciationCertificateRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<FeeReportService>(FeeReportServiceImpl.new);
   sl.registerLazySingleton<FeeDocumentService>(FeeDocumentServiceImpl.new);
@@ -2029,6 +2053,30 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<ExamDateSheetBloc>(
     () => ExamDateSheetBloc(sl<ExamDateSheetRepository>()),
+  );
+  sl.registerFactory<ExamSeatingBloc>(
+    () => ExamSeatingBloc(
+      repository: sl<ExamSeatingRepository>(),
+      examRepository: sl<ExamRepository>(),
+      dateSheetRepository: sl<ExamDateSheetRepository>(),
+      studentRepository: sl<StudentRepository>(),
+      teacherRepository: sl<TeacherRepository>(),
+      generator: sl<ExamPlanGenerator>(),
+    ),
+  );
+  sl.registerFactory<AdmissionTestBloc>(
+    () => AdmissionTestBloc(
+      sl<AdmissionTestRepository>(),
+      sl<AdmissionPaperGenerator>(),
+    ),
+  );
+  sl.registerFactory<AppreciationCertificateBloc>(
+    () => AppreciationCertificateBloc(
+      sl<AppreciationCertificateRepository>(),
+      sl<StudentRepository>(),
+      sl<AcademicStructureRepository>(),
+      sl<GetSchoolSettings>(),
+    ),
   );
   sl.registerFactory<FeeReportsBloc>(
     () => FeeReportsBloc(

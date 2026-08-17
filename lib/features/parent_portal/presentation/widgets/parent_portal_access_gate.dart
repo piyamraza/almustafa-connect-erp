@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../authentication/domain/usecases/logout_usecase.dart';
+import '../../../authentication/presentation/pages/login_page.dart';
 import '../../domain/services/parent_context_service.dart';
 
 class ParentPortalAccessGate extends StatefulWidget {
@@ -55,18 +57,34 @@ class _ParentPortalAccessGateState extends State<ParentPortalAccessGate> {
             _parentContext.errorMessage ??
             'Parent Portal access is not available.',
         onRetry: () => _parentContext.loadCurrentParent(forceRefresh: true),
+        onLogout: _logout,
       );
     }
 
     return widget.builder(context, _parentContext);
   }
+
+  Future<void> _logout() async {
+    await _parentContext.clear();
+    await sl<LogoutUseCase>()();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      (_) => false,
+    );
+  }
 }
 
 class _ParentAccessMessage extends StatelessWidget {
-  const _ParentAccessMessage({required this.message, required this.onRetry});
+  const _ParentAccessMessage({
+    required this.message,
+    required this.onRetry,
+    required this.onLogout,
+  });
 
   final String message;
   final Future<void> Function() onRetry;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +117,12 @@ class _ParentAccessMessage extends StatelessWidget {
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
                   label: const Text('Retry'),
+                ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: onLogout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign Out'),
                 ),
               ],
             ),

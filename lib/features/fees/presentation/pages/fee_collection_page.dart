@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:almustafa_connect_erp/core/widgets/manual_date_picker.dart';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -467,23 +467,15 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
     );
   }
 
-  void _previewReceipt(
-    FeePaymentEntity payment,
-  ) {
+  void _previewReceipt(FeePaymentEntity payment) {
     final student = _selectedStudent;
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => FeeReceiptPreviewPage(
-          request: FeeReceiptDocumentRequest(
-            payment: payment,
-          ),
-          className: student == null
-              ? ''
-              : _className(student),
-          sectionName: student == null
-              ? ''
-              : _sectionName(student),
+          request: FeeReceiptDocumentRequest(payment: payment),
+          className: student == null ? '' : _className(student),
+          sectionName: student == null ? '' : _sectionName(student),
         ),
       ),
     );
@@ -552,6 +544,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
             final totalSelectedOutstanding =
                 selectedOutstanding +
                 _selectedAdditionalOutstanding(payableAdditionalDues);
+            final compact = MediaQuery.sizeOf(context).width < 760;
 
             return Stack(
               children: [
@@ -561,226 +554,252 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                     Expanded(
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: 310,
-                            child: Card(
-                              margin: const EdgeInsets.fromLTRB(12, 10, 10, 12),
-                              clipBehavior: Clip.antiAlias,
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: Column(
-                                      children: [
-                                        DropdownButtonFormField<String>(
-                                          initialValue: _selectedClassId,
-                                          isExpanded: true,
-                                          decoration: const InputDecoration(
-                                            labelText: '1. Select Class',
-                                            prefixIcon: Icon(
-                                              Icons.school_outlined,
-                                            ),
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          items: _classes
-                                              .map(
-                                                (item) => DropdownMenuItem(
-                                                  value: item.id,
-                                                  child: Text(item.name),
-                                                ),
-                                              )
-                                              .toList(),
-                                          onChanged: busy ? null : _selectClass,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        DropdownButtonFormField<String>(
-                                          initialValue:
-                                              _availableSections.any(
-                                                (item) =>
-                                                    item.id ==
-                                                    _selectedSectionId,
-                                              )
-                                              ? _selectedSectionId
-                                              : null,
-                                          isExpanded: true,
-                                          decoration: InputDecoration(
-                                            labelText:
-                                                _availableSections.length == 1
-                                                ? '2. Section'
-                                                : '2. Select Section',
-                                            helperText:
-                                                _availableSections.length == 1
-                                                ? 'Automatically selected'
-                                                : null,
-                                            prefixIcon: const Icon(
-                                              Icons.view_list_outlined,
-                                            ),
-                                            border: const OutlineInputBorder(),
-                                          ),
-                                          items: _availableSections
-                                              .map(
-                                                (item) => DropdownMenuItem(
-                                                  value: item.id,
-                                                  child: Text(item.name),
-                                                ),
-                                              )
-                                              .toList(),
-                                          onChanged:
-                                              busy ||
-                                                  _selectedClassId == null ||
-                                                  _availableSections.length <= 1
-                                              ? null
-                                              : _selectSection,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        TextFormField(
-                                          controller: _searchController,
-                                          enabled: _selectedSectionId != null,
-                                          onChanged: (value) =>
-                                              setState(() => _query = value),
-                                          decoration: const InputDecoration(
-                                            labelText:
-                                                '3. Search selected section',
-                                            prefixIcon: Icon(Icons.search),
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                          if (!compact || _selectedStudent == null)
+                            Flexible(
+                              fit: compact ? FlexFit.tight : FlexFit.loose,
+                              child: SizedBox(
+                                width: compact ? null : 310,
+                                child: Card(
+                                  margin: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    10,
+                                    12,
                                   ),
-                                  Expanded(
-                                    child: _selectedClassId == null
-                                        ? const Center(
-                                            child: Padding(
-                                              padding: EdgeInsets.all(20),
-                                              child: Text(
-                                                'Select a class first.',
-                                                textAlign: TextAlign.center,
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          children: [
+                                            DropdownButtonFormField<String>(
+                                              initialValue: _selectedClassId,
+                                              isExpanded: true,
+                                              decoration: const InputDecoration(
+                                                labelText: '1. Select Class',
+                                                prefixIcon: Icon(
+                                                  Icons.school_outlined,
+                                                ),
+                                                border: OutlineInputBorder(),
                                               ),
-                                            ),
-                                          )
-                                        : _selectedSectionId == null
-                                        ? const Center(
-                                            child: Padding(
-                                              padding: EdgeInsets.all(20),
-                                              child: Text(
-                                                'Now select a section.',
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                          )
-                                        : _visibleStudents.isEmpty
-                                        ? const Center(
-                                            child: Padding(
-                                              padding: EdgeInsets.all(20),
-                                              child: Text(
-                                                'No active students found in this section.',
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                          )
-                                        : ListView.builder(
-                                            itemCount: _visibleStudents.length,
-                                            itemBuilder: (context, index) {
-                                              final student =
-                                                  _visibleStudents[index];
-                                              final name = student.fullName
-                                                  .trim();
-                                              return ListTile(
-                                                dense: true,
-                                                visualDensity:
-                                                    const VisualDensity(
-                                                      vertical: -2,
+                                              items: _classes
+                                                  .map(
+                                                    (item) => DropdownMenuItem(
+                                                      value: item.id,
+                                                      child: Text(item.name),
                                                     ),
-                                                selected:
-                                                    _selectedStudent?.id ==
-                                                    student.id,
-                                                selectedTileColor:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .primaryContainer
-                                                        .withValues(alpha: .35),
-                                                leading: CircleAvatar(
+                                                  )
+                                                  .toList(),
+                                              onChanged: busy
+                                                  ? null
+                                                  : _selectClass,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            DropdownButtonFormField<String>(
+                                              initialValue:
+                                                  _availableSections.any(
+                                                    (item) =>
+                                                        item.id ==
+                                                        _selectedSectionId,
+                                                  )
+                                                  ? _selectedSectionId
+                                                  : null,
+                                              isExpanded: true,
+                                              decoration: InputDecoration(
+                                                labelText:
+                                                    _availableSections.length ==
+                                                        1
+                                                    ? '2. Section'
+                                                    : '2. Select Section',
+                                                helperText:
+                                                    _availableSections.length ==
+                                                        1
+                                                    ? 'Automatically selected'
+                                                    : null,
+                                                prefixIcon: const Icon(
+                                                  Icons.view_list_outlined,
+                                                ),
+                                                border:
+                                                    const OutlineInputBorder(),
+                                              ),
+                                              items: _availableSections
+                                                  .map(
+                                                    (item) => DropdownMenuItem(
+                                                      value: item.id,
+                                                      child: Text(item.name),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                              onChanged:
+                                                  busy ||
+                                                      _selectedClassId ==
+                                                          null ||
+                                                      _availableSections
+                                                              .length <=
+                                                          1
+                                                  ? null
+                                                  : _selectSection,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            TextFormField(
+                                              controller: _searchController,
+                                              enabled:
+                                                  _selectedSectionId != null,
+                                              onChanged: (value) => setState(
+                                                () => _query = value,
+                                              ),
+                                              decoration: const InputDecoration(
+                                                labelText:
+                                                    '3. Search selected section',
+                                                prefixIcon: Icon(Icons.search),
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _selectedClassId == null
+                                            ? const Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(20),
                                                   child: Text(
-                                                    name.isEmpty
-                                                        ? '?'
-                                                        : name[0].toUpperCase(),
+                                                    'Select a class first.',
+                                                    textAlign: TextAlign.center,
                                                   ),
                                                 ),
-                                                title: Text(student.fullName),
-                                                subtitle: Text(
-                                                  '${student.admissionNo}  |  Roll: '
-                                                  '${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
+                                              )
+                                            : _selectedSectionId == null
+                                            ? const Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(20),
+                                                  child: Text(
+                                                    'Now select a section.',
+                                                    textAlign: TextAlign.center,
+                                                  ),
                                                 ),
-                                                trailing:
-                                                    _selectedStudent?.id ==
-                                                        student.id
-                                                    ? const Icon(
-                                                        Icons.check_circle,
-                                                      )
-                                                    : null,
-                                                onTap: busy
-                                                    ? null
-                                                    : () => _selectStudent(
-                                                        student,
+                                              )
+                                            : _visibleStudents.isEmpty
+                                            ? const Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(20),
+                                                  child: Text(
+                                                    'No active students found in this section.',
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              )
+                                            : ListView.builder(
+                                                itemCount:
+                                                    _visibleStudents.length,
+                                                itemBuilder: (context, index) {
+                                                  final student =
+                                                      _visibleStudents[index];
+                                                  final name = student.fullName
+                                                      .trim();
+                                                  return ListTile(
+                                                    dense: true,
+                                                    visualDensity:
+                                                        const VisualDensity(
+                                                          vertical: -2,
+                                                        ),
+                                                    selected:
+                                                        _selectedStudent?.id ==
+                                                        student.id,
+                                                    selectedTileColor:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .primaryContainer
+                                                            .withValues(
+                                                              alpha: .35,
+                                                            ),
+                                                    leading: CircleAvatar(
+                                                      child: Text(
+                                                        name.isEmpty
+                                                            ? '?'
+                                                            : name[0]
+                                                                  .toUpperCase(),
                                                       ),
-                                              );
-                                            },
-                                          ),
+                                                    ),
+                                                    title: Text(
+                                                      student.fullName,
+                                                    ),
+                                                    subtitle: Text(
+                                                      '${student.admissionNo}  |  Roll: '
+                                                      '${student.rollNumber.isEmpty ? '-' : student.rollNumber}',
+                                                    ),
+                                                    trailing:
+                                                        _selectedStudent?.id ==
+                                                            student.id
+                                                        ? const Icon(
+                                                            Icons.check_circle,
+                                                          )
+                                                        : null,
+                                                    onTap: busy
+                                                        ? null
+                                                        : () => _selectStudent(
+                                                            student,
+                                                          ),
+                                                  );
+                                                },
+                                              ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: _selectedStudent == null
-                                ? const Center(
-                                    child: Text(
-                                      'Select a student to collect fee.',
+                          if (!compact || _selectedStudent != null)
+                            Expanded(
+                              child: _selectedStudent == null
+                                  ? const Center(
+                                      child: Text(
+                                        'Select a student to collect fee.',
+                                      ),
+                                    )
+                                  : SingleChildScrollView(
+                                      padding: EdgeInsets.fromLTRB(
+                                        compact ? 12 : 0,
+                                        10,
+                                        12,
+                                        18,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _studentHeader(
+                                            dues,
+                                            additionalDues,
+                                            payments,
+                                            busy,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _duesCard(
+                                            payableDues,
+                                            totalSelectedOutstanding,
+                                            busy,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _additionalDuesCard(
+                                            payableAdditionalDues,
+                                            totalSelectedOutstanding,
+                                            busy,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _paymentForm(
+                                            payableDues,
+                                            totalSelectedOutstanding,
+                                            availableAdvance,
+                                            busy,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _paymentHistory(payments, busy),
+                                        ],
+                                      ),
                                     ),
-                                  )
-                                : SingleChildScrollView(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      0,
-                                      10,
-                                      12,
-                                      18,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _studentHeader(
-                                          dues,
-                                          additionalDues,
-                                          payments,
-                                          busy,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        _duesCard(
-                                          payableDues,
-                                          totalSelectedOutstanding,
-                                          busy,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        _additionalDuesCard(
-                                          payableAdditionalDues,
-                                          totalSelectedOutstanding,
-                                          busy,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        _paymentForm(
-                                          payableDues,
-                                          totalSelectedOutstanding,
-                                          availableAdvance,
-                                          busy,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        _paymentHistory(payments, busy),
-                                      ],
-                                    ),
-                                  ),
-                          ),
+                            ),
                         ],
                       ),
                     ),
@@ -1439,9 +1458,7 @@ class _FeeCollectionViewState extends State<_FeeCollectionView> {
                                     payment.status == FeePaymentStatus.cancelled
                                     ? null
                                     : () => _previewReceipt(payment),
-                                icon: const Icon(
-                                  Icons.visibility_outlined,
-                                ),
+                                icon: const Icon(Icons.visibility_outlined),
                               ),
                               IconButton(
                                 tooltip: 'Print receipt',
@@ -2090,4 +2107,3 @@ class _LedgerDisplayRow {
   final double receivableBalance;
   final double advanceBalance;
 }
-

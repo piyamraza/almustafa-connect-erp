@@ -122,11 +122,17 @@ class _ParentPortalDashboardView extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openParentForm(context),
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Create Parent Account'),
-      ),
+      floatingActionButton: MediaQuery.sizeOf(context).width < 600
+          ? FloatingActionButton(
+              tooltip: 'Create Parent Account',
+              onPressed: () => _openParentForm(context),
+              child: const Icon(Icons.person_add_alt_1_rounded),
+            )
+          : FloatingActionButton.extended(
+              onPressed: () => _openParentForm(context),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Create Parent Account'),
+            ),
       body: BlocConsumer<ParentPortalBloc, ParentPortalState>(
         listener: (context, state) {
           final message = switch (state) {
@@ -171,7 +177,7 @@ class _ParentPortalDashboardView extends StatelessWidget {
           if (compact) {
             return Column(
               children: [
-                SizedBox(height: 170, child: parentList),
+                SizedBox(height: 126, child: parentList),
                 const Divider(height: 1),
                 Expanded(child: dashboard),
               ],
@@ -240,11 +246,11 @@ class _ParentList extends StatelessWidget {
                   ),
                 )
               : ListView.builder(
+                  scrollDirection: compact ? Axis.horizontal : Axis.vertical,
                   itemCount: parents.length,
                   itemBuilder: (context, index) {
                     final parent = parents[index];
-
-                    return ListTile(
+                    final tile = ListTile(
                       dense: compact,
                       selected: selected?.id == parent.id,
                       leading: CircleAvatar(
@@ -261,23 +267,41 @@ class _ParentList extends StatelessWidget {
                             : parent.email,
                       ),
                       onTap: () => onSelect(parent),
-                      trailing: Wrap(
-                        spacing: 0,
-                        children: [
-                          IconButton(
-                            tooltip: 'Edit',
-                            onPressed: () => onEdit(parent),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                          IconButton(
-                            tooltip: 'Delete parent account',
-                            color: Theme.of(context).colorScheme.error,
-                            onPressed: () => onDelete(parent),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
-                      ),
+                      trailing: compact
+                          ? PopupMenuButton<String>(
+                              onSelected: (value) => value == 'edit'
+                                  ? onEdit(parent)
+                                  : onDelete(parent),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete'),
+                                ),
+                              ],
+                            )
+                          : Wrap(
+                              spacing: 0,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Edit',
+                                  onPressed: () => onEdit(parent),
+                                  icon: const Icon(Icons.edit_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete parent account',
+                                  color: Theme.of(context).colorScheme.error,
+                                  onPressed: () => onDelete(parent),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ],
+                            ),
                     );
+                    if (!compact) return tile;
+                    return SizedBox(width: 260, child: Card(child: tile));
                   },
                 ),
         ),
@@ -321,6 +345,7 @@ class _ParentDashboardState extends State<_ParentDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 800;
     final selectedId =
         _selectedStudentId ??
         (widget.students.isEmpty ? null : widget.students.first.id);
@@ -334,13 +359,14 @@ class _ParentDashboardState extends State<_ParentDashboard> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(compact ? 12 : 20),
       children: [
         Text(
           'Welcome, ${widget.parent.fullName}',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: compact ? 23 : null,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -470,18 +496,38 @@ class _PortalModulesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const modules = [
-      ('Attendance', Icons.fact_check_outlined),
-      ('Timetable', Icons.schedule_outlined),
-      ('Homework', Icons.menu_book_outlined),
-      ('Date Sheet', Icons.calendar_month_outlined),
-      ('Results', Icons.grade_outlined),
-      ('Fee Status', Icons.payments_outlined),
-      ('Academic Calendar', Icons.event_outlined),
-      ('Notices', Icons.campaign_outlined),
-      ('Ask Administration', Icons.contact_support_outlined),
-      ('Teacher Remarks', Icons.comment_outlined),
-      ('Timeline', Icons.timeline),
-      ('Medical Alert', Icons.medical_information_outlined),
+      _ParentModule('Attendance', Icons.fact_check_rounded, Color(0xFF2563EB)),
+      _ParentModule('Timetable', Icons.schedule_rounded, Color(0xFF7C3AED)),
+      _ParentModule('Homework', Icons.menu_book_rounded, Color(0xFF059669)),
+      _ParentModule(
+        'Date Sheet',
+        Icons.calendar_month_rounded,
+        Color(0xFFEA580C),
+      ),
+      _ParentModule('Results', Icons.star_rounded, Color(0xFFE11D48)),
+      _ParentModule('Fee Status', Icons.payments_rounded, Color(0xFF0891B2)),
+      _ParentModule(
+        'Academic Calendar',
+        Icons.event_rounded,
+        Color(0xFF4F46E5),
+      ),
+      _ParentModule('Notices', Icons.campaign_rounded, Color(0xFFD97706)),
+      _ParentModule(
+        'Ask Administration',
+        Icons.contact_support_rounded,
+        Color(0xFF0F766E),
+      ),
+      _ParentModule(
+        'Teacher Remarks',
+        Icons.comment_rounded,
+        Color(0xFF9333EA),
+      ),
+      _ParentModule('Timeline', Icons.timeline_rounded, Color(0xFF0284C7)),
+      _ParentModule(
+        'Medical Alert',
+        Icons.medical_information_rounded,
+        Color(0xFFDC2626),
+      ),
     ];
 
     return LayoutBuilder(
@@ -500,7 +546,7 @@ class _PortalModulesGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.55,
+            mainAxisExtent: constraints.maxWidth < 700 ? 108 : 132,
           ),
           itemBuilder: (context, index) {
             final module = modules[index];
@@ -509,7 +555,7 @@ class _PortalModulesGrid extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  if (module.$1 == 'Attendance') {
+                  if (module.title == 'Attendance') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentAttendancePage(student: student),
@@ -518,7 +564,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Homework') {
+                  if (module.title == 'Homework') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentHomeworkPage(student: student),
@@ -527,7 +573,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Results') {
+                  if (module.title == 'Results') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentResultsPage(student: student),
@@ -536,7 +582,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Fee Status') {
+                  if (module.title == 'Fee Status') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentFeePage(student: student),
@@ -545,7 +591,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (['Timetable', 'Date Sheet'].contains(module.$1)) {
+                  if (['Timetable', 'Date Sheet'].contains(module.title)) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) =>
@@ -555,7 +601,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (['Academic Calendar', 'Notices'].contains(module.$1)) {
+                  if (['Academic Calendar', 'Notices'].contains(module.title)) {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => ParentCommunicationDashboardPage(
@@ -569,7 +615,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Ask Administration') {
+                  if (module.title == 'Ask Administration') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) =>
@@ -579,7 +625,7 @@ class _PortalModulesGrid extends StatelessWidget {
                     return;
                   }
 
-                  if (module.$1 == 'Timeline') {
+                  if (module.title == 'Timeline') {
                     Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => TimelinePage(
@@ -593,25 +639,43 @@ class _PortalModulesGrid extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '${module.$1} integration will be connected '
+                        '${module.title} integration will be connected '
                         'in Parent Portal Phase 4.',
                       ),
                     ),
                   );
                 },
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(module.$2),
-                      const Spacer(),
-                      Text(
-                        module.$1,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: module.color,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: module.color.withValues(alpha: .22),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
                     ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(module.icon, color: Colors.white, size: 27),
+                        const SizedBox(height: 8),
+                        Text(
+                          module.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -621,4 +685,12 @@ class _PortalModulesGrid extends StatelessWidget {
       },
     );
   }
+}
+
+class _ParentModule {
+  const _ParentModule(this.title, this.icon, this.color);
+
+  final String title;
+  final IconData icon;
+  final Color color;
 }

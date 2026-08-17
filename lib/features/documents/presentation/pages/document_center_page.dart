@@ -13,6 +13,7 @@ import 'experience_certificate_preview_page.dart';
 import 'employee_card_preview_page.dart';
 import 'salary_slip_preview_page.dart';
 import 'admission_form_preview_page.dart';
+import 'appreciation_certificate_page.dart';
 
 const _pageBackground = Color(0xFFF4F7FC);
 const _brandBlue = Color(0xFF1765E8);
@@ -174,6 +175,15 @@ class _DocumentCenterPageState extends State<DocumentCenterPage> {
                 'Generate official character certificates with school branding.',
             icon: Icons.workspace_premium_outlined,
             status: _DocumentStatus.ready,
+          ),
+          _DocumentCenterItem(
+            type: DocumentType.appreciationCertificate,
+            title: 'Appreciation Certificate',
+            description:
+                'Recognize student projects, achievements, creativity and goals.',
+            icon: Icons.workspace_premium_rounded,
+            status: _DocumentStatus.ready,
+            page: AppreciationCertificatePage(),
           ),
           _DocumentCenterItem(
             type: DocumentType.bonafideCertificate,
@@ -636,6 +646,10 @@ class _DocumentTypeCardState extends State<_DocumentTypeCard> {
 
       case DocumentType.meritCertificate:
         _push(context, const MeritListPage());
+        return;
+
+      case DocumentType.appreciationCertificate:
+        _push(context, const AppreciationCertificatePage());
         return;
 
       case DocumentType.feeChallan:

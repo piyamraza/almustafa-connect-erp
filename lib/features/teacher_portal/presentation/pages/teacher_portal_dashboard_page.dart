@@ -5,7 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/entities/academic_class_entity.dart';
+import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
+import '../../../access_control/data/services/user_account_service_impl.dart';
 import '../../../authentication/domain/usecases/logout_usecase.dart';
 import '../../../authentication/presentation/pages/login_page.dart';
 import '../../../attendance/domain/entities/attendance_entity.dart';
@@ -14,6 +18,8 @@ import '../../../attendance/presentation/pages/mark_attendance_page.dart';
 import '../../../exams/domain/entities/exam_date_sheet_entity.dart';
 import '../../../exams/domain/repositories/exam_date_sheet_repository.dart';
 import '../../../exams/presentation/pages/question_paper_module_page.dart';
+import '../../../exam_seating/domain/entities/exam_seating_entities.dart';
+import '../../../exam_seating/domain/repositories/exam_seating_repository.dart';
 import '../../../homework/domain/entities/homework_entity.dart';
 import '../../../homework/domain/entities/homework_question_entity.dart';
 import '../../../homework/domain/repositories/homework_question_repository.dart';
@@ -37,7 +43,14 @@ import 'teacher_homework_questions_page.dart';
 import 'teacher_leave_duties_page.dart';
 
 class TeacherPortalDashboardPage extends StatefulWidget {
-  const TeacherPortalDashboardPage({super.key});
+  const TeacherPortalDashboardPage({
+    super.key,
+    this.teacherId,
+    this.previewMode = false,
+  });
+
+  final String? teacherId;
+  final bool previewMode;
 
   @override
   State<TeacherPortalDashboardPage> createState() =>
@@ -74,17 +87,26 @@ class _TeacherPortalDashboardPageState
   Future<_TeacherDashboardData> _load() async {
     final access = sl<AccessControlService>();
     final email = access.currentUserEmail?.trim().toLowerCase() ?? '';
-    final teacher = await sl<TeacherRepository>().getTeacherByEmail(email);
+    final repository = sl<TeacherRepository>();
+    final previewTeacherId = widget.teacherId?.trim() ?? '';
+    final linkedTeacherId = previewTeacherId.isNotEmpty
+        ? previewTeacherId
+        : access.assignment?.linkedEntityType == 'teacher'
+        ? access.assignment?.linkedEntityId.trim() ?? ''
+        : '';
+    final teacher = linkedTeacherId.isNotEmpty
+        ? await repository.getTeacherById(linkedTeacherId)
+        : await repository.getTeacherByEmail(email);
     if (teacher == null) {
       throw StateError(
-        'This login is not linked with a teacher profile. Ask Admin to use the same email on the teacher profile.',
+        'This login is not linked with a teacher profile. Ask Admin to select the teacher record in User Accounts.',
       );
     }
 
     final assignments =
         (await sl<TeacherAssignmentRepository>().getAssignmentsForTeacher(
-          teacher.id,
-        ))
+              teacher.id,
+            ))
             .where(
               (item) =>
                   item.teacherId == teacher.id &&
@@ -95,16 +117,16 @@ class _TeacherPortalDashboardPageState
       _loadPart(
         'timetable',
         sl<TimetableRepository>().getTeacherTimetable(
-        branchId: 'main',
-        academicSession: _session,
-        teacherId: teacher.id,
+          branchId: 'main',
+          academicSession: _session,
+          teacherId: teacher.id,
         ),
       ),
       _loadPart(
         'homework',
         sl<HomeworkRepository>().getHomework(
-        academicSession: _session,
-        teacherId: teacher.id,
+          academicSession: _session,
+          teacherId: teacher.id,
         ),
       ),
       _loadPart(
@@ -135,6 +157,9 @@ class _TeacherPortalDashboardPageState
           isRead: false,
         ),
       ),
+      _loadPart('classes', sl<AcademicStructureRepository>().getClasses()),
+      _loadPart('sections', sl<AcademicStructureRepository>().getSections()),
+      _loadPart('exam duties', sl<ExamSeatingRepository>().getPlans()),
     ]);
 
     final students = (results[3] as List<StudentEntity>)
@@ -174,6 +199,20 @@ class _TeacherPortalDashboardPageState
       notices: notices,
       unreadNotifications:
           (results[7] as List<PortalNotificationEntity>).length,
+      classes: results[8] as List<AcademicClassEntity>,
+      sections: results[9] as List<SectionEntity>,
+      todayDuties: (results[10] as List<DailyExamPlanEntity>)
+          .where(
+            (plan) =>
+                plan.status == ExamPlanStatus.finalized &&
+                _sameDay(plan.examDate, DateTime.now()),
+          )
+          .expand(
+            (plan) => plan.teacherAssignments
+                .where((duty) => duty.teacherId == teacher.id)
+                .map((duty) => _TodayTeacherDuty(plan: plan, duty: duty)),
+          )
+          .toList(),
     );
   }
 
@@ -207,13 +246,16 @@ class _TeacherPortalDashboardPageState
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF4F7FC),
     appBar: AppBar(
-      title: const Text('My Teaching'),
+      title: Text(
+        widget.previewMode ? 'Teacher Portal Preview' : 'My Teaching',
+      ),
       actions: [
-        IconButton(
-          onPressed: _logout,
-          tooltip: 'Logout',
-          icon: const Icon(Icons.logout),
-        ),
+        if (!widget.previewMode)
+          IconButton(
+            onPressed: _logout,
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout),
+          ),
       ],
     ),
     body: FutureBuilder<_TeacherDashboardData>(
@@ -252,8 +294,6 @@ class _TeacherPortalDashboardPageState
             children: [
               _header(context, data),
               const SizedBox(height: 12),
-              _summary(data),
-              const SizedBox(height: 12),
               _actions(context, data),
               const SizedBox(height: 12),
               _section(
@@ -279,34 +319,15 @@ class _TeacherPortalDashboardPageState
                 'Assigned Classes & Subjects',
                 data.assignments.isEmpty
                     ? const [Text('No active teaching assignment found.')]
-                    : data.assignments
-                          .map(
-                            (item) => ListTile(
-                              leading: const Icon(Icons.class_outlined),
-                              title: Text('${item.classId}-${item.sectionId}'),
-                              subtitle: Text(item.subject),
-                            ),
-                          )
-                          .toList(),
+                    : [_assignedClassesTable(data)],
               ),
               const SizedBox(height: 12),
               _section(
                 context,
-                'Upcoming Exams & Duties',
-                data.upcomingPapers.isEmpty
-                    ? const [Text('No upcoming assigned paper.')]
-                    : data.upcomingPapers
-                          .take(5)
-                          .map(
-                            (item) => ListTile(
-                              leading: const Icon(Icons.event_note_outlined),
-                              title: Text(
-                                '${item.className}-${item.sectionName} • ${item.subjectName}',
-                              ),
-                              subtitle: Text(_date(item.examDate)),
-                            ),
-                          )
-                          .toList(),
+                'Today’s Duty',
+                data.todayDuties.isEmpty
+                    ? const [Text('No examination duty assigned for today.')]
+                    : data.todayDuties.map(_dutyTile).toList(),
               ),
               const SizedBox(height: 12),
               _section(
@@ -384,109 +405,203 @@ class _TeacherPortalDashboardPageState
     ),
   );
 
-  Widget _summary(_TeacherDashboardData data) {
-    final values = [
-      ('Today', '${data.todayTimetable.length}', Icons.schedule),
-      ('Students', '${data.students.length}', Icons.groups_outlined),
-      ('Attendance', data.attendanceLabel, Icons.fact_check_outlined),
-      ('Questions', '${data.pendingQuestions}', Icons.help_outline),
-    ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: values.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: .92,
+  Widget _actions(BuildContext context, _TeacherDashboardData data) {
+    final actions = [
+      _TeacherAction(
+        'Mark Attendance',
+        Icons.how_to_reg_rounded,
+        const Color(0xFF2563EB),
+        () => _showAttendanceClasses(data),
       ),
-      itemBuilder: (context, index) {
-        final item = values[index];
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(7),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(item.$3, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  item.$2,
-                  maxLines: 1,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  item.$1,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ],
+      _TeacherAction(
+        'Question Papers',
+        Icons.quiz_rounded,
+        const Color(0xFF7C3AED),
+        () => _open(
+          context,
+          QuestionPaperModulePage(teacherAssignments: data.assignments),
+        ),
+      ),
+      _TeacherAction(
+        'Homework & Syllabus',
+        Icons.menu_book_rounded,
+        const Color(0xFF0F9D76),
+        () => _open(context, HomeworkDashboardPage(teacherId: data.teacher.id)),
+      ),
+      _TeacherAction(
+        'Parent Questions (${data.pendingQuestions})',
+        Icons.question_answer_rounded,
+        const Color(0xFFF59E0B),
+        () =>
+            _open(context, TeacherHomeworkQuestionsPage(teacher: data.teacher)),
+      ),
+      _TeacherAction(
+        'Leave Status',
+        Icons.event_busy_rounded,
+        const Color(0xFFE14D5A),
+        () => _open(context, const TeacherLeaveDutiesPage()),
+      ),
+      _TeacherAction(
+        'Admin Chat',
+        Icons.forum_rounded,
+        const Color(0xFF0891B2),
+        () => _openTeacherChat(data),
+      ),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: LayoutBuilder(
+          builder: (context, constraints) => GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: actions.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: constraints.maxWidth >= 1050
+                  ? 6
+                  : constraints.maxWidth >= 600
+                  ? 3
+                  : 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 122,
             ),
+            itemBuilder: (_, index) => _TeacherActionCard(actions[index]),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _actions(BuildContext context, _TeacherDashboardData data) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final assignment in data.uniqueClassSections)
-            FilledButton.tonalIcon(
-              onPressed: () => _open(
-                context,
-                MarkAttendancePage(
-                  classId: assignment.classId,
-                  sectionId: assignment.sectionId,
-                  teacherMode: true,
+  Future<void> _showAttendanceClasses(_TeacherDashboardData data) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mark Attendance'),
+        content: SizedBox(
+          width: 520,
+          child: data.uniqueClassSections.isEmpty
+              ? const Text('No assigned class or section found.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: data.uniqueClassSections.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final assignment = data.uniqueClassSections[index];
+                    return ListTile(
+                      leading: const Icon(Icons.class_rounded),
+                      title: Text(data.classSectionLabel(assignment)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        _open(
+                          context,
+                          MarkAttendancePage(
+                            classId: assignment.classId,
+                            sectionId: assignment.sectionId,
+                            teacherMode: true,
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ),
-              icon: const Icon(Icons.how_to_reg_outlined),
-              label: Text(
-                'Attendance ${assignment.classId}-${assignment.sectionId}',
-              ),
-            ),
-          FilledButton.tonalIcon(
-            onPressed: () => _open(
-              context,
-              QuestionPaperModulePage(teacherAssignments: data.assignments),
-            ),
-            icon: const Icon(Icons.quiz_outlined),
-            label: const Text('Question Papers'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: () => _open(
-              context,
-              HomeworkDashboardPage(teacherId: data.teacher.id),
-            ),
-            icon: const Icon(Icons.menu_book_outlined),
-            label: const Text('Homework & Syllabus'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: () => _open(
-              context,
-              TeacherHomeworkQuestionsPage(teacher: data.teacher),
-            ),
-            icon: const Icon(Icons.question_answer_outlined),
-            label: Text('Parent Questions (${data.pendingQuestions})'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: () => _open(context, const TeacherLeaveDutiesPage()),
-            icon: const Icon(Icons.event_busy_outlined),
-            label: const Text('Leave Status'),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: () => _open(context, const InAppChatPage()),
-            icon: const Icon(Icons.forum_outlined),
-            label: const Text('Admin Chat'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openTeacherChat(_TeacherDashboardData data) async {
+    if (!widget.previewMode) {
+      _open(context, const InAppChatPage(teacherMode: true));
+      return;
+    }
+    try {
+      final accounts = await UserAccountServiceImpl().listChatParticipants();
+      final matches = accounts.where(
+        (account) =>
+            account.isActive &&
+            !account.disabled &&
+            account.linkedEntityType.toLowerCase() == 'teacher' &&
+            account.linkedEntityId == data.teacher.id,
+      );
+      if (!mounted) return;
+      if (matches.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This teacher does not have a linked active user account.',
+            ),
+          ),
+        );
+        return;
+      }
+      _open(
+        context,
+        InAppChatPage(
+          userIdOverride: matches.first.uid,
+          userNameOverride: data.teacher.fullName,
+          teacherMode: true,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Teacher chat could not be opened: $error')),
+      );
+    }
+  }
+
+  Widget _assignedClassesTable(_TeacherDashboardData data) => Table(
+    border: TableBorder.all(color: const Color(0xFFD7E0EE)),
+    columnWidths: const {0: FlexColumnWidth(1.2), 1: FlexColumnWidth(2.8)},
+    children: [
+      _tableRow('Class / Section', 'Subjects', header: true),
+      for (final row in data.assignedClassRows)
+        _tableRow(row.$1, row.$2.join(', ')),
+    ],
+  );
+
+  TableRow _tableRow(String first, String second, {bool header = false}) =>
+      TableRow(
+        decoration: BoxDecoration(
+          color: header ? const Color(0xFFE8F0FF) : Colors.white,
+        ),
+        children: [
+          for (final value in [first, second])
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontWeight: header ? FontWeight.w800 : FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      );
+
+  static Widget _dutyTile(_TodayTeacherDuty item) => ListTile(
+    leading: const Icon(Icons.meeting_room_rounded, color: Color(0xFF2563EB)),
+    title: Text(
+      item.duty.isRest
+          ? 'Rest Day'
+          : item.duty.roomName.isEmpty
+          ? 'Paper Support'
+          : item.duty.roomName,
+    ),
+    subtitle: Text(
+      '${item.duty.isRest
+          ? 'Rest'
+          : item.duty.isPaperSupport
+          ? 'Paper Support'
+          : 'Invigilator'} • ${item.plan.sessionLabel}',
     ),
   );
 
@@ -520,9 +635,10 @@ class _TeacherPortalDashboardPageState
   static bool _sameText(String a, String b) =>
       a.trim().toLowerCase() == b.trim().toLowerCase();
 
-  static String _date(DateTime value) =>
-      '${value.day.toString().padLeft(2, '0')}/'
-      '${value.month.toString().padLeft(2, '0')}/${value.year}';
+  static bool _sameDay(DateTime first, DateTime second) =>
+      first.year == second.year &&
+      first.month == second.month &&
+      first.day == second.day;
 }
 
 class _TeacherDashboardData {
@@ -537,6 +653,9 @@ class _TeacherDashboardData {
     required this.examPapers,
     required this.notices,
     required this.unreadNotifications,
+    required this.classes,
+    required this.sections,
+    required this.todayDuties,
   });
 
   final TeacherEntity teacher;
@@ -549,6 +668,57 @@ class _TeacherDashboardData {
   final List<ExamDateSheetPaperEntity> examPapers;
   final List<NoticeEntity> notices;
   final int unreadNotifications;
+  final List<AcademicClassEntity> classes;
+  final List<SectionEntity> sections;
+  final List<_TodayTeacherDuty> todayDuties;
+
+  String classSectionLabel(TeacherAssignmentEntity assignment) {
+    final academicClass = classes.where((item) {
+      return _same(item.id, assignment.classId) ||
+          _same(item.name, assignment.classId);
+    }).firstOrNull;
+    final section = sections.where((item) {
+      final belongsToClass =
+          academicClass == null ||
+          _same(item.classId, academicClass.id) ||
+          _same(item.classId, assignment.classId);
+      return belongsToClass &&
+          (_same(item.id, assignment.sectionId) ||
+              _same(item.name, assignment.sectionId));
+    }).firstOrNull;
+    final rawClass = academicClass?.name ?? assignment.classId;
+    final className = RegExp(r'^\d+$').hasMatch(rawClass.trim())
+        ? 'Class ${rawClass.trim()}'
+        : rawClass.trim();
+    final sectionName = (section?.name ?? assignment.sectionId).trim();
+    return [
+      className,
+      sectionName,
+    ].where((value) => value.isNotEmpty).join(' - ');
+  }
+
+  static bool _same(String first, String second) =>
+      first.trim().toLowerCase() == second.trim().toLowerCase();
+
+  List<(String, List<String>)> get assignedClassRows {
+    final grouped = <String, Set<String>>{};
+    for (final assignment in assignments) {
+      grouped
+          .putIfAbsent(classSectionLabel(assignment), () => <String>{})
+          .add(assignment.subject.trim());
+    }
+    final rows =
+        grouped.entries
+            .map(
+              (entry) => (
+                entry.key,
+                entry.value.where((e) => e.isNotEmpty).toList()..sort(),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.$1.compareTo(b.$1));
+    return rows;
+  }
 
   List<ClassTimetableEntryEntity> get todayTimetable {
     final values =
@@ -586,6 +756,63 @@ class _TeacherDashboardData {
   }
 }
 
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
+class _TodayTeacherDuty {
+  const _TodayTeacherDuty({required this.plan, required this.duty});
+
+  final DailyExamPlanEntity plan;
+  final TeacherDutyAssignmentEntity duty;
+}
+
+class _TeacherAction {
+  const _TeacherAction(this.label, this.icon, this.color, this.onTap);
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+}
+
+class _TeacherActionCard extends StatelessWidget {
+  const _TeacherActionCard(this.action);
+
+  final _TeacherAction action;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(16),
+    onTap: action.onTap,
+    child: Ink(
+      decoration: BoxDecoration(
+        color: action.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: action.color.withValues(alpha: .24),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(action.icon, color: Colors.white, size: 34),
+            const SizedBox(height: 9),
+            Text(
+              action.label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

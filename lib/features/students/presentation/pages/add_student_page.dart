@@ -470,15 +470,11 @@ class _AddStudentPageState extends State<AddStudentPage> {
     final admissionNo = _admissionNoController.text.trim().isEmpty
         ? 'ADM-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch}'
         : _admissionNoController.text.trim();
-    String imageUrl =
-    widget.isEdit ? widget.student!.profileImageUrl : '';
+    String imageUrl = widget.isEdit ? widget.student!.profileImageUrl : '';
 
-if (_imageBytes != null) {
-  imageUrl = await _repository.uploadStudentPhoto(
-    studentId,
-    _imageBytes!,
-  );
-}
+    if (_imageBytes != null) {
+      imageUrl = await _repository.uploadStudentPhoto(studentId, _imageBytes!);
+    }
     if (!mounted) return;
     final student = StudentEntity(
       id: studentId,
@@ -732,12 +728,36 @@ if (_imageBytes != null) {
                         children: [
                           CircleAvatar(
                             radius: 55,
-                            backgroundImage: _imageBytes != null
-                                ? MemoryImage(_imageBytes!)
-                                : null,
-                            child: _imageBytes == null
-                                ? const Icon(Icons.person, size: 55)
-                                : null,
+                            backgroundColor: const Color(0xFFDCE5FF),
+                            child: ClipOval(
+                              child: _imageBytes != null
+                                  ? Image.memory(
+                                      _imageBytes!,
+                                      width: 110,
+                                      height: 110,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : widget.student?.profileImageUrl
+                                            .trim()
+                                            .isNotEmpty ==
+                                        true
+                                  ? Image.network(
+                                      widget.student!.profileImageUrl.trim(),
+                                      width: 110,
+                                      height: 110,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const Icon(
+                                        Icons.person_rounded,
+                                        size: 55,
+                                        color: Color(0xFF1769E8),
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.person_rounded,
+                                      size: 55,
+                                      color: Color(0xFF1769E8),
+                                    ),
+                            ),
                           ),
 
                           Positioned(

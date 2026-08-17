@@ -66,7 +66,12 @@ class StudentModel extends StudentEntity {
       bloodGroup: map['bloodGroup'] ?? '',
       medicalAllergies: map['medicalAllergies'] ?? '',
       address: map['address'] ?? '',
-      profileImageUrl: map['profileImageUrl'] ?? '',
+      profileImageUrl:
+          map['profileImageUrl'] ??
+          map['photoUrl'] ??
+          map['imageUrl'] ??
+          map['studentPhotoUrl'] ??
+          '',
       isActive: map['isActive'] ?? true,
       status: _status(map),
       createdAt: DateTime.parse(map['createdAt']),

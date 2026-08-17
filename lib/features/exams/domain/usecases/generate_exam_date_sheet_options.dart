@@ -102,10 +102,7 @@ class GenerateExamDateSheetOptions {
             continue;
           }
 
-          final examSubjects = _expandForExamination(
-            subject,
-            components,
-          );
+          final examSubjects = _expandForExamination(subject, components);
 
           for (final examSubject in examSubjects) {
             tasks.add(
@@ -184,7 +181,7 @@ class GenerateExamDateSheetOptions {
     }
 
     final classDateUsage = <String>{};
-    final teacherDateUsage = <String>{};
+    final teacherDateUsage = <String, int>{};
     final papers = <ExamDateSheetPaperEntity>[];
 
     var groupIndex = 0;
@@ -212,14 +209,46 @@ class GenerateExamDateSheetOptions {
           final teacherKey = '${task.assignment.teacherId}|$dateKey';
 
           if (classDateUsage.contains(classKey) ||
-              teacherDateUsage.contains(teacherKey)) {
+              (teacherDateUsage[teacherKey] ?? 0) > 0) {
             continue;
           }
 
           selectedDate = date;
           classDateUsage.add(classKey);
-          teacherDateUsage.add(teacherKey);
+          teacherDateUsage[teacherKey] =
+              (teacherDateUsage[teacherKey] ?? 0) + 1;
           break;
+        }
+
+        // A teacher clash is a preference, not a hard constraint. If every
+        // conflict-free date is exhausted, keep the class paper and place it
+        // on the available date carrying the fewest duties for that teacher.
+        if (selectedDate == null) {
+          final fallbackDates =
+              dateOrder.where((date) {
+                final classKey =
+                    '${task.academicClass.id}|${task.section.id}|${_dateKey(date)}';
+                return !classDateUsage.contains(classKey);
+              }).toList()..sort((first, second) {
+                final firstUsage =
+                    teacherDateUsage['${task.assignment.teacherId}|${_dateKey(first)}'] ??
+                    0;
+                final secondUsage =
+                    teacherDateUsage['${task.assignment.teacherId}|${_dateKey(second)}'] ??
+                    0;
+                return firstUsage.compareTo(secondUsage);
+              });
+
+          if (fallbackDates.isNotEmpty) {
+            selectedDate = fallbackDates.first;
+            final dateKey = _dateKey(selectedDate);
+            final classKey =
+                '${task.academicClass.id}|${task.section.id}|$dateKey';
+            final teacherKey = '${task.assignment.teacherId}|$dateKey';
+            classDateUsage.add(classKey);
+            teacherDateUsage[teacherKey] =
+                (teacherDateUsage[teacherKey] ?? 0) + 1;
+          }
         }
 
         if (selectedDate == null) {
@@ -351,17 +380,17 @@ class GenerateExamDateSheetOptions {
       return [subject];
     }
 
-    final active = components
-        .where(
-          (component) =>
-              component.isActive &&
-              component.parentSubjectId == subject.id,
-        )
-        .toList()
-      ..sort(
-        (first, second) =>
-            first.displayOrder.compareTo(second.displayOrder),
-      );
+    final active =
+        components
+            .where(
+              (component) =>
+                  component.isActive && component.parentSubjectId == subject.id,
+            )
+            .toList()
+          ..sort(
+            (first, second) =>
+                first.displayOrder.compareTo(second.displayOrder),
+          );
 
     if (active.isEmpty) {
       return [subject];
@@ -371,10 +400,7 @@ class GenerateExamDateSheetOptions {
         .map(
           (component) => subject.copyWith(
             id: _componentSubjectId(subject, component),
-            name: _componentDisplayName(
-              subject.name,
-              component.componentName,
-            ),
+            name: _componentDisplayName(subject.name, component.componentName),
           ),
         )
         .toList(growable: false);
@@ -392,10 +418,7 @@ class GenerateExamDateSheetOptions {
     return 'cmp::${parent.id}::$encodedParent::$reportFlag::${component.id}';
   }
 
-  String _componentDisplayName(
-    String parentName,
-    String componentName,
-  ) {
+  String _componentDisplayName(String parentName, String componentName) {
     final parent = parentName.trim();
     final component = componentName.trim();
 
@@ -412,6 +435,7 @@ class GenerateExamDateSheetOptions {
 
     return '$parent $component';
   }
+
   List<AcademicSubjectEntity> _subjectsFor(
     List<AcademicSubjectEntity> subjects,
     String classId,

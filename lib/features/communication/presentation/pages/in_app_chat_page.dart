@@ -51,25 +51,54 @@ Future<void> _confirmRemoveConversation(
 }
 
 class InAppChatPage extends StatelessWidget {
-  const InAppChatPage({super.key, this.initialThreadId});
+  const InAppChatPage({
+    super.key,
+    this.initialThreadId,
+    this.userIdOverride,
+    this.userNameOverride,
+    this.teacherMode = false,
+  });
 
   final String? initialThreadId;
+  final String? userIdOverride;
+  final String? userNameOverride;
+  final bool teacherMode;
 
   @override
   Widget build(BuildContext context) {
     final user = sl<GetCurrentUserUseCase>()();
+    final userId = userIdOverride?.trim().isNotEmpty == true
+        ? userIdOverride!.trim()
+        : user?.uid ?? '';
 
     return BlocProvider(
-      create: (_) => sl<ChatBloc>()..add(LoadChatThreads(user?.uid ?? '')),
-      child: _InAppChatView(initialThreadId: initialThreadId),
+      create: (_) => sl<ChatBloc>()..add(LoadChatThreads(userId)),
+      child: _InAppChatView(
+        initialThreadId: initialThreadId,
+        userId: userId,
+        userName: userNameOverride?.trim().isNotEmpty == true
+            ? userNameOverride!.trim()
+            : user?.displayName?.trim().isNotEmpty == true
+            ? user!.displayName!.trim()
+            : 'Current User',
+        teacherMode: teacherMode,
+      ),
     );
   }
 }
 
 class _InAppChatView extends StatefulWidget {
-  const _InAppChatView({this.initialThreadId});
+  const _InAppChatView({
+    this.initialThreadId,
+    required this.userId,
+    required this.userName,
+    required this.teacherMode,
+  });
 
   final String? initialThreadId;
+  final String userId;
+  final String userName;
+  final bool teacherMode;
 
   @override
   State<_InAppChatView> createState() => _InAppChatViewState();
@@ -125,11 +154,10 @@ class _InAppChatViewState extends State<_InAppChatView> {
           );
           if (matches.isNotEmpty) {
             final thread = matches.first;
-            final user = sl<GetCurrentUserUseCase>()();
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               context.read<ChatBloc>().add(
-                OpenChatThread(thread: thread, userId: user?.uid ?? ''),
+                OpenChatThread(thread: thread, userId: widget.userId),
               );
             });
           } else {
@@ -180,11 +208,10 @@ class _InAppChatViewState extends State<_InAppChatView> {
                           tooltip: 'Conversation options',
                           onSelected: (value) {
                             if (value == 'remove') {
-                              final user = sl<GetCurrentUserUseCase>()();
                               _confirmRemoveConversation(
                                 context,
                                 threadId: thread.id,
-                                userId: user?.uid ?? '',
+                                userId: widget.userId,
                               );
                             }
                           },
@@ -202,12 +229,10 @@ class _InAppChatViewState extends State<_InAppChatView> {
                           ],
                         ),
                         onTap: () {
-                          final user = sl<GetCurrentUserUseCase>()();
-
                           context.read<ChatBloc>().add(
                             OpenChatThread(
                               thread: thread,
-                              userId: user?.uid ?? '',
+                              userId: widget.userId,
                             ),
                           );
                         },
@@ -221,8 +246,7 @@ class _InAppChatViewState extends State<_InAppChatView> {
   }
 
   Future<void> _createThread(BuildContext context) async {
-    final currentUser = sl<GetCurrentUserUseCase>()();
-    final currentUserId = currentUser?.uid ?? '';
+    final currentUserId = widget.userId;
     List<UserAccountEntity> accounts;
 
     try {
@@ -234,7 +258,9 @@ class _InAppChatViewState extends State<_InAppChatView> {
                 account.uid != currentUserId &&
                 account.isActive &&
                 !account.disabled &&
-                _isInternalChatRole(account.roleName),
+                (widget.teacherMode
+                    ? account.roleName.toLowerCase().contains('admin')
+                    : _isInternalChatRole(account.roleName)),
           )
           .toList();
     } catch (error) {
@@ -440,9 +466,7 @@ class _InAppChatViewState extends State<_InAppChatView> {
             type: ChatThreadType.adminTeacher,
             participantIds: [currentUserId, participant.uid],
             participantNames: {
-              currentUserId: currentUser?.displayName?.trim().isNotEmpty == true
-                  ? currentUser!.displayName!.trim()
-                  : 'Current User',
+              currentUserId: widget.userName,
               participant.uid: participantName,
             },
             createdBy: currentUserId,

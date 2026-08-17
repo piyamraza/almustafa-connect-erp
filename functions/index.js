@@ -202,6 +202,33 @@ function clean(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const linkedCollections = {
+  parent: "parent_accounts",
+  teacher: "teachers",
+  staff: "employees",
+  student: "students",
+};
+
+async function validateLinkedRecord(type, id, roleId) {
+  const portalRole = ["parent", "teacher", "student"].includes(roleId);
+  if (portalRole && (!type || !id)) {
+    throw new HttpsError(
+        "failed-precondition",
+        `${roleId} accounts must be linked to their ${roleId} record.`,
+    );
+  }
+  if (!type && !id) return null;
+  const collection = linkedCollections[type];
+  if (!collection || !id) {
+    throw new HttpsError("invalid-argument", "Select a valid linked record.");
+  }
+  const reference = db.collection(collection).doc(id);
+  if (!(await reference.get()).exists) {
+    throw new HttpsError("not-found", "The linked record was not found.");
+  }
+  return reference;
+}
+
 function normaliseLogin(value) {
   const login = clean(value).toLowerCase();
   if (!login) {
@@ -386,6 +413,12 @@ exports.createUserAccount = onCall(async (request) => {
     throw new HttpsError("failed-precondition", "Selected role is not active.");
   }
 
+  const linkedReference = await validateLinkedRecord(
+      linkedEntityType,
+      linkedEntityId,
+      roleId,
+  );
+
   let userRecord;
 
   try {
@@ -432,6 +465,12 @@ exports.createUserAccount = onCall(async (request) => {
       createdAt: now,
       updatedAt: now,
     });
+    if (linkedReference) {
+      await linkedReference.set({
+        userId: userRecord.uid,
+        updatedAt: now,
+      }, {merge: true});
+    }
   } catch (error) {
     await auth.deleteUser(userRecord.uid);
     throw new HttpsError(
@@ -478,6 +517,10 @@ exports.listUserAccounts = onCall(async (request) => {
       emailVerified: user.emailVerified,
       roleId: roleData.roleId || "",
       roleName: roleData.roleName || "Not Assigned",
+      roleIds: Array.isArray(roleData.roleIds) && roleData.roleIds.length ?
+        roleData.roleIds : (roleData.roleId ? [roleData.roleId] : []),
+      roleNames: Array.isArray(roleData.roleNames) && roleData.roleNames.length ?
+        roleData.roleNames : (roleData.roleName ? [roleData.roleName] : []),
       branchId: roleData.branchId || "main",
       linkedEntityType: roleData.linkedEntityType || "",
       linkedEntityId: roleData.linkedEntityId || "",
@@ -580,6 +623,30 @@ exports.setUserAccountDisabled = onCall(async (request) => {
   };
 });
 
+exports.deleteUserAccount = onCall(async (request) => {
+  const caller = await requireUserManagementPermission(request);
+  const uid = clean(request.data?.uid);
+
+  if (!uid) {
+    throw new HttpsError("invalid-argument", "User UID is required.");
+  }
+  if (uid === caller.callerUid) {
+    throw new HttpsError(
+        "failed-precondition",
+        "You cannot delete your own logged-in account.",
+    );
+  }
+
+  try {
+    await auth.deleteUser(uid);
+  } catch (error) {
+    if (error.code !== "auth/user-not-found") throw error;
+  }
+  await db.collection("user_roles").doc(uid).delete();
+
+  return {uid, deleted: true};
+});
+
 exports.updateUserAccount = onCall(async (request) => {
   await requireUserManagementPermission(request);
 
@@ -600,6 +667,20 @@ exports.updateUserAccount = onCall(async (request) => {
         "User UID and display name are required.",
     );
   }
+
+  const assignmentRef = db.collection("user_roles").doc(uid);
+  const assignmentSnapshot = await assignmentRef.get();
+  if (!assignmentSnapshot.exists) {
+    throw new HttpsError("not-found", "User role assignment was not found.");
+  }
+  const assignment = assignmentSnapshot.data() || {};
+  const roleId = clean(assignment.roleId) ||
+    (Array.isArray(assignment.roleIds) ? clean(assignment.roleIds[0]) : "");
+  const linkedReference = await validateLinkedRecord(
+      linkedEntityType,
+      linkedEntityId,
+      roleId,
+  );
 
   let user;
   try {
@@ -626,7 +707,7 @@ exports.updateUserAccount = onCall(async (request) => {
     throw error;
   }
 
-  await db.collection("user_roles").doc(uid).set({
+  await assignmentRef.set({
     userId: uid,
     userName: displayName,
     email: user.email || loginEmail,
@@ -636,6 +717,13 @@ exports.updateUserAccount = onCall(async (request) => {
     linkedEntityId,
     updatedAt: FieldValue.serverTimestamp(),
   }, {merge: true});
+
+  if (linkedReference) {
+    await linkedReference.set({
+      userId: uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+  }
 
   return {
     uid,
@@ -649,20 +737,33 @@ exports.updateUserAccountRole = onCall(async (request) => {
   await requireUserManagementPermission(request);
 
   const uid = clean(request.data?.uid);
-  const roleId = clean(request.data?.roleId);
+  const requestedRoleIds = Array.isArray(request.data?.roleIds) ?
+    request.data.roleIds.map(clean).filter(Boolean) : [];
+  const primaryRoleId = clean(request.data?.primaryRoleId) ||
+    clean(request.data?.roleId);
+  const roleIds = [...new Set([
+    primaryRoleId,
+    ...requestedRoleIds,
+  ].filter(Boolean))];
   const branchId = clean(request.data?.branchId) || "main";
 
-  if (!uid || !roleId) {
+  if (!uid || !primaryRoleId || roleIds.length === 0) {
     throw new HttpsError(
         "invalid-argument",
         "User UID and role are required.",
     );
   }
 
-  const roleSnapshot = await db.collection("app_roles").doc(roleId).get();
-  if (!roleSnapshot.exists || roleSnapshot.data().isActive !== true) {
-    throw new HttpsError("failed-precondition", "Selected role is not active.");
+  const roleSnapshots = await Promise.all(roleIds.map((roleId) =>
+    db.collection("app_roles").doc(roleId).get()));
+  if (roleSnapshots.some((role) =>
+    !role.exists || role.data().isActive !== true)) {
+    throw new HttpsError("failed-precondition", "One or more selected roles are not active.");
   }
+  const roleNames = roleSnapshots.map((role) => role.data().name || role.id);
+  const permissions = [...new Set(roleSnapshots.flatMap((role) =>
+    Array.isArray(role.data().permissions) ? role.data().permissions : []))];
+  const primaryIndex = roleIds.indexOf(primaryRoleId);
 
   const user = await auth.getUser(uid);
 
@@ -670,8 +771,11 @@ exports.updateUserAccountRole = onCall(async (request) => {
     userId: uid,
     userName: user.displayName || "",
     email: user.email || "",
-    roleId,
-    roleName: roleSnapshot.data().name || roleId,
+    roleId: primaryRoleId,
+    roleName: roleNames[primaryIndex],
+    roleIds,
+    roleNames,
+    permissions,
     branchId,
     isActive: !user.disabled,
     updatedAt: FieldValue.serverTimestamp(),
@@ -679,8 +783,10 @@ exports.updateUserAccountRole = onCall(async (request) => {
 
   return {
     uid,
-    roleId,
-    roleName: roleSnapshot.data().name || roleId,
+    roleId: primaryRoleId,
+    roleName: roleNames[primaryIndex],
+    roleIds,
+    roleNames,
   };
 });
 

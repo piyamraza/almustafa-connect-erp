@@ -16,6 +16,8 @@ import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../teachers/domain/entities/teacher_assignment_entity.dart';
 import '../../../teachers/domain/repositories/teacher_assignment_repository.dart';
+import '../../../settings/domain/entities/school_settings_entity.dart';
+import '../../../settings/domain/usecases/manage_settings.dart';
 import '../../domain/entities/exam_date_sheet_entity.dart';
 import '../../domain/entities/exam_date_sheet_validation_entity.dart';
 import '../../domain/entities/exam_entity.dart';
@@ -65,7 +67,7 @@ class _ManualExamDateSheetBuilderPageState
     _tableScrollbarController.addListener(_syncScrollbarToBody);
     final existing = widget.existing;
     if (existing != null) {
-      _titleController.text = existing.title;
+      _titleController.text = _cleanOutputTitle(existing.title);
       _examId = existing.examId;
       _papers = List<ExamDateSheetPaperEntity>.of(existing.papers);
       if (_papers.isNotEmpty) {
@@ -719,7 +721,7 @@ class _ManualExamDateSheetBuilderPageState
           examId: exam.id,
           examName: exam.name,
           academicSession: exam.academicSession,
-          title: _titleController.text.trim(),
+          title: _cleanOutputTitle(_titleController.text.trim()),
           creationMode:
               existing?.creationMode ?? ExamDateSheetCreationMode.manual,
           status: existing?.status ?? ExamDateSheetStatus.draft,
@@ -743,73 +745,167 @@ class _ManualExamDateSheetBuilderPageState
   Future<void> _showOutputPreview() async {
     final dates = _papers.map((paper) => paper.examDate).toSet().toList()
       ..sort();
+    SchoolSettingsEntity? settings;
+    try {
+      settings = await sl<GetSchoolSettings>()();
+    } catch (_) {
+      // A date sheet can still be previewed with the default school name.
+    }
+    if (!mounted) return;
+    final schoolName = settings?.schoolName.trim().isNotEmpty == true
+        ? settings!.schoolName.trim()
+        : 'Almustafa Model School';
+    final logoUrl = settings?.logoUrl.trim() ?? '';
+    final outputTitle = _cleanOutputTitle(_titleController.text.trim());
+    final sheetWidth = 170.0 + (_matrixColumns.length * 145.0);
+    final sheetHeight = 190.0 + (dates.length * 58.0);
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          _titleController.text.trim().isEmpty
-              ? 'Date Sheet Preview'
-              : _titleController.text.trim(),
-        ),
-        content: SizedBox(
-          width: 1150,
-          height: 570,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 18,
-                headingRowHeight: 42,
-                dataRowMinHeight: 46,
-                dataRowMaxHeight: 58,
-                border: TableBorder.all(color: Theme.of(context).dividerColor),
-                headingRowColor: WidgetStatePropertyAll(
-                  Theme.of(context).colorScheme.primaryContainer,
-                ),
-                columns: [
-                  const DataColumn(label: Text('Date')),
-                  for (final column in _matrixColumns)
-                    DataColumn(
-                      label: SizedBox(
-                        width: 125,
-                        child: Text(
-                          'Class ${column.academicClass.name} - ${column.section.name}',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-                rows: [
-                  for (final date in dates)
-                    DataRow(
-                      cells: [
-                        DataCell(Text('${_date(date)}\n${_day(date)}')),
-                        for (final column in _matrixColumns)
-                          DataCell(
-                            SizedBox(
-                              width: 125,
-                              child: Text(
-                                _paperAt(date, column)?.subjectName ?? '-',
-                                textAlign: TextAlign.center,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            children: [
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: sheetWidth,
+                    height: sheetHeight,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (logoUrl.isNotEmpty) ...[
+                              Image.network(
+                                logoUrl,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) => const SizedBox(),
+                              ),
+                              const SizedBox(width: 14),
+                            ],
+                            Flexible(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    schoolName,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'DATE SHEET',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  Text(
+                                    outputTitle.isEmpty
+                                        ? 'Examination Date Sheet'
+                                        : outputTitle,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: DataTable(
+                            columnSpacing: 10,
+                            horizontalMargin: 10,
+                            headingRowHeight: 38,
+                            dataRowMinHeight: 42,
+                            dataRowMaxHeight: 50,
+                            border: TableBorder.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                            headingRowColor: WidgetStatePropertyAll(
+                              Theme.of(context).colorScheme.primaryContainer,
+                            ),
+                            columns: [
+                              const DataColumn(
+                                label: SizedBox(
+                                  width: 125,
+                                  child: Text('Date'),
+                                ),
+                              ),
+                              for (final column in _matrixColumns)
+                                DataColumn(
+                                  label: SizedBox(
+                                    width: 125,
+                                    child: Text(
+                                      'Class ${column.academicClass.name} - ${column.section.name}',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                            rows: [
+                              for (final date in dates)
+                                DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text('${_date(date)}\n${_day(date)}'),
+                                    ),
+                                    for (final column in _matrixColumns)
+                                      DataCell(
+                                        SizedBox(
+                                          width: 125,
+                                          child: Text(
+                                            _paperAt(
+                                                  date,
+                                                  column,
+                                                )?.subjectName ??
+                                                '-',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
-                ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
+
+  static String _cleanOutputTitle(String value) => value
+      .replaceAll(
+        RegExp(r'\s*-?\s*Maximum\s+Gap\s+Schedule', caseSensitive: false),
+        '',
+      )
+      .trim();
 
   void _show(String message) {
     ScaffoldMessenger.of(context)

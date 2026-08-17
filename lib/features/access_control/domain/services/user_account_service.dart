@@ -36,6 +36,8 @@ abstract class UserAccountService {
 
   Future<void> setDisabled({required String uid, required bool disabled});
 
+  Future<void> deleteAccount({required String uid});
+
   Future<void> updateAccount({
     required String uid,
     required String displayName,
@@ -47,8 +49,8 @@ abstract class UserAccountService {
 
   Future<void> updateRole({
     required String uid,
-    required String roleId,
-    required String roleName,
+    required List<String> roleIds,
+    required String primaryRoleId,
     required String branchId,
   });
 

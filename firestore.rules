@@ -34,7 +34,11 @@ service cloud.firestore {
 
     function permissions() {
       return hasActiveRole()
-          ? get(rolePath()).data.permissions
+          ? (
+            assignment().permissions is list
+              ? assignment().permissions
+              : get(rolePath()).data.permissions
+          )
           : [];
     }
 
@@ -98,7 +102,12 @@ service cloud.firestore {
     function isLinkedParentStudent(studentId) {
       return activeAssignment()
           && assignment().roleId == 'parent'
-          && studentId in assignment().studentIds;
+          && assignment().linkedEntityId is string
+          && assignment().linkedEntityId != ''
+          && ownsParentAccount(assignment().linkedEntityId)
+          && studentId in get(
+            /databases/$(database)/documents/parent_accounts/$(assignment().linkedEntityId)
+          ).data.studentIds;
     }
 
     function resourceStudentId() {
@@ -187,6 +196,7 @@ service cloud.firestore {
       allow read: if signedIn()
           && (
             request.auth.uid == userId
+            || resource.data.userId == request.auth.uid
             || isSuperAdmin()
             || (isInternalChatUser() && isInternalChatUid(userId))
           );
@@ -216,6 +226,20 @@ service cloud.firestore {
       allow create: if hasPermission('teachersCreate');
       allow update: if hasPermission('teachersEdit');
       allow delete: if hasPermission('teachersDelete');
+    }
+
+    // HR appointment letters contain salary and signed employment records.
+    // Teacher viewers may read them; only teacher editors can issue or revise them.
+    match /teacherAppointmentLetters/{letterId} {
+      allow read: if hasPermission('teachersView');
+      allow create, update: if hasPermission('teachersEdit');
+      allow delete: if false;
+    }
+
+    match /hrConfiguration/appointmentLetterTerms {
+      allow read: if hasPermission('teachersView');
+      allow create, update: if hasPermission('teachersEdit');
+      allow delete: if false;
     }
 
     match /teacher_assignments/{assignmentId} {
@@ -439,6 +463,42 @@ service cloud.firestore {
     match /exam_date_sheets/{document=**} {
       allow read: if hasPermission('dateSheetsView');
       allow write: if hasPermission('dateSheetsManage');
+    }
+
+    match /exam_room_setups/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /exam_daily_plans/{document=**} {
+      allow read: if hasPermission('examsView');
+      allow write: if hasPermission('examsManage');
+    }
+
+    match /admission_test_questions/{document=**} {
+      allow read: if hasPermission('studentsView');
+      allow write: if hasPermission('studentsEdit');
+    }
+
+    match /admission_test_templates/{document=**} {
+      allow read: if hasPermission('studentsView');
+      allow write: if hasPermission('studentsEdit');
+    }
+
+    match /admission_test_papers/{document=**} {
+      allow read: if hasPermission('studentsView');
+      allow write: if hasPermission('studentsEdit');
+    }
+
+    match /admission_test_candidates/{document=**} {
+      allow read: if hasPermission('studentsView');
+      allow write: if hasPermission('studentsEdit');
+    }
+
+    match /appreciation_certificates/{document=**} {
+      allow read: if hasPermission('studentsView');
+      allow create, update: if hasPermission('studentsEdit');
+      allow delete: if false;
     }
 
     match /exam_questions/{document=**} {
@@ -685,6 +745,8 @@ service cloud.firestore {
 
     match /parent_accounts/{parentId} {
       allow read: if hasPermission('parentsView')
+          || (signedIn() && resource.data.userId == request.auth.uid)
+          || (signedIn() && resource.data.authUserId == request.auth.uid)
           || ownsParentAccount(parentId);
       allow create, update, delete: if hasPermission('parentsManage');
     }

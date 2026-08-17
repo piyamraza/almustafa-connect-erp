@@ -9,6 +9,7 @@ import '../bloc/teacher_event.dart';
 import '../bloc/teacher_state.dart';
 import 'upsert_teacher_page.dart';
 import 'teacher_assignments_page.dart';
+import '../../../employee_hr/presentation/pages/teacher_appointment_letters_page.dart';
 
 class TeachersPage extends StatelessWidget {
   const TeachersPage({super.key});
@@ -260,6 +261,23 @@ class _TeachersViewState extends State<_TeachersView> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _TeacherStatus(active: teacher.isActive),
+                                    IconButton(
+                                      tooltip: 'Generate Appointment Letter',
+                                      visualDensity: isMobile
+                                          ? VisualDensity.compact
+                                          : null,
+                                      icon: Icon(
+                                        Icons.assignment_turned_in_outlined,
+                                        size: isMobile ? 20 : 24,
+                                      ),
+                                      onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => TeacherAppointmentLettersPage(
+                                            initialTeacher: teacher,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                     IconButton(
                                       visualDensity: isMobile
                                           ? VisualDensity.compact

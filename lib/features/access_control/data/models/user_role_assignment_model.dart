@@ -18,6 +18,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
     super.isPrimary,
     super.validFrom,
     super.validUntil,
+    super.additionalRoleIds,
+    super.linkedEntityType,
+    super.linkedEntityId,
   });
 
   factory UserRoleAssignmentModel.fromEntity(UserRoleAssignmentEntity value) {
@@ -33,6 +36,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
       isPrimary: value.isPrimary,
       validFrom: value.validFrom,
       validUntil: value.validUntil,
+      additionalRoleIds: value.additionalRoleIds,
+      linkedEntityType: value.linkedEntityType,
+      linkedEntityId: value.linkedEntityId,
       assignedBy: value.assignedBy,
       assignedAt: value.assignedAt,
       updatedAt: value.updatedAt,
@@ -52,6 +58,12 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
       isPrimary: map['isPrimary'] as bool? ?? false,
       validFrom: _nullableDate(map['validFrom']),
       validUntil: _nullableDate(map['validUntil']),
+      additionalRoleIds: (map['roleIds'] as List? ?? const [])
+          .map((value) => value.toString())
+          .where((value) => value != (map['roleId'] as String? ?? ''))
+          .toList(growable: false),
+      linkedEntityType: map['linkedEntityType'] as String? ?? '',
+      linkedEntityId: map['linkedEntityId'] as String? ?? '',
       assignedBy: map['assignedBy'] as String? ?? 'Admin',
       assignedAt: _date(map['assignedAt']),
       updatedAt: _date(map['updatedAt']),
@@ -70,6 +82,9 @@ class UserRoleAssignmentModel extends UserRoleAssignmentEntity {
     'isPrimary': isPrimary,
     'validFrom': validFrom == null ? null : Timestamp.fromDate(validFrom!),
     'validUntil': validUntil == null ? null : Timestamp.fromDate(validUntil!),
+    'roleIds': <String>{roleId, ...additionalRoleIds}.toList(),
+    'linkedEntityType': linkedEntityType,
+    'linkedEntityId': linkedEntityId,
     'assignedBy': assignedBy,
     'assignedAt': Timestamp.fromDate(assignedAt),
     'updatedAt': Timestamp.fromDate(updatedAt),

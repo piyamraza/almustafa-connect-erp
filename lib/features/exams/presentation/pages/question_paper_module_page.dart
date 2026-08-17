@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -1524,6 +1527,7 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
   late final List<_EntryRow> _rows;
   bool _saving = false;
   bool _translating = false;
+  bool _scanning = false;
   @override
   void initState() {
     super.initState();
@@ -1602,6 +1606,17 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
                       ],
                     ),
                   ),
+                  TextButton.icon(
+                    onPressed: _saving || _scanning ? null : _pictureToText,
+                    icon: _scanning
+                        ? const SizedBox.square(
+                            dimension: 17,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.document_scanner_outlined, size: 19),
+                    label: Text(_scanning ? 'Reading...' : 'Picture to Text'),
+                  ),
+                  const SizedBox(width: 4),
                   PopupMenuButton<String>(
                     tooltip: 'AI Translate',
                     enabled: !_saving && !_translating,
@@ -1626,7 +1641,11 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
                           : const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.auto_awesome, color: _blue, size: 18),
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: _blue,
+                                  size: 18,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'AI Translate',
@@ -1723,6 +1742,150 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
     );
   }
 
+  Future<void> _pictureToText() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Picture to Text is available in the Android/iOS app.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Picture language'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const ListTile(
+              leading: Icon(Icons.translate_rounded),
+              title: Text('English'),
+              subtitle: Text('Best for clear printed text'),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !mounted) return;
+
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+    );
+    final file = picked?.files.single;
+    if (file?.path == null || !mounted) return;
+
+    setState(() => _scanning = true);
+    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    try {
+      final result = await recognizer.processImage(
+        InputImage.fromFilePath(file!.path!),
+      );
+      if (!mounted) return;
+      await _reviewExtractedText(result.text, false);
+    } catch (error) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.error_outline_rounded, color: Colors.red),
+          title: const Text('Text could not be extracted'),
+          content: Text(
+            'Use a clear, straight and well-lit picture, then try again.\n\n$error',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      await recognizer.close();
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
+  Future<void> _reviewExtractedText(String extracted, bool isUrdu) async {
+    final controller = TextEditingController(text: extracted.trim());
+    final useText = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Review extracted text'),
+        content: SizedBox(
+          width: 760,
+          child: TextField(
+            controller: controller,
+            minLines: 10,
+            maxLines: 18,
+            autofocus: true,
+            textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
+            textAlign: isUrdu ? TextAlign.right : TextAlign.left,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              helperText: 'Correct any OCR mistakes before inserting.',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Insert into Paper'),
+          ),
+        ],
+      ),
+    );
+    final text = controller.text.trim();
+    controller.dispose();
+    if (useText != true || text.isEmpty || !mounted) return;
+
+    final emptyRows = _rows
+        .where((row) => row.prompt.text.trim().isEmpty)
+        .toList(growable: false);
+    if (emptyRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('There are no empty question rows.')),
+      );
+      return;
+    }
+    final lines = text
+        .replaceAll('\r', '')
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    setState(() {
+      if (emptyRows.length == 1 || lines.length == 1) {
+        emptyRows.first.prompt.text = text;
+      } else {
+        for (
+          var index = 0;
+          index < lines.length && index < emptyRows.length;
+          index++
+        ) {
+          if (index == emptyRows.length - 1 &&
+              lines.length > emptyRows.length) {
+            emptyRows[index].prompt.text = lines.sublist(index).join('\n');
+            break;
+          }
+          emptyRows[index].prompt.text = lines[index];
+        }
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Extracted text inserted into the paper.')),
+    );
+  }
+
   Widget _head(String text, double width, {int flex = 0}) {
     final child = Container(
       width: flex == 0 ? width : null,
@@ -1789,8 +1952,9 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
       child: TextField(
         controller: controller,
         keyboardType: number ? TextInputType.number : TextInputType.text,
-        textDirection:
-            number || !isUrdu ? TextDirection.ltr : TextDirection.rtl,
+        textDirection: number || !isUrdu
+            ? TextDirection.ltr
+            : TextDirection.rtl,
         textAlign: number || !isUrdu ? TextAlign.left : TextAlign.right,
         onChanged: number ? null : (_) => setState(() {}),
         style: const TextStyle(fontSize: 12),
@@ -1815,7 +1979,9 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
     ].where((controller) => controller.text.trim().isNotEmpty).toList();
     if (controllers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter question text before translating.')),
+        const SnackBar(
+          content: Text('Enter question text before translating.'),
+        ),
       );
       return;
     }
@@ -1832,7 +1998,8 @@ class _BulkQuestionEditorState extends State<_BulkQuestionEditor> {
                 .toList(),
           });
       final data = Map<String, dynamic>.from(response.data as Map);
-      final translations = (data['translations'] as List?)
+      final translations =
+          (data['translations'] as List?)
               ?.map((value) => value.toString().trim())
               .toList() ??
           const <String>[];
@@ -2087,9 +2254,11 @@ class _EntryRow {
     marks.text = _marks(initial.marks);
     lines.text = initial.answerLines.toString();
     existingImageUrl = initial.imageUrl;
-    for (var index = 0;
-        index < cells.length && index < initial.cells.length;
-        index++) {
+    for (
+      var index = 0;
+      index < cells.length && index < initial.cells.length;
+      index++
+    ) {
       cells[index].text = initial.cells[index];
     }
   }
@@ -2116,9 +2285,8 @@ String _marks(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(1);
 
-bool _containsUrdu(String value) => RegExp(
-      r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]',
-    ).hasMatch(value);
+bool _containsUrdu(String value) =>
+    RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]').hasMatch(value);
 
 String _componentDisplayName(String subjectName, String componentName) {
   final subject = subjectName.trim();

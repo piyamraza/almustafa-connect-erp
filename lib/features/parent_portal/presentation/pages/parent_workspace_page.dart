@@ -65,7 +65,12 @@ class ParentWorkspacePage extends StatelessWidget {
                 parentContext.loadCurrentParent(forceRefresh: true),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+              padding: EdgeInsets.fromLTRB(
+                MediaQuery.sizeOf(context).width < 600 ? 12 : 20,
+                14,
+                MediaQuery.sizeOf(context).width < 600 ? 12 : 20,
+                40,
+              ),
               children: [
                 _ParentHeader(
                   parent: parent,
@@ -251,48 +256,56 @@ class _ServiceGrid extends StatelessWidget {
         title: 'Academic Dashboard',
         subtitle: 'Complete academic overview',
         icon: Icons.school_outlined,
+        color: const Color(0xFF4F46E5),
         page: ParentAcademicDashboardPage(student: student),
       ),
       _ServiceItem(
         title: 'Attendance',
         subtitle: 'Monthly attendance record',
         icon: Icons.fact_check_outlined,
+        color: const Color(0xFF2563EB),
         page: ParentAttendancePage(student: student),
       ),
       _ServiceItem(
         title: 'Homework',
         subtitle: 'Published and upcoming homework',
         icon: Icons.menu_book_outlined,
+        color: const Color(0xFF059669),
         page: ParentHomeworkPage(student: student, parent: parent),
       ),
       _ServiceItem(
         title: 'Leave Request',
         subtitle: 'Apply and track student leave',
         icon: Icons.event_busy_outlined,
+        color: const Color(0xFFE11D48),
         page: ParentLeaveRequestPage(parent: parent, student: student),
       ),
       _ServiceItem(
         title: 'Exam Results',
         subtitle: 'Results and subject performance',
         icon: Icons.assessment_outlined,
+        color: const Color(0xFF7C3AED),
         page: ParentResultsPage(student: student),
       ),
       _ServiceItem(
         title: 'Fee Status',
         subtitle: 'Paid and pending monthly fees',
         icon: Icons.payments_outlined,
+        color: const Color(0xFF0891B2),
         page: ParentFeePage(student: student),
       ),
       _ServiceItem(
         title: 'Notices',
         subtitle: 'School notices and circulars',
         icon: Icons.campaign_outlined,
+        color: const Color(0xFFD97706),
         page: ParentNoticesPage(parent: parent, student: student),
       ),
       _ServiceItem(
         title: 'Communication',
         subtitle: 'School communication centre',
         icon: Icons.forum_outlined,
+        color: const Color(0xFF0284C7),
         page: ParentCommunicationDashboardPage(
           parent: parent,
           student: student,
@@ -302,12 +315,14 @@ class _ServiceGrid extends StatelessWidget {
         title: 'Ask Administration',
         subtitle: 'Raise a query with the school office',
         icon: Icons.contact_support_outlined,
+        color: const Color(0xFF0F766E),
         page: ParentQueryPage(parent: parent, student: student),
       ),
       _ServiceItem(
         title: 'Notifications',
         subtitle: 'Alerts and unread updates',
         icon: Icons.notifications_outlined,
+        color: const Color(0xFFDC2626),
         page: PortalNotificationCenterPage(
           recipientType: PortalRecipientType.parent,
           recipientId: parent.id,
@@ -317,11 +332,12 @@ class _ServiceGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final compact = constraints.maxWidth < 600;
         final columns = constraints.maxWidth >= 1100
             ? 3
             : constraints.maxWidth >= 700
             ? 2
-            : 1;
+            : 2;
 
         return GridView.builder(
           shrinkWrap: true,
@@ -331,45 +347,64 @@ class _ServiceGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
-            childAspectRatio: columns == 1 ? 3.4 : 2.35,
+            mainAxisExtent: compact ? 112 : 150,
           ),
           itemBuilder: (context, index) {
             final item = services[index];
 
-            return Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(builder: (_) => item.page),
-                  );
-                },
+            return InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(builder: (_) => item.page),
+                );
+              },
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: item.color,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: item.color.withValues(alpha: .22),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Row(
+                  padding: EdgeInsets.all(compact ? 10 : 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircleAvatar(radius: 25, child: Icon(item.icon)),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.subtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      Icon(
+                        item.icon,
+                        color: Colors.white,
+                        size: compact ? 27 : 32,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios, size: 16),
+                      if (!compact) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          item.subtitle,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xE6FFFFFF),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -387,12 +422,14 @@ class _ServiceItem {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.color,
     required this.page,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final Color color;
   final Widget page;
 }
 
