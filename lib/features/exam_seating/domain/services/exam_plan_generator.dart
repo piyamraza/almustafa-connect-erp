@@ -29,20 +29,24 @@ class ExamPlanGenerator {
     required List<DailyExamPlanEntity> history,
     required bool paperSupportEnabled,
   }) {
-    if (rooms.isEmpty)
+    if (rooms.isEmpty) {
       throw const ExamPlanGenerationException('Add at least one exam room.');
-    if (rooms.any((room) => room.capacity <= 0))
+    }
+    if (rooms.any((room) => room.capacity <= 0)) {
       throw const ExamPlanGenerationException(
         'Every room must have a valid capacity.',
       );
-    if (sessionPapers.isEmpty)
+    }
+    if (sessionPapers.isEmpty) {
       throw const ExamPlanGenerationException(
         'No papers were found for the selected date and session.',
       );
-    if (students.isEmpty)
+    }
+    if (students.isEmpty) {
       throw const ExamPlanGenerationException(
         'No active students were found for the selected classes.',
       );
+    }
     final capacity = rooms.fold<int>(0, (sum, room) => sum + room.capacity);
     if (capacity < students.length) {
       throw ExamPlanGenerationException(
@@ -132,8 +136,9 @@ class ExamPlanGenerator {
     final latestFirst = history.toList()
       ..sort((a, b) => b.examDate.compareTo(a.examDate));
     for (final plan in latestFirst) {
-      for (final assignment in plan.studentAssignments)
+      for (final assignment in plan.studentAssignments) {
         previous.putIfAbsent(assignment.studentId, () => assignment);
+      }
     }
     final occupied = {for (final room in rooms) room.id: 0};
     final classCounts = {for (final room in rooms) room.id: <String, int>{}};

@@ -38,20 +38,23 @@ class _ExamSeatingViewState extends State<_ExamSeatingView> {
     ),
     body: BlocConsumer<ExamSeatingBloc, ExamSeatingState>(
       listener: (context, state) {
-        if (state is ExamSeatingLoaded && state.message != null)
+        if (state is ExamSeatingLoaded && state.message != null) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.message!)));
+        }
       },
       builder: (context, state) {
-        if (state is ExamSeatingLoading || state is ExamSeatingInitial)
+        if (state is ExamSeatingLoading || state is ExamSeatingInitial) {
           return const Center(child: CircularProgressIndicator());
-        if (state is ExamSeatingError)
+        }
+        if (state is ExamSeatingError) {
           return _ErrorView(
             message: state.message,
             onRetry: () =>
                 context.read<ExamSeatingBloc>().add(const LoadExamSeating()),
           );
+        }
         final data = state as ExamSeatingLoaded;
         final sheets = data.dateSheets
             .where(
@@ -99,10 +102,11 @@ class _ExamSeatingViewState extends State<_ExamSeatingView> {
                             .toList(),
                         onChanged: (value) {
                           setState(() => _session = null);
-                          if (value != null)
+                          if (value != null) {
                             context.read<ExamSeatingBloc>().add(
                               SelectSeatingExam(value),
                             );
+                          }
                         },
                       ),
                     ),
@@ -407,8 +411,9 @@ class _ExamSeatingViewState extends State<_ExamSeatingView> {
       ),
     );
     count.dispose();
-    if (result != null && context.mounted)
+    if (result != null && context.mounted) {
       context.read<ExamSeatingBloc>().add(SaveExamRoomSetup(result));
+    }
   }
 }
 
@@ -516,7 +521,7 @@ class _SectionCard extends StatelessWidget {
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              if (trailing != null) trailing!,
+              ?trailing,
             ],
           ),
           const SizedBox(height: 14),

@@ -41,8 +41,9 @@ class _AppreciationViewState extends State<_AppreciationView>
   @override
   void dispose() {
     _tabs.dispose();
-    for (final c in [_title, _description, _teacher, _customCategory])
+    for (final c in [_title, _description, _teacher, _customCategory]) {
       c.dispose();
+    }
     super.dispose();
   }
 
@@ -55,16 +56,18 @@ class _AppreciationViewState extends State<_AppreciationView>
     body:
         BlocConsumer<AppreciationCertificateBloc, AppreciationCertificateState>(
           listener: (context, state) {
-            if (state is AppreciationCertificateLoaded && state.message != null)
+            if (state is AppreciationCertificateLoaded && state.message != null) {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message!)));
+            }
           },
           builder: (context, state) {
             if (state is AppreciationCertificateInitial ||
-                state is AppreciationCertificateLoading)
+                state is AppreciationCertificateLoading) {
               return const Center(child: CircularProgressIndicator());
-            if (state is AppreciationCertificateError)
+            }
+            if (state is AppreciationCertificateError) {
               return Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -79,9 +82,11 @@ class _AppreciationViewState extends State<_AppreciationView>
                   ],
                 ),
               );
+            }
             final data = state as AppreciationCertificateLoaded;
-            if (_description.text.isEmpty && _student != null)
+            if (_description.text.isEmpty && _student != null) {
               _description.text = _suggestion(_category, _student!.fullName);
+            }
             return Column(
               children: [
                 TabBar(
@@ -175,8 +180,9 @@ class _AppreciationViewState extends State<_AppreciationView>
                 .toList(),
             onChanged: (value) => setState(() {
               _category = value!;
-              if (_student != null)
+              if (_student != null) {
                 _description.text = _suggestion(_category, _student!.fullName);
+              }
             }),
           ),
           if (_category == AppreciationCategory.custom)

@@ -56,15 +56,17 @@ class _AdmissionTestViewState extends State<_AdmissionTestView>
     ),
     body: BlocConsumer<AdmissionTestBloc, AdmissionTestState>(
       listener: (context, state) {
-        if (state is AdmissionTestLoaded && state.message != null)
+        if (state is AdmissionTestLoaded && state.message != null) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.message!)));
+        }
       },
       builder: (context, state) {
-        if (state is AdmissionTestLoading || state is AdmissionTestInitial)
+        if (state is AdmissionTestLoading || state is AdmissionTestInitial) {
           return const Center(child: CircularProgressIndicator());
-        if (state is AdmissionTestError)
+        }
+        if (state is AdmissionTestError) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -80,6 +82,7 @@ class _AdmissionTestViewState extends State<_AdmissionTestView>
               ],
             ),
           );
+        }
         final data = state as AdmissionTestLoaded;
         return Column(
           children: [
@@ -604,9 +607,12 @@ Future<void> _questionDialog(BuildContext context) async {
       ),
     ),
   );
-  for (final c in [prompt, subject, answer, options, marks]) c.dispose();
-  if (value != null && context.mounted)
+  for (final c in [prompt, subject, answer, options, marks]) {
+    c.dispose();
+  }
+  if (value != null && context.mounted) {
     context.read<AdmissionTestBloc>().add(SaveAdmissionQuestion(value));
+  }
 }
 
 Future<void> _templateDialog(
@@ -615,7 +621,7 @@ Future<void> _templateDialog(
 ) async {
   final duration = TextEditingController(text: '${existing.durationMinutes}'),
       passing = TextEditingController(
-        text: '${existing.passingPercentage.toStringAsFixed(0)}',
+        text: existing.passingPercentage.toStringAsFixed(0),
       );
   var sections = existing.sections.toList();
   final value = await showDialog<AdmissionPaperTemplateEntity>(
@@ -736,8 +742,9 @@ Future<void> _templateDialog(
   );
   duration.dispose();
   passing.dispose();
-  if (value != null && context.mounted)
+  if (value != null && context.mounted) {
     context.read<AdmissionTestBloc>().add(SaveAdmissionTemplate(value));
+  }
 }
 
 Future<void> _customPaperDialog(
@@ -752,7 +759,7 @@ Future<void> _customPaperDialog(
     text: '${seed?.durationMinutes ?? 60}',
   );
   final passing = TextEditingController(
-    text: '${seed?.passingPercentage.toStringAsFixed(0) ?? '50'}',
+    text: seed?.passingPercentage.toStringAsFixed(0) ?? '50',
   );
   var level = seed?.classLevel ?? _levels.first;
   var selectedIds = seed?.questions.map((q) => q.id).toSet() ?? <String>{};
@@ -1134,8 +1141,10 @@ Future<void> _candidateDialog(
       },
     ),
   );
-  for (final c in [number, name, guardian, phone, obtained, remarks])
+  for (final c in [number, name, guardian, phone, obtained, remarks]) {
     c.dispose();
-  if (value != null && context.mounted)
+  }
+  if (value != null && context.mounted) {
     context.read<AdmissionTestBloc>().add(SaveAdmissionCandidate(value));
+  }
 }

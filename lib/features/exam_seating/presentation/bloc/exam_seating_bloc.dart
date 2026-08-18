@@ -12,19 +12,13 @@ import 'exam_seating_state.dart';
 
 class ExamSeatingBloc extends Bloc<ExamSeatingEvent, ExamSeatingState> {
   ExamSeatingBloc({
-    required ExamSeatingRepository repository,
-    required ExamRepository examRepository,
-    required ExamDateSheetRepository dateSheetRepository,
-    required StudentRepository studentRepository,
-    required TeacherRepository teacherRepository,
-    required ExamPlanGenerator generator,
-  }) : _repository = repository,
-       _examRepository = examRepository,
-       _dateSheetRepository = dateSheetRepository,
-       _studentRepository = studentRepository,
-       _teacherRepository = teacherRepository,
-       _generator = generator,
-       super(const ExamSeatingInitial()) {
+    required this._repository,
+    required this._examRepository,
+    required this._dateSheetRepository,
+    required this._studentRepository,
+    required this._teacherRepository,
+    required this._generator,
+  }) : super(const ExamSeatingInitial()) {
     on<LoadExamSeating>(_load);
     on<SelectSeatingExam>(_select);
     on<SaveExamRoomSetup>(_saveRooms);
@@ -112,8 +106,9 @@ class ExamSeatingBloc extends Bloc<ExamSeatingEvent, ExamSeatingState> {
     final current = state;
     if (current is! ExamSeatingLoaded ||
         current.selectedExamId == null ||
-        current.roomSetup == null)
+        current.roomSetup == null) {
       return;
+    }
     try {
       final exam = current.exams.firstWhere(
         (value) => value.id == current.selectedExamId,

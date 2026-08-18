@@ -567,15 +567,16 @@ class _UserAccountsManagementPageState
                               primaryRoleId ??= role.id;
                             } else {
                               selectedIds.remove(role.id);
-                              if (primaryRoleId == role.id)
+                              if (primaryRoleId == role.id) {
                                 primaryRoleId = selectedIds.firstOrNull;
+                              }
                             }
                           }),
                         ),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: selectedIds.contains(primaryRoleId)
+                        initialValue: selectedIds.contains(primaryRoleId)
                             ? primaryRoleId
                             : null,
                         isExpanded: true,

@@ -273,7 +273,7 @@ List<_Spec> _mathematics(int grade) {
       marks: 2,
     ),
     _difficult(
-      'Find the missing number: ${multiplier} × ___ = ${multiplier * (grade + 5)}',
+      'Find the missing number: $multiplier × ___ = ${multiplier * (grade + 5)}',
       '${grade + 5}',
       AdmissionQuestionType.fillBlank,
       marks: 2,

@@ -28,10 +28,11 @@ class AdmissionPaperGenerator {
                 q.subject.toLowerCase() == section.subject.toLowerCase(),
           )
           .toList();
-      if (available.length < section.questionCount)
+      if (available.length < section.questionCount) {
         throw AdmissionPaperGenerationException(
           '${section.subject}: ${section.questionCount} questions required, but only ${available.length} are available.',
         );
+      }
       final easyTarget = (section.questionCount * template.easyPercent / 100)
           .round();
       final difficultTarget =

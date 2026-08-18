@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../academic_structure/domain/entities/academic_class_entity.dart';
 import '../../../academic_structure/domain/entities/section_entity.dart';
+import '../../../academic_structure/domain/entities/academic_subject_entity.dart';
+import '../../../academic_structure/domain/entities/subject_component_entity.dart';
 import '../../../academic_structure/domain/repositories/academic_structure_repository.dart';
+import '../../../academic_structure/domain/repositories/subject_component_repository.dart';
 import '../../../access_control/domain/services/access_control_service.dart';
 import '../../../access_control/data/services/user_account_service_impl.dart';
 import '../../../authentication/domain/usecases/logout_usecase.dart';
@@ -160,6 +163,11 @@ class _TeacherPortalDashboardPageState
       _loadPart('classes', sl<AcademicStructureRepository>().getClasses()),
       _loadPart('sections', sl<AcademicStructureRepository>().getSections()),
       _loadPart('exam duties', sl<ExamSeatingRepository>().getPlans()),
+      _loadPart('subjects', sl<AcademicStructureRepository>().getSubjects()),
+      _loadPart(
+        'subject components',
+        sl<SubjectComponentRepository>().getComponents(),
+      ),
     ]);
 
     final students = (results[3] as List<StudentEntity>)
@@ -213,6 +221,8 @@ class _TeacherPortalDashboardPageState
                 .map((duty) => _TodayTeacherDuty(plan: plan, duty: duty)),
           )
           .toList(),
+      subjects: results[11] as List<AcademicSubjectEntity>,
+      subjectComponents: results[12] as List<SubjectComponentEntity>,
     );
   }
 
@@ -306,7 +316,7 @@ class _TeacherPortalDashboardPageState
                             (item) => ListTile(
                               leading: const Icon(Icons.schedule),
                               title: Text(
-                                '${item.className}-${item.sectionName} • ${item.subjectName}',
+                                '${item.className}-${item.sectionName} • ${data.periodSubjectName(item)}',
                               ),
                               subtitle: Text(item.periodLabel),
                             ),
@@ -558,34 +568,66 @@ class _TeacherPortalDashboardPageState
     }
   }
 
-  Widget _assignedClassesTable(_TeacherDashboardData data) => Table(
-    border: TableBorder.all(color: const Color(0xFFD7E0EE)),
-    columnWidths: const {0: FlexColumnWidth(1.2), 1: FlexColumnWidth(2.8)},
+  Widget _assignedClassesTable(_TeacherDashboardData data) {
+    final rows = data.assignedClassRows;
+    final subjectColumns = rows.fold<int>(
+      1,
+      (count, row) => row.$2.length > count ? row.$2.length : count,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final desiredWidth = 220.0 + (subjectColumns * 180.0);
+        final tableWidth = desiredWidth > constraints.maxWidth
+            ? desiredWidth
+            : constraints.maxWidth;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: Table(
+              border: TableBorder.all(color: const Color(0xFFD7E0EE)),
+              columnWidths: {
+                0: const FixedColumnWidth(220),
+                for (var index = 1; index <= subjectColumns; index++)
+                  index: const FlexColumnWidth(),
+              },
+              children: [
+                _tableRow([
+                  'Class / Section',
+                  for (var index = 1; index <= subjectColumns; index++)
+                    'Subject $index',
+                ], header: true),
+                for (final row in rows)
+                  _tableRow([
+                    row.$1,
+                    for (var index = 0; index < subjectColumns; index++)
+                      index < row.$2.length ? row.$2[index] : '—',
+                  ]),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  TableRow _tableRow(List<String> values, {bool header = false}) => TableRow(
+    decoration: BoxDecoration(
+      color: header ? const Color(0xFFE8F0FF) : Colors.white,
+    ),
     children: [
-      _tableRow('Class / Section', 'Subjects', header: true),
-      for (final row in data.assignedClassRows)
-        _tableRow(row.$1, row.$2.join(', ')),
+      for (final value in values)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontWeight: header ? FontWeight.w800 : FontWeight.w500,
+            ),
+          ),
+        ),
     ],
   );
-
-  TableRow _tableRow(String first, String second, {bool header = false}) =>
-      TableRow(
-        decoration: BoxDecoration(
-          color: header ? const Color(0xFFE8F0FF) : Colors.white,
-        ),
-        children: [
-          for (final value in [first, second])
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontWeight: header ? FontWeight.w800 : FontWeight.w500,
-                ),
-              ),
-            ),
-        ],
-      );
 
   static Widget _dutyTile(_TodayTeacherDuty item) => ListTile(
     leading: const Icon(Icons.meeting_room_rounded, color: Color(0xFF2563EB)),
@@ -656,6 +698,8 @@ class _TeacherDashboardData {
     required this.classes,
     required this.sections,
     required this.todayDuties,
+    required this.subjects,
+    required this.subjectComponents,
   });
 
   final TeacherEntity teacher;
@@ -671,6 +715,8 @@ class _TeacherDashboardData {
   final List<AcademicClassEntity> classes;
   final List<SectionEntity> sections;
   final List<_TodayTeacherDuty> todayDuties;
+  final List<AcademicSubjectEntity> subjects;
+  final List<SubjectComponentEntity> subjectComponents;
 
   String classSectionLabel(TeacherAssignmentEntity assignment) {
     final academicClass = classes.where((item) {
@@ -705,7 +751,7 @@ class _TeacherDashboardData {
     for (final assignment in assignments) {
       grouped
           .putIfAbsent(classSectionLabel(assignment), () => <String>{})
-          .add(assignment.subject.trim());
+          .add(subjectDisplayName(assignment));
     }
     final rows =
         grouped.entries
@@ -718,6 +764,57 @@ class _TeacherDashboardData {
             .toList()
           ..sort((a, b) => a.$1.compareTo(b.$1));
     return rows;
+  }
+
+  String subjectDisplayName(TeacherAssignmentEntity assignment) {
+    return _parentSubjectName(
+      assignment.subject,
+      assignment.classId,
+      assignment.sectionId,
+    );
+  }
+
+  String periodSubjectName(ClassTimetableEntryEntity entry) =>
+      _parentSubjectName(entry.subjectName, entry.classId, entry.sectionId);
+
+  String _parentSubjectName(
+    String value,
+    String classReference,
+    String sectionReference,
+  ) {
+    final assignedName = value.trim();
+    final relevantSubjects = subjects.where(
+      (subject) =>
+          (_same(subject.classId, classReference) ||
+              classes.any(
+                (item) =>
+                    _same(item.id, subject.classId) &&
+                    _same(item.name, classReference),
+              )) &&
+          (subject.sectionId == null ||
+              _same(subject.sectionId!, sectionReference)),
+    );
+    for (final subject in relevantSubjects) {
+      if (_same(subject.name, assignedName)) return subject.name.trim();
+      final components = subjectComponents.where(
+        (component) =>
+            component.isActive && component.parentSubjectId == subject.id,
+      );
+      for (final component in components) {
+        final componentName = component.componentName.trim();
+        final displayName =
+            componentName.toLowerCase().startsWith(
+              subject.name.trim().toLowerCase(),
+            )
+            ? componentName
+            : '${subject.name.trim()} $componentName';
+        if (_same(displayName, assignedName) ||
+            _same(componentName, assignedName)) {
+          return subject.name.trim();
+        }
+      }
+    }
+    return assignedName;
   }
 
   List<ClassTimetableEntryEntity> get todayTimetable {
