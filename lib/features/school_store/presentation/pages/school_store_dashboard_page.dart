@@ -580,15 +580,15 @@ class _StoreAction extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color.withValues(alpha: .18), Colors.white],
+              colors: [color, Color.lerp(color, Colors.black, .16)!],
             ),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withValues(alpha: .48), width: 1.4),
+            border: Border.all(color: Colors.white.withValues(alpha: .18)),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: .13),
-                blurRadius: 16,
-                offset: const Offset(0, 7),
+                color: color.withValues(alpha: .28),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -600,10 +600,10 @@ class _StoreAction extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: .12),
+                        color: Colors.white.withValues(alpha: .18),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(icon, color: color, size: 19),
+                      child: Icon(icon, color: Colors.white, size: 19),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -615,7 +615,7 @@ class _StoreAction extends StatelessWidget {
                         fontSize: 9.5,
                         height: 1.05,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF14213D),
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -626,15 +626,8 @@ class _StoreAction extends StatelessWidget {
                       width: 54,
                       height: 54,
                       decoration: BoxDecoration(
-                        color: color,
+                        color: Colors.white.withValues(alpha: .18),
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withValues(alpha: .3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
                       ),
                       child: Icon(icon, color: Colors.white, size: 28),
                     ),
@@ -645,7 +638,7 @@ class _StoreAction extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF14213D),
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -654,7 +647,7 @@ class _StoreAction extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: color,
+                        color: Colors.white.withValues(alpha: .18),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(

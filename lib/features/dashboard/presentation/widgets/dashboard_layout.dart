@@ -21,6 +21,9 @@ import '../../../fees/domain/repositories/fee_payment_repository.dart';
 import '../../../fees/domain/repositories/monthly_fee_due_repository.dart';
 import '../../../fees/presentation/pages/fee_management_dashboard_page.dart';
 import '../../../notices/presentation/pages/notices_dashboard_page.dart';
+import '../../../school_store/domain/entities/store_item_entity.dart';
+import '../../../school_store/domain/repositories/school_store_repository.dart';
+import '../../../school_store/presentation/pages/school_store_dashboard_page.dart';
 import '../../../notices/domain/entities/notice_entity.dart';
 import '../../../notices/domain/repositories/notice_repository.dart';
 import '../../../notifications/domain/entities/portal_notification_entity.dart';
@@ -83,6 +86,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       ),
       _safe(sl<TeacherAttendanceRepository>().getByDate(now)),
       _safe(sl<StaffAttendanceRepository>().getAttendanceByDate(now)),
+      _safe(sl<SchoolStoreRepository>().getItems()),
     ]);
     return _DashboardData(
       students: values[0] as List<StudentEntity>,
@@ -96,6 +100,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       notices: values[8] as List<NoticeEntity>,
       teacherAttendance: values[9] as List<TeacherAttendanceEntity>,
       staffAttendance: values[10] as List<StaffAttendanceEntity>,
+      storeItems: values[11] as List<StoreItemEntity>,
       now: now,
     );
   }
@@ -285,6 +290,19 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           ),
                           const SizedBox(height: 18),
                           _StatsGrid(data: data),
+                          const SizedBox(height: 14),
+                          _LowStockShortcut(
+                            items: data.lowStockItems,
+                            onOpen: () async {
+                              await Navigator.of(context).push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const SchoolStoreDashboardPage(),
+                                ),
+                              );
+                              if (mounted) await _refresh();
+                            },
+                          ),
                           const SizedBox(height: 14),
                           _DashboardCharts(data: data),
                           const SizedBox(height: 14),
@@ -764,6 +782,7 @@ class _DashboardData {
     required this.notices,
     required this.teacherAttendance,
     required this.staffAttendance,
+    required this.storeItems,
     required this.now,
   });
   final List<StudentEntity> students;
@@ -777,7 +796,17 @@ class _DashboardData {
   final List<NoticeEntity> notices;
   final List<TeacherAttendanceEntity> teacherAttendance;
   final List<StaffAttendanceEntity> staffAttendance;
+  final List<StoreItemEntity> storeItems;
   final DateTime now;
+
+  List<StoreItemEntity> get lowStockItems {
+    final values = storeItems.where((item) => item.isLowStock).toList()
+      ..sort((a, b) {
+        final byStock = a.currentStock.compareTo(b.currentStock);
+        return byStock != 0 ? byStock : a.name.compareTo(b.name);
+      });
+    return values;
+  }
 
   Set<String> get _activeStudentIds => students
       .where((student) => student.isActive)
@@ -1387,6 +1416,151 @@ class DashboardStatCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LowStockShortcut extends StatelessWidget {
+  const _LowStockShortcut({required this.items, required this.onOpen});
+
+  final List<StoreItemEntity> items;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLowStock = items.isNotEmpty;
+    final color = hasLowStock
+        ? const Color(0xFFE4572E)
+        : const Color(0xFF169B73);
+    final visibleItems = items.take(4).toList();
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: hasLowStock ? const Color(0xFFFFF4EF) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: color.withValues(alpha: .32)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: .08),
+                blurRadius: 18,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  hasLowStock
+                      ? Icons.inventory_2_outlined
+                      : Icons.inventory_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            hasLowStock
+                                ? 'Low Stock Alert · ${items.length} ${items.length == 1 ? 'item' : 'items'}'
+                                : 'School Store · Stock is healthy',
+                            style: const TextStyle(
+                              color: Color(0xFF14213D),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_rounded, color: color),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    if (!hasLowStock)
+                      const Text(
+                        'No inventory item is currently at or below its reorder level.',
+                        style: TextStyle(color: Color(0xFF667085)),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 7,
+                        children: [
+                          for (final item in visibleItems)
+                            _LowStockItemChip(item: item, color: color),
+                          if (items.length > visibleItems.length)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: .10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '+${items.length - visibleItems.length} more',
+                                style: TextStyle(
+                                  color: color,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LowStockItemChip extends StatelessWidget {
+  const _LowStockItemChip({required this.item, required this.color});
+
+  final StoreItemEntity item;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: .20)),
+    ),
+    child: Text(
+      '${item.name}: ${item.currentStock} left · reorder ${item.lowStockLevel}',
+      style: const TextStyle(
+        color: Color(0xFF344054),
+        fontWeight: FontWeight.w700,
+        fontSize: 12,
+      ),
+    ),
+  );
 }
 
 class _DashboardCharts extends StatelessWidget {

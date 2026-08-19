@@ -69,8 +69,13 @@ class ResultSubjectGroupingService {
 
     for (final subject in subjects) {
       final parentId = SubjectComponentExamService.parentId(subject.subjectId);
-      final key = parentId == null
+      final nameParent = parentId == null
+          ? _parentFromLegacyName(subject.subjectName)
+          : null;
+      final key = parentId == null && nameParent == null
           ? 'subject::${subject.subjectId}'
+          : parentId == null
+          ? 'legacy::${nameParent!.toLowerCase()}'
           : 'parent::$parentId';
       if (!groupedComponents.containsKey(key)) orderedKeys.add(key);
       (groupedComponents[key] ??= []).add(subject);
@@ -84,9 +89,12 @@ class ResultSubjectGroupingService {
   static GroupedSubjectResult _buildGroup(List<SubjectResultEntity> items) {
     final first = items.first;
     final parentName = SubjectComponentExamService.parentName(first.subjectId);
+    final legacyParent = items.length > 1
+        ? _parentFromLegacyName(first.subjectName)
+        : null;
     final subjectName = parentName?.trim().isNotEmpty == true
         ? parentName!.trim()
-        : first.subjectName.trim();
+        : legacyParent ?? first.subjectName.trim();
     final totalMarks = items.fold<double>(
       0,
       (sum, item) => sum + item.totalMarks,
@@ -139,5 +147,14 @@ class ResultSubjectGroupingService {
       if (remainder.isNotEmpty) return remainder;
     }
     return name.isEmpty ? 'Component' : name;
+  }
+
+  static String? _parentFromLegacyName(String value) {
+    final match = RegExp(
+      r'^(.+?)\s+(?:paper\s*)?([a-z]|part\s*[a-z]|i{1,3}|[1-3])$',
+      caseSensitive: false,
+    ).firstMatch(value.trim());
+    final parent = match?.group(1)?.trim();
+    return parent == null || parent.isEmpty ? null : parent;
   }
 }

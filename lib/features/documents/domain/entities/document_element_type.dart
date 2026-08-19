@@ -11,4 +11,13 @@
   qrCode,
   barcode,
   background,
+  resultSubjectsTable,
+  resultScoreBadge,
+  developmentRatings,
+  performanceChart,
+  termProgressChart,
+  resultProfileDetails,
+  resultSummaryStrip,
+  resultRemarksPanel,
+  schoolMottoBadge,
 }

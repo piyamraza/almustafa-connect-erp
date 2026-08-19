@@ -375,6 +375,7 @@ class _GenerateTabState extends State<_GenerateTab> {
                       context,
                       widget.data,
                       seed: widget.data.preview,
+                      initialLevel: selected?.classLevel,
                     ),
                     icon: const Icon(Icons.edit_note_outlined),
                     label: const Text('Manual / Hybrid Builder'),
@@ -412,10 +413,20 @@ class _GenerateTabState extends State<_GenerateTab> {
       subtitle: Text(
         '${p.questions.length} questions • ${p.totalMarks.toStringAsFixed(0)} marks • ${p.durationMinutes} minutes',
       ),
-      trailing: IconButton(
-        tooltip: 'Print paper and answer key',
-        icon: const Icon(Icons.print_outlined),
-        onPressed: () => const AdmissionTestPdfService().printPaper(p),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          IconButton(
+            tooltip: 'Edit paper',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _customPaperDialog(context, widget.data, seed: p),
+          ),
+          IconButton(
+            tooltip: 'Print paper and answer key',
+            icon: const Icon(Icons.print_outlined),
+            onPressed: () => const AdmissionTestPdfService().printPaper(p),
+          ),
+        ],
       ),
     ),
   );
@@ -751,6 +762,7 @@ Future<void> _customPaperDialog(
   BuildContext context,
   AdmissionTestLoaded data, {
   AdmissionPaperEntity? seed,
+  String? initialLevel,
 }) async {
   final repository = sl<AdmissionTestRepository>();
   final title = TextEditingController(text: seed?.title ?? 'Admission Test');
@@ -761,15 +773,28 @@ Future<void> _customPaperDialog(
   final passing = TextEditingController(
     text: seed?.passingPercentage.toStringAsFixed(0) ?? '50',
   );
-  var level = seed?.classLevel ?? _levels.first;
+  var level = seed?.classLevel ?? initialLevel ?? _levels.first;
   var selectedIds = seed?.questions.map((q) => q.id).toSet() ?? <String>{};
+  final questionOverrides = <String, AdmissionQuestionEntity>{
+    for (final question in seed?.questions ?? const <AdmissionQuestionEntity>[])
+      question.id: question,
+  };
   final value = await showDialog<AdmissionPaperEntity>(
     context: context,
     builder: (dialog) => StatefulBuilder(
       builder: (context, setState) {
-        final questions = data.questions
+        final bankQuestions = data.questions
             .where((q) => q.classLevel == level)
             .toList();
+        final seedOnlyQuestions = questionOverrides.values.where(
+          (q) =>
+              q.classLevel == level &&
+              !bankQuestions.any((bank) => bank.id == q.id),
+        );
+        final questions = [
+          ...bankQuestions.map((q) => questionOverrides[q.id] ?? q),
+          ...seedOnlyQuestions,
+        ];
         final selected = questions
             .where((q) => selectedIds.contains(q.id))
             .toList();
@@ -863,6 +888,22 @@ Future<void> _customPaperDialog(
                               subtitle: Text(
                                 '${q.subject} • ${q.type.label} • ${q.difficulty.label} • ${q.marks} marks',
                               ),
+                              secondary: IconButton(
+                                tooltip: 'Edit this question for this paper',
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () async {
+                                  final edited = await _editPaperQuestionDialog(
+                                    dialog,
+                                    q,
+                                  );
+                                  if (edited != null) {
+                                    setState(() {
+                                      questionOverrides[q.id] = edited;
+                                      selectedIds.add(q.id);
+                                    });
+                                  }
+                                },
+                              ),
                               onChanged: (checked) => setState(() {
                                 checked == true
                                     ? selectedIds.add(q.id)
@@ -886,9 +927,11 @@ Future<void> _customPaperDialog(
                   : () => Navigator.pop(
                       dialog,
                       AdmissionPaperEntity(
-                        id: repository.newId(
-                          FirestorePaths.admissionTestPapers,
-                        ),
+                        id:
+                            seed?.id ??
+                            repository.newId(
+                              FirestorePaths.admissionTestPapers,
+                            ),
                         title: title.text.trim().isEmpty
                             ? 'Admission Test'
                             : title.text.trim(),
@@ -900,7 +943,7 @@ Future<void> _customPaperDialog(
                             60,
                         passingPercentage: double.tryParse(passing.text) ?? 50,
                         questions: selected,
-                        createdAt: DateTime.now(),
+                        createdAt: seed?.createdAt ?? DateTime.now(),
                         variant: variant.text.trim().isEmpty
                             ? 'A'
                             : variant.text.trim(),
@@ -920,6 +963,93 @@ Future<void> _customPaperDialog(
   if (value != null && context.mounted) {
     context.read<AdmissionTestBloc>().add(SaveCustomAdmissionPaper(value));
   }
+}
+
+Future<AdmissionQuestionEntity?> _editPaperQuestionDialog(
+  BuildContext context,
+  AdmissionQuestionEntity question,
+) async {
+  final prompt = TextEditingController(text: question.prompt);
+  final answer = TextEditingController(text: question.correctAnswer);
+  final options = TextEditingController(text: question.options.join('\n'));
+  final marks = TextEditingController(text: question.marks.toString());
+  final value = await showDialog<AdmissionQuestionEntity>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: const Text('Edit Question in Paper'),
+      content: SizedBox(
+        width: 620,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: prompt,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Question'),
+              ),
+              TextField(
+                controller: answer,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Correct answer'),
+              ),
+              if (question.type == AdmissionQuestionType.multipleChoice)
+                TextField(
+                  controller: options,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Options (one per line)',
+                  ),
+                ),
+              TextField(
+                controller: marks,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Marks'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialog),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final text = prompt.text.trim();
+            if (text.isEmpty) return;
+            Navigator.pop(
+              dialog,
+              AdmissionQuestionEntity(
+                id: question.id,
+                classLevel: question.classLevel,
+                subject: question.subject,
+                type: question.type,
+                difficulty: question.difficulty,
+                prompt: text,
+                marks: double.tryParse(marks.text) ?? question.marks,
+                correctAnswer: answer.text.trim(),
+                options: options.text
+                    .split('\n')
+                    .map((value) => value.trim())
+                    .where((value) => value.isNotEmpty)
+                    .toList(),
+                createdAt: question.createdAt,
+                isDefault: question.isDefault,
+              ),
+            );
+          },
+          child: const Text('Apply Change'),
+        ),
+      ],
+    ),
+  );
+  prompt.dispose();
+  answer.dispose();
+  options.dispose();
+  marks.dispose();
+  return value;
 }
 
 Future<void> _candidateDialog(

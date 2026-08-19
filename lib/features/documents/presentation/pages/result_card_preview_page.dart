@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/dashboard_navigation_button.dart';
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../exams/domain/services/result_subject_grouping_service.dart';
+import '../../../results/domain/entities/student_development_profile_entity.dart';
+import '../../../results/domain/services/result_card_insight_service.dart';
+import '../../../students/domain/entities/student_entity.dart';
 import '../../../settings/domain/entities/school_settings_entity.dart';
 import '../../../settings/domain/usecases/manage_settings.dart';
 import '../../domain/entities/document_branding_entity.dart';
@@ -15,6 +20,7 @@ import '../../domain/services/default_document_placeholder_resolver.dart';
 import '../../templates/result_card/result_card_template_v1.dart';
 import '../export/document_export_service.dart';
 import '../renderer/document_element_visibility_resolver.dart';
+import '../renderer/document_branding_image_values.dart';
 import '../renderer/document_render_context.dart';
 import '../renderer/document_renderer_registry_factory.dart';
 import '../renderer/flutter_document_renderer.dart';
@@ -27,9 +33,30 @@ const _brandBlue = Color(0xFF0B63CE);
 const _borderColor = Color(0xFFE1E6ED);
 
 class ResultCardPreviewPage extends StatefulWidget {
-  const ResultCardPreviewPage({super.key, required this.result});
+  const ResultCardPreviewPage({
+    super.key,
+    required this.result,
+    this.student,
+    this.attendancePercentage,
+    this.attendanceDays = 0,
+    this.attendedDays = 0,
+    this.punctualityRating = 0,
+    this.developmentProfile,
+    this.classAverage,
+    this.highestPercentage,
+    this.termProgress = const [],
+  });
 
   final ExamResultEntity result;
+  final StudentEntity? student;
+  final double? attendancePercentage;
+  final int attendanceDays;
+  final int attendedDays;
+  final int punctualityRating;
+  final StudentDevelopmentProfileEntity? developmentProfile;
+  final double? classAverage;
+  final double? highestPercentage;
+  final List<String> termProgress;
 
   @override
   State<ResultCardPreviewPage> createState() => _ResultCardPreviewPageState();
@@ -40,14 +67,14 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
 
   final DocumentExportService _exportService = const DocumentExportService();
 
-  late Future<SchoolSettingsEntity> _settingsFuture;
+  late Future<_ResultCardResources> _resourcesFuture;
 
   bool _exporting = false;
 
   @override
   void initState() {
     super.initState();
-    _settingsFuture = sl<GetSchoolSettings>()();
+    _resourcesFuture = _loadResources();
   }
 
   @override
@@ -59,8 +86,8 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
           children: [
             _PreviewHeader(studentName: widget.result.studentName),
             Expanded(
-              child: FutureBuilder<SchoolSettingsEntity>(
-                future: _settingsFuture,
+              child: FutureBuilder<_ResultCardResources>(
+                future: _resourcesFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -73,16 +100,19 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
                     );
                   }
 
-                  final settings = snapshot.data;
+                  final resources = snapshot.data;
 
-                  if (settings == null) {
+                  if (resources == null) {
                     return _LoadFailure(
                       message: 'School Settings could not be loaded.',
                       onRetry: _reload,
                     );
                   }
 
-                  return _buildPreview(settings);
+                  return _buildPreview(
+                    resources.settings,
+                    resources.studentPhotoBytes,
+                  );
                 },
               ),
             ),
@@ -92,23 +122,28 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
     );
   }
 
-  Widget _buildPreview(SchoolSettingsEntity settings) {
+  Widget _buildPreview(
+    SchoolSettingsEntity settings,
+    Uint8List? studentPhotoBytes,
+  ) {
     final template = buildResultCardTemplateV1();
     final branding = _buildBranding(settings);
-    final data = _buildDocumentData();
+    final data = _buildDocumentData(settings, studentPhotoBytes);
 
     final values = {
       ...data.values,
       'branding': {
         'schoolName': branding.schoolName,
         'schoolAddress': settings.address,
+        'schoolContact': [
+          settings.phone.trim(),
+          settings.email.trim(),
+        ].where((value) => value.isNotEmpty).join('  •  '),
         'schoolLogo': branding.schoolLogoUrl,
         'principalName': branding.principalName,
         'principalDesignation': branding.principalDesignation,
-        // Printed cards use clean signature lines. This avoids broken-image
-        // placeholders when branding contains an expired or unsupported URL.
-        'principalSignature': '',
-        'schoolStamp': '',
+        'principalSignature': principalSignatureImageValue(branding),
+        'schoolStamp': schoolStampImageValue(branding),
       },
     };
 
@@ -146,23 +181,26 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 32),
             child: Center(
-              child: RepaintBoundary(
-                key: _documentBoundaryKey,
-                child: ColoredBox(
-                  color: Colors.white,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final page in template.orderedPages)
-                        DocumentCanvas(
-                          page: page,
-                          renderContext: renderContext,
-                          renderer: renderer,
-                          maxWidth: 760,
-                          padding: EdgeInsets.zero,
-                          showShadow: false,
-                        ),
-                    ],
+              child: SizedBox(
+                width: 760,
+                child: RepaintBoundary(
+                  key: _documentBoundaryKey,
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final page in template.orderedPages)
+                          DocumentCanvas(
+                            page: page,
+                            renderContext: renderContext,
+                            renderer: renderer,
+                            maxWidth: 760,
+                            padding: EdgeInsets.zero,
+                            showShadow: false,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -180,11 +218,16 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
       principalName: settings.principalName,
       principalDesignation: settings.principalDesignation,
       principalSignatureUrl: settings.principalSignatureUrl,
+      principalSignatureData: settings.principalSignatureData,
       schoolStampUrl: settings.schoolStampUrl,
+      schoolStampData: settings.schoolStampData,
     );
   }
 
-  DocumentDataEntity _buildDocumentData() {
+  DocumentDataEntity _buildDocumentData(
+    SchoolSettingsEntity settings,
+    Uint8List? studentPhotoBytes,
+  ) {
     final result = widget.result;
 
     return DocumentDataEntity(
@@ -199,11 +242,16 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
           'admissionNo': result.admissionNo,
           'rollNumber': result.rollNumber,
           'classSection': '${result.className} - ${result.sectionName}',
+          'fatherName': widget.student?.fatherName.trim() ?? '',
+          'dateOfBirth': widget.student == null
+              ? ''
+              : _date(widget.student!.dateOfBirth),
+          'photo': _studentPhotoSource(studentPhotoBytes),
         },
         'result': {
           'examName': result.examName,
           'academicSession': result.academicSession,
-          'subjectLines': _subjectLines(result),
+          'subjectRows': _subjectRows(result),
           'totalMarks': _number(result.grandTotalMarks),
           'obtainedMarks': _number(result.grandObtainedMarks),
           'percentage': result.percentage.toStringAsFixed(2),
@@ -212,37 +260,179 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
           'classPosition': _position(result.classPosition),
           'sectionPosition': _position(result.sectionPosition),
           'overallRank': _position(result.overallRank),
-          'principalRemarks': result.principalRemarks.trim().isEmpty
-              ? '-'
-              : result.principalRemarks.trim(),
-          'teacherRemarks': result.teacherRemarks.trim().isEmpty
-              ? '-'
-              : result.teacherRemarks.trim(),
+          'principalRemarks': result.principalRemarks.trim(),
+          'teacherRemarks': const ResultCardInsightService().teacherRemark(
+            result,
+          ),
+          'attendance': widget.attendanceDays <= 0
+              ? ''
+              : '${widget.attendedDays} / ${widget.attendanceDays} Days',
+          'developmentProfile': _developmentProfileLines(),
+          'developmentRatings': _developmentRatings(),
+          'scoreBadge': {
+            'percentage': result.percentage.toStringAsFixed(1),
+            'grade': result.grade,
+          },
+          'profileDetails': {
+            'name': result.studentName,
+            'fatherName': widget.student?.fatherName.trim() ?? '',
+            'admissionNo': result.admissionNo,
+            'classSection': '${result.className} - ${result.sectionName}',
+            'rollNumber': result.rollNumber,
+            'attendance': widget.attendanceDays <= 0
+                ? ''
+                : '${widget.attendedDays} / ${widget.attendanceDays} Days',
+            'dateOfBirth': widget.student == null
+                ? ''
+                : _date(widget.student!.dateOfBirth),
+            'status': result.isPassed ? 'PASS' : 'FAIL',
+          },
+          'summaryData': {
+            'obtained': _number(result.grandObtainedMarks),
+            'total': _number(result.grandTotalMarks),
+            'percentage': result.percentage.toStringAsFixed(2),
+            'grade': result.grade,
+            'classPosition': _position(result.classPosition),
+            'sectionPosition': _position(result.sectionPosition),
+          },
+          'comparisonData': {
+            'student': result.percentage.toStringAsFixed(1),
+            'classAverage': (widget.classAverage ?? result.percentage)
+                .toStringAsFixed(1),
+            'highest': (widget.highestPercentage ?? result.percentage)
+                .toStringAsFixed(1),
+          },
+          'termProgressData': _termProgressRows(),
+          'showTermProgress': widget.termProgress.isNotEmpty,
+          'generalRemarks': _generalRemarks(result),
+          'comparison': _comparisonLine(),
+          'showComparison': true,
+          'verificationPayload': _verificationPayload(settings.website),
         },
       },
     );
   }
 
-  String _subjectLines(ExamResultEntity result) {
+  Object _studentPhotoSource(Uint8List? photoBytes) {
+    if (photoBytes != null && photoBytes.isNotEmpty) return photoBytes;
+    final stored = widget.student?.profileImageUrl.trim() ?? '';
+    final studentId = (widget.student?.id ?? widget.result.studentId).trim();
+    if (studentId.isNotEmpty) {
+      return <String, String>{'studentId': studentId, 'storedUrl': stored};
+    }
+    return stored;
+  }
+
+  String _developmentProfileLines() {
+    final profile = widget.developmentProfile;
+    String stars(int value) =>
+        value <= 0 ? 'Not rated' : '${'★' * value}${'☆' * (5 - value)}';
+    return [
+      'Discipline             ${stars(profile?.discipline ?? 0)}',
+      'Punctuality            ${stars(widget.punctualityRating)}',
+      'Communication          ${stars(profile?.communication ?? 0)}',
+      'Class Participation    ${stars(profile?.classParticipation ?? 0)}',
+      'Homework               ${stars(profile?.homework ?? 0)}',
+      'Personal Hygiene       ${stars(profile?.personalHygiene ?? 0)}',
+    ].join('\n');
+  }
+
+  List<Map<String, Object>> _developmentRatings() {
+    final profile = widget.developmentProfile;
+    return [
+      {'label': 'Discipline', 'rating': profile?.discipline ?? 0},
+      {'label': 'Punctuality', 'rating': widget.punctualityRating},
+      {'label': 'Communication', 'rating': profile?.communication ?? 0},
+      {
+        'label': 'Class Participation',
+        'rating': profile?.classParticipation ?? 0,
+      },
+      {'label': 'Homework', 'rating': profile?.homework ?? 0},
+      {'label': 'Personal Hygiene', 'rating': profile?.personalHygiene ?? 0},
+    ];
+  }
+
+  List<Map<String, String>> _termProgressRows() {
+    return widget.termProgress
+        .map((entry) {
+          final match = RegExp(
+            r'^(.*?):\s*([0-9]+(?:\.[0-9]+)?)%?\s*$',
+          ).firstMatch(entry.trim());
+          return {
+            'label': match?.group(1)?.trim() ?? entry.trim(),
+            'value': match?.group(2) ?? '',
+          };
+        })
+        .where((entry) => entry['value']!.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _generalRemarks(ExamResultEntity result) {
+    final lines = <String>[];
+    if (result.percentage >= 80) {
+      lines.add('Demonstrates strong understanding of key concepts.');
+    } else if (result.percentage >= 60) {
+      lines.add('Shows steady progress and interest in learning.');
+    } else {
+      lines.add('Needs structured support and regular guided practice.');
+    }
+    if (widget.punctualityRating >= 4) {
+      lines.add('Maintains good attendance and punctuality.');
+    } else if (widget.punctualityRating > 0) {
+      lines.add('Improved punctuality will support better learning.');
+    }
+    lines.add('Regular revision and practice will lead to excellence.');
+    return lines.map((line) => '•  $line').join('\n');
+  }
+
+  String _comparisonLine() {
+    final parts = <String>[
+      'Student: ${widget.result.percentage.toStringAsFixed(1)}%',
+      if (widget.classAverage != null)
+        'Class Average: ${widget.classAverage!.toStringAsFixed(1)}%',
+      if (widget.highestPercentage != null)
+        'Highest: ${widget.highestPercentage!.toStringAsFixed(1)}%',
+    ];
+    final progress = widget.termProgress.isEmpty
+        ? ''
+        : '\nTerm Progress: ${widget.termProgress.join('  →  ')}';
+    return '${parts.join('     ')}$progress';
+  }
+
+  String _verificationPayload(String website) {
+    final base = website.trim().replaceFirst(RegExp(r'/$'), '');
+    if (base.isNotEmpty) return '$base/verify/result/${widget.result.id}';
+    return 'AMS-RESULT:${widget.result.id}:${widget.result.studentId}:${widget.result.percentage.toStringAsFixed(2)}';
+  }
+
+  List<Map<String, String>> _subjectRows(ExamResultEntity result) {
+    final insights = const ResultCardInsightService();
     return ResultSubjectGroupingService.group(result.subjectResults)
         .map((subject) {
-          final name = subject.subjectName.padRight(16);
           final components = subject.components
-              .map(
-                (component) => component.isAbsent
-                    ? '${component.label}: Absent'
-                    : '${component.label}: ${_number(component.obtainedMarks)}/${_number(component.totalMarks)}',
-              )
-              .join(' | ')
-              .padRight(35);
-          final total =
-              'Total: ${_number(subject.obtainedMarks)}/${_number(subject.totalMarks)}'
-                  .padRight(20);
-          final percentage = '${subject.percentage.toStringAsFixed(1)}%';
-
-          return '$name | $components | $total | $percentage';
+              .map((component) {
+                final label = component.label
+                    .replaceAll(RegExp('main paper', caseSensitive: false), '')
+                    .trim();
+                final marks = component.isAbsent
+                    ? 'Absent'
+                    : '${_number(component.obtainedMarks)}/${_number(component.totalMarks)}';
+                return label.isEmpty ? marks : '$label: $marks';
+              })
+              .join('  ·  ');
+          return <String, String>{
+            'subject': subject.subjectName,
+            'components': components,
+            'total': _number(subject.totalMarks),
+            'obtained': _number(subject.obtainedMarks),
+            'percentage': '${subject.percentage.toStringAsFixed(1)}%',
+            'grade': insights.subjectGrade(subject.percentage),
+            'remarks': subject.remarks.trim().isEmpty
+                ? insights.subjectRemark(subject.percentage)
+                : subject.remarks.trim(),
+          };
         })
-        .join('\n');
+        .toList(growable: false);
   }
 
   String _number(double value) {
@@ -256,6 +446,9 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
   String _position(int value) {
     return value <= 0 ? '-' : value.toString();
   }
+
+  String _date(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   Future<Uint8List> _capturePng({required double pixelRatio}) {
     return _exportService.capturePng(
@@ -379,9 +572,46 @@ class _ResultCardPreviewPageState extends State<ResultCardPreviewPage> {
 
   void _reload() {
     setState(() {
-      _settingsFuture = sl<GetSchoolSettings>()();
+      _resourcesFuture = _loadResources();
     });
   }
+
+  Future<_ResultCardResources> _loadResources() async {
+    final settingsFuture = sl<GetSchoolSettings>()();
+    final photoFuture = _loadStudentPhotoBytes();
+    return _ResultCardResources(
+      settings: await settingsFuture,
+      studentPhotoBytes: await photoFuture,
+    );
+  }
+
+  Future<Uint8List?> _loadStudentPhotoBytes() async {
+    final studentId = (widget.student?.id ?? widget.result.studentId).trim();
+    if (studentId.isEmpty) return null;
+
+    try {
+      final response = await sl<FirebaseFunctions>()
+          .httpsCallable('getStudentPhotoForExport')
+          .call(<String, Object>{'studentId': studentId});
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final encoded = (data['base64'] ?? '').toString();
+      return encoded.isEmpty ? null : base64Decode(encoded);
+    } catch (error, stackTrace) {
+      debugPrint('Could not preload student photo for export: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
+  }
+}
+
+class _ResultCardResources {
+  const _ResultCardResources({
+    required this.settings,
+    required this.studentPhotoBytes,
+  });
+
+  final SchoolSettingsEntity settings;
+  final Uint8List? studentPhotoBytes;
 }
 
 class _PreviewHeader extends StatelessWidget {

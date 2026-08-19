@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../exams/domain/services/result_subject_grouping_service.dart';
+import '../../domain/services/result_card_insight_service.dart';
 import '../../domain/entities/result_export_request.dart';
 import '../../domain/services/results_export_service.dart';
 
@@ -258,17 +259,32 @@ class ResultsExportServiceImpl implements ResultsExportService {
               (subject) => [
                 _value(subject.subjectName),
                 subject.components
-                    .map(
-                      (component) => component.isAbsent
-                          ? '${component.label}: Absent'
-                          : '${component.label}: ${_number(component.obtainedMarks)} / ${_number(component.totalMarks)}',
-                    )
+                    .map((component) {
+                      final label = component.label
+                          .replaceAll(
+                            RegExp('main paper', caseSensitive: false),
+                            '',
+                          )
+                          .trim();
+                      final marks = component.isAbsent
+                          ? 'Absent'
+                          : '${_number(component.obtainedMarks)} / ${_number(component.totalMarks)}';
+                      return label.isEmpty ? marks : '$label: $marks';
+                    })
                     .join(' | '),
                 '${_number(subject.obtainedMarks)} / ${_number(subject.totalMarks)}',
                 _percent(subject.percentage),
-                subject.grade,
+                subject.grade.toString().trim().isEmpty
+                    ? const ResultCardInsightService().subjectGrade(
+                        subject.percentage,
+                      )
+                    : subject.grade,
                 subject.isPassed ? 'Pass' : 'Fail',
-                _value(subject.remarks),
+                subject.remarks.toString().trim().isEmpty
+                    ? const ResultCardInsightService().subjectRemark(
+                        subject.percentage,
+                      )
+                    : subject.remarks,
               ],
             )
             .toList(growable: false),

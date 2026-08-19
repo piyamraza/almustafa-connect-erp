@@ -156,7 +156,10 @@ class AdmissionTestBloc extends Bloc<AdmissionTestEvent, AdmissionTestState> {
       await _repository.savePaper(event.value);
       emit(
         s.copyWith(
-          papers: [event.value, ...s.papers],
+          papers: [
+            event.value,
+            ...s.papers.where((paper) => paper.id != event.value.id),
+          ],
           preview: event.value,
           message: 'Manual / hybrid paper saved.',
         ),

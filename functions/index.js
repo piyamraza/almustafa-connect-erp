@@ -2,6 +2,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
+const {getStorage} = require("firebase-admin/storage");
 const {getMessaging} = require("firebase-admin/messaging");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
 const {defineString} = require("firebase-functions/params");
@@ -11,6 +12,78 @@ initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
+
+async function requireResultPhotoAccess(request, studentId) {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Please sign in first.");
+  }
+
+  const assignmentSnapshot = await db.collection("user_roles")
+      .doc(request.auth.uid).get();
+  if (!assignmentSnapshot.exists || assignmentSnapshot.data().isActive !== true) {
+    throw new HttpsError("permission-denied", "Your account is not active.");
+  }
+
+  const assignment = assignmentSnapshot.data();
+  const roleId = clean(assignment.roleId);
+  const linkedEntityId = clean(assignment.linkedEntityId);
+  if (roleId === "student" && linkedEntityId === studentId) return;
+
+  if (roleId === "parent" && linkedEntityId) {
+    const parentSnapshot = await db.collection("parent_accounts")
+        .doc(linkedEntityId).get();
+    const studentIds = parentSnapshot.exists &&
+      Array.isArray(parentSnapshot.data().studentIds) ?
+      parentSnapshot.data().studentIds.map(clean) : [];
+    if (studentIds.includes(studentId)) return;
+  }
+
+  const roleSnapshot = await db.collection("app_roles").doc(roleId).get();
+  if (!roleSnapshot.exists || roleSnapshot.data().isActive !== true) {
+    throw new HttpsError("permission-denied", "Your assigned role is inactive.");
+  }
+  const permissions = Array.isArray(assignment.permissions) ?
+    assignment.permissions :
+    (Array.isArray(roleSnapshot.data().permissions) ?
+      roleSnapshot.data().permissions : []);
+  const allowed = roleId === "super_admin" ||
+    permissions.includes("resultsView") ||
+    permissions.includes("resultsEnter") ||
+    permissions.includes("resultsPublish");
+  if (!allowed) {
+    throw new HttpsError(
+        "permission-denied",
+        "You do not have permission to export this result card.",
+    );
+  }
+}
+
+exports.getStudentPhotoForExport = onCall({timeoutSeconds: 30}, async (request) => {
+  const studentId = clean(request.data && request.data.studentId);
+  if (!studentId || !/^[a-zA-Z0-9_-]+$/.test(studentId)) {
+    throw new HttpsError("invalid-argument", "A valid student ID is required.");
+  }
+  await requireResultPhotoAccess(request, studentId);
+
+  const file = getStorage().bucket().file(`students/${studentId}/profile.jpg`);
+  const [exists] = await file.exists();
+  if (!exists) return {base64: ""};
+
+  const [metadata] = await file.getMetadata();
+  const size = Number(metadata.size || 0);
+  if (size > 6 * 1024 * 1024) {
+    throw new HttpsError(
+        "resource-exhausted",
+        "Student photo is too large to include in an exported document.",
+    );
+  }
+
+  const [bytes] = await file.download();
+  return {
+    base64: bytes.toString("base64"),
+    contentType: clean(metadata.contentType) || "image/jpeg",
+  };
+});
 const bootstrapAdminEmail = defineString("BOOTSTRAP_ADMIN_EMAIL");
 const aiTranslationModel = defineString("AI_TRANSLATION_MODEL", {
   default: "gemini-2.5-flash",

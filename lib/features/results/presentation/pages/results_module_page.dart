@@ -16,6 +16,7 @@ import 'results_analysis_hub_page.dart';
 import 'results_dashboard_page.dart';
 import 'results_reports_page.dart';
 import 'teacher_results_page.dart';
+import 'student_development_profiles_page.dart';
 
 class ResultsModulePage extends StatelessWidget {
   const ResultsModulePage({super.key});
@@ -64,6 +65,13 @@ class ResultsModulePage extends StatelessWidget {
         Icons.description_rounded,
         const Color(0xFFEC4899),
         const ReportCardsPage(),
+      ),
+      _ResultAction(
+        'Development Profiles',
+        'Class-teacher ratings for student progress reports',
+        Icons.stars_rounded,
+        const Color(0xFF7C3AED),
+        const StudentDevelopmentProfilesPage(),
       ),
       _ResultAction(
         'Performance Analysis',

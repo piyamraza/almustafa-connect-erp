@@ -38,6 +38,19 @@ void main() {
     expect(groups.last.subjectName, 'Mathematics');
     expect(groups.last.components.single.label, 'Main paper');
   });
+
+  test('groups legacy A and B subjects by their displayed name', () {
+    final groups = ResultSubjectGroupingService.group([
+      _subject(id: 'english-a', name: 'English A', total: 50, obtained: 33),
+      _subject(id: 'english-b', name: 'English B', total: 50, obtained: 21),
+    ]);
+
+    expect(groups, hasLength(1));
+    expect(groups.single.subjectName, 'English');
+    expect(groups.single.components.map((item) => item.label), ['A', 'B']);
+    expect(groups.single.totalMarks, 100);
+    expect(groups.single.obtainedMarks, 54);
+  });
 }
 
 SubjectResultEntity _subject({

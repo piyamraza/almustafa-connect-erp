@@ -9,6 +9,8 @@ import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../exams/presentation/widgets/result_status_chip.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/result_export_request.dart';
+import '../../domain/entities/student_development_profile_entity.dart';
+import '../../domain/services/result_card_insight_service.dart';
 import '../bloc/report_card_bloc.dart';
 import '../bloc/report_card_event.dart';
 import '../bloc/report_card_state.dart';
@@ -53,11 +55,25 @@ class _IndividualReportCardView extends StatelessWidget {
               :final result,
               :final student,
               :final attendancePercentage,
+              :final attendanceDays,
+              :final attendedDays,
+              :final punctualityRating,
+              :final developmentProfile,
+              :final classAverage,
+              :final highestPercentage,
+              :final termProgress,
             ) =>
               _ReportCardContent(
                 result: result,
                 student: student,
                 attendancePercentage: attendancePercentage,
+                attendanceDays: attendanceDays,
+                attendedDays: attendedDays,
+                punctualityRating: punctualityRating,
+                developmentProfile: developmentProfile,
+                classAverage: classAverage,
+                highestPercentage: highestPercentage,
+                termProgress: termProgress,
               ),
             ReportCardFailure(:final result, :final message) =>
               _ReportCardContent(result: result, loadMessage: message),
@@ -73,6 +89,13 @@ class _ReportCardContent extends StatelessWidget {
     required this.result,
     this.student,
     this.attendancePercentage,
+    this.attendanceDays = 0,
+    this.attendedDays = 0,
+    this.punctualityRating = 0,
+    this.developmentProfile,
+    this.classAverage,
+    this.highestPercentage,
+    this.termProgress = const [],
     this.isLoading = false,
     this.loadMessage,
   });
@@ -80,6 +103,13 @@ class _ReportCardContent extends StatelessWidget {
   final ExamResultEntity result;
   final StudentEntity? student;
   final double? attendancePercentage;
+  final int attendanceDays;
+  final int attendedDays;
+  final int punctualityRating;
+  final StudentDevelopmentProfileEntity? developmentProfile;
+  final double? classAverage;
+  final double? highestPercentage;
+  final List<String> termProgress;
   final bool isLoading;
   final String? loadMessage;
 
@@ -104,6 +134,13 @@ class _ReportCardContent extends StatelessWidget {
                   result: result,
                   student: student,
                   attendancePercentage: attendancePercentage,
+                  attendanceDays: attendanceDays,
+                  attendedDays: attendedDays,
+                  punctualityRating: punctualityRating,
+                  developmentProfile: developmentProfile,
+                  classAverage: classAverage,
+                  highestPercentage: highestPercentage,
+                  termProgress: termProgress,
                 ),
 
                 const SizedBox(height: 16),
@@ -123,6 +160,18 @@ class _ReportCardContent extends StatelessWidget {
                         _ResultSummary(
                           result: result,
                           attendancePercentage: attendancePercentage,
+                        ),
+                        const SizedBox(height: 20),
+                        _DevelopmentProfile(
+                          profile: developmentProfile,
+                          punctualityRating: punctualityRating,
+                        ),
+                        const SizedBox(height: 20),
+                        _PerformanceComparison(
+                          studentPercentage: result.percentage,
+                          classAverage: classAverage,
+                          highestPercentage: highestPercentage,
+                          termProgress: termProgress,
                         ),
                         const SizedBox(height: 20),
                         _Remarks(result: result),
@@ -148,11 +197,25 @@ class _DocumentActions extends StatelessWidget {
     required this.result,
     required this.student,
     required this.attendancePercentage,
+    required this.attendanceDays,
+    required this.attendedDays,
+    required this.punctualityRating,
+    required this.developmentProfile,
+    required this.classAverage,
+    required this.highestPercentage,
+    required this.termProgress,
   });
 
   final ExamResultEntity result;
   final StudentEntity? student;
   final double? attendancePercentage;
+  final int attendanceDays;
+  final int attendedDays;
+  final int punctualityRating;
+  final StudentDevelopmentProfileEntity? developmentProfile;
+  final double? classAverage;
+  final double? highestPercentage;
+  final List<String> termProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +262,18 @@ class _DocumentActions extends StatelessWidget {
   void _openResultCard(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ResultCardPreviewPage(result: result),
+        builder: (_) => ResultCardPreviewPage(
+          result: result,
+          student: student,
+          attendancePercentage: attendancePercentage,
+          attendanceDays: attendanceDays,
+          attendedDays: attendedDays,
+          punctualityRating: punctualityRating,
+          developmentProfile: developmentProfile,
+          classAverage: classAverage,
+          highestPercentage: highestPercentage,
+          termProgress: termProgress,
+        ),
       ),
     );
   }
@@ -415,13 +489,9 @@ class _Remarks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subjectRemarks = result.subjectResults
-        .where((subject) => subject.remarks.trim().isNotEmpty)
-        .map((subject) => '${subject.subjectName}: ${subject.remarks.trim()}')
-        .join('\n');
-    final teacherRemarks = result.teacherRemarks.trim().isNotEmpty
-        ? result.teacherRemarks.trim()
-        : subjectRemarks;
+    final teacherRemarks = const ResultCardInsightService().teacherRemark(
+      result,
+    );
 
     return Wrap(
       spacing: 28,
@@ -432,12 +502,140 @@ class _Remarks extends StatelessWidget {
           value: _value(teacherRemarks),
           wide: true,
         ),
-        _Field(
-          label: 'Principal Remarks',
-          value: _value(result.principalRemarks),
-          wide: true,
+        if (result.principalRemarks.trim().isNotEmpty)
+          _Field(
+            label: 'Principal Remarks',
+            value: result.principalRemarks.trim(),
+            wide: true,
+          ),
+      ],
+    );
+  }
+}
+
+class _DevelopmentProfile extends StatelessWidget {
+  const _DevelopmentProfile({
+    required this.profile,
+    required this.punctualityRating,
+  });
+  final StudentDevelopmentProfileEntity? profile;
+  final int punctualityRating;
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = this.profile;
+    if (profile == null && punctualityRating == 0) {
+      return const SizedBox.shrink();
+    }
+    final values = <(String, int)>[
+      ('Discipline', profile?.discipline ?? 0),
+      ('Punctuality', punctualityRating),
+      ('Communication', profile?.communication ?? 0),
+      ('Class Participation', profile?.classParticipation ?? 0),
+      ('Homework', profile?.homework ?? 0),
+      ('Personal Hygiene', profile?.personalHygiene ?? 0),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Student Development Profile',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: values
+              .map(
+                (item) => Container(
+                  width: 250,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(item.$1)),
+                      Text(
+                        item.$2 <= 0
+                            ? 'Not rated'
+                            : '${'★' * item.$2}${'☆' * (5 - item.$2)}',
+                        style: TextStyle(
+                          color: item.$2 <= 0 ? null : const Color(0xFFF59E0B),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
+    );
+  }
+}
+
+class _PerformanceComparison extends StatelessWidget {
+  const _PerformanceComparison({
+    required this.studentPercentage,
+    required this.classAverage,
+    required this.highestPercentage,
+    required this.termProgress,
+  });
+  final double studentPercentage;
+  final double? classAverage;
+  final double? highestPercentage;
+  final List<String> termProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    if (classAverage == null &&
+        highestPercentage == null &&
+        termProgress.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Performance Comparison',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 24,
+            runSpacing: 8,
+            children: [
+              Text('Student: ${studentPercentage.toStringAsFixed(1)}%'),
+              if (classAverage != null)
+                Text('Class Average: ${classAverage!.toStringAsFixed(1)}%'),
+              if (highestPercentage != null)
+                Text('Highest: ${highestPercentage!.toStringAsFixed(1)}%'),
+            ],
+          ),
+          if (termProgress.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Term Progress: ${termProgress.join('  →  ')}'),
+          ],
+        ],
+      ),
     );
   }
 }

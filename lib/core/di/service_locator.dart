@@ -130,6 +130,8 @@ import '../../features/attendance/domain/usecases/generate_attendance_report.dar
 import '../../features/attendance/domain/usecases/get_attendance_by_student.dart';
 import '../../features/attendance/presentation/bloc/attendance_bloc.dart';
 import '../../features/attendance/presentation/bloc/attendance_report_bloc.dart';
+import '../../features/results/data/repositories/student_development_profile_repository_impl.dart';
+import '../../features/results/domain/repositories/student_development_profile_repository.dart';
 import '../../features/authentication/data/datasources/authentication_remote_datasource.dart';
 import '../../features/authentication/data/repositories/authentication_repository_impl.dart';
 import '../../features/authentication/domain/repositories/authentication_repository.dart';
@@ -1048,6 +1050,10 @@ Future<void> setupServiceLocator() async {
 
   sl.registerLazySingleton<ExamResultRepository>(
     () => ExamResultRepositoryImpl(source: sl<ExamResultRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<StudentDevelopmentProfileRepository>(
+    () =>
+        StudentDevelopmentProfileRepositoryImpl(sl<FirebaseFirestoreService>()),
   );
   sl.registerLazySingleton<AnnualPromotionRepository>(
     () => AnnualPromotionRepositoryImpl(
@@ -2189,6 +2195,8 @@ Future<void> setupServiceLocator() async {
     () => ReportCardBloc(
       getStudentById: sl<GetStudentById>(),
       getAttendanceByStudent: sl<GetAttendanceByStudent>(),
+      developmentProfileRepository: sl<StudentDevelopmentProfileRepository>(),
+      examResultRepository: sl<ExamResultRepository>(),
     ),
   );
 

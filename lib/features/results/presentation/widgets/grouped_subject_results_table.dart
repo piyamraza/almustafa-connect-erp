@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../exams/domain/entities/exam_result_entity.dart';
 import '../../../exams/domain/services/result_subject_grouping_service.dart';
+import '../../domain/services/result_card_insight_service.dart';
 
 class GroupedSubjectResultsTable extends StatelessWidget {
   const GroupedSubjectResultsTable({
@@ -52,13 +53,23 @@ class GroupedSubjectResultsTable extends StatelessWidget {
                     ),
                   ),
                   DataCell(Text('${row.percentage.toStringAsFixed(1)}%')),
-                  DataCell(Text(row.grade)),
+                  DataCell(
+                    Text(
+                      row.grade.trim().isEmpty
+                          ? const ResultCardInsightService().subjectGrade(
+                              row.percentage,
+                            )
+                          : row.grade,
+                    ),
+                  ),
                   DataCell(Text(row.isPassed ? 'Pass' : 'Fail')),
                   if (showRemarks)
                     DataCell(
                       Text(
                         row.remarks.trim().isEmpty
-                            ? 'Not available'
+                            ? const ResultCardInsightService().subjectRemark(
+                                row.percentage,
+                              )
                             : row.remarks,
                       ),
                     ),
@@ -100,7 +111,12 @@ class _ComponentsCell extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      component.label,
+                      component.label
+                          .replaceAll(
+                            RegExp('main paper', caseSensitive: false),
+                            '',
+                          )
+                          .trim(),
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                     const SizedBox(height: 2),

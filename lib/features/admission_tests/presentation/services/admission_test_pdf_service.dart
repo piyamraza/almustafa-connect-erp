@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -7,15 +8,28 @@ import '../../domain/entities/admission_test_entities.dart';
 class AdmissionTestPdfService {
   const AdmissionTestPdfService();
   Future<void> printPaper(AdmissionPaperEntity paper) async {
-    final fonts = await Future.wait([
-      PdfGoogleFonts.notoSansRegular(),
-      PdfGoogleFonts.notoSansBold(),
-      PdfGoogleFonts.notoNaskhArabicRegular(),
-    ]);
+    final bytes = await buildPdf(paper);
+    await Printing.layoutPdf(
+      name:
+          'admission_test_${paper.classLevel.replaceAll(' ', '_')}_${paper.variant}.pdf',
+      onLayout: (_) async => bytes,
+    );
+  }
+
+  Future<Uint8List> buildPdf(AdmissionPaperEntity paper) async {
+    final regularFontData = await rootBundle.load(
+      'assets/fonts/NotoSans-Regular.ttf',
+    );
+    final boldFontData = await rootBundle.load(
+      'assets/fonts/NotoSans-Bold.ttf',
+    );
+    final urduFontData = await rootBundle.load(
+      'assets/fonts/NotoNaskhArabic-Regular.ttf',
+    );
     final theme = pw.ThemeData.withFont(
-      base: fonts[0],
-      bold: fonts[1],
-      fontFallback: [fonts[2]],
+      base: pw.Font.ttf(regularFontData),
+      bold: pw.Font.ttf(boldFontData),
+      fontFallback: [pw.Font.ttf(urduFontData)],
     );
     final pdf = pw.Document();
     pdf.addPage(
@@ -46,11 +60,7 @@ class AdmissionTestPdfService {
         build: (_) => _questionWidgets(paper, true),
       ),
     );
-    await Printing.layoutPdf(
-      name:
-          'admission_test_${paper.classLevel.replaceAll(' ', '_')}_${paper.variant}.pdf',
-      onLayout: (_) => pdf.save(),
-    );
+    return pdf.save();
   }
 
   pw.Widget _header(AdmissionPaperEntity paper, String heading) => pw.Column(
@@ -106,19 +116,24 @@ class AdmissionTestPdfService {
         );
       }
       number++;
+      final isUrdu = _containsUrdu(q.prompt) || q.subject == 'Urdu';
+      final marks = q.marks.toStringAsFixed(q.marks % 1 == 0 ? 0 : 1);
       widgets.add(
         pw.Padding(
           padding: const pw.EdgeInsets.only(bottom: 10),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
-                '$number. ${q.prompt}  [${q.marks.toStringAsFixed(q.marks % 1 == 0 ? 0 : 1)}]',
+              _directionalText(
+                isUrdu
+                    ? '$number. ${q.prompt}  [$marks]'
+                    : '$number. ${q.prompt}  [$marks]',
+                rtl: isUrdu,
               ),
               if (q.options.isNotEmpty)
                 pw.Padding(
                   padding: const pw.EdgeInsets.only(left: 12, top: 4),
-                  child: pw.Text(
+                  child: _directionalText(
                     q.options
                         .asMap()
                         .entries
@@ -127,13 +142,17 @@ class AdmissionTestPdfService {
                               '${String.fromCharCode(65 + e.key)}. ${e.value}',
                         )
                         .join('     '),
+                    rtl: isUrdu,
                   ),
                 ),
               if (answers)
                 pw.Padding(
                   padding: const pw.EdgeInsets.only(top: 4),
-                  child: pw.Text(
-                    'Answer: ${q.correctAnswer.isEmpty ? 'Teacher observation' : q.correctAnswer}',
+                  child: _directionalText(
+                    isUrdu
+                        ? '${q.correctAnswer.isEmpty ? 'استاد کا مشاہدہ' : q.correctAnswer} :جواب'
+                        : 'Answer: ${q.correctAnswer.isEmpty ? 'Teacher observation' : q.correctAnswer}',
+                    rtl: isUrdu,
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                 )
@@ -165,4 +184,25 @@ class AdmissionTestPdfService {
     );
     return widgets;
   }
+
+  bool _containsUrdu(String value) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
+
+  pw.Widget _directionalText(
+    String value, {
+    required bool rtl,
+    pw.TextStyle? style,
+  }) => pw.Container(
+    width: double.infinity,
+    alignment: rtl ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
+    child: pw.Directionality(
+      textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      child: pw.Text(
+        value,
+        textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+        textAlign: rtl ? pw.TextAlign.right : pw.TextAlign.left,
+        style: style,
+      ),
+    ),
+  );
 }

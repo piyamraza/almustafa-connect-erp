@@ -71,6 +71,39 @@ class ImageRenderer extends ElementRenderer {
   Widget? _buildImage(dynamic value, DocumentElementEntity element) {
     final fit = _boxFit(element.style.imageFit);
 
+    if (value is Map && value['studentId'] != null) {
+      final studentId = value['studentId'].toString().trim();
+      final storedUrl = value['storedUrl']?.toString().trim() ?? '';
+      if (studentId.isEmpty) return null;
+      return FutureBuilder<String?>(
+        future: _studentPhotoUrl(studentId, storedUrl),
+        builder: (context, snapshot) {
+          final url = snapshot.data;
+          if (url != null && url.isNotEmpty) {
+            return Image.network(
+              url,
+              width: double.infinity,
+              height: double.infinity,
+              fit: fit,
+              // Keep this identical to Student Information. Firebase images
+              // can be displayed by the browser even when CanvasKit's XHR
+              // request is rejected by the bucket CORS policy.
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+              errorBuilder: _errorBuilder,
+            );
+          }
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const SizedBox.shrink();
+          }
+          return _errorBuilder(
+            context,
+            snapshot.error ?? StateError('Student photo could not be loaded.'),
+            null,
+          );
+        },
+      );
+    }
+
     if (value is Uint8List) {
       return Image.memory(
         value,
@@ -166,6 +199,51 @@ class ImageRenderer extends ElementRenderer {
   }
 
   Future<Uint8List?> _downloadImageBytes(String source) async {
+    final directBytes = await _downloadHttpImage(source);
+    if (directBytes != null) return directBytes;
+
+    try {
+      // Stored Firebase download URLs can expire or become stale after a photo
+      // is replaced. Resolve the object reference and request a fresh URL
+      // before falling back to the authenticated SDK download.
+      final reference = FirebaseStorage.instance.refFromURL(source);
+      final freshUrl = await reference.getDownloadURL();
+      final refreshedBytes = await _downloadHttpImage(freshUrl);
+      if (refreshedBytes != null) return refreshedBytes;
+
+      return await reference.getData(10 * 1024 * 1024);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _studentPhotoUrl(String studentId, String storedUrl) async {
+    final canonicalReference = FirebaseStorage.instance.ref(
+      'students/$studentId/profile.jpg',
+    );
+    if (storedUrl.startsWith('http://') || storedUrl.startsWith('https://')) {
+      final separator = storedUrl.contains('?') ? '&' : '?';
+      return '$storedUrl${separator}v=${DateTime.now().millisecondsSinceEpoch}';
+    }
+    try {
+      final reference = storedUrl.isNotEmpty
+          ? FirebaseStorage.instance.refFromURL(storedUrl)
+          : canonicalReference;
+      final url = await reference.getDownloadURL();
+      final separator = url.contains('?') ? '&' : '?';
+      return '$url${separator}v=${DateTime.now().millisecondsSinceEpoch}';
+    } catch (_) {
+      try {
+        final url = await canonicalReference.getDownloadURL();
+        final separator = url.contains('?') ? '&' : '?';
+        return '$url${separator}v=${DateTime.now().millisecondsSinceEpoch}';
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  Future<Uint8List?> _downloadHttpImage(String source) async {
     try {
       final response = await http.get(Uri.parse(source));
       final contentType = response.headers['content-type'] ?? '';
@@ -176,15 +254,9 @@ class ImageRenderer extends ElementRenderer {
         return response.bodyBytes;
       }
     } catch (_) {
-      // Try authenticated Firebase Storage access below.
+      // The caller can attempt a Firebase Storage authenticated fallback.
     }
-    try {
-      return FirebaseStorage.instance
-          .refFromURL(source)
-          .getData(10 * 1024 * 1024);
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   Widget _errorBuilder(

@@ -33,7 +33,8 @@ class _ReportCardsView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Report Cards'),
-        actions: [const DashboardNavigationButton(),
+        actions: [
+          const DashboardNavigationButton(),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () => context.read<ResultsBloc>().add(
@@ -120,82 +121,26 @@ class _ReportCardList extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1120
-            ? 3
-            : constraints.maxWidth >= 700
-            ? 2
-            : 1;
-        return GridView.builder(
-          itemCount: results.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: columns == 1 ? 1.25 : 1.38,
-          ),
-          itemBuilder: (context, index) {
-            final result = results[index];
-            return Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () => _open(context, result),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            child: Text(
-                              result.studentName.trim().isEmpty
-                                  ? '?'
-                                  : result.studentName.trim()[0].toUpperCase(),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              result.studentName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text('${result.examName} • ${result.academicSession}'),
-                      const SizedBox(height: 4),
-                      Text('Class ${result.className}-${result.sectionName}'),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${result.percentage.toStringAsFixed(1)}% • ${result.grade}',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          const Icon(Icons.description_outlined),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () => _open(context, result),
-                          child: const Text('Open Report Card'),
-                        ),
-                      ),
-                    ],
+        final showDesktopColumns = constraints.maxWidth >= 760;
+        return Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              if (showDesktopColumns) const _ReportCardListHeader(),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: results.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) => _ReportCardRow(
+                    result: results[index],
+                    showDesktopColumns: showDesktopColumns,
+                    onTap: () => _open(context, results[index]),
                   ),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         );
       },
     );
@@ -205,6 +150,143 @@ class _ReportCardList extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => IndividualReportCardPage(result: result),
+      ),
+    );
+  }
+}
+
+class _ReportCardListHeader extends StatelessWidget {
+  const _ReportCardListHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700);
+    return Container(
+      height: 38,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          const SizedBox(width: 36),
+          const SizedBox(width: 10),
+          Expanded(flex: 3, child: Text('Student', style: style)),
+          Expanded(flex: 2, child: Text('Class / Roll No.', style: style)),
+          Expanded(flex: 3, child: Text('Exam / Session', style: style)),
+          Expanded(flex: 2, child: Text('Result', style: style)),
+          const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportCardRow extends StatelessWidget {
+  const _ReportCardRow({
+    required this.result,
+    required this.showDesktopColumns,
+    required this.onTap,
+  });
+
+  final ExamResultEntity result;
+  final bool showDesktopColumns;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = result.studentName.trim().isEmpty
+        ? '?'
+        : result.studentName.trim()[0].toUpperCase();
+    final resultText =
+        '${result.percentage.toStringAsFixed(1)}% • ${result.grade}';
+
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: showDesktopColumns ? 56 : 64,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: showDesktopColumns
+              ? Row(
+                  children: [
+                    CircleAvatar(radius: 18, child: Text(initial)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        result.studentName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${result.className}-${result.sectionName}  •  ${result.rollNumber}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        '${result.examName} • ${result.academicSession}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        resultText,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Open report card',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onTap,
+                      icon: const Icon(Icons.description_outlined, size: 20),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    CircleAvatar(radius: 17, child: Text(initial)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            result.studentName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            '${result.className}-${result.sectionName} • Roll ${result.rollNumber} • ${result.examName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      resultText,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+        ),
       ),
     );
   }

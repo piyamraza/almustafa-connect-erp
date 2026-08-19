@@ -220,6 +220,12 @@ service cloud.firestore {
       allow delete: if hasPermission('studentsDelete');
     }
 
+    match /student_development_profiles/{profileId} {
+      allow read: if hasAnyPermission('resultsView', 'resultsEnter');
+      allow create, update: if hasPermission('resultsEnter');
+      allow delete: if hasPermission('resultsPublish');
+    }
+
     match /teachers/{document=**} {
       allow read: if hasPermission('teachersView')
           || ownsTeacherProfile(document);

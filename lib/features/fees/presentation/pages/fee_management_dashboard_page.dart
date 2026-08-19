@@ -50,7 +50,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Configure class and section-wise monthly and one-time charges.',
         icon: Icons.account_balance_wallet_outlined,
         color: const Color(0xFF2563EB),
-        lightColor: const Color(0xFFEAF2FF),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FeeStructurePage()),
@@ -63,7 +62,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Assign fee structures, discounts and individual adjustments.',
         icon: Icons.assignment_ind_outlined,
         color: const Color(0xFF7C3AED),
-        lightColor: const Color(0xFFF3ECFF),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -78,7 +76,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Generate monthly dues, arrears and advance month charges.',
         icon: Icons.calendar_month_outlined,
         color: const Color(0xFF0891B2),
-        lightColor: const Color(0xFFE6F8FC),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -93,7 +90,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Create and generate school-wide, class-wise or student-specific charges.',
         icon: Icons.add_card_outlined,
         color: const Color(0xFFDB2777),
-        lightColor: const Color(0xFFFFECF5),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -107,7 +103,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
         description: 'Receive partial or full payments and issue receipts.',
         icon: Icons.payments_outlined,
         color: const Color(0xFFEA580C),
-        lightColor: const Color(0xFFFFF0E8),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FeeCollectionPage()),
@@ -120,7 +115,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Print and share school, parent and bank fee challan copies.',
         icon: Icons.receipt_long_outlined,
         color: const Color(0xFFB45309),
-        lightColor: const Color(0xFFFFF5DE),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FeeChallanPage()),
@@ -133,7 +127,6 @@ class FeeManagementDashboardPage extends StatelessWidget {
             'Paid, unpaid, arrears, collection and student ledger reports.',
         icon: Icons.analytics_outlined,
         color: const Color(0xFF059669),
-        lightColor: const Color(0xFFE8FBF3),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FeeReportsPage()),
@@ -669,7 +662,6 @@ class _FeeFeature {
     required this.description,
     required this.icon,
     required this.color,
-    required this.lightColor,
     required this.onTap,
   });
 
@@ -677,7 +669,6 @@ class _FeeFeature {
   final String description;
   final IconData icon;
   final Color color;
-  final Color lightColor;
   final VoidCallback onTap;
 }
 
@@ -708,20 +699,21 @@ class _FeatureCardState extends State<_FeatureCard> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [feature.lightColor, Colors.white],
+            colors: [
+              feature.color,
+              Color.lerp(feature.color, Colors.black, _hovered ? .10 : .18)!,
+            ],
           ),
           borderRadius: BorderRadius.circular(17),
           border: Border.all(
-            color: _hovered
-                ? feature.color.withValues(alpha: .48)
-                : feature.color.withValues(alpha: .20),
-            width: _hovered ? 1.4 : 1,
+            color: Colors.white.withValues(alpha: _hovered ? .38 : .18),
+            width: _hovered ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: feature.color.withValues(alpha: _hovered ? .16 : .08),
-              blurRadius: _hovered ? 18 : 10,
-              offset: Offset(0, _hovered ? 7 : 4),
+              color: feature.color.withValues(alpha: _hovered ? .35 : .24),
+              blurRadius: _hovered ? 20 : 14,
+              offset: Offset(0, _hovered ? 9 : 6),
             ),
           ],
         ),
@@ -740,15 +732,15 @@ class _FeatureCardState extends State<_FeatureCard> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: feature.color.withValues(alpha: .13),
+                            color: Colors.white.withValues(alpha: .18),
                             borderRadius: BorderRadius.circular(9),
                             border: Border.all(
-                              color: feature.color.withValues(alpha: .22),
+                              color: Colors.white.withValues(alpha: .24),
                             ),
                           ),
                           child: Icon(
                             feature.icon,
-                            color: feature.color,
+                            color: Colors.white,
                             size: 18,
                           ),
                         ),
@@ -759,7 +751,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: _textPrimary,
+                            color: Colors.white,
                             fontSize: 9.5,
                             height: 1.05,
                             fontWeight: FontWeight.w800,
@@ -774,15 +766,15 @@ class _FeatureCardState extends State<_FeatureCard> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: feature.color.withValues(alpha: .13),
+                            color: Colors.white.withValues(alpha: .18),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: feature.color.withValues(alpha: .22),
+                              color: Colors.white.withValues(alpha: .24),
                             ),
                           ),
                           child: Icon(
                             feature.icon,
-                            color: feature.color,
+                            color: Colors.white,
                             size: 19,
                           ),
                         ),
@@ -796,7 +788,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: _textPrimary,
+                                  color: Colors.white,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -808,7 +800,7 @@ class _FeatureCardState extends State<_FeatureCard> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: _textSecondary,
+                                    color: Color(0xE6FFFFFF),
                                     fontSize: 12,
                                     height: 1.25,
                                   ),
@@ -820,12 +812,12 @@ class _FeatureCardState extends State<_FeatureCard> {
                                   width: 24,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color: feature.color.withValues(alpha: .11),
+                                    color: Colors.white.withValues(alpha: .18),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.arrow_forward_rounded,
-                                    color: feature.color,
+                                    color: Colors.white,
                                     size: 15,
                                   ),
                                 ),

@@ -114,6 +114,28 @@ List<_Spec> _nursery(bool kg) => [
 ];
 
 List<_Spec> _english(int grade) {
+  const pluralWords = [
+    '',
+    'book',
+    'toy',
+    'child',
+    'leaf',
+    'knife',
+    'woman',
+    'analysis',
+    'criterion',
+  ];
+  const opposites = [
+    '',
+    'happy',
+    'hot',
+    'ancient',
+    'generous',
+    'expand',
+    'victory',
+    'scarce',
+    'optimistic',
+  ];
   final noun = grade <= 2
       ? 'book'
       : grade <= 5
@@ -121,20 +143,41 @@ List<_Spec> _english(int grade) {
       : 'knowledge';
   return [
     _easy(
-      'Choose the correct plural of "book".',
-      'books',
-      AdmissionQuestionType.multipleChoice,
-      options: ['bookes', 'books', 'book'],
+      'Write the plural of "${pluralWords[grade]}".',
+      const [
+        '',
+        'books',
+        'toys',
+        'children',
+        'leaves',
+        'knives',
+        'women',
+        'analyses',
+        'criteria',
+      ][grade],
+      grade == 1
+          ? AdmissionQuestionType.multipleChoice
+          : AdmissionQuestionType.shortAnswer,
+      options: grade == 1 ? ['bookes', 'books', 'book'] : const [],
     ),
     _easy(
-      'Choose the opposite of "happy".',
-      'sad',
-      AdmissionQuestionType.multipleChoice,
-      options: ['kind', 'sad', 'fast'],
+      'Write the opposite of "${opposites[grade]}".',
+      const [
+        '',
+        'sad',
+        'cold',
+        'modern',
+        'selfish',
+        'contract',
+        'defeat',
+        'abundant',
+        'pessimistic',
+      ][grade],
+      AdmissionQuestionType.shortAnswer,
     ),
     _easy(
-      'Fill in the blank: The sun ___ in the east.',
-      'rises',
+      'Fill in the blank with the correct verb: The Class $grade students ___ their lesson every day.',
+      'study',
       AdmissionQuestionType.fillBlank,
     ),
     _medium(
@@ -171,61 +214,138 @@ List<_Spec> _english(int grade) {
       AdmissionQuestionType.shortAnswer,
       marks: 2,
     ),
+    _easy(
+      'Arrange alphabetically: ${grade <= 3 ? 'cat, apple, ball' : 'knowledge, kindness, kingdom'}.',
+      grade <= 3 ? 'apple, ball, cat' : 'kindness, kingdom, knowledge',
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _medium(
+      'Write a suitable title for a short paragraph about ${grade <= 4 ? 'a helpful friend' : 'protecting the environment'}.',
+      'Any relevant title',
+      AdmissionQuestionType.shortAnswer,
+      marks: 2,
+    ),
+    _difficult(
+      'Write a ${grade <= 3 ? 'four' : 'six'}-sentence paragraph suitable for Class $grade.',
+      'Relevant and grammatically correct paragraph',
+      AdmissionQuestionType.shortAnswer,
+      marks: 3,
+    ),
   ];
 }
 
-List<_Spec> _urdu(int grade) => [
-  _easy(
-    'لفظ "کتاب" کی جمع لکھیں۔',
-    'کتابیں',
-    AdmissionQuestionType.shortAnswer,
-  ),
-  _easy(
-    'لفظ "بڑا" کی ضد منتخب کریں۔',
-    'چھوٹا',
-    AdmissionQuestionType.multipleChoice,
-    options: ['اونچا', 'چھوٹا', 'موٹا'],
-  ),
-  _easy(
-    'خالی جگہ پُر کریں: سورج مشرق سے ___ ہوتا ہے۔',
-    'طلوع',
-    AdmissionQuestionType.fillBlank,
-  ),
-  _medium(
-    'جملے میں اسم پہچانیں: علی اسکول جاتا ہے۔',
-    'علی / اسکول',
-    AdmissionQuestionType.shortAnswer,
-  ),
-  _medium(
-    'لفظ "خوشی" کو ایک جملے میں استعمال کریں۔',
-    'کوئی درست اور بامعنی جملہ',
-    AdmissionQuestionType.shortAnswer,
-    marks: 2,
-  ),
-  _medium(
-    'درست املا لکھیں: زمہ داری',
-    'ذمہ داری',
-    AdmissionQuestionType.shortAnswer,
-  ),
-  _difficult(
-    'جملہ درست کریں: بچے میدان میں کھیلتا ہے۔',
-    'بچے میدان میں کھیلتے ہیں۔',
-    AdmissionQuestionType.shortAnswer,
-    marks: 2,
-  ),
-  _difficult(
-    'اپنے اسکول کے بارے میں ${grade <= 3 ? 'تین' : 'پانچ'} جملے لکھیں۔',
-    'متعلقہ اور درست جملے',
-    AdmissionQuestionType.shortAnswer,
-    marks: 3,
-  ),
-  _difficult(
-    'محنت کامیابی کی کنجی کیوں ہے؟ مختصر جواب دیں۔',
-    'محنت سے انسان اپنے مقصد حاصل کرتا ہے۔',
-    AdmissionQuestionType.shortAnswer,
-    marks: 2,
-  ),
-];
+List<_Spec> _urdu(int grade) {
+  const words = [
+    '',
+    'کتاب',
+    'لڑکا',
+    'بچہ',
+    'کرسی',
+    'چڑیا',
+    'استاد',
+    'کہانی',
+    'مسئلہ',
+  ];
+  const opposites = [
+    '',
+    'بڑا',
+    'گرم',
+    'آغاز',
+    'روشنی',
+    'کامیابی',
+    'نرم',
+    'سچا',
+    'قریب',
+  ];
+  return [
+    _easy(
+      'لفظ "${words[grade]}" کی جمع لکھیں۔',
+      const [
+        '',
+        'کتابیں',
+        'لڑکے',
+        'بچے',
+        'کرسیاں',
+        'چڑیاں',
+        'اساتذہ',
+        'کہانیاں',
+        'مسائل',
+      ][grade],
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _easy(
+      'لفظ "${opposites[grade]}" کی ضد لکھیں۔',
+      const [
+        '',
+        'چھوٹا',
+        'سرد',
+        'اختتام',
+        'اندھیرا',
+        'ناکامی',
+        'سخت',
+        'جھوٹا',
+        'دور',
+      ][grade],
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _easy(
+      'خالی جگہ پُر کریں: سورج مشرق سے ___ ہوتا ہے۔',
+      'طلوع',
+      AdmissionQuestionType.fillBlank,
+    ),
+    _medium(
+      'جملے میں اسم پہچانیں: علی اسکول جاتا ہے۔',
+      'علی / اسکول',
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _medium(
+      'لفظ "خوشی" کو ایک جملے میں استعمال کریں۔',
+      'کوئی درست اور بامعنی جملہ',
+      AdmissionQuestionType.shortAnswer,
+      marks: 2,
+    ),
+    _medium(
+      'درست املا لکھیں: زمہ داری',
+      'ذمہ داری',
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _difficult(
+      'جملہ درست کریں: بچے میدان میں کھیلتا ہے۔',
+      'بچے میدان میں کھیلتے ہیں۔',
+      AdmissionQuestionType.shortAnswer,
+      marks: 2,
+    ),
+    _difficult(
+      'اپنے اسکول کے بارے میں ${grade <= 3 ? 'تین' : 'پانچ'} جملے لکھیں۔',
+      'متعلقہ اور درست جملے',
+      AdmissionQuestionType.shortAnswer,
+      marks: 3,
+    ),
+    _difficult(
+      'محنت کامیابی کی کنجی کیوں ہے؟ مختصر جواب دیں۔',
+      'محنت سے انسان اپنے مقصد حاصل کرتا ہے۔',
+      AdmissionQuestionType.shortAnswer,
+      marks: 2,
+    ),
+    _easy(
+      'درج ذیل الفاظ کو حروفِ تہجی کے مطابق لکھیں: ${grade <= 3 ? 'آم، بکری، پتنگ' : 'تعلیم، ترقی، تہذیب'}۔',
+      grade <= 3 ? 'آم، بکری، پتنگ' : 'تہذیب، تعلیم، ترقی',
+      AdmissionQuestionType.shortAnswer,
+    ),
+    _medium(
+      'جماعت $grade کے معیار کے مطابق ${grade <= 4 ? 'اچھے دوست' : 'وقت کی پابندی'} پر دو جملے لکھیں۔',
+      'کوئی دو متعلقہ اور درست جملے',
+      AdmissionQuestionType.shortAnswer,
+      marks: 2,
+    ),
+    _difficult(
+      '${grade <= 3 ? 'چار' : 'چھ'} جملوں میں اپنی پسندیدہ کتاب کا تعارف لکھیں۔',
+      'متعلقہ، مربوط اور درست تحریر',
+      AdmissionQuestionType.shortAnswer,
+      marks: 3,
+    ),
+  ];
+}
 
 List<_Spec> _mathematics(int grade) {
   final base = grade * 10;
@@ -344,18 +464,18 @@ List<_Spec> _generalKnowledge(int grade) => [
 
 List<_Spec> _science(int grade) => [
   _easy(
-    'Which part of a plant absorbs water from the soil?',
+    'Class $grade Science: Which part of a plant absorbs water from the soil?',
     'Roots',
     AdmissionQuestionType.multipleChoice,
     options: ['Flower', 'Roots', 'Fruit'],
   ),
   _easy(
-    'What gas do humans need for breathing?',
+    'For the Class $grade syllabus, name the gas humans need for breathing.',
     'Oxygen',
     AdmissionQuestionType.shortAnswer,
   ),
   _easy(
-    'Name the planet on which we live.',
+    'Name our planet and one feature studied in Class $grade.',
     'Earth',
     AdmissionQuestionType.shortAnswer,
   ),
@@ -401,12 +521,33 @@ List<_Spec> _science(int grade) => [
     AdmissionQuestionType.shortAnswer,
     marks: 3,
   ),
+  _easy(
+    grade <= 4
+        ? 'Name one living and one non-living thing.'
+        : 'State one difference between a physical and a chemical change.',
+    grade <= 4
+        ? 'Any correct examples'
+        : 'A physical change forms no new substance; a chemical change does.',
+    AdmissionQuestionType.shortAnswer,
+  ),
+  _medium(
+    'Give one practical example of the Class $grade topic: ${grade <= 5 ? 'force and motion' : 'energy transformation'}.',
+    'Any scientifically correct example',
+    AdmissionQuestionType.shortAnswer,
+    marks: 2,
+  ),
+  _difficult(
+    'Design a simple Class $grade experiment to test ${grade <= 5 ? 'which materials float' : 'how temperature affects dissolving'}.',
+    'A safe method with materials, steps and expected observation',
+    AdmissionQuestionType.shortAnswer,
+    marks: 3,
+  ),
 ];
 
 List<_Spec> _reasoning(int grade) => [
   _easy(
-    'Find the next number: 2, 4, 6, 8, ___',
-    '10',
+    'Find the next number: $grade, ${grade * 2}, ${grade * 3}, ${grade * 4}, ___',
+    '${grade * 5}',
     AdmissionQuestionType.fillBlank,
   ),
   _easy(
@@ -426,8 +567,8 @@ List<_Spec> _reasoning(int grade) => [
     AdmissionQuestionType.fillBlank,
   ),
   _medium(
-    'Find the missing number: 3, 6, 12, 24, ___',
-    '48',
+    'Find the missing number for Class $grade: $grade, ${grade * 2}, ${grade * 4}, ${grade * 8}, ___',
+    '${grade * 16}',
     AdmissionQuestionType.fillBlank,
   ),
   _medium(
@@ -451,6 +592,22 @@ List<_Spec> _reasoning(int grade) => [
     'Find the rule and next term: 1, 4, 9, 16, ___',
     '25',
     AdmissionQuestionType.fillBlank,
+    marks: 2,
+  ),
+  _easy(
+    'Complete the Class $grade letter pattern: A, C, E, G, ___.',
+    'I',
+    AdmissionQuestionType.fillBlank,
+  ),
+  _medium(
+    'A code adds $grade to every number. What does 12 become?',
+    '${12 + grade}',
+    AdmissionQuestionType.shortAnswer,
+  ),
+  _difficult(
+    'Using the digits $grade, ${grade + 1}, and ${grade + 2}, form the greatest possible three-digit number.',
+    '${grade + 2}${grade + 1}$grade',
+    AdmissionQuestionType.shortAnswer,
     marks: 2,
   ),
 ];
