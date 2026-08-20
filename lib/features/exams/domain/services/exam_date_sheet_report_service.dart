@@ -5,5 +5,7 @@ abstract class ExamDateSheetReportService {
 
   Future<void> sharePdf(ExamDateSheetReportRequest request);
 
+  Future<void> downloadAllClassesPdf(ExamDateSheetReportRequest request);
+
   Future<void> exportExcel(ExamDateSheetReportRequest request);
 }

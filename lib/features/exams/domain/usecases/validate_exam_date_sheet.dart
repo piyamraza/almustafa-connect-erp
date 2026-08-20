@@ -49,23 +49,6 @@ class ValidateExamDateSheet {
         );
       }
 
-      if (paper.totalMarks <= 0 ||
-          paper.passingMarks < 0 ||
-          paper.passingMarks > paper.totalMarks) {
-        issues.add(
-          ExamDateSheetValidationIssue(
-            type: ExamDateSheetIssueType.invalidMarks,
-            severity: ExamDateSheetIssueSeverity.error,
-            title: 'Invalid marks',
-            message: '${paper.subjectName} has invalid total or passing marks.',
-            suggestion:
-                'Keep total marks above zero and passing marks within '
-                'the total.',
-            paperId: paper.id,
-          ),
-        );
-      }
-
       final existingClass = classDays[paper.classDayKey];
       if (existingClass != null) {
         issues.add(
@@ -125,22 +108,6 @@ class ValidateExamDateSheet {
         );
       } else {
         subjects[paper.subjectKey] = paper;
-      }
-
-      if (paper.examDate.weekday == DateTime.sunday) {
-        issues.add(
-          ExamDateSheetValidationIssue(
-            type: ExamDateSheetIssueType.weekendPaper,
-            severity: ExamDateSheetIssueSeverity.warning,
-            title: 'Sunday paper',
-            message:
-                '${paper.subjectName} for ${paper.className} - '
-                '${paper.sectionName} is scheduled on Sunday.',
-            suggestion:
-                'Move it to a working day unless Sunday exams are intended.',
-            paperId: paper.id,
-          ),
-        );
       }
     }
 

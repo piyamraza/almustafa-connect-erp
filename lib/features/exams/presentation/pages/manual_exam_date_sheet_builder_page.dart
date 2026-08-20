@@ -48,6 +48,7 @@ class _ManualExamDateSheetBuilderPageState
   List<AcademicSubjectEntity> _subjects = const [];
   List<SubjectComponentEntity> _components = const [];
   List<TeacherAssignmentEntity> _assignments = const [];
+  List<ExamDateSheetEntity> _dateSheets = const [];
   List<ExamDateSheetPaperEntity> _papers = const [];
   List<DateTime> _calendarHolidays = const [];
   TimeOfDay _defaultStartTime = const TimeOfDay(hour: 9, minute: 0);
@@ -116,6 +117,7 @@ class _ManualExamDateSheetBuilderPageState
         sl<AcademicStructureRepository>().getSubjects(),
         sl<TeacherAssignmentRepository>().getAssignments(),
         sl<SubjectComponentRepository>().getComponents(),
+        sl<ExamDateSheetRepository>().getDateSheets(),
       ]);
 
       if (!mounted) return;
@@ -157,16 +159,18 @@ class _ManualExamDateSheetBuilderPageState
         _components = (values[5] as List<SubjectComponentEntity>)
             .where((item) => item.isActive)
             .toList();
+        _dateSheets = (values[6] as List<ExamDateSheetEntity>)
+          ..sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
         _calendarHolidays = calendarHolidays;
-        if (widget.existing == null) {
-          _papers = _papers
-              .where(
-                (paper) => !calendarHolidays.any(
-                  (holiday) => _sameDate(holiday, paper.examDate),
-                ),
-              )
-              .toList();
-        }
+        _papers = _papers
+            .where(
+              (paper) =>
+                  paper.examDate.weekday != DateTime.sunday &&
+                  !calendarHolidays.any(
+                    (holiday) => _sameDate(holiday, paper.examDate),
+                  ),
+            )
+            .toList();
         if (_titleController.text.trim().isEmpty && _selectedExam != null) {
           _titleController.text = '${_selectedExam!.name} Date Sheet';
         }
@@ -242,6 +246,134 @@ class _ManualExamDateSheetBuilderPageState
         _error = _message(error);
       });
     }
+  }
+
+  Future<void> _copyFromPreviousDateSheet() async {
+    final sources = _dateSheets
+        .where(
+          (sheet) =>
+              sheet.id != widget.existing?.id && sheet.papers.isNotEmpty,
+        )
+        .toList();
+    if (sources.isEmpty) {
+      _show('No previous date sheet is available to copy.');
+      return;
+    }
+
+    var selectedId = sources.first.id;
+    final selected = await showDialog<ExamDateSheetEntity>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Copy from Previous Date Sheet'),
+          content: SizedBox(
+            width: 480,
+            child: DropdownButtonFormField<String>(
+              initialValue: selectedId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Previous Date Sheet',
+                border: OutlineInputBorder(),
+              ),
+              items: sources
+                  .map(
+                    (sheet) => DropdownMenuItem(
+                      value: sheet.id,
+                      child: Text('${sheet.title} - ${sheet.examName}'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setDialogState(() => selectedId = value);
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                sources.firstWhere((sheet) => sheet.id == selectedId),
+              ),
+              icon: const Icon(Icons.content_copy_outlined),
+              label: const Text('Copy'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+
+    final sourceDates = selected.papers
+        .map((paper) => _dateOnly(paper.examDate))
+        .toSet()
+        .toList()
+      ..sort();
+    final targetDates = _matrixDates;
+    final dateMap = <DateTime, DateTime>{};
+    for (var index = 0;
+        index < sourceDates.length && index < targetDates.length;
+        index++) {
+      dateMap[sourceDates[index]] = targetDates[index];
+    }
+
+    final repository = sl<ExamDateSheetRepository>();
+    final copied = <ExamDateSheetPaperEntity>[];
+    for (final source in selected.papers) {
+      final targetDate = dateMap[_dateOnly(source.examDate)];
+      if (targetDate == null) continue;
+      final row = _paperRows.where((candidate) {
+        final sameClass = candidate.academicClass.id == source.classId ||
+            _normalise(candidate.academicClass.name) ==
+                _normalise(source.className);
+        final sameSection = candidate.section.id == source.sectionId ||
+            _normalise(candidate.section.name) ==
+                _normalise(source.sectionName);
+        final sameSubject = candidate.subject.id == source.subjectId ||
+            _normalise(candidate.subject.name) ==
+                _normalise(source.subjectName);
+        return sameClass && sameSection && sameSubject;
+      }).firstOrNull;
+      if (row == null) continue;
+      copied.add(
+        ExamDateSheetPaperEntity(
+          id: repository.generatePaperId(),
+          classId: row.academicClass.id,
+          className: row.academicClass.name,
+          sectionId: row.section.id,
+          sectionName: row.section.name,
+          subjectId: row.subject.id,
+          subjectName: row.subject.name,
+          teacherId: row.assignment.teacherId,
+          teacherName: row.assignment.teacherName,
+          examDate: targetDate,
+          startMinutes: source.startMinutes,
+          endMinutes: source.endMinutes,
+          totalMarks: source.totalMarks,
+          passingMarks: source.passingMarks,
+          instructions: source.instructions,
+        ),
+      );
+    }
+    if (copied.isEmpty) {
+      _show('No matching classes and subjects were found in this exam.');
+      return;
+    }
+    setState(() {
+      _papers = copied;
+      _defaultStartTime = _toTime(copied.first.startMinutes);
+      _defaultEndTime = _toTime(copied.first.endMinutes);
+      _validationResult = null;
+    });
+    final skipped = selected.papers.length - copied.length;
+    _show(
+      skipped == 0
+          ? '${copied.length} papers copied. You can edit them now.'
+          : '${copied.length} papers copied; $skipped unmatched papers skipped.',
+    );
   }
 
   bool get _isReadOnly =>
@@ -321,7 +453,8 @@ class _ManualExamDateSheetBuilderPageState
       }
     }
     rows.sort((first, second) {
-      final classResult = first.academicClass.name.compareTo(
+      final classResult = compareAcademicClassNames(
+        first.academicClass.name,
         second.academicClass.name,
       );
       if (classResult != 0) return classResult;
@@ -416,7 +549,8 @@ class _ManualExamDateSheetBuilderPageState
     }
     final columns = values.values.toList()
       ..sort((first, second) {
-        final classResult = first.academicClass.name.compareTo(
+        final classResult = compareAcademicClassNames(
+          first.academicClass.name,
           second.academicClass.name,
         );
         return classResult != 0
@@ -435,7 +569,8 @@ class _ManualExamDateSheetBuilderPageState
     var date = DateTime(first.year, first.month, first.day);
     final end = DateTime(last.year, last.month, last.day);
     while (!date.isAfter(end)) {
-      if (!_calendarHolidays.any((holiday) => _sameDate(holiday, date))) {
+      if (date.weekday != DateTime.sunday &&
+          !_calendarHolidays.any((holiday) => _sameDate(holiday, date))) {
         dates.add(date);
       }
       date = date.add(const Duration(days: 1));
@@ -743,8 +878,10 @@ class _ManualExamDateSheetBuilderPageState
   }
 
   Future<void> _showOutputPreview() async {
-    final dates = _papers.map((paper) => paper.examDate).toSet().toList()
-      ..sort();
+    final dates = <DateTime>{
+      ..._papers.map((paper) => _dateOnly(paper.examDate)),
+      ..._calendarHolidays.map(_dateOnly),
+    }.toList()..sort();
     SchoolSettingsEntity? settings;
     try {
       settings = await sl<GetSchoolSettings>()();
@@ -857,6 +994,13 @@ class _ManualExamDateSheetBuilderPageState
                             rows: [
                               for (final date in dates)
                                 DataRow(
+                                  color: _isCalendarHoliday(date)
+                                      ? WidgetStatePropertyAll(
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.errorContainer,
+                                        )
+                                      : null,
                                   cells: [
                                     DataCell(
                                       Text('${_date(date)}\n${_day(date)}'),
@@ -866,12 +1010,19 @@ class _ManualExamDateSheetBuilderPageState
                                         SizedBox(
                                           width: 125,
                                           child: Text(
-                                            _paperAt(
-                                                  date,
-                                                  column,
-                                                )?.subjectName ??
-                                                '-',
+                                            _isCalendarHoliday(date)
+                                                ? 'HOLIDAY'
+                                                : _paperAt(
+                                                        date,
+                                                        column,
+                                                      )?.subjectName ??
+                                                      '-',
                                             textAlign: TextAlign.center,
+                                            style: _isCalendarHoliday(date)
+                                                ? const TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                  )
+                                                : null,
                                           ),
                                         ),
                                       ),
@@ -1036,6 +1187,13 @@ class _ManualExamDateSheetBuilderPageState
                                 isDense: true,
                               ),
                             ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isReadOnly || _dateSheets.isEmpty
+                                ? null
+                                : _copyFromPreviousDateSheet,
+                            icon: const Icon(Icons.content_copy_outlined),
+                            label: const Text('Copy Previous Date Sheet'),
                           ),
                           if (_selectedExam != null)
                             Chip(
@@ -1361,6 +1519,12 @@ class _ManualExamDateSheetBuilderPageState
       first.year == second.year &&
       first.month == second.month &&
       first.day == second.day;
+
+  static DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  bool _isCalendarHoliday(DateTime date) =>
+      _calendarHolidays.any((holiday) => _sameDate(holiday, date));
 
   static String _day(DateTime value) => switch (value.weekday) {
     DateTime.monday => 'Monday',

@@ -362,7 +362,8 @@ class GenerateExamDateSheetOptions {
     final end = _dateOnly(request.endDate);
 
     while (!current.isAfter(end)) {
-      if (request.allowedWeekdays.contains(current.weekday) &&
+      if (current.weekday != DateTime.sunday &&
+          request.allowedWeekdays.contains(current.weekday) &&
           !holidays.contains(_dateKey(current))) {
         values.add(current);
       }

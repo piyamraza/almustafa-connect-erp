@@ -973,7 +973,7 @@ Future<void> setupServiceLocator() async {
     ),
   );
   sl.registerLazySingleton<ExamDateSheetReportService>(
-    ExamDateSheetReportServiceImpl.new,
+    () => ExamDateSheetReportServiceImpl(sl<AcademicStructureRepository>()),
   );
   sl.registerLazySingleton<ExamDateSheetRepository>(
     () => ExamDateSheetRepositoryImpl(sl<FirebaseFirestoreService>()),

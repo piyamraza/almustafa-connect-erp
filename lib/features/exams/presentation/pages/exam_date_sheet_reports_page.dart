@@ -3,6 +3,7 @@ import 'package:almustafa_connect_erp/core/widgets/dashboard_navigation_button.d
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../academic_structure/domain/services/academic_class_order.dart';
 import '../../domain/entities/exam_date_sheet_entity.dart';
 import '../../domain/entities/exam_date_sheet_report_entity.dart';
 import '../../domain/repositories/exam_date_sheet_repository.dart';
@@ -84,7 +85,15 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
       );
     }
     final values = map.values.toList()
-      ..sort((a, b) => a.label.compareTo(b.label));
+      ..sort((first, second) {
+        final classOrder = compareAcademicClassNames(
+          first.className,
+          second.className,
+        );
+        return classOrder != 0
+            ? classOrder
+            : first.sectionName.compareTo(second.sectionName);
+      });
     return values;
   }
 
@@ -120,8 +129,7 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
         .where((item) => item.id == _teacherId)
         .firstOrNull;
 
-    if (_type == ExamDateSheetReportType.parentClassCopy &&
-        classOption == null) {
+    if (_type.isClassCopy && classOption == null) {
       return null;
     }
     return ExamDateSheetReportRequest(
@@ -259,9 +267,10 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
               ),
             ),
             SizedBox(
-              width: 250,
+              width: 330,
               child: DropdownButtonFormField<ExamDateSheetReportType>(
                 initialValue: _type,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Report Type',
                   border: OutlineInputBorder(),
@@ -283,7 +292,7 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
                       },
               ),
             ),
-            if (_type == ExamDateSheetReportType.parentClassCopy)
+            if (_type.isClassCopy)
               SizedBox(
                 width: 250,
                 child: DropdownButtonFormField<String>(
@@ -370,6 +379,16 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
               icon: const Icon(Icons.table_view_outlined),
               label: const Text('Export Excel'),
             ),
+            if (_type.isClassCopy)
+              FilledButton.tonalIcon(
+                onPressed: busy
+                    ? null
+                    : () => _export(
+                        ExamDateSheetReportAction.downloadAllClassesPdf,
+                      ),
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Download All Classes PDF'),
+              ),
           ],
         ),
       ),
@@ -388,7 +407,7 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
     }
 
     final papers = request.papers;
-    final showTeacher = request.type != ExamDateSheetReportType.parentClassCopy;
+    final showTeacher = !request.type.isClassCopy;
     if (request.type == ExamDateSheetReportType.completeSchool ||
         request.type == ExamDateSheetReportType.teacherDuty) {
       return _matrixPreview(request);
@@ -464,7 +483,22 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
           : 'Class ${paper.className} - ${paper.sectionName}';
     }
     final orderedColumns = columns.entries.toList()
-      ..sort((first, second) => first.value.compareTo(second.value));
+      ..sort((first, second) {
+        if (teacherDuty) return first.value.compareTo(second.value);
+        final firstPaper = request.papers.firstWhere(
+          (paper) => '${paper.classId}|${paper.sectionId}' == first.key,
+        );
+        final secondPaper = request.papers.firstWhere(
+          (paper) => '${paper.classId}|${paper.sectionId}' == second.key,
+        );
+        final classOrder = compareAcademicClassNames(
+          firstPaper.className,
+          secondPaper.className,
+        );
+        return classOrder != 0
+            ? classOrder
+            : firstPaper.sectionName.compareTo(secondPaper.sectionName);
+      });
     final dates = request.papers.map((paper) => paper.examDate).toSet().toList()
       ..sort();
 
@@ -560,6 +594,8 @@ class _ExamDateSheetReportsViewState extends State<_ExamDateSheetReportsView> {
   static String _typeLabel(ExamDateSheetReportType type) => switch (type) {
     ExamDateSheetReportType.completeSchool => 'Complete School',
     ExamDateSheetReportType.parentClassCopy => 'Parent / Class Copy',
+    ExamDateSheetReportType.parentClassCopyWithoutMarks =>
+      'Class Date sheet without Marks',
     ExamDateSheetReportType.teacherDuty => 'Teacher Duty',
   };
 

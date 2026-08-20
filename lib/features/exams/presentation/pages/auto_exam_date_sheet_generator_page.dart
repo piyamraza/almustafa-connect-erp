@@ -444,7 +444,7 @@ class _AutoExamDateSheetGeneratorViewState
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+                for (var day = DateTime.monday; day <= DateTime.saturday; day++)
                   FilterChip(
                     label: Text(_dayName(day)),
                     selected: _allowedWeekdays.contains(day),
@@ -903,6 +903,7 @@ class _AutoDateSheetPreviewTableState
       ),
     );
   }
+
   Widget _box(
     BuildContext context, {
     required double width,

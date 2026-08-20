@@ -32,14 +32,42 @@ void main() {
       ExamDateSheetIssueType.teacherDailyLimit,
     );
   });
+
+  test('marks do not block date sheet validation or saving', () {
+    final result = validator(
+      exam: ExamEntity(
+        id: 'exam',
+        name: 'Final',
+        type: ExamType.finalExam,
+        academicSession: '2026-2027',
+        createdAt: date,
+        startDate: date,
+        endDate: date,
+      ),
+      papers: [
+        _paper('p1', 'c1', 'English', date, totalMarks: 0, passingMarks: 50),
+      ],
+    );
+
+    expect(result.isValid, isTrue);
+    expect(result.errors, isEmpty);
+    expect(
+      result.issues.where(
+        (issue) => issue.type == ExamDateSheetIssueType.invalidMarks,
+      ),
+      isEmpty,
+    );
+  });
 }
 
 ExamDateSheetPaperEntity _paper(
   String id,
   String classId,
   String subject,
-  DateTime date,
-) => ExamDateSheetPaperEntity(
+  DateTime date, {
+  double totalMarks = 100,
+  double passingMarks = 40,
+}) => ExamDateSheetPaperEntity(
   id: id,
   classId: classId,
   className: 'Class $classId',
@@ -52,7 +80,7 @@ ExamDateSheetPaperEntity _paper(
   examDate: date,
   startMinutes: 540,
   endMinutes: 660,
-  totalMarks: 100,
-  passingMarks: 40,
+  totalMarks: totalMarks,
+  passingMarks: passingMarks,
   instructions: '',
 );

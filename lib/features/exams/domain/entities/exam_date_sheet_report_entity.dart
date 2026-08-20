@@ -3,9 +3,27 @@ import 'package:almustafa_connect_erp/features/academic_structure/domain/service
 
 import 'exam_date_sheet_entity.dart';
 
-enum ExamDateSheetReportType { completeSchool, parentClassCopy, teacherDuty }
+enum ExamDateSheetReportType {
+  completeSchool,
+  parentClassCopy,
+  parentClassCopyWithoutMarks,
+  teacherDuty,
+}
 
-enum ExamDateSheetReportAction { printPdf, sharePdf, exportExcel }
+extension ExamDateSheetReportTypeX on ExamDateSheetReportType {
+  bool get isClassCopy =>
+      this == ExamDateSheetReportType.parentClassCopy ||
+      this == ExamDateSheetReportType.parentClassCopyWithoutMarks;
+
+  bool get showsMarks => this == ExamDateSheetReportType.parentClassCopy;
+}
+
+enum ExamDateSheetReportAction {
+  printPdf,
+  sharePdf,
+  exportExcel,
+  downloadAllClassesPdf,
+}
 
 class ExamDateSheetReportRequest extends Equatable {
   const ExamDateSheetReportRequest({
@@ -31,13 +49,16 @@ class ExamDateSheetReportRequest extends Equatable {
   String get title => switch (type) {
     ExamDateSheetReportType.completeSchool => 'Complete School Date Sheet',
     ExamDateSheetReportType.parentClassCopy => 'Class Date Sheet',
+    ExamDateSheetReportType.parentClassCopyWithoutMarks => 'Date Sheet',
     ExamDateSheetReportType.teacherDuty => 'Teacher Duty Sheet',
   };
 
   String get subject => switch (type) {
     ExamDateSheetReportType.completeSchool => dateSheet.title,
     ExamDateSheetReportType.parentClassCopy =>
-      '${className ?? ''} - ${sectionName ?? ''}'.trim(),
+      'Class ${className ?? ''} - ${sectionName ?? ''}'.trim(),
+    ExamDateSheetReportType.parentClassCopyWithoutMarks =>
+      'Class ${className ?? ''} - ${sectionName ?? ''}'.trim(),
     ExamDateSheetReportType.teacherDuty => teacherName ?? '',
   };
 
@@ -45,6 +66,13 @@ class ExamDateSheetReportRequest extends Equatable {
     final values = switch (type) {
       ExamDateSheetReportType.completeSchool => dateSheet.papers,
       ExamDateSheetReportType.parentClassCopy =>
+        dateSheet.papers
+            .where(
+              (paper) =>
+                  paper.classId == classId && paper.sectionId == sectionId,
+            )
+            .toList(growable: false),
+      ExamDateSheetReportType.parentClassCopyWithoutMarks =>
         dateSheet.papers
             .where(
               (paper) =>

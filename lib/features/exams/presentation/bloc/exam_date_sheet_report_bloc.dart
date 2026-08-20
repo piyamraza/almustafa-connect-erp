@@ -61,6 +61,8 @@ class ExamDateSheetReportBloc
         ExamDateSheetReportAction.printPdf => await _print(event.request),
         ExamDateSheetReportAction.sharePdf => await _share(event.request),
         ExamDateSheetReportAction.exportExcel => await _excel(event.request),
+        ExamDateSheetReportAction.downloadAllClassesPdf =>
+          await _downloadAllClasses(event.request),
       };
       emit(ExamDateSheetReportSuccess(message));
     } catch (error) {
@@ -88,5 +90,12 @@ class ExamDateSheetReportBloc
   Future<String> _excel(ExamDateSheetReportRequest request) async {
     await _service.exportExcel(request);
     return 'Excel report prepared successfully.';
+  }
+
+  Future<String> _downloadAllClasses(
+    ExamDateSheetReportRequest request,
+  ) async {
+    await _service.downloadAllClassesPdf(request);
+    return 'All class date sheets prepared successfully.';
   }
 }
